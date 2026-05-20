@@ -1,0 +1,356 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+// Ref để kiểm tra xem đang ở chế độ Đăng nhập (true) hay Đăng ký (false)
+const isLoginMode = ref(true)
+
+// Khai báo các biến lưu dữ liệu Form
+const email = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const fullName = ref('')
+
+// Hàm xử lý khi nhấn Submit Form
+const handleSubmit = () => {
+  if (isLoginMode.value) {
+    console.log('Xử lý Đăng nhập:', { email: email.value, password: password.value })
+    // Gọi API đăng nhập ở đây...
+    // Sau khi thành công có thể điều hướng về trang chủ: router.push('/')
+  } else {
+    if (password.value !== confirmPassword.value) {
+      alert('Mật khẩu nhập lại không trùng khớp!')
+      return
+    }
+    console.log('Xử lý Đăng ký:', {
+      fullName: fullName.value,
+      email: email.value,
+      password: password.value,
+    })
+    // Gọi API đăng ký ở đây...
+  }
+}
+
+// Hàm chuyển đổi qua lại giữa Login và Register
+const toggleMode = () => {
+  isLoginMode.value = !isLoginMode.value
+  // Reset lại form khi chuyển chế độ
+  email.value = ''
+  password.value = ''
+  confirmPassword.value = ''
+  fullName.value = ''
+}
+</script>
+
+<template>
+  <div class="auth-wrapper">
+    <!-- Nút quay lại trang chủ -->
+    <div class="back-home" @click="router.push('/')">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      QUAY LẠI TRANG CHỦ
+    </div>
+
+    <div class="auth-container">
+      <!-- BÊN TRÁI: Hình ảnh thương hiệu (Ẩn trên mobile để tối ưu) -->
+      <div class="auth-image-side">
+        <div class="overlay"></div>
+        <div class="brand-content">
+          <h2 class="brand-logo">CÁI BANG <span class="gold">RESTO</span></h2>
+          <p class="brand-slogan">Nơi tinh hoa ẩm thực giao thoa cùng không gian đẳng cấp.</p>
+        </div>
+      </div>
+
+      <!-- BÊN PHẢI: Form Đăng nhập / Đăng ký -->
+      <div class="auth-form-side">
+        <div class="form-box">
+          <!-- Tiêu đề thay đổi động -->
+          <div class="form-header">
+            <h2>{{ isLoginMode ? 'ĐĂNG NHẬP' : 'TẠO TÀI KHOẢN' }}</h2>
+            <p>
+              {{
+                isLoginMode
+                  ? 'Chào mừng bạn trở lại với chúng tôi!'
+                  : 'Đăng ký để nhận nhiều ưu đãi đặc quyền khi đặt bàn.'
+              }}
+            </p>
+          </div>
+
+          <form @submit.prevent="handleSubmit" class="main-form">
+            <!-- Trường Tên (Chỉ hiện khi Đăng ký) -->
+            <div v-if="!isLoginMode" class="input-group">
+              <label>HỌ VÀ TÊN</label>
+              <input v-model="fullName" type="text" placeholder="Nhập họ và tên của bạn" required />
+            </div>
+
+            <!-- Trường Email -->
+            <div class="input-group">
+              <label>EMAIL</label>
+              <input v-model="email" type="email" placeholder="example@gmail.com" required />
+            </div>
+
+            <!-- Trường Mật khẩu -->
+            <div class="input-group">
+              <label>MẬT KHẨU</label>
+              <input v-model="password" type="password" placeholder="••••••••" required />
+            </div>
+
+            <!-- Trường Nhập lại mật khẩu (Chỉ hiện khi Đăng ký) -->
+            <div v-if="!isLoginMode" class="input-group">
+              <label>NHẬP LẠI MẬT KHẨU</label>
+              <input v-model="confirmPassword" type="password" placeholder="••••••••" required />
+            </div>
+
+            <!-- Quên mật khẩu (Chỉ hiện khi Đăng nhập) -->
+            <div v-if="isLoginMode" class="forgot-password">
+              <a href="#forgot">Quên mật khẩu?</a>
+            </div>
+
+            <!-- Nút Submit hành động -->
+            <button type="submit" class="btn-auth-submit">
+              {{ isLoginMode ? 'ĐĂNG NHẬP NAY' : 'ĐĂNG KÝ TÀI KHOẢN' }}
+            </button>
+          </form>
+
+          <!-- Nút chuyển đổi chế độ Form -->
+          <div class="form-toggle-footer">
+            <span>
+              {{ isLoginMode ? 'Bạn chưa có tài khoản?' : 'Bạn đã có tài khoản rồi?' }}
+            </span>
+            <button @click="toggleMode" class="btn-toggle">
+              {{ isLoginMode ? 'Đăng ký ngay' : 'Đăng nhập ngay' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* Reset và bao bọc toàn màn hình */
+.auth-wrapper {
+  background-color: #0a0a0a;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Nút quay lại góc trên */
+.back-home {
+  position: absolute;
+  top: 30px;
+  left: 40px;
+  color: #fff;
+  opacity: 0.6;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: 0.3s;
+  z-index: 10;
+}
+.back-home:hover {
+  opacity: 1;
+  color: #c5a059;
+}
+
+/* Khung Container chính chia đôi */
+.auth-container {
+  width: 100%;
+  max-width: 1100px;
+  height: 650px;
+  background: #111111;
+  display: flex;
+  border: 1px solid rgba(197, 160, 89, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* 1. Thiết kế bên phía Ảnh thương hiệu */
+.auth-image-side {
+  flex: 1;
+  position: relative;
+  /* Bạn thay url ảnh không gian nhà hàng luxury của bạn ở đây nhé */
+  background-image: url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+  padding: 40px;
+}
+.auth-image-side .overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(10, 10, 10, 0.95) 20%, rgba(10, 10, 10, 0.3));
+}
+.brand-content {
+  position: relative;
+  z-index: 2;
+}
+.brand-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  letter-spacing: 3px;
+  color: #fff;
+  margin-bottom: 10px;
+}
+.gold {
+  color: #c5a059;
+}
+.brand-slogan {
+  color: #ccc;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  line-height: 1.6;
+}
+
+/* 2. Thiết kế bên phía Form */
+.auth-form-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: #121212;
+}
+.form-box {
+  width: 100%;
+  max-width: 380px;
+}
+.form-header h2 {
+  color: #fff;
+  font-size: 1.4rem;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.form-header p {
+  color: #777;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+/* Input Styling tương thích tone tối */
+.main-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.input-group label {
+  color: #c5a059;
+  font-size: 0.65rem;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+.input-group input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 15px;
+  color: #fff;
+  font-size: 0.85rem;
+  outline: none;
+  transition: 0.3s;
+}
+.input-group input:focus {
+  border-color: #c5a059;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 8px rgba(197, 160, 89, 0.2);
+}
+
+/* Quên mật khẩu */
+.forgot-password {
+  text-align: right;
+}
+.forgot-password a {
+  color: #777;
+  font-size: 0.75rem;
+  text-decoration: none;
+  transition: 0.3s;
+}
+.forgot-password a:hover {
+  color: #c5a059;
+}
+
+/* Nút submit chính */
+.btn-auth-submit {
+  background: #c5a059;
+  color: #000;
+  border: none;
+  padding: 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: 0.4s;
+  margin-top: 10px;
+}
+.btn-auth-submit:hover {
+  background: #e2be7a;
+  box-shadow: 0 5px 15px rgba(197, 160, 89, 0.3);
+}
+
+/* Footer chuyển đổi */
+.form-toggle-footer {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #777;
+}
+.btn-toggle {
+  background: none;
+  border: none;
+  color: #c5a059;
+  font-weight: 600;
+  cursor: pointer;
+  padding-left: 5px;
+  text-decoration: underline;
+}
+.btn-toggle:hover {
+  color: #e2be7a;
+}
+
+/* Responsive cho Mobile & Tablet nhỏ */
+@media (max-width: 868px) {
+  .auth-image-side {
+    display: none; /* Ẩn một bên ảnh để dồn diện tích cho form nhập liệu */
+  }
+  .auth-container {
+    max-width: 500px;
+    height: auto;
+  }
+  .back-home {
+    top: 20px;
+    left: 20px;
+  }
+}
+</style>
