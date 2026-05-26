@@ -15,11 +15,15 @@ import lombok.Setter;
 public class Ban {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_ban") // Cần thêm để khớp với database
     private Integer idBan;
+
     private String loaiBan;
     private int soLuongBan;
+
     @ManyToOne
     @JoinColumn(name = "id_khu_vuc", referencedColumnName = "id_khu_vuc")
     private KhuVuc khuVuc;
+
     private int trangThai;
 }

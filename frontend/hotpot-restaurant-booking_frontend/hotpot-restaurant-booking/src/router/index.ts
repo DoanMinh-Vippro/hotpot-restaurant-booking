@@ -21,6 +21,11 @@ const router = createRouter({
       // Tương tự, dùng lazy-loading giúp tối ưu hóa dung lượng ứng dụng ban đầu
       component: () => import('@/views/AuthView.vue'),
     },
+    {
+      path: '/hoa-don',
+      name: 'hoa-don',
+      component: () => import('@/views/InvoiceView.vue'),
+    },
   ],
 })
 

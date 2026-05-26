@@ -1,27 +1,42 @@
 package com.example.hotpotrestaurantbooking_backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @Entity
 @AllArgsConstructor
-@NoArgsConstructor
-@Table(name = "KhachHang")
+@NoArgsConstructor // Thêm @NoArgsConstructor để Hibernate khởi tạo entity
+@Table(name = "\"KhachHang\"")
 public class KhachHang {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_khach_hang") // Khớp với tên cột trong DB
     private Integer idKhachHang;
+
+    @Column(name = "ma_khach_hang")
     private String maKhachHang;
-    private boolean gioiTinh;
+
+    @Column(name = "ten_khach_hang")
+    private String tenKhachHang;
+
+    @Column(name = "gioi_tinh")
+    private Boolean gioiTinh;
+
+    @Column(name = "dia_chi")
     private String diaChi;
+
+    @Column(name = "so_dien_thoai")
     private String soDienThoai;
 
-
+    @Column(name = "email")
     private String email;
-    private boolean trangThai;
+
+    @Column(name = "trang_thai")
+    private Boolean trangThai;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_tai_khoan") // Khớp với tên cột khóa ngoại trong DB
+    private TaiKhoan taiKhoan;
 }
