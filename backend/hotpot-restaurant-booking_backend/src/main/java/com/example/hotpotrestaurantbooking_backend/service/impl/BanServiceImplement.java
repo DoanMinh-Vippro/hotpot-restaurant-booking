@@ -1,4 +1,4 @@
-package com.example.hotpotrestaurantbooking_backend.service.Impl;
+package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTOBanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOBanResponse;
