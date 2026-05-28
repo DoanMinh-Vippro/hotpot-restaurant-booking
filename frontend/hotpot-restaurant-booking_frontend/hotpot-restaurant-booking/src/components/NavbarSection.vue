@@ -30,6 +30,7 @@ const goToAuth = () => {
           <li><a href="#home">TRANG CHỦ</a></li>
           <li><a href="#about">GIỚI THIỆU</a></li>
           <li><a href="#menu">THỰC ĐƠN</a></li>
+          <li><button class="nav-link-button" type="button" @click="router.push('/hoa-don')">HÓA ĐƠN</button></li>
           <li><a href="#contact">LIÊN HỆ</a></li>
         </ul>
 
@@ -94,7 +95,8 @@ const goToAuth = () => {
   margin: 0;
   padding: 0;
 }
-.nav-links a {
+.nav-links a,
+.nav-link-button {
   color: #fff;
   text-decoration: none;
   font-size: 0.75rem;
@@ -102,7 +104,14 @@ const goToAuth = () => {
   transition: 0.3s;
   opacity: 0.7;
 }
-.nav-links a:hover {
+.nav-link-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.nav-links a:hover,
+.nav-link-button:hover {
   opacity: 1;
   color: #c5a059;
 }

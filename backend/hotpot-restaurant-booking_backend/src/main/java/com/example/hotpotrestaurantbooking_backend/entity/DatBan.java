@@ -16,7 +16,7 @@ import java.time.LocalTime;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "DatBan")
+@Table(name = "\"DatBan\"")
 public class DatBan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
