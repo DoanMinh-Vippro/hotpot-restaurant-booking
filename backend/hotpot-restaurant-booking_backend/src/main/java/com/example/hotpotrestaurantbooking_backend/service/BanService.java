@@ -1,21 +1,15 @@
-// ===========================================
-// BanService
-// ===========================================
 package com.example.hotpotrestaurantbooking_backend.service;
 
-import com.example.hotpotrestaurantbooking_backend.entity.Ban;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOBanRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOBanResponse;
 
 import java.util.List;
 
 public interface BanService {
-
-    List<Ban> getAll();
-
-    Ban getById(Integer id);
-
-    Ban add(Ban ban);
-
-    Ban update(Integer id, Ban ban);
-
+    List<DTOBanResponse> getAll();
+    DTOBanResponse findById(Integer id);
+    DTOBanResponse add(DTOBanRequest request);
+    DTOBanResponse update(Integer id, DTOBanRequest request);
     void delete(Integer id);
+
 }

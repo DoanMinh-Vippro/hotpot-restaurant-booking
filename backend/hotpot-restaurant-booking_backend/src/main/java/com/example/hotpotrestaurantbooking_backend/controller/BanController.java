@@ -1,46 +1,46 @@
-// ===========================================
-// BanController
-// ===========================================
 package com.example.hotpotrestaurantbooking_backend.controller;
 
-import com.example.hotpotrestaurantbooking_backend.entity.Ban;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOBanRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOBanResponse;
 import com.example.hotpotrestaurantbooking_backend.service.BanService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/ban")
-@CrossOrigin("*")
+@RequestMapping("/api/bans")
+@RequiredArgsConstructor
 public class BanController {
+    private final BanService banService;
 
-    @Autowired
-    private BanService banService;
-
-    @GetMapping("/hien-thi")
-    public List<Ban> getAll() {
-        return banService.getAll();
+    @GetMapping
+    public ResponseEntity<List<DTOBanResponse>> getAll(){
+        return ResponseEntity.status(HttpStatus.OK).body(banService.getAll());
     }
 
-    @GetMapping("/detail/{id}")
-    public Ban getById(@PathVariable Integer id) {
-        return banService.getById(id);
+    @GetMapping("{id}")
+    public ResponseEntity<DTOBanResponse> findById(@PathVariable Integer id){
+        return ResponseEntity.status(HttpStatus.OK).body(banService.findById(id));
     }
 
-    @PostMapping("/add")
-    public Ban add(@RequestBody Ban ban) {
-        return banService.add(ban);
+    @PostMapping
+    public ResponseEntity<DTOBanResponse> add(@Valid @RequestBody DTOBanRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(banService.add(request));
     }
 
-    @PutMapping("/update/{id}")
-    public Ban update(@PathVariable Integer id,
-                      @RequestBody Ban ban) {
-        return banService.update(id, ban);
+    @PutMapping("{id}")
+    public ResponseEntity<DTOBanResponse> update(@PathVariable Integer id, @Valid @RequestBody DTOBanRequest request){
+        return ResponseEntity.status(HttpStatus.OK).body(banService.update(id,request));
     }
 
-    @DeleteMapping("/delete/{id}")
-    public void delete(@PathVariable Integer id) {
+    @DeleteMapping("{id}")
+    public ResponseEntity<Void> deleteById(@PathVariable Integer id){
         banService.delete(id);
+        return ResponseEntity.noContent().build();
     }
+
 }

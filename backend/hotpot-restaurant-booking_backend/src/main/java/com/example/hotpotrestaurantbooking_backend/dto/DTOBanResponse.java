@@ -1,5 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.dto;
 
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,5 +15,5 @@ public class DTOBanResponse {
     private int soLuongBan;
     private Integer idKhuVuc;
     private String tenKhuVuc;
-    private Integer trangThai;
+    private TrangThaiBan trangThai;
 }
