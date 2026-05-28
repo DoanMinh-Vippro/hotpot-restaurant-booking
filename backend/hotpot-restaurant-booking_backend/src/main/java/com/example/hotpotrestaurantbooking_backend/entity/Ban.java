@@ -21,5 +21,6 @@ public class Ban {
     @ManyToOne
     @JoinColumn(name = "id_khu_vuc", referencedColumnName = "id_khu_vuc")
     private KhuVuc khuVuc;
-    private int trangThai;
+    @Enumerated(EnumType.STRING)
+    private Integer trangThai;
 }

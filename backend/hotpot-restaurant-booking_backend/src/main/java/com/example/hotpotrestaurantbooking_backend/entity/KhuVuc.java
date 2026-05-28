@@ -18,6 +18,6 @@ public class KhuVuc {
     private Integer idKhuVuc;
     private String moTa;
     private String tenKhuVuc;
-    private int trangThai;
+    private Integer trangThai;
 
 }
