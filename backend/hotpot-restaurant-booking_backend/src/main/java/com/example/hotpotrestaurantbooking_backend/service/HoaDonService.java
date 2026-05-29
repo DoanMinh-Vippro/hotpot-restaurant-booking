@@ -1,25 +1,14 @@
-// ===========================================
-// HoaDonService
-// ===========================================
 package com.example.hotpotrestaurantbooking_backend.service;
 
-import com.example.hotpotrestaurantbooking_backend.dto.HoaDonChiTietDTO;
-import com.example.hotpotrestaurantbooking_backend.dto.HoaDonDTO;
-import com.example.hotpotrestaurantbooking_backend.entity.HoaDon;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
 
 import java.util.List;
 
 public interface HoaDonService {
-
-    List<HoaDonDTO> getAll();
-
-    HoaDonDTO getById(Integer id);
-
-    List<HoaDonChiTietDTO> getChiTietByHoaDonId(Integer idHoaDon);
-
-    HoaDon add(HoaDon hoaDon);
-
-    HoaDon update(Integer id, HoaDon hoaDon);
-
+    List<DTOHoaDonResponse> getAll();
+    DTOHoaDonResponse findById(Integer id);
+    DTOHoaDonResponse add(DTOHoaDonRequest request);
+    DTOHoaDonResponse update(Integer id, DTOHoaDonRequest request);
     void delete(Integer id);
 }

@@ -20,12 +20,13 @@ import java.time.LocalTime;
 public class DatBan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_dat_ban")
     private Integer idDatBan;
     @ManyToOne
-    @JoinColumn(name = "id_ban",referencedColumnName = "id_ban")
+    @JoinColumn(name = "id_ban", referencedColumnName = "idban")
     private Ban ban;
     @ManyToOne
-    @JoinColumn(name = "id_khach_hang",referencedColumnName = "id_khach_hang")
+    @JoinColumn(name = "id_khach_hang", referencedColumnName = "id_khach_hang")
     private KhachHang khachHang;
     private LocalDate ngayDat;
     private LocalTime gioDat;

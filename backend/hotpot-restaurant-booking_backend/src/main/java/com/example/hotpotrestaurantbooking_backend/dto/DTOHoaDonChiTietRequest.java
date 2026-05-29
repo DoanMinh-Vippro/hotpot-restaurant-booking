@@ -1,11 +1,9 @@
 package com.example.hotpotrestaurantbooking_backend.dto;
 
-// ==========================
-// DTO: HoaDonChiTietDTO
-// ==========================
-
-
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
@@ -13,28 +11,13 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class HoaDonChiTietDTO {
-
-    private Integer idHoaDonChiTiet;
-
+public class DTOHoaDonChiTietRequest {
     private String maHoaDonChiTiet;
-
     private Integer idMon;
-
-    private String tenMon;
-
     private Integer idCombo;
-
-    private String tenCombo;
-
     private Integer idHoaDon;
-
     private Integer soLuong;
-
     private BigDecimal giaBanTaiThoiDiem;
-
     private BigDecimal tienGiamGiaMon;
-
     private BigDecimal thanhTien;
 }
