@@ -11,5 +11,6 @@ public interface BanService {
     DTOBanResponse add(DTOBanRequest request);
     DTOBanResponse update(Integer id, DTOBanRequest request);
     void delete(Integer id);
-
+    List<DTOBanResponse> search(String tenKhuVuc, String loaiBan);
+    List<DTOBanResponse> sort();
 }

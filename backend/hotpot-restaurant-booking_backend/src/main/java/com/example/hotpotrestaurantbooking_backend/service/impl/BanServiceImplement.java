@@ -95,4 +95,30 @@ public class BanServiceImplement implements BanService {
     public void delete(Integer id) {
         banRepository.deleteById(id);
     }
+
+    @Override
+    public List<DTOBanResponse> search(String tenKhuVuc, String loaiBan) {
+        return banRepository
+                .findAllByKhuVuc_TenKhuVucOrLoaiBanContainingIgnoreCase(tenKhuVuc,loaiBan)
+                .stream()
+                .map(b -> {
+                    DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
+                    response.setTenKhuVuc(b.getKhuVuc().getTenKhuVuc());
+                    return response;
+                })
+                .toList();
+    }
+
+    @Override
+    public List<DTOBanResponse> sort() {
+        return banRepository
+                .findAllByOrderByIdBanDesc()
+                .stream()
+                .map(b -> {
+                    DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
+                    response.setTenKhuVuc(b.getKhuVuc().getTenKhuVuc());
+                    return response;
+                })
+                .toList();
+    }
 }

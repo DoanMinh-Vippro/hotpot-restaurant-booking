@@ -43,4 +43,12 @@ public class BanController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<DTOBanResponse>> search(@RequestParam(required = false) String key){
+        return ResponseEntity.status(HttpStatus.OK).body(banService.search(key,key));
+    }
+    @GetMapping("/sort")
+    public ResponseEntity<List<DTOBanResponse>> sort(){
+        return ResponseEntity.status(HttpStatus.OK).body(banService.sort());
+    }
 }

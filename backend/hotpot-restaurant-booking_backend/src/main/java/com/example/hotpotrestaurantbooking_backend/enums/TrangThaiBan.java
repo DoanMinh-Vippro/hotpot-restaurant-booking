@@ -5,5 +5,4 @@ public enum TrangThaiBan {
         Dang_Su_Dung,
         Da_Dat,
         BaoTri
-
 }
