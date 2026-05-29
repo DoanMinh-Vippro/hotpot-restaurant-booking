@@ -8,6 +8,9 @@ import org.springframework.context.annotation.Configuration;
 public class ConfigModelMapper {
     @Bean
     public ModelMapper modelMapper(){
-        return new ModelMapper();
+        ModelMapper mapper = new ModelMapper();
+        // Ignore ambiguous property mappings so manual nested mappings in services can still be applied.
+        mapper.getConfiguration().setAmbiguityIgnored(true);
+        return mapper;
     }
 }

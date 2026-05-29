@@ -1,55 +1,55 @@
 package com.example.hotpotrestaurantbooking_backend.controller;
 
-import com.example.hotpotrestaurantbooking_backend.dto.HoaDonChiTietDTO;
-import com.example.hotpotrestaurantbooking_backend.dto.HoaDonDTO;
-import com.example.hotpotrestaurantbooking_backend.entity.HoaDon;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietResponse;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.hotpotrestaurantbooking_backend.service.HoaDonChiTietService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/hoa-don") // Thêm /api để tránh xung đột với file tĩnh
+@RequestMapping("/api/hoa-don")
 @CrossOrigin("*")
+@RequiredArgsConstructor
 public class HoaDonController {
 
-    @Autowired
-    private HoaDonService hoaDonService;
+    private final HoaDonService hoaDonService;
+    private final HoaDonChiTietService hoaDonChiTietService;
 
-    // Gọi: GET http://localhost:8080/api/hoa-don hoặc /api/hoa-don/hienthi
     @GetMapping({"", "/hienthi"})
-    public List<HoaDonDTO> getAll() {
-        return hoaDonService.getAll();
+    public ResponseEntity<List<DTOHoaDonResponse>> getAll() {
+        return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.getAll());
     }
 
-    // Gọi: GET http://localhost:8080/api/hoa-don/1
-    @GetMapping("/{id}")
-    public HoaDonDTO getById(@PathVariable Integer id) {
-        return hoaDonService.getById(id);
+    @GetMapping("{id}")
+    public ResponseEntity<DTOHoaDonResponse> findById(@PathVariable Integer id) {
+        return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.findById(id));
     }
 
-    // Gọi: GET http://localhost:8080/api/hoa-don/1/chi-tiet
-    @GetMapping("/{id}/chi-tiet")
-    public List<HoaDonChiTietDTO> getChiTietByHoaDonId(@PathVariable Integer id) {
-        return hoaDonService.getChiTietByHoaDonId(id);
+    @GetMapping("{id}/chi-tiet")
+    public ResponseEntity<List<DTOHoaDonChiTietResponse>> getChiTietByHoaDonId(@PathVariable Integer id) {
+        return ResponseEntity.status(HttpStatus.OK).body(hoaDonChiTietService.getChiTietByHoaDonId(id));
     }
 
-    // Gọi: POST http://localhost:8080/api/hoa-don
     @PostMapping
-    public HoaDon add(@RequestBody HoaDon hoaDon) {
-        return hoaDonService.add(hoaDon);
+    public ResponseEntity<DTOHoaDonResponse> add(@Valid @RequestBody DTOHoaDonRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(hoaDonService.add(request));
     }
 
-    // Gọi: PUT http://localhost:8080/api/hoa-don/1
-    @PutMapping("/{id}")
-    public HoaDon update(@PathVariable Integer id, @RequestBody HoaDon hoaDon) {
-        return hoaDonService.update(id, hoaDon);
+    @PutMapping("{id}")
+    public ResponseEntity<DTOHoaDonResponse> update(@PathVariable Integer id, @Valid @RequestBody DTOHoaDonRequest request) {
+        return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.update(id, request));
     }
 
-    // Gọi: DELETE http://localhost:8080/api/hoa-don/1
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Integer id) {
+    @DeleteMapping("{id}")
+    public ResponseEntity<Void> deleteById(@PathVariable Integer id) {
         hoaDonService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

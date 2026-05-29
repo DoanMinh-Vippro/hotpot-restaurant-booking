@@ -1,4 +1,4 @@
-package com.example.hotpotrestaurantbooking_backend.service.Impl;
+package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTOBanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOBanResponse;
@@ -7,7 +7,7 @@ import com.example.hotpotrestaurantbooking_backend.entity.KhuVuc;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.KhuVucRepository;
-import com.example.hotpotrestaurantbooking_backend.service.ServiceBan;
+import com.example.hotpotrestaurantbooking_backend.service.BanService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -16,16 +16,23 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class BanImplement implements ServiceBan {
+public class BanServiceImplement implements BanService {
     private final BanRepository banRepository;
     private final KhuVucRepository khuVucRepository;
     private final ModelMapper mapper;
+
+
     @Override
     public List<DTOBanResponse> getAll() {
         return banRepository
                 .findAll()
                 .stream()
-                .map(b -> mapper.map(b, DTOBanResponse.class))
+                .map(b -> {
+                    DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
+                    response.setTenKhuVuc(
+                            b.getKhuVuc().getTenKhuVuc());
+                    return response;
+                })
                 .toList();
     }
 
@@ -33,15 +40,32 @@ public class BanImplement implements ServiceBan {
     public DTOBanResponse findById(Integer id) {
         return banRepository
                 .findById(id)
-                .map(b -> mapper.map(b,DTOBanResponse.class))
+                .map(b -> {
+                    DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
+                    response.setTenKhuVuc(
+                            b.getKhuVuc().getTenKhuVuc());
+                    return response;
+                })
                 .orElseThrow(()-> new CustomResourceNotFoundException("khong tim thay id: " + id));
     }
 
     @Override
     public DTOBanResponse add(DTOBanRequest request) {
-        Ban b = mapper.map(request, Ban.class);
+        Ban b = new Ban();
+        b.setLoaiBan(request.getLoaiBan());
+        b.setSoLuongBan(request.getSoLuongBan());
+        b.setTrangThai(request.getTrangThai());
+
+        KhuVuc k = khuVucRepository.findById(request.getIdKhuVuc()).orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay khu vuc"));
+
+        b.setKhuVuc(k);
         banRepository.save(b);
-        return mapper.map(b,DTOBanResponse.class);
+
+        DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
+        response.setTenKhuVuc(
+                b.getKhuVuc().getTenKhuVuc()
+        );
+        return response;
     }
 
     @Override
@@ -57,7 +81,7 @@ public class BanImplement implements ServiceBan {
                                 .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay khu vuc"));
                         b.setKhuVuc(k);
                     }
-                    if (request.getTrangThai() >= 0 && request.getTrangThai() <= 3 ) b.setTrangThai(request.getTrangThai());
+                    if (request.getTrangThai() != null ) b.setTrangThai(request.getTrangThai());
                     banRepository.save(b);
                     DTOBanResponse response = mapper.map(b, DTOBanResponse.class);
                     response.setTenKhuVuc( // set tay ten khu vuc

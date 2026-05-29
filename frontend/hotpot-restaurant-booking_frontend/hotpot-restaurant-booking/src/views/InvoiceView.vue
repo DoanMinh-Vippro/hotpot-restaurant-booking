@@ -11,7 +11,7 @@ type HoaDon = {
   tienCoc: number | string | null
   tienGiamGia: number | string | null
   tongTien: number | string | null
-  thoiGianXuat: string | null
+  thoiGianXuat: string | number[] | null
   idBan: number | null
   loaiBan: string | null
   idDatBan: number | null
@@ -34,7 +34,9 @@ type HoaDonChiTiet = {
   thanhTien: number | string | null
 }
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+// Khi chạy dev, Vite proxy /api → http://localhost:8080, nên để mặc định rỗng.
+// Trong production, đặt VITE_API_BASE_URL=https://your-server.com
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
 
 const hoaDons = ref<HoaDon[]>([])
 const chiTiets = ref<HoaDonChiTiet[]>([])
@@ -60,13 +62,24 @@ const formatCurrency = (value: number | string | null) =>
     maximumFractionDigits: 0,
   }).format(toNumber(value))
 
-const formatDateTime = (value: string | null) => {
+const formatDateTime = (value: string | number[] | null) => {
   if (!value) return 'Chưa xuất'
+
+  let date: Date
+  if (Array.isArray(value)) {
+    // Spring Boot có thể serialize LocalDateTime thành array [year, month, day, hour, minute, second]
+    const [year, month, day, hour = 0, minute = 0, second = 0] = value
+    date = new Date(year, month - 1, day, hour, minute, second)
+  } else {
+    date = new Date(value)
+  }
+
+  if (isNaN(date.getTime())) return String(value)
 
   return new Intl.DateTimeFormat('vi-VN', {
     dateStyle: 'short',
     timeStyle: 'short',
-  }).format(new Date(value))
+  }).format(date)
 }
 
 const toNumber = (value: number | string | null) => Number(value ?? 0)
