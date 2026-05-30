@@ -1,2 +1,20 @@
-package com.example.hotpotrestaurantbooking_backend.dto.Mon;public class MonResponse {
+package com.example.hotpotrestaurantbooking_backend.dto.Mon;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class MonResponse {
+    private Integer idMon;
+    private String tenMon;
+    private BigDecimal donGiaHienTai;
+    private String loaiDanhMuc;
+    private Integer trangThai;
 }

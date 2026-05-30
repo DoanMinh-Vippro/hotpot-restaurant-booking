@@ -10,11 +10,13 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "\"ChiTietCombo\"")
+@Table(name = "ChiTietCombo")
 public class ChiTietCombo {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idChiTietCombo;
+    @Column(name = "so_luong")
     private Integer soLuong;
+    @Column(name = "mo_ta")
     private String moTa;
 
     @ManyToOne

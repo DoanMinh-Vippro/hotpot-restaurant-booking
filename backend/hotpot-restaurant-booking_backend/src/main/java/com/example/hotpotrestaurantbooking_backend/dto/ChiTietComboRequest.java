@@ -11,15 +11,15 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChiTietComboDTO {
+public class ChiTietComboRequest {
 
     private Integer idChiTietCombo;
 
     private Integer soLuong;
 
-    private Integer idMon;
+    private String idMon;
 
-    private Integer idCombo;
+    private String idCombo;
 
     private String moTa;
 }

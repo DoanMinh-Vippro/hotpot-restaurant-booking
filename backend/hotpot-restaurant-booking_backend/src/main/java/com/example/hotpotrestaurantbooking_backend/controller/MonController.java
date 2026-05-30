@@ -3,44 +3,72 @@
 // ===========================================
 package com.example.hotpotrestaurantbooking_backend.controller;
 
+import com.example.hotpotrestaurantbooking_backend.Validation.ApiResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.Mon.MonRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.Mon.MonResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.Mon;
 import com.example.hotpotrestaurantbooking_backend.service.MonService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/mon")
 @CrossOrigin("*")
 public class MonController {
 
     @Autowired
     private MonService monService;
 
-    @GetMapping("/hien-thi")
-    public List<Mon> getAll() {
-        return monService.getAll();
+    @GetMapping("hienThiMon")
+    public List<MonResponse> hienThiMon() {
+        return monService.hienThiMon();
     }
 
-    @GetMapping("/detail/{id}")
-    public Mon getById(@PathVariable Integer id) {
-        return monService.getById(id);
+    @GetMapping("detailMon")
+    public MonResponse detailMon(@RequestParam("tenMon") String tenMon){
+        return monService.detailMon(tenMon);
+    }
+    @GetMapping("phanTrangMon")
+    public List<MonResponse>phanTrangMon(@RequestParam(defaultValue = "0") Integer pageNo,
+                                         @RequestParam(defaultValue = "5") Integer pageSize){
+        return monService.phanTrangMon(pageNo,pageSize).getContent();
     }
 
-    @PostMapping("/add")
-    public Mon add(@RequestBody Mon mon) {
-        return monService.add(mon);
+    @GetMapping("searchMon")
+    public List<MonResponse> timKiemMon(
+            @RequestParam(required = false) String tenMon,
+            @RequestParam(required = false) BigDecimal giaMin,
+            @RequestParam(required = false) BigDecimal giaMax,
+            @RequestParam(required = false) String loaiDanhMuc,
+            @RequestParam(defaultValue = "0") Integer pageNo,
+            @RequestParam(defaultValue = "5") Integer pageSize
+    ) {
+        return monService.timKiemMon(
+                tenMon,
+                giaMin,
+                giaMax,
+                loaiDanhMuc,
+                pageNo,
+                pageSize
+        ).getContent();
     }
-
-    @PutMapping("/update/{id}")
-    public Mon update(@PathVariable Integer id,
-                      @RequestBody Mon mon) {
-        return monService.update(id, mon);
+    @PostMapping("addMon")
+    public ResponseEntity<ApiResponse> addMon(@Valid @RequestBody MonRequest req){
+        monService.addMon(req);
+        return ResponseEntity.ok(new ApiResponse("Thêm món thành công"));
     }
-
-    @DeleteMapping("/delete/{id}")
-    public void delete(@PathVariable Integer id) {
-        monService.delete(id);
+    @PutMapping("updateMon")
+    public ResponseEntity<ApiResponse> updateMon(@RequestParam("idMon") Integer idMon, @Valid @RequestBody MonRequest req){
+        monService.updateMon(idMon, req);
+        return ResponseEntity.ok(new ApiResponse("Update món thành công"));
+    }
+    @DeleteMapping("deleteMon")
+    public ResponseEntity<ApiResponse> deleteMon(@RequestParam("idMon") Integer idMon){
+        monService.deleteMon(idMon);
+        return ResponseEntity.ok(new ApiResponse("Đã ngưng bán món này"));
     }
 }

@@ -15,6 +15,8 @@ public class DanhMuc {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idDanhMuc;
+    @Column(name = "loai_danh_muc")
     private String loaiDanhMuc;
+    @Column(name = "mo_ta")
     private String moTa;
 }
