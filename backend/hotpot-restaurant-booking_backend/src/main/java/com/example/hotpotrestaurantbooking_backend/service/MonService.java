@@ -46,7 +46,7 @@ public class MonService {
     }
 
     public void addMon(MonRequest req){
-        monValidator.validate(req);
+        monValidator.validateAdd(req);
         Mon m=new Mon();
         BeanUtils.copyProperties(req, m);
         DanhMuc dm= repo2.findByIdDanhMuc(req.getIdDanhMuc());
@@ -55,7 +55,7 @@ public class MonService {
     }
 
     public void updateMon(Integer idMon, MonRequest req){
-        monValidator.validate(req);
+        monValidator.validateUpdate(idMon, req);
         Mon  m= repo.findById(idMon)
                 .orElseThrow(() ->
                         new RuntimeException("Không tìm thấy món"));

@@ -59,4 +59,5 @@ public interface MonRepository extends JpaRepository<Mon,Integer> {
     );
 
     boolean existsByTenMonIgnoreCase(String tenMon);
+    Mon findByTenMonIgnoreCase(String tenMon);
 }
