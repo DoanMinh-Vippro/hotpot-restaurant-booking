@@ -1,14 +1,15 @@
 package com.example.hotpotrestaurantbooking_backend.controller;
 
+import com.example.hotpotrestaurantbooking_backend.Validation.ApiResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.ChiTietComBoResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.ChiTietComboRequest;
 import com.example.hotpotrestaurantbooking_backend.service.ChiTietComBoService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -20,5 +21,35 @@ public class ChiTietComBoController {
     @GetMapping("hienThiCTCB")
     public List<ChiTietComBoResponse>hienThi(){
         return sv.hienThi();
+    }
+
+    @GetMapping("detailCTCB")
+    public ChiTietComBoResponse detailCTCB(@RequestParam("idChiTietCombo") Integer idChiTietCombo){
+        return sv.detailCTCB(idChiTietCombo);
+    }
+    @GetMapping("phanTrangCTCB")
+    public List<ChiTietComBoResponse> phanTrangCTCB(@RequestParam(defaultValue = "0") Integer pageNo,
+                                                    @RequestParam(defaultValue = "5") Integer pageSize){
+        return sv.phanTrangCTCB(pageNo,pageSize).getContent();
+    }
+    @GetMapping("timKiemCTCB")
+    public List<ChiTietComBoResponse>timKiemCTCB(@RequestParam(required = false) String tenCombo,
+                                                 @RequestParam(required = false) String tenMon,
+                                                 @RequestParam(required = false) BigDecimal giaMin,
+                                                 @RequestParam(required = false) BigDecimal giaMax,
+                                                 @RequestParam(defaultValue = "0") Integer pageNo,
+                                                 @RequestParam(defaultValue = "5") Integer pageSize){
+        return sv.timKiemCTCB(tenCombo, tenMon, giaMin, giaMax, pageNo,pageSize).getContent();
+    }
+    @PostMapping("addCTCB")
+    public ResponseEntity<ApiResponse>addCTCB(@Valid @RequestBody ChiTietComboRequest req){
+        sv.addCTCB(req);
+        return ResponseEntity.ok(new ApiResponse("Thêm ComBo thành công"));
+    }
+    @PutMapping("updateCTCB")
+    public ResponseEntity<ApiResponse>updateCTCB(@RequestParam("idChiTietCombo") Integer idChiTietCombo,
+                                                 @Valid @RequestBody ChiTietComboRequest req){
+        sv.updateCTCB(idChiTietCombo,req);
+        return ResponseEntity.ok(new ApiResponse("Update ComBo thành công"));
     }
 }

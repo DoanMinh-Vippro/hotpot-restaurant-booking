@@ -1,7 +1,7 @@
 package com.example.hotpotrestaurantbooking_backend.service;
 
-import com.example.hotpotrestaurantbooking_backend.dto.Mon.MonRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.Mon.MonResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.MonRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.MonResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.DanhMuc;
 import com.example.hotpotrestaurantbooking_backend.entity.Mon;
 import com.example.hotpotrestaurantbooking_backend.Validation.MonValidator;

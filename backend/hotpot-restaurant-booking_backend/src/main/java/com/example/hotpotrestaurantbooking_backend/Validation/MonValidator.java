@@ -1,7 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.Validation;
 
-import com.example.hotpotrestaurantbooking_backend.Validation.ValidateUtil;
-import com.example.hotpotrestaurantbooking_backend.dto.Mon.MonRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.MonRequest;
 import com.example.hotpotrestaurantbooking_backend.entity.Mon;
 import com.example.hotpotrestaurantbooking_backend.repository.MonRepository;
 import lombok.RequiredArgsConstructor;

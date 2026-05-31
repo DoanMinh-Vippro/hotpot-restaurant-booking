@@ -1,4 +1,4 @@
-package com.example.hotpotrestaurantbooking_backend.dto.Mon;
+package com.example.hotpotrestaurantbooking_backend.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

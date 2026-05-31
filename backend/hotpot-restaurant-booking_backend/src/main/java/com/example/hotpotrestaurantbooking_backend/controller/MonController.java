@@ -4,9 +4,8 @@
 package com.example.hotpotrestaurantbooking_backend.controller;
 
 import com.example.hotpotrestaurantbooking_backend.Validation.ApiResponse;
-import com.example.hotpotrestaurantbooking_backend.dto.Mon.MonRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.Mon.MonResponse;
-import com.example.hotpotrestaurantbooking_backend.entity.Mon;
+import com.example.hotpotrestaurantbooking_backend.dto.MonRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.MonResponse;
 import com.example.hotpotrestaurantbooking_backend.service.MonService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

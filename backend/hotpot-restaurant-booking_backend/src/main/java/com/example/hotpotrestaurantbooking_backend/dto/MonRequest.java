@@ -1,4 +1,4 @@
-package com.example.hotpotrestaurantbooking_backend.dto.Mon;
+package com.example.hotpotrestaurantbooking_backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ComboDTO {
+public class ComboResponse {
 
     private Integer idCombo;
 

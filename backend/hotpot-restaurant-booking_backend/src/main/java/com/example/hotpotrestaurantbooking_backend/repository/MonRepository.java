@@ -1,6 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.repository;
 
-import com.example.hotpotrestaurantbooking_backend.dto.Mon.MonResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.MonResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.Mon;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,25 +15,25 @@ import java.util.List;
 @Repository
 public interface MonRepository extends JpaRepository<Mon,Integer> {
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.Mon.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
     from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
 """)
     List<MonResponse>hienThiMon();
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.Mon.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
     from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc where m.tenMon=?1
 """)
     MonResponse detailMon(String tenMon);
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.Mon.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
     from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
 """)
     Page<MonResponse> phanTrangMon(Pageable pageable);
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.Mon.MonResponse(
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(
         m.idMon,
         m.tenMon,
         m.donGiaHienTai,
@@ -60,4 +60,5 @@ public interface MonRepository extends JpaRepository<Mon,Integer> {
 
     boolean existsByTenMonIgnoreCase(String tenMon);
     Mon findByTenMonIgnoreCase(String tenMon);
+    Mon findByIdMon(Integer idMon);
 }

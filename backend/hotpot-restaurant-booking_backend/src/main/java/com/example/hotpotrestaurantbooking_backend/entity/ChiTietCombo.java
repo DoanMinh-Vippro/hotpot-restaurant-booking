@@ -20,6 +20,9 @@ public class ChiTietCombo {
     private String moTa;
 
     @ManyToOne
-    @JoinColumn(name = "id_mon") private Mon mon;
-    @ManyToOne @JoinColumn(name = "id_combo") private Combo combo;
+    @JoinColumn(name = "id_mon")
+    private Mon mon;
+    @ManyToOne
+    @JoinColumn(name = "id_combo")
+    private Combo combo;
 }
