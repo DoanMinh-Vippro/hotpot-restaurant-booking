@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class DTODatBanResquest {
+public class DTODatBanRequest {
         private String sdtKhachHang;
         private Integer soNguoi;
         private LocalDateTime thoiGianDenDuKien;
