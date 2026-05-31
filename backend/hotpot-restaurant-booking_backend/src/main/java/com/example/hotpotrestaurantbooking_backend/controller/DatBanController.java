@@ -1,46 +1,45 @@
-// ===========================================
-// DatBanController
-// ===========================================
 package com.example.hotpotrestaurantbooking_backend.controller;
 
-import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
+import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@RequiredArgsConstructor
+@RequestMapping("/api/dat-bans")
 @RestController
-@RequestMapping("/dat-ban")
-@CrossOrigin("*")
 public class DatBanController {
+    private final DatBanService datBanService;
 
-    @Autowired
-    private DatBanService datBanService;
-
-    @GetMapping("/hien-thi")
-    public List<DatBan> getAll() {
-        return datBanService.getAll();
+    @GetMapping
+    public ResponseEntity<List<DTODatBanResponse>> getAll(){
+        return ResponseEntity.status(HttpStatus.OK).body(datBanService.getAll());
     }
 
-    @GetMapping("/detail/{id}")
-    public DatBan getById(@PathVariable Integer id) {
-        return datBanService.getById(id);
+    @GetMapping("{id}")
+    public ResponseEntity<DTODatBanResponse> findById(@PathVariable Integer id){
+        return ResponseEntity.status(HttpStatus.OK).body(datBanService.findById(id));
     }
 
-    @PostMapping("/add")
-    public DatBan add(@RequestBody DatBan datBan) {
-        return datBanService.add(datBan);
+    @PostMapping
+    public ResponseEntity<DTODatBanResponse> add(@Valid @RequestBody DTODatBanRequest dtoDatBanRequest){
+        return ResponseEntity.status(HttpStatus.CREATED).body(datBanService.add(dtoDatBanRequest));
     }
 
-    @PutMapping("/update/{id}")
-    public DatBan update(@PathVariable Integer id,
-                         @RequestBody DatBan datBan) {
-        return datBanService.update(id, datBan);
+    @PutMapping("{id}")
+    public ResponseEntity<DTODatBanResponse> update(@PathVariable Integer id, @Valid @RequestBody DTODatBanRequest dtoDatBanRequest){
+        return ResponseEntity.status(HttpStatus.OK).body(datBanService.update(id,dtoDatBanRequest));
     }
 
-    @DeleteMapping("/delete/{id}")
-    public void delete(@PathVariable Integer id) {
+    @DeleteMapping("{id}")
+    public ResponseEntity<Void> delete(@PathVariable Integer id){
         datBanService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

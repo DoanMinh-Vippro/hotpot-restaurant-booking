@@ -1,56 +1,62 @@
-// ===========================================
-// DatBanServiceImpl
-// ===========================================
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
+import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
+import com.example.hotpotrestaurantbooking_backend.enums.PhuongThucThanhToan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
+import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Service
 public class DatBanServiceImpl implements DatBanService {
-
-    @Autowired
-    private DatBanRepository datBanRepository;
-
+    private final DatBanRepository datBanRepository;
+    private final ModelMapper mapper;
     @Override
-    public List<DatBan> getAll() {
-        return datBanRepository.findAll();
+    public List<DTODatBanResponse> getAll() {
+        return datBanRepository
+                .findAll()
+                .stream()
+                .map(db -> mapper.map(db,DTODatBanResponse.class))
+                .toList();
     }
 
     @Override
-    public DatBan getById(Integer id) {
-        return datBanRepository.findById(id).orElse(null);
+    public DTODatBanResponse findById(Integer id) {
+        return datBanRepository
+                .findById(id)
+                .map(db -> mapper.map(db, DTODatBanResponse.class))
+                .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
     }
 
     @Override
-    public DatBan add(DatBan datBan) {
-        return datBanRepository.save(datBan);
+    public DTODatBanResponse add(DTODatBanRequest datBan) {
+        DatBan d = mapper.map(datBan,DatBan.class);
+        datBanRepository.save(d);
+        return mapper.map(d,DTODatBanResponse.class);
     }
 
     @Override
-    public DatBan update(Integer id, DatBan datBan) {
-
-        DatBan old = getById(id);
-
-        old.setBan(datBan.getBan());
-        old.setKhachHang(datBan.getKhachHang());
-        old.setNgayDat(datBan.getNgayDat());
-        old.setGioDat(datBan.getGioDat());
-        old.setSdtKhachHang(datBan.getSdtKhachHang());
-        old.setSoNguoi(datBan.getSoNguoi());
-        old.setTrangThai(datBan.getTrangThai());
-        old.setGhiChu(datBan.getGhiChu());
-        old.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());
-        old.setSoTienCoc(datBan.getSoTienCoc());
-        old.setTrangThaiCoc(datBan.getTrangThaiCoc());
-        old.setPhuongThucThanhToan(datBan.getPhuongThucThanhToan());
-
-        return datBanRepository.save(old);
+    public DTODatBanResponse update(Integer id, DTODatBanRequest datBan) {
+        return datBanRepository
+                .findById(id)
+                .map(db -> {
+                    if(datBan.getSdtKhachHang() != null && !datBan.getSdtKhachHang().isBlank()) db.setSdtKhachHang(datBan.getSdtKhachHang());
+                    if(datBan.getSoNguoi() != null) db.setSoNguoi(datBan.getSoNguoi());
+                    if(datBan.getThoiGianDenDuKien() != null) db.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());
+                    if(datBan.getSoTienCoc() != null) db.setSoTienCoc(datBan.getSoTienCoc());
+                    if(datBan.getPhuongThucThanhToan() != null) db.setPhuongThucThanhToan(datBan.getPhuongThucThanhToan());
+                    datBanRepository.save(db);
+                    return mapper.map(db,DTODatBanResponse.class);
+                })
+                .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
     }
 
     @Override

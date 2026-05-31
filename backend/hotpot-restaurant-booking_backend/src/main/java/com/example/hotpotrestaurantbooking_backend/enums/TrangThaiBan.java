@@ -1,8 +1,8 @@
 package com.example.hotpotrestaurantbooking_backend.enums;
 
 public enum TrangThaiBan {
-        Trong,
-        Dang_Su_Dung,
-        Da_Dat,
-        BaoTri
+        TRONG,
+        DANG_SU_DUNG,
+        DA_DAT,
+        BAO_TRI
 }

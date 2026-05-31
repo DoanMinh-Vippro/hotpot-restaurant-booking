@@ -1,5 +1,9 @@
 package com.example.hotpotrestaurantbooking_backend.entity;
 
+import com.example.hotpotrestaurantbooking_backend.enums.PhuongThucThanhToan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,19 +27,22 @@ public class DatBan {
     @Column(name = "id_dat_ban")
     private Integer idDatBan;
     @ManyToOne
-    @JoinColumn(name = "id_ban", referencedColumnName = "idban")
+    @JoinColumn(name = "id_ban")
     private Ban ban;
     @ManyToOne
-    @JoinColumn(name = "id_khach_hang", referencedColumnName = "id_khach_hang")
+    @JoinColumn(name = "id_khach_hang")
     private KhachHang khachHang;
     private LocalDate ngayDat;
     private LocalTime gioDat;
     private String sdtKhachHang;
     private int soNguoi;
-    private int trangThai;
+    @Enumerated(EnumType.ORDINAL)
+    private TrangThaiDatBan trangThai;
     private String ghiChu;
     private LocalDateTime thoiGianDenDuKien;
     private BigDecimal soTienCoc;
-    private int trangThaiCoc;
-    private int phuongThucThanhToan;
+    @Enumerated(EnumType.ORDINAL)
+    private TrangThaiDatBanCoc trangThaiCoc;
+    @Enumerated(EnumType.ORDINAL)
+    private PhuongThucThanhToan phuongThucThanhToan;
 }
