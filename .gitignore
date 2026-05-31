@@ -16,3 +16,11 @@ fontend/hotpot-restaurant-booking_fontend/hotpot-restaurant-booking/node_modules
 # OS
 .DS_Store
 Thumbs.db
+
+# Gradle
+.gradle/
+backend/.gradle/
+
+# Backend
+backend/target/
+backend/.idea/
