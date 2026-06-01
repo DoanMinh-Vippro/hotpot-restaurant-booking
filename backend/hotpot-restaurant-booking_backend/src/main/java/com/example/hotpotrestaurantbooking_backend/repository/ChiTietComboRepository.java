@@ -64,6 +64,10 @@ select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietComBoResponse(
             @Param("giaMax") BigDecimal giaMax,
             Pageable pageable
     );
+
+    @Query("select ctcb.mon.tenMon from ChiTietCombo ctcb where ctcb.combo.idCombo = :idCombo")
+    List<String> findMonNamesByComboId(@Param("idCombo") Integer idCombo);
+
     boolean existsByCombo_IdComboAndMon_IdMon(
             Integer idCombo,
             Integer idMon

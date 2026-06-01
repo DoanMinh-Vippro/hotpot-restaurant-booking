@@ -26,6 +26,11 @@ const router = createRouter({
       name: 'hoa-don',
       component: () => import('@/views/InvoiceView.vue'),
     },
+    {
+      path: '/giam-gia',
+      name: 'giam-gia',
+      component: () => import('@/views/DiscountView.vue'),
+    },
   ],
 })
 

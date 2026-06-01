@@ -59,7 +59,7 @@ public class HoaDon {
     @JoinColumn(name = "id_ban")
     private Ban ban;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_dat_ban")
     private DatBan datBan;
 

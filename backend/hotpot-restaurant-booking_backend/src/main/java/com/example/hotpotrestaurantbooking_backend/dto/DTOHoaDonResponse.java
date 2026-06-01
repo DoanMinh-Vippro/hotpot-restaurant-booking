@@ -27,6 +27,8 @@ public class DTOHoaDonResponse {
     private String loaiBan;
     private Integer idDatBan;
     private Integer idGiamGia;
+    private String maGiamGia;
+    private String loaiGiam;
     private Integer idKhachHang;
     private String tenKhachHang;
     private Integer idNhanVien;

@@ -7,6 +7,7 @@ import com.example.hotpotrestaurantbooking_backend.entity.HoaDon;
 import com.example.hotpotrestaurantbooking_backend.entity.HoaDonChiTiet;
 import com.example.hotpotrestaurantbooking_backend.entity.Mon;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
+import com.example.hotpotrestaurantbooking_backend.repository.ChiTietComboRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.HoaDonChiTietRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
@@ -25,6 +26,7 @@ public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
     private final HoaDonRepository hoaDonRepository;
     private final MonRepository monRepository;
     private final ComboRepository comboRepository;
+    private final ChiTietComboRepository chiTietComboRepository;
     private final ModelMapper mapper;
 
     @Override
@@ -107,6 +109,7 @@ public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
         if (chiTiet.getCombo() != null) {
             dto.setIdCombo(chiTiet.getCombo().getIdCombo());
             dto.setTenCombo(chiTiet.getCombo().getTenCombo());
+            dto.setComboItems(chiTietComboRepository.findMonNamesByComboId(chiTiet.getCombo().getIdCombo()));
         }
         if (chiTiet.getHoaDon() != null) {
             dto.setIdHoaDon(chiTiet.getHoaDon().getIdHoaDon());

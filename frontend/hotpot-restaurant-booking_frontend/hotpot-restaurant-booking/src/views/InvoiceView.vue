@@ -15,6 +15,9 @@ type HoaDon = {
   idBan: number | null
   loaiBan: string | null
   idDatBan: number | null
+  idGiamGia?: number | null
+  maGiamGia?: string | null
+  loaiGiam?: string | null
   idKhachHang: number | null
   tenKhachHang: string | null
   idNhanVien: number | null
@@ -28,6 +31,7 @@ type HoaDonChiTiet = {
   maHoaDonChiTiet: string
   tenMon: string | null
   tenCombo: string | null
+  comboItems?: string[] | null
   soLuong: number | null
   giaBanTaiThoiDiem: number | string | null
   tienGiamGiaMon: number | string | null
@@ -47,12 +51,25 @@ const errorMessage = ref('')
 
 const selectedHoaDon = computed(() => hoaDons.value.find((item) => item.idHoaDon === selectedId.value))
 
+const searchQuery = ref('')
+const filteredHoaDons = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return hoaDons.value
+
+  return hoaDons.value.filter((item) => {
+    return [
+      item.maHoaDon,
+      item.tenKhachHang,
+      item.sdtKhachHang,
+      item.maGiaoDich,
+    ]
+      .filter(Boolean)
+      .some((field) => String(field).toLowerCase().includes(q))
+  })
+})
+
 const paidCount = computed(
   () => hoaDons.value.filter((item) => item.trangThaiThanhToan === 1).length,
-)
-
-const totalRevenue = computed(() =>
-  hoaDons.value.reduce((total, item) => total + toNumber(item.tongTien), 0),
 )
 
 const formatCurrency = (value: number | string | null) =>
@@ -68,7 +85,14 @@ const formatDateTime = (value: string | number[] | null) => {
   let date: Date
   if (Array.isArray(value)) {
     // Spring Boot có thể serialize LocalDateTime thành array [year, month, day, hour, minute, second]
-    const [year, month, day, hour = 0, minute = 0, second = 0] = value
+    const [
+      year = 0,
+      month = 1,
+      day = 1,
+      hour = 0,
+      minute = 0,
+      second = 0,
+    ] = value
     date = new Date(year, month - 1, day, hour, minute, second)
   } else {
     date = new Date(value)
@@ -169,10 +193,6 @@ onMounted(loadHoaDons)
         <span>Đã thanh toán</span>
         <strong>{{ paidCount }}</strong>
       </div>
-      <div class="summary-item">
-        <span>Doanh thu</span>
-        <strong>{{ formatCurrency(totalRevenue) }}</strong>
-      </div>
     </section>
 
     <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
@@ -180,12 +200,18 @@ onMounted(loadHoaDons)
     <section class="invoice-workspace">
       <aside class="invoice-list" aria-label="Danh sách hóa đơn">
         <div class="panel-title">
-          <h2>Danh sách</h2>
+          <h2>Tìm kiếm hóa đơn</h2>
           <span v-if="loadingHoaDon">Đang tải...</span>
         </div>
+        <input
+          class="search-input"
+          type="search"
+          v-model="searchQuery"
+          placeholder="Nhập mã hóa đơn, tên khách, số điện thoại..."
+        />
 
         <button
-          v-for="hoaDon in hoaDons"
+          v-for="hoaDon in filteredHoaDons"
           :key="hoaDon.idHoaDon"
           :class="['invoice-row', { active: hoaDon.idHoaDon === selectedId }]"
           type="button"
@@ -201,8 +227,8 @@ onMounted(loadHoaDons)
           </span>
         </button>
 
-        <p v-if="!loadingHoaDon && hoaDons.length === 0" class="empty-state">
-          Chưa có hóa đơn trong cơ sở dữ liệu.
+        <p v-if="!loadingHoaDon && filteredHoaDons.length === 0" class="empty-state">
+          Không tìm thấy hóa đơn phù hợp.
         </p>
       </aside>
 
@@ -258,7 +284,12 @@ onMounted(loadHoaDons)
             </div>
             <div>
               <span>Giảm giá</span>
-              <strong>{{ formatCurrency(selectedHoaDon.tienGiamGia) }}</strong>
+              <strong>
+                {{ formatCurrency(selectedHoaDon.tienGiamGia) }}
+                <template v-if="selectedHoaDon.maGiamGia">
+                  ({{ selectedHoaDon.maGiamGia }})
+                </template>
+              </strong>
             </div>
           </div>
 
@@ -282,7 +313,12 @@ onMounted(loadHoaDons)
               <tbody>
                 <tr v-for="item in chiTiets" :key="item.idHoaDonChiTiet">
                   <td>{{ item.maHoaDonChiTiet }}</td>
-                  <td>{{ itemName(item) }}</td>
+                  <td>
+                    <div>{{ itemName(item) }}</div>
+                    <template v-if="item.comboItems?.length">
+                      <div class="combo-items">Gồm: {{ item.comboItems.join(', ') }}</div>
+                    </template>
+                  </td>
                   <td>{{ item.soLuong ?? 0 }}</td>
                   <td>{{ formatCurrency(item.giaBanTaiThoiDiem) }}</td>
                   <td>{{ formatCurrency(item.tienGiamGiaMon) }}</td>
@@ -444,11 +480,32 @@ onMounted(loadHoaDons)
   font-size: 0.82rem;
 }
 
+.combo-items {
+  margin-top: 6px;
+  color: #cfc3ae;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
 .invoice-list {
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 220px);
   overflow: auto;
+}
+
+.search-input {
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f7f2e9;
+}
+
+.search-input::placeholder {
+  color: rgba(247, 242, 233, 0.6);
 }
 
 .invoice-row {
