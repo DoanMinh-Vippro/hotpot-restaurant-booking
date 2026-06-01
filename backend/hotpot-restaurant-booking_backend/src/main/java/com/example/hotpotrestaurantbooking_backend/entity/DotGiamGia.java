@@ -17,7 +17,10 @@ public class DotGiamGia {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idDotGiamGia;
+    @Column(name = "ten_chuong_trinh")
     private String tenChuongTrinh;
+    @Column(name = "ngay_bat_dau")
     private LocalDate ngayBatDau;
+    @Column(name = "ngay_ket_thuc")
     private LocalDate ngayKetThuc;
 }

@@ -17,8 +17,11 @@ public class ChiTietGiamGiaMon {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idChiTietGiamGiaMon;
+    @Column(name = "muc_giam")
     private BigDecimal mucGiam;
 
-    @ManyToOne @JoinColumn(name = "id_mon") private Mon mon;
-    @ManyToOne @JoinColumn(name = "id_dot_giam_gia") private DotGiamGia dotGiamGia;
+    @ManyToOne @JoinColumn(name = "id_mon")
+    private Mon mon;
+    @ManyToOne @JoinColumn(name = "id_dot_giam_gia")
+    private DotGiamGia dotGiamGia;
 }

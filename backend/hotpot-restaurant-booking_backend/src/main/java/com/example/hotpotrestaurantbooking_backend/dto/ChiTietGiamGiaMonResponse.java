@@ -1,26 +1,26 @@
 package com.example.hotpotrestaurantbooking_backend.dto;
 
 // ==========================
-// DTO: DotGiamGiaDTO
+// DTO: ChiTietGiamGiaMonDTO
 // ==========================
 
 
 import lombok.*;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DotGiamGiaDTO {
+public class ChiTietGiamGiaMonResponse {
 
-    private Integer idDotGiamGia;
+    private Integer idChiTietGiamGiaMon;
 
     private String tenChuongTrinh;
 
-    private LocalDate ngayBatDau;
+    private String tenMon;
 
-    private LocalDate ngayKetThuc;
+    private BigDecimal mucGiam;
 }

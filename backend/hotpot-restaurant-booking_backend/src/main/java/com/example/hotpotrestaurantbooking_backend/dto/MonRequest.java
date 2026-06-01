@@ -17,8 +17,8 @@ import java.math.BigDecimal;
 public class MonRequest {
     private Integer idMon;
     @NotBlank(message = "Tên món không được để trống")
-    @Size(min = 3, max = 100,
-            message = "Tên món phải từ 3 đến 100 ký tự")
+    @Size(min = 3, max = 40,
+            message = "Tên món phải từ 3 đến 40 ký tự")
     private String tenMon;
     @NotNull(message = "Đơn giá không được để trống")
     @Positive(message = "Đơn giá phải lớn hơn 0")

@@ -21,7 +21,8 @@ public class ComboRequest {
 
     private Integer idCombo;
     @NotBlank(message = "Tên combo không được để trống")
-    @Size(max = 100, message = "Tên combo không được vượt quá 100 ký tự")
+    @Size(min = 3, max = 50,
+            message = "Tên combo phải từ 3 đến 50 ký tự")
     private String tenCombo;
     @NotNull(message = "Giá combo không được để trống")
     @DecimalMin(value = "0", inclusive = false, message = "Giá combo phải lớn hơn 0")

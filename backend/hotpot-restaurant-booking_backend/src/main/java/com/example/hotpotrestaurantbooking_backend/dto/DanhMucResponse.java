@@ -12,7 +12,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DanhMucDTO {
+public class DanhMucResponse {
 
     private Integer idDanhMuc;
 
