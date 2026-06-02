@@ -16,41 +16,27 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 
-@Service
-public class DotGiamGiaService {
-    @Autowired
-    private DotGiamGiaRepository repo;
-    @Autowired
-    private DotGiamGiaValidator validator;
 
-    public List<DotGiamGiaResponse>hienThiDGG(){
-        return repo.hienThiDGG();
-    }
-    public DotGiamGiaResponse detailDGG(String tenChuongTrinh){
-        return repo.detailDGG(tenChuongTrinh);
-    }
-    public Page<DotGiamGiaResponse> phanTrangDGG(Integer pageNo, Integer pageSize){
-        Pageable pageable= PageRequest.of(pageNo,pageSize);
-        return repo.phanTrangDGG(pageable);
-    }
-    public Page<DotGiamGiaResponse> timKiemDGG(String tenChuongTrinh, LocalDate tuNgay, LocalDate denNgay, Integer pageNo, Integer pageSize){
-        Pageable pageable= PageRequest.of(pageNo,pageSize);
-        return repo.timKiemDGG(tenChuongTrinh, tuNgay, denNgay, pageable);
-    }
+public interface DotGiamGiaService {
+    List<DotGiamGiaResponse> hienThiDGG();
 
-    public void addDGG(DotGiamGiaRequest req){
-        validator.validateAdd(req);
-        DotGiamGia dgg=new DotGiamGia();
-        BeanUtils.copyProperties(req,dgg);
-        repo.save(dgg);
-    }
-    public void updateDGG(Integer idDotGiamGia, DotGiamGiaRequest req){
-        validator.validateUpdate(idDotGiamGia, req);
-        DotGiamGia dgg= repo.findById(idDotGiamGia)
-                .orElseThrow(()->new RuntimeException("Không tìm thấy đợt giảm giá"));
-        dgg.setTenChuongTrinh(req.getTenChuongTrinh());
-        dgg.setNgayBatDau(req.getNgayBatDau());
-        dgg.setNgayKetThuc(req.getNgayKetThuc());
-        repo.save(dgg);
-    }
+    DotGiamGiaResponse detailDGG(String tenChuongTrinh);
+
+    Page<DotGiamGiaResponse> phanTrangDGG(
+            Integer pageNo,
+            Integer pageSize
+    );
+
+    Page<DotGiamGiaResponse> timKiemDGG(
+            String tenChuongTrinh,
+            LocalDate tuNgay,
+            LocalDate denNgay,
+            Integer pageNo,
+            Integer pageSize
+    );
+
+    void addDGG(DotGiamGiaRequest req);
+
+    void updateDGG(Integer idDotGiamGia,
+                   DotGiamGiaRequest req);
 }

@@ -3,13 +3,9 @@ package com.example.hotpotrestaurantbooking_backend.controller;
 import com.example.hotpotrestaurantbooking_backend.Validation.ApiResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DotGiamGiaRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DotGiamGiaResponse;
-import com.example.hotpotrestaurantbooking_backend.dto.MonRequest;
 import com.example.hotpotrestaurantbooking_backend.service.DotGiamGiaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
