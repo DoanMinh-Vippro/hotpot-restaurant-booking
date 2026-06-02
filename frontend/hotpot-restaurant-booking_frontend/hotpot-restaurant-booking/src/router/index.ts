@@ -24,7 +24,12 @@ const router = createRouter({
     {
       path: '/hoa-don',
       name: 'hoa-don',
-      component: () => import('@/views/InvoiceView.vue'),
+      component: () => import('@/views/HoaDonView.vue'),
+    },
+    {
+      path: '/giam-gia',
+      name: 'giam-gia',
+      component: () => import('@/views/GiamGiaView.vue'),
     },
   ],
 })

@@ -31,7 +31,10 @@ const goToAuth = () => {
           <li><a href="#about">GIỚI THIỆU</a></li>
           <li><a href="#menu">THỰC ĐƠN</a></li>
           <li><button class="nav-link-button" type="button" @click="router.push('/hoa-don')">HÓA ĐƠN</button></li>
+          <li><button class="nav-link-button" type="button" @click="router.push('/giam-gia')">GIẢM GIÁ</button></li>
           <li><a href="#contact">LIÊN HỆ</a></li>
+          <li><button class="nav-link-button" type="button" @click="router.push('/ban')">BÀN</button></li>
+
         </ul>
 
         <div class="auth-group">
