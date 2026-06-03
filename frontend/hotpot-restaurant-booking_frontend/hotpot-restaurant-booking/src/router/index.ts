@@ -31,6 +31,11 @@ const router = createRouter({
       name: 'giam-gia',
       component: () => import('@/views/GiamGiaView.vue'),
     },
+    {
+      path: '/ban',
+      name: 'ban',
+      component: () => import('@/views/BanView.vue'),
+    }
   ],
 })
 

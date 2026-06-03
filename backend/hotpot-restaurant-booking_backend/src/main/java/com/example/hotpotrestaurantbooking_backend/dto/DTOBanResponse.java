@@ -11,6 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DTOBanResponse {
+    private Integer idBan;
     private String loaiBan;
     private int soLuongBan;
     private Integer idKhuVuc;
