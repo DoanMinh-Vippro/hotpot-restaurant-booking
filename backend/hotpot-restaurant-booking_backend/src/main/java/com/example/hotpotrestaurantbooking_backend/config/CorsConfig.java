@@ -13,7 +13,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Áp dụng cho tất cả các đường dẫn API
-                        .allowedOrigins("http://localhost:5173") // Địa chỉ Frontend của bạn
+                        .allowedOriginPatterns("*") // Cho phép mọi origin
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Các phương thức được phép
                         .allowedHeaders("*") // Cho phép tất cả các header
                         .allowCredentials(true);
