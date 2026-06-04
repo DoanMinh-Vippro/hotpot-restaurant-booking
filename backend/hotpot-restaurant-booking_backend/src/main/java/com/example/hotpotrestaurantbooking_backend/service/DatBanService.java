@@ -5,7 +5,6 @@ package com.example.hotpotrestaurantbooking_backend.service;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
-import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 
 import java.util.List;
 

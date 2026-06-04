@@ -66,6 +66,11 @@ const router = createRouter({
       name: 'thucDon',
       component: () => import('../views/ThucDonView.vue'),
     },
+    {
+      path: '/ban',
+      name: 'ban',
+      component: () => import('@/views/BanView.vue'),
+    }
   ],
 })
 

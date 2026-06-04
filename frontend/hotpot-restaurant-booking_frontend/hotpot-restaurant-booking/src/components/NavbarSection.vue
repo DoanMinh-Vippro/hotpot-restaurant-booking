@@ -75,9 +75,13 @@ const goToAuth = () => {
             </button>
           </li>
           <li><a href="#contact">LIÊN HỆ</a></li>
+
           <li>
             <button class="nav-link-button" type="button" @click="router.push('/ban')">BÀN</button>
           </li>
+
+<li><RouterLink to="/ban" class="nav-link-button">BÀN</RouterLink></li>
+
         </ul>
 
         <div class="auth-group">
