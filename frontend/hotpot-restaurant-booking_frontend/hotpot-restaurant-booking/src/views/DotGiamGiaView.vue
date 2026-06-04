@@ -10,6 +10,7 @@
         @add="themMoi"
         @search="nhanSuKienTimKiem"
         @reset="lamMoiTimKiem"
+        @view-detail="chuyenSangChiTiet"
       />
 
       <Pagination 
@@ -35,40 +36,38 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import DotGiamGiaApi from '../api/DotGiamGiaApi'
 
 import DotGiamGiaTable from '../components/DotGiamGiaTable.vue'
 import DotGiamGiaForm from '../components/DotGiamGiaForm.vue'
 import DotGiamGiaPreview from '../components/DotGiamGiaPreview.vue'
-import Pagination from '../components/Pagination.vue' // Import phân trang dùng chung
+import Pagination from '../components/Pagination.vue' 
 
 import type { DotGiamGia, DotGiamGiaRequest } from '../api/DotGiamGiaApi'
 
+const router = useRouter()
 const danhSach = ref<DotGiamGia[]>([])
 const itemChon = ref<DotGiamGia | undefined>()
 const selectedId = ref<number | null>(null)
 const formRef = ref()
 
-// Quản lý trạng thái bộ lọc và phân trang tại trung tâm View cha
 const bieuThucTenChuongTrinh = ref('')
 const bieuThucTuNgay = ref('')
 const bieuThucDenNgay = ref('')
 const trangHienTai = ref(0)
-const kichThuocTrang = ref(5) // Hiển thị 5 dòng mỗi trang theo chuẩn chung
+const kichThuocTrang = ref(5) 
 const tongSoTrang = ref(0)
 
-// HÀM TẢI DỮ LIỆU ĐỒNG BỘ MỌI ĐIỀU KIỆN STATE PHÂN TRANG
 const fetchDuLieu = async () => {
   try {
     const tuNgayTarget = bieuThucTuNgay.value
     const denNgayTarget = bieuThucDenNgay.value
 
-    // Khóa nhanh ở Front-end nếu khoảng ngày lọc bị ngược logic thời gian
     if (tuNgayTarget && denNgayTarget && new Date(denNgayTarget) < new Date(tuNgayTarget)) {
       return alert("Tìm kiếm thất bại: Ngày kết thúc không được nhỏ hơn ngày bắt đầu lọc!")
     }
 
-    // Luôn gọi hàm search có kèm phân trang động
     const res = await DotGiamGiaApi.search(
       bieuThucTenChuongTrinh.value,
       tuNgayTarget || undefined,
@@ -79,7 +78,6 @@ const fetchDuLieu = async () => {
     
     const responseData = res.data as any
     
-    // Đọc cấu trúc Page JSON bọc từ Spring Boot trả về
     if (responseData && responseData.content) {
       danhSach.value = responseData.content
       tongSoTrang.value = responseData.totalPages || 0
@@ -92,7 +90,13 @@ const fetchDuLieu = async () => {
   }
 }
 
-// Khi người dùng gõ từ khóa từ Table con bắn sự kiện ra, đưa số trang hiện tại về 0
+const chuyenSangChiTiet = (item: DotGiamGia) => {
+  router.push({
+    name: 'CTGGM',
+    query: { idDotGiamGia: item.idDotGiamGia.toString() }
+  })
+}
+
 const nhanSuKienTimKiem = async (boLoc: { tenChuongTrinh: string, tuNgay: string, denNgay: string }) => {
   bieuThucTenChuongTrinh.value = boLoc.tenChuongTrinh
   bieuThucTuNgay.value = boLoc.tuNgay
@@ -164,7 +168,7 @@ const xoa = async (id: number) => {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;
-  align-items: start; /* Giữ cân bằng từ đỉnh, chống lệch thò thụt */
+  align-items: start;
 }
 
 .cot-trai, .cot-phai {

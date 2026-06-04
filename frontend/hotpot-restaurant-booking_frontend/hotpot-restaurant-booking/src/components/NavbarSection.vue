@@ -35,35 +35,10 @@ const goToAuth = () => {
             </button>
           </li>
           <li>
-            <button class="nav-link-button" type="button" @click="router.push('/mon')">
-              THỰC ĐƠN 1
-            </button>
-          </li>
-          <li>
-            <button class="nav-link-button" type="button" @click="router.push('/combo')">
-              THỰC ĐƠN 2
-            </button>
-          </li>
-          <li>
-            <button class="nav-link-button" type="button" @click="router.push('/CTCB')">
-              THỰC ĐƠN 3
-            </button>
-          </li>
-          <li>
-            <button class="nav-link-button" type="button" @click="router.push('/danhMuc')">
-              THỰC ĐƠN 4
-            </button>
-          </li>
-          <li>
             <button class="nav-link-button" type="button" @click="router.push('/dotGiamGia')">
               ĐỢT GIẢM GIÁ
             </button>
           </li>
-          <li>
-            <button class="nav-link-button" type="button" @click="router.push('/CTGGM')">
-              CHI TIẾT GIẢM GIÁ MÓN
-            </button>
-          </li> 
           <li>
             <button class="nav-link-button" type="button" @click="router.push('/hoa-don')">
               HÓA ĐƠN

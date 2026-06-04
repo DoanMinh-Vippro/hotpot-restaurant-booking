@@ -36,7 +36,6 @@ onMounted(async () => {
 const gui = () => {
   const mTa = form.moTa || ''
 
-  // VALIDATE ĐẦU VÀO
   if (!form.idCombo) return alert("Vui lòng chọn Combo")
   if (!form.idMon) return alert("Vui lòng chọn Món ăn")
   
@@ -55,7 +54,8 @@ const gui = () => {
 }
 
 defineExpose({
-  fillForm(item?: ChiTietComBo) {
+  // Sử dụng kiểu 'any' đầu vào giải phóng khóa bảo mật TypeScript property không tồn tại
+  fillForm(item?: any) {
     if (!item) {
       form.soLuong = 1
       form.idMon = ''
@@ -64,12 +64,21 @@ defineExpose({
       return
     }
 
-    form.soLuong = item.soLuong
-    form.moTa = item.moTa
+    // Trường hợp chuyển giao đặc biệt: Chỉ gán duy nhất idCombo phục vụ hành động tạo mới từ nút Xem chi tiết
+    if (item.idCombo && item.idChiTietCombo === undefined && item.soLuong === undefined) {
+      form.soLuong = 1
+      form.idMon = ''
+      form.idCombo = item.idCombo
+      form.moTa = ''
+      return
+    }
 
-    // Dự phòng trường hợp API trả về id nằm phẳng hoặc lồng trong object quan hệ
-    form.idMon = (item as any).idMon ?? (item as any).mon?.idMon ?? ''
-    form.idCombo = (item as any).idCombo ?? (item as any).combo?.idCombo ?? ''
+    form.soLuong = item.soLuong
+    form.moTa = item.moTa || ''
+
+    // Cơ chế bóc tách dữ liệu phẳng hoặc thực thể lồng của JPA Hibernate trả về khi nhấn nút Sửa
+    form.idMon = item.idMon ?? item.mon?.idMon ?? ''
+    form.idCombo = item.idCombo ?? item.combo?.idCombo ?? ''
   },
 })
 </script>

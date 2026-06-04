@@ -37,7 +37,6 @@ onMounted(async () => {
 })
 
 const gui = () => {
-  // VALIDATE ĐẦU VÀO PHÍA FRONT-END
   if (!form.idMon) return alert("Vui lòng chọn Món ăn áp dụng giảm giá")
   if (!form.idDotGiamGia) return alert("Vui lòng chọn Chương trình giảm giá")
   
@@ -54,7 +53,8 @@ const gui = () => {
 }
 
 defineExpose({
-  fillForm(item?: ChiTietGiamGiaMon) {
+  // Sử dụng kiểu dữ liệu 'any' để tránh lỗi biên dịch nghiêm ngặt TypeScript 2339
+  fillForm(item?: any) {
     if (!item) {
       form.mucGiam = ''
       form.idMon = ''
@@ -62,10 +62,18 @@ defineExpose({
       return
     }
 
-    form.mucGiam = item.mucGiam.toString()
-    // Dự phòng cơ chế bóc tách dữ liệu ID phẳng hoặc từ object quan hệ lồng của JPA Response
-    form.idMon = (item as any).idMon ?? (item as any).mon?.idMon ?? ''
-    form.idDotGiamGia = (item as any).idDotGiamGia ?? (item as any).dotGiamGia?.idDotGiamGia ?? ''
+    // Nếu object chỉ chứa idDotGiamGia (được dựng giả lập từ URL), ta thiết lập Form thêm mới
+    if (item.idDotGiamGia && (item.idChiTietGiamGiaMon === undefined || item.idChiTietGiamGiaMon === null)) {
+      form.mucGiam = ''
+      form.idMon = ''
+      form.idDotGiamGia = item.idDotGiamGia
+      return
+    }
+
+    // Thiết lập điền toàn bộ dữ liệu khi bấm nút "Sửa" bản ghi có sẵn từ DB
+    form.mucGiam = item.mucGiam !== undefined && item.mucGiam !== null ? item.mucGiam.toString() : ''
+    form.idMon = item.idMon ?? item.mon?.idMon ?? ''
+    form.idDotGiamGia = item.idDotGiamGia ?? item.dotGiamGia?.idDotGiamGia ?? ''
   },
 })
 </script>

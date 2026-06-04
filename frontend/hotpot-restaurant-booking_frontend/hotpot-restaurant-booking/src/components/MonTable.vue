@@ -15,7 +15,8 @@ const emit = defineEmits([
   'delete',
   'add',
   'search',
-  'reset'
+  'reset',
+  'go-to-category' // Khai báo sự kiện chuyển màn danh mục
 ])
 
 // Quản lý trạng thái bộ lọc nội bộ
@@ -64,6 +65,7 @@ const xoa = (id: number) => {
       
       <button class="nut-tim" @click="kichHoatTimKiem">Tìm kiếm</button>
       <button class="nut-lam-moi" @click="kichHoatLamMoi">Làm mới</button>
+      <button class="nut-danh-muc" @click="$emit('go-to-category')">📂 Quản lý danh mục</button>
     </div>
 
     <section class="danh-sach-panel">
@@ -130,7 +132,6 @@ const xoa = (id: number) => {
   gap: 16px;
 }
 
-/* CSS Thanh bộ lọc đồng bộ phom Dark Mode */
 .bo-loc-panel {
   background: rgba(15, 15, 15, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -163,7 +164,8 @@ const xoa = (id: number) => {
 }
 
 .nut-tim,
-.nut-lam-moi {
+.nut-lam-moi,
+.nut-danh-muc {
   padding: 10px 18px;
   border-radius: 12px;
   border: none;
@@ -183,7 +185,16 @@ const xoa = (id: number) => {
   color: #fff;
 }
 
-/* Cấu trúc Panel danh sách */
+.nut-danh-muc {
+  background: rgba(100, 149, 237, 0.15);
+  color: #6495ed;
+  border: 1px solid rgba(100, 149, 237, 0.2);
+}
+
+.nut-danh-muc:hover {
+  background: rgba(100, 149, 237, 0.25);
+}
+
 .danh-sach-panel {
   background: rgba(15,15,15,.94);
   border: 1px solid rgba(255,255,255,.06);
@@ -199,12 +210,12 @@ const xoa = (id: number) => {
 
 .tieu-de-panel h2 {
   color: #f8d46a;
-  margin: 0 0 4px;
+  margin: 0;
 }
 
 .tieu-de-panel p {
   color: #c7c7c7;
-  margin: 0;
+  margin: 4px 0 0;
 }
 
 table {

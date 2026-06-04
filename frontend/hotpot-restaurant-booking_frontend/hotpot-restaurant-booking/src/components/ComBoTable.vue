@@ -6,7 +6,7 @@ defineProps<{
   danhSachCombo: Combo[]
 }>()
 
-const emit = defineEmits(['edit', 'delete', 'add', 'search', 'reset'])
+const emit = defineEmits(['edit', 'delete', 'add', 'search', 'reset', 'view-detail'])
 
 // Quản lý ô nhập tìm kiếm nội bộ của Table
 const searchTenCombo = ref('')
@@ -71,9 +71,10 @@ const xoa = (id: number) => {
             <td>{{ cb.tenCombo }}</td>
             <td>{{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ</td>
             <td>{{ cb.trangThai ? 'Còn bán' : 'Ngưng bán' }}</td>
-            <td>
-              <button @click="$emit('edit', cb)">Sửa</button>
-              <button @click="xoa(cb.idCombo!)">Xóa</button>
+            <td class="hanh-dong-o">
+              <button class="nut-xem-ct" @click="$emit('view-detail', cb)">Xem chi tiết</button>
+              <button class="nut-sua" @click="$emit('edit', cb)">Sửa</button>
+              <button class="nut-xoa" @click="xoa(cb.idCombo!)">Xóa</button>
             </td>
           </tr>
           <tr v-if="danhSachCombo.length === 0">
@@ -95,7 +96,6 @@ const xoa = (id: number) => {
   gap: 16px;
 }
 
-/* Thanh bộ lọc thiết kế mượt mà */
 .bo-loc-panel {
   background: rgba(15, 15, 15, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -140,7 +140,6 @@ const xoa = (id: number) => {
   color: #fff;
 }
 
-/* Thùng bọc danh sách gốc */
 .danh-sach-panel {
   background: rgba(15,15,15,.94);
   border: 1px solid rgba(255,255,255,.06);
@@ -182,9 +181,13 @@ img.img-combo {
   border-radius: 8px;
 }
 
+.hanh-dong-o {
+  display: flex;
+  gap: 6px;
+}
+
 button {
-  margin-right: 6px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
@@ -199,12 +202,17 @@ button {
   border-radius: 16px;
 }
 
-td button:first-child {
+.nut-xem-ct {
+  background: rgba(100, 149, 237, 0.15);
+  color: #6495ed;
+}
+
+.nut-sua {
   background: rgba(248,212,106,.15);
   color: #f8d46a;
 }
 
-td button:last-child {
+.nut-xoa {
   background: rgba(255,107,107,.15);
   color: #ff6b6b;
 }

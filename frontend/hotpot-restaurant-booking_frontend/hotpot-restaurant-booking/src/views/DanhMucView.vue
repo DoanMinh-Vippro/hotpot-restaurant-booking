@@ -1,5 +1,11 @@
 <template>
   <div class="container">
+    <div class="khu-vuc-dieu-huong">
+      <button class="nut-quay-lai" @click="quayLaiThucDon">
+        ⬅ Quay lại Thực đơn
+      </button>
+    </div>
+
     <div class="cot-trai">
       <DanhMucTable
         :danh-sach="danhSach"
@@ -23,6 +29,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router' // Import useRouter để thực hiện quay về
 import DanhMucApi from '../api/DanhMucApi'
 
 import DanhMucTable from '../components/DanhMucTable.vue'
@@ -32,6 +39,7 @@ import Pagination from '../components/Pagination.vue'
 
 import type { DanhMuc, DanhMucRequest } from '../api/DanhMucApi'
 
+const router = useRouter()
 const danhSach = ref<DanhMuc[]>([])
 const itemChon = ref<DanhMuc | undefined>()
 const selectedId = ref<number | null>(null)
@@ -65,6 +73,11 @@ const fetchDuLieu = async () => {
   } catch (error) {
     console.error('Lỗi hệ thống khi tải dữ liệu:', error)
   }
+}
+
+// Hàm thực hiện quay về màn Thực đơn chính
+const quayLaiThucDon = () => {
+  router.push({ name: 'thucDon' })
 }
 
 const nhanSuKienTimKiem = async (tuKhoa: string) => {
@@ -135,7 +148,32 @@ const xoa = async (id: number) => {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;
+  align-items: start;
 }
+
+/* Thanh điều hướng chứa nút quay lại Thực đơn trải rộng toàn hàng Grid */
+.khu-vuc-dieu-huong {
+  grid-column: 1 / -1;
+  margin-bottom: -8px;
+}
+
+.nut-quay-lai {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c7c7c7;
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nut-quay-lai:hover {
+  background: rgba(248, 212, 106, 0.15);
+  border-color: #f8d46a;
+  color: #f8d46a;
+}
+
 .cot-trai,
 .cot-phai {
   display: flex;

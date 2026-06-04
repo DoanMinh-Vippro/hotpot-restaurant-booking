@@ -7,7 +7,7 @@ defineProps<{
   selectedId: number | null
 }>()
 
-const emit = defineEmits(['edit', 'delete', 'add', 'search', 'reset'])
+const emit = defineEmits(['edit', 'delete', 'add', 'search', 'reset', 'view-detail'])
 
 // Quản lý trạng thái bộ lọc khoảng thời gian nội bộ của Table
 const searchTenChuongTrinh = ref('')
@@ -102,6 +102,9 @@ const xoa = (id: number) => {
             <td>{{ item.ngayKetThuc }}</td>
 
             <td class="hanh-dong">
+              <button class="nut-xem-ct" @click="$emit('view-detail', item)">
+                Xem chi tiết
+              </button>
               <button class="nut-sua" @click="$emit('edit', item)">
                 Sửa
               </button>
@@ -129,7 +132,6 @@ const xoa = (id: number) => {
   gap: 16px;
 }
 
-/* CSS Giao diện bộ lọc đồng bộ phong cách Dark Mode */
 .bo-loc-panel {
   background: rgba(15, 15, 15, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -198,7 +200,6 @@ const xoa = (id: number) => {
   color: #fff;
 }
 
-/* Thùng bọc danh sách panel gốc */
 .danh-sach-panel {
   background: rgba(15,15,15,.94);
   border: 1px solid rgba(255,255,255,.06);
@@ -246,6 +247,15 @@ tr.active {
 .hanh-dong {
   display: flex;
   gap: 8px;
+}
+
+.nut-xem-ct {
+  background: rgba(100, 149, 237, 0.15);
+  color: #6495ed;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .nut-sua {

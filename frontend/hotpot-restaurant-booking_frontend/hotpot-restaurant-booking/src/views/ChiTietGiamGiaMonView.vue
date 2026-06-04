@@ -1,5 +1,10 @@
 <template>
   <div class="container">
+    <div class="khu-vuc-dieu-huong">
+      <button class="nut-quay-lai" @click="quayLaiDotGiamGia">
+        ⬅ Quay lại Đợt giảm giá
+      </button>
+    </div>
     
     <div class="cot-trai">
       <Table
@@ -31,45 +36,46 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router' // Bổ sung useRouter tại đây
 import ChiTietGiamGiaMonApi from '../api/ChiTietGiamGiaMonApi'
+import DotGiamGiaApi from '../api/DotGiamGiaApi'
 
 import Form from '../components/ChiTietGiamGiaMonForm.vue'
 import Table from '../components/ChiTietGiamGiaMonTable.vue'
 import Preview from '../components/ChiTietGiamGiaMonPreview.vue'
-import Pagination from '../components/Pagination.vue' // Import phân trang dùng chung
+import Pagination from '../components/Pagination.vue' 
 
 import type {
   ChiTietGiamGiaMon,
   ChiTietGiamGiaMonRequest,
 } from '../api/ChiTietGiamGiaMonApi'
 
+const route = useRoute()
+const router = useRouter() // Khởi tạo router để điều hướng quay lại
 const danhSach = ref<ChiTietGiamGiaMon[]>([])
 const itemChon = ref<ChiTietGiamGiaMon | undefined>()
 const selectedId = ref<number | null>(null)
 const formRef = ref()
 
-// Quản lý trạng thái bộ lọc và phân trang tập trung
 const bieuThucTenChuongTrinh = ref('')
 const bieuThucTenMon = ref('')
 const trangHienTai = ref(0)
-const kichThuocTrang = ref(5) // Mặc định hiển thị 5 bản ghi mỗi trang
+const kichThuocTrang = ref(5) 
 const tongSoTrang = ref(0)
 
-// HÀM TẢI DỮ LIỆU ĐỒNG BỘ VỚI STATE BỘ LỌC VÀ LẬT TRANG
 const fetchDuLieu = async () => {
   try {
     const res = await ChiTietGiamGiaMonApi.search(
       bieuThucTenChuongTrinh.value,
       bieuThucTenMon.value,
-      undefined, // mucMin
-      undefined, // mucMax
+      undefined, 
+      undefined, 
       trangHienTai.value,
       kichThuocTrang.value
     )
     
     const responseData = res.data as any
     
-    // Đọc cấu trúc Page JSON từ Spring Boot trả về
     if (responseData && responseData.content) {
       danhSach.value = responseData.content
       tongSoTrang.value = responseData.totalPages || 0
@@ -82,7 +88,11 @@ const fetchDuLieu = async () => {
   }
 }
 
-// Khi Table phát tín hiệu tìm kiếm, reset số trang về 0
+// Hàm xử lý quay lại màn hình danh sách đợt giảm giá chính
+const quayLaiDotGiamGia = () => {
+  router.push({ name: 'dotGiamGia' }) // Khớp chính xác với 'name: dotGiamGia' trong router/index.ts của bạn
+}
+
 const nhanSuKienTimKiem = async (boLoc: { tenChuongTrinh: string, tenMon: string }) => {
   bieuThucTenChuongTrinh.value = boLoc.tenChuongTrinh
   bieuThucTenMon.value = boLoc.tenMon
@@ -102,7 +112,30 @@ const lamMoiTimKiem = async () => {
   await fetchDuLieu()
 }
 
-onMounted(fetchDuLieu)
+onMounted(async () => {
+  if (route.query.idDotGiamGia) {
+    const idDggTuQuery = Number(route.query.idDotGiamGia)
+    if (!isNaN(idDggTuQuery)) {
+      formRef.value?.fillForm({
+        idDotGiamGia: idDggTuQuery
+      })
+
+      try {
+        const dggRes = await DotGiamGiaApi.getDanhSach()
+        const danhSachDGG = Array.isArray(dggRes.data) ? dggRes.data : (dggRes.data as any).content || []
+        const dggTimThay = danhSachDGG.find((d: any) => d.idDotGiamGia === idDggTuQuery)
+        
+        if (dggTimThay) {
+          bieuThucTenChuongTrinh.value = dggTimThay.tenChuongTrinh
+        }
+      } catch (err) {
+        console.error("Hệ thống không lấy được thông tin tên đợt giảm giá từ API:", err)
+      }
+    }
+  }
+
+  await fetchDuLieu()
+})
 
 const themMoi = () => {
   itemChon.value = undefined
@@ -153,6 +186,29 @@ const xoa = async (id: number) => {
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;
   align-items: start;
+}
+
+/* Định vị khu vực nút quay lại trải dài toàn bộ hàng phía trên Grid */
+.khu-vuc-dieu-huong {
+  grid-column: 1 / -1; 
+  margin-bottom: -8px;
+}
+
+.nut-quay-lai {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c7c7c7;
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nut-quay-lai:hover {
+  background: rgba(248, 212, 106, 0.15);
+  border-color: #f8d46a;
+  color: #f8d46a;
 }
 
 .cot-trai, .cot-phai {

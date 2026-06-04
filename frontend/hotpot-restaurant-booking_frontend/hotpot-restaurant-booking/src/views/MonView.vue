@@ -12,6 +12,7 @@
         @add="themMoi"
         @search="nhanSuKienTimKiem"
         @reset="lamMoiTimKiem"
+        @go-to-category="chuyenSangDanhMuc"
       />
 
       <Pagination 
@@ -38,6 +39,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import MonApi from '../api/MonApi'
 import DanhMucApi from '../api/DanhMucApi'
@@ -45,11 +47,12 @@ import DanhMucApi from '../api/DanhMucApi'
 import MonForm from '../components/MonForm.vue'
 import MonTable from '../components/MonTable.vue'
 import MonPreview from '../components/MonPreview.vue'
-import Pagination from '../components/Pagination.vue' // Import Pagination dùng chung
+import Pagination from '../components/Pagination.vue' 
 
 import type { Mon, MonRequest } from '../api/MonApi'
 import type { DanhMuc } from '../api/DanhMucApi'
 
+const router = useRouter()
 const danhSachMon = ref<Mon[]>([])
 const danhSachDanhMuc = ref<DanhMuc[]>([])
 
@@ -58,29 +61,25 @@ const selectedId = ref<number | null>(null)
 const loading = ref(false)
 const formRef = ref()
 
-// --- QUẢN LÝ TRẠNG THÁI PHÂN TRANG VÀ BỘ LỌC TẬP TRUNG TẠI VIEW CHA ---
 const bieuThucTenMon = ref('')
 const bieuThucLoaiDanhMuc = ref('')
 const trangHienTai = ref(0)
-const kichThuocTrang = ref(5) // Quy hoạch hiển thị đúng 5 dòng
+const kichThuocTrang = ref(5) 
 const tongSoTrang = ref(0)
 
-// HÀM TẢI DỮ LIỆU ĐỒNG BỘ TẤT CẢ BIẾN STATE PHÂN TRANG
 const fetchDuLieu = async () => {
   loading.value = true
   try {
-    // Luôn ưu tiên dùng hàm search kết hợp phân trang
     const res = await MonApi.searchMon(
       bieuThucTenMon.value,
-      undefined, // giaMin
-      undefined, // giaMax
+      undefined, 
+      undefined, 
       bieuThucLoaiDanhMuc.value,
       trangHienTai.value,
       kichThuocTrang.value
     )
     
     const responseData = res.data as any
-    
     if (responseData && responseData.content) {
       danhSachMon.value = responseData.content
       tongSoTrang.value = responseData.totalPages || 0
@@ -104,7 +103,11 @@ const loadDanhMuc = async () => {
   }
 }
 
-// Khi nhận sự kiện truyền từ Table con, reset trang về 0
+// Chuyển sang route quản lý danh mục (Khớp name: 'danhMuc' trong router/index.ts)
+const chuyenSangDanhMuc = () => {
+  router.push({ name: 'danhMuc' })
+}
+
 const nhanSuKienTimKiem = async (boLoc: { tenMon: string, loaiDanhMuc: string }) => {
   bieuThucTenMon.value = boLoc.tenMon
   bieuThucLoaiDanhMuc.value = boLoc.loaiDanhMuc
@@ -124,7 +127,6 @@ const lamMoiTimKiem = async () => {
   await fetchDuLieu()
 }
 
-// Khởi động đồng thời dữ liệu nền
 onMounted(async () => {
   await fetchDuLieu()
   await loadDanhMuc()
@@ -186,20 +188,13 @@ const xoaMon = async (idMon: number) => {
   min-height: 100vh;
   padding: 120px 32px 32px;
   background: #0f0f0f;
-
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;
-  align-items: start; /* Giữ cấu trúc cân bằng từ đỉnh, chống trồi sụt thô thiển */
+  align-items: start;
 }
 
-.cot-trai {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.cot-phai {
+.cot-trai, .cot-phai {
   display: flex;
   flex-direction: column;
   gap: 16px;
