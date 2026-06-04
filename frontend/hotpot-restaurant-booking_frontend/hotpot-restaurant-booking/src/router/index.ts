@@ -31,6 +31,41 @@ const router = createRouter({
       name: 'giam-gia',
       component: () => import('@/views/GiamGiaView.vue'),
     },
+    {
+      path: '/mon',
+      name: 'mon',
+      component: () => import('@/views/MonView.vue'),
+    },
+    {
+      path: '/combo',
+      name: 'combo',
+      component: () => import('../views/ComBoView.vue'),
+    },
+    {
+      path: '/CTCB',
+      name: 'CTCB',
+      component: () => import('../views/ChiTietComBoView.vue'),
+    },
+    {
+      path: '/danhMuc',
+      name: 'danhMuc',
+      component: () => import('../views/DanhMucView.vue'),
+    },
+    {
+      path: '/dotGiamGia',
+      name: 'dotGiamGia',
+      component: () => import('../views/DotGiamGiaView.vue'),
+    },
+    {
+      path: '/CTGGM',
+      name: 'CTGGM',
+      component: () => import('../views/ChiTietGiamGiaMonView.vue'),
+    },
+    {
+      path: '/thucDon',
+      name: 'thucDon',
+      component: () => import('../views/ThucDonView.vue'),
+    },
   ],
 })
 
