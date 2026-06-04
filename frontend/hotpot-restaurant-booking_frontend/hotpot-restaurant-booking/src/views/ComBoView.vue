@@ -22,6 +22,7 @@
     <div class="cot-phai">
       <ComboForm
         ref="formRef"
+        :danh-sach-combo="danhSachCombo"
         @submit="luu"
       />
       <ComboPreview
@@ -77,7 +78,6 @@ const fetchDuLieu = async () => {
   }
 }
 
-// Hàm chuyển màn hình sang Chi tiết combo (Khớp name: 'CTCB' trong file router của bạn)
 const chuyenSangChiTiet = (cb: Combo) => {
   router.push({
     name: 'CTCB',

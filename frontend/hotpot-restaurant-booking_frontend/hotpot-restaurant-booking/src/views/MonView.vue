@@ -26,6 +26,7 @@
       <MonForm
         ref="formRef"
         :danh-sach-danh-muc="danhSachDanhMuc"
+        :danh-sach-mon="danhSachMon"
         @submit="luuMon"
       />
 

@@ -21,7 +21,11 @@
     </div>
 
     <div class="cot-phai">
-      <DanhMucForm ref="formRef" @submit="luu" />
+      <DanhMucForm 
+        ref="formRef" 
+        :danh-sach="danhSach"
+        @submit="luu" 
+      />
       <DanhMucPreview :item="itemChon" />
     </div>
   </div>

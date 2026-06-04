@@ -23,6 +23,7 @@
     <div class="cot-phai">
       <DotGiamGiaForm
         ref="formRef"
+        :danh-sach="danhSach"
         @submit="luu"
       />
 

@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import type { Mon } from '../api/MonApi'
 import type { DanhMuc } from '../api/DanhMucApi'
 
+// Nhận dữ liệu danh sách món ăn từ View cha để thực hiện kiểm tra trùng tên
 const props = defineProps<{
   danhSachDanhMuc: DanhMuc[]
+  danhSachMon: Mon[] 
 }>()
 
-const emit = defineEmits([
-  'submit',
-])
+const emit = defineEmits(['submit'])
+
+// Quản lý trạng thái Form: Thêm mới hoặc Cập nhật
+const isEditMode = ref(false)
+const idMonHienTai = ref<number | null>(null)
 
 const form = reactive({
   tenMon: '',
@@ -18,21 +22,21 @@ const form = reactive({
   trangThai: 0,
 })
 
-// Chứa thông báo lỗi
+// Trạng thái lưu trữ thông báo lỗi hiển thị trên giao diện
 const errors = reactive({
   tenMon: '',
   donGiaHienTai: '',
   idDanhMuc: '',
 })
 
-// Hàm reset lỗi
+// Hàm xóa sạch vết thông báo lỗi cũ
 const clearErrors = () => {
   errors.tenMon = ''
   errors.donGiaHienTai = ''
   errors.idDanhMuc = ''
 }
 
-// Validate form trước khi submit
+// Validate form trước khi submit dữ liệu lên hệ thống
 const validateForm = () => {
   clearErrors()
   let isValid = true
@@ -51,6 +55,39 @@ const validateForm = () => {
   } else if (ten.includes('  ')) {
     errors.tenMon = 'Tên món không được chứa nhiều khoảng trắng liên tiếp'
     isValid = false
+  } else {
+    // ----------------------------------------------------------------------
+    // THUẬT TOÁN MỚI: CHUẨN HÓA CHUỖI ĐỂ CHẶN CỐ TÌNH LẶP KÝ TỰ (LÁCH LUẬT)
+    // ----------------------------------------------------------------------
+    
+    // Bước A: Chuyển về chữ thường, lột sạch toàn bộ dấu tiếng Việt (mực tươii -> muc tuoiii)
+    const chuoiKhongDau = ten.trim().toLowerCase()
+      .normalize('NFD')               // Tách dấu ra khỏi chữ cái gốc
+      .replace(/[\u0300-\u036f]/g, '') // Xóa các ký tự dấu vừa tách
+      .replace(/đ/g, 'd');            // Đổi riêng chữ đ thành d
+
+    // Bước B: Quét Regex kiểm tra lặp từ liên tiếp quá 2 lần (3 chữ giống nhau sát cạnh nhau trở lên)
+    if (/([a-z])\1{1,}/i.test(chuoiKhongDau)) {
+      errors.tenMon = 'Tên món không được chứa các ký tự lặp lại vô nghĩa liên tiếp'
+      isValid = false
+    } 
+    
+    // Bước C: Nếu qua được bộ lọc ký tự, tiến hành kiểm tra trùng tên món trong Database thực tế
+    else {
+      const tenChuanHoa = ten.trim().toLowerCase()
+      const biTrungTen = props.danhSachMon.some(m => {
+        // Nếu ở chế độ sửa, bỏ qua không so sánh trùng với chính bản ghi hiện tại
+        if (isEditMode.value && m.idMon === idMonHienTai.value) {
+          return false
+        }
+        return m.tenMon.trim().toLowerCase() === tenChuanHoa
+      })
+
+      if (biTrungTen) {
+        errors.tenMon = 'Tên món ăn này đã tồn tại trong thực đơn của nhà hàng'
+        isValid = false
+      }
+    }
   }
 
   // 2. Validate Đơn Giá
@@ -73,11 +110,11 @@ const validateForm = () => {
 }
 
 const gui = () => {
-  // Nếu validate không qua, dừng lại không submit
+  // Nếu validate không qua, dừng xử lý ngay lập tức
   if (!validateForm()) return
 
   emit('submit', {
-    tenMon: form.tenMon,
+    tenMon: form.tenMon.trim(),
     donGiaHienTai: Number(form.donGiaHienTai),
     idDanhMuc: Number(form.idDanhMuc),
     trangThai: form.trangThai,
@@ -86,15 +123,21 @@ const gui = () => {
 
 defineExpose({
   fillForm(mon?: Mon) {
-    clearErrors() // Xóa lỗi cũ khi mở form mới hoặc chọn món khác
+    clearErrors() // Reset lỗi cũ
     
     if (!mon) {
+      isEditMode.value = false
+      idMonHienTai.value = null
       form.tenMon = ''
       form.donGiaHienTai = ''
       form.idDanhMuc = ''
       form.trangThai = 0
       return
     }
+
+    // Gán trạng thái và ID để phục vụ chế độ Cập nhật
+    isEditMode.value = true
+    idMonHienTai.value = mon.idMon
 
     form.tenMon = mon.tenMon
     form.donGiaHienTai = mon.donGiaHienTai.toString()
@@ -109,7 +152,7 @@ defineExpose({
     <div class="tieu-de-panel">
       <div>
         <h2>Thông tin món</h2>
-        <p>Thêm mới hoặc cập nhật món ăn.</p>
+        <p>{{ isEditMode ? 'Cập nhật món ăn hệ thống' : 'Thêm mới món ăn vào thực đơn' }}</p>
       </div>
     </div>
 
@@ -119,7 +162,7 @@ defineExpose({
         <input
           v-model="form.tenMon"
           type="text"
-          placeholder="Nhập tên món"
+          placeholder="Nhập tên món (Ví dụ: Trà chanh, Lẩu bò...)"
           :class="{ 'is-invalid': errors.tenMon }"
           @input="errors.tenMon = ''"
         />
@@ -127,7 +170,7 @@ defineExpose({
       </div>
 
       <div class="form-group">
-        <label>Đơn giá</label>
+        <label>Đơn giá (đ)</label>
         <input
           v-model="form.donGiaHienTai"
           type="number"
@@ -172,14 +215,13 @@ defineExpose({
         type="button"
         @click="gui"
       >
-        Lưu
+        Lưu thông tin
       </button>
     </div>
   </section>
 </template>
 
 <style scoped>
-/* Code style cũ của bạn */
 .bieu-mau-panel {
   background: rgba(15, 15, 15, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -226,6 +268,12 @@ select {
   padding: 14px 16px;
   width: 100%;
   box-sizing: border-box;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: #f8d46a;
 }
 
 select option {
@@ -248,7 +296,6 @@ select option {
   cursor: pointer;
 }
 
-/* Thêm CSS cho lỗi (Validation) */
 .error-text {
   color: #ff6b6b;
   font-size: 13px;

@@ -2,7 +2,16 @@
 import { reactive, ref } from 'vue'
 import type { Combo } from '../api/ComBoApi'
 
+// CẬP NHẬT: Nhận thêm danhSachCombo từ View cha để thực hiện kiểm tra trùng tên combo
+const props = defineProps<{
+  danhSachCombo: Combo[]
+}>()
+
 const emit = defineEmits(['submit'])
+
+// Biến cờ nhận biết Form đang ở chế độ "Thêm mới" hay "Cập nhật"
+const isEditMode = ref(false)
+const idComboHienTai = ref<number | null>(null)
 
 const form = reactive({
   tenCombo: '',
@@ -11,61 +20,139 @@ const form = reactive({
   trangThai: 1,
 })
 
+// Chứa thông báo lỗi hiển thị trực tiếp dưới các ô nhập liệu
+const errors = reactive({
+  tenCombo: '',
+  giaCombo: '',
+  hinhAnh: '',
+})
+
 const fileAnh = ref<File | null>(null)
 const anhPreview = ref<string | null>(null)
+
+// Xóa sạch vết thông báo lỗi cũ khi có thao tác mới
+const clearErrors = () => {
+  errors.tenCombo = ''
+  errors.giaCombo = ''
+  errors.hinhAnh = ''
+}
 
 const chonAnh = (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     const file = target.files[0]
-    
-    // Thêm dòng if này để TypeScript biết chắc chắn file không bị undefined
     if (file) {
       fileAnh.value = file
       form.hinhAnh = file.name 
       anhPreview.value = URL.createObjectURL(file)
+      errors.hinhAnh = '' // Xóa lỗi chọn ảnh khi đã chọn thành công
     }
   }
 }
 
-const gui = () => {
-  const ten = form.tenCombo || ''
-  const gia = Number(form.giaCombo)
+// Hàm xử lý Validate nâng cao
+const validateForm = () => {
+  clearErrors()
+  let isValid = true
 
-  // VALIDATE
-  if (!ten) return alert("Tên combo không được để trống")
-  if (ten.length < 3 || ten.length > 50) return alert("Tên combo phải từ 3 đến 50 ký tự")
-  if (ten !== ten.trim()) return alert("Tên combo không được chứa khoảng trắng ở đầu hoặc cuối")
-  if (/\s{2,}/.test(ten)) return alert("Tên combo không được chứa nhiều khoảng trắng liên tiếp")
+  // 1. Validate Tên Combo
+  const ten = form.tenCombo || ''
+  if (!ten || ten.trim() === '') {
+    errors.tenCombo = "Tên combo không được để trống"
+    isValid = false
+  } else if (ten.length < 3 || ten.length > 50) {
+    errors.tenCombo = "Tên combo phải từ 3 đến 50 ký tự"
+    isValid = false
+  } else if (ten !== ten.trim()) {
+    errors.tenCombo = "Tên combo không được chứa khoảng trắng ở đầu hoặc cuối"
+    isValid = false
+  } else if (ten.includes('  ')) {
+    errors.tenCombo = "Tên combo không được chứa nhiều khoảng trắng liên tiếp"
+    isValid = false
+  } else {
+    // ----------------------------------------------------------------------
+    // THUẬT TOÁN: CHUẨN HÓA CHUỖI KHÔNG DẤU ĐỂ CHẶN CỐ TÌNH GÕ THỪA CHỮ LẶP
+    // ----------------------------------------------------------------------
+    const chuoiKhongDau = ten.trim().toLowerCase()
+      .normalize('NFD')               
+      .replace(/[\u0300-\u036f]/g, '') 
+      .replace(/đ/g, 'd');            
+
+    // Bắt lỗi nếu có 2 ký tự không dấu giống hệt nhau đứng liền kề (Ví dụ: tháiii -> thaiii -> dính ii)
+    if (/([a-z])\1{1,}/i.test(chuoiKhongDau)) {
+      errors.tenCombo = "Tên combo không được chứa các ký tự lặp lại vô nghĩa liên tiếp"
+      isValid = false
+    } 
+    // Kiểm tra trùng tên với hệ thống danh sách có sẵn
+    else {
+      const tenChuanHoa = ten.trim().toLowerCase()
+      const biTrungTen = props.danhSachCombo.some(cb => {
+        // Nếu đang sửa, bỏ qua không so sánh trùng với chính bản ghi hiện tại
+        if (isEditMode.value && cb.idCombo === idComboHienTai.value) {
+          return false
+        }
+        return cb.tenCombo.trim().toLowerCase() === tenChuanHoa
+      })
+
+      if (biTrungTen) {
+        errors.tenCombo = "Tên gói combo này đã tồn tại trong danh sách của nhà hàng"
+        isValid = false
+      }
+    }
+  }
   
-  if (!form.giaCombo) return alert("Giá combo không được để trống")
-  if (gia <= 0) return alert("Giá combo phải lớn hơn 0")
+  // 2. Validate Giá Combo
+  const gia = form.giaCombo
+  if (!gia || gia.toString().trim() === '') {
+    errors.giaCombo = "Giá combo không được để trống"
+    isValid = false
+  } else if (Number(gia) <= 0) {
+    errors.giaCombo = "Giá combo phải lớn hơn 0"
+    isValid = false
+  }
   
-  if (!form.hinhAnh || !form.hinhAnh.trim()) return alert("Vui lòng chọn hình ảnh")
+  // 3. Validate Hình Ảnh
+  if (!form.hinhAnh || !form.hinhAnh.trim()) {
+    errors.hinhAnh = "Vui lòng lựa chọn hình ảnh cho combo"
+    isValid = false
+  }
+
+  return isValid
+}
+
+const gui = () => {
+  if (!validateForm()) return
 
   emit('submit', {
-    tenCombo: ten,
-    giaCombo: gia,
+    tenCombo: form.tenCombo.trim(),
+    giaCombo: Number(form.giaCombo),
     hinhAnh: form.hinhAnh.trim(),
     trangThai: form.trangThai,
-    fileThat: fileAnh.value // Gửi file thật lên View
+    fileThat: fileAnh.value 
   })
 }
 
 defineExpose({
   fillForm(combo?: Combo) {
+    clearErrors() // Xóa sạch thông báo lỗi cũ
     fileAnh.value = null
     anhPreview.value = null
     const fileInput = document.getElementById('file-upload') as HTMLInputElement
     if (fileInput) fileInput.value = ''
 
     if (!combo) {
+      isEditMode.value = false
+      idComboHienTai.value = null
       form.tenCombo = ''
       form.giaCombo = ''
       form.hinhAnh = ''
       form.trangThai = 1
       return
     }
+
+    // Gán ID và bật chế độ Cập nhật dữ liệu
+    isEditMode.value = true
+    idComboHienTai.value = combo.idCombo
 
     form.tenCombo = combo.tenCombo
     form.giaCombo = combo.giaCombo.toString()
@@ -79,50 +166,66 @@ defineExpose({
   <section class="bieu-mau-panel">
     <div class="tieu-de-panel">
       <h2>Combo</h2>
-      <p>Thêm mới hoặc cập nhật combo.</p>
+      <p>{{ isEditMode ? 'Cập nhật gói combo hệ thống' : 'Thêm mới gói combo ăn uống' }}</p>
     </div>
 
     <div class="luoi-bieu-mau">
-      <label>
-        Tên combo
-        <input v-model="form.tenCombo" type="text" placeholder="Nhập tên combo..." />
-      </label>
+      <div class="form-group">
+        <label>Tên combo</label>
+        <input 
+          v-model="form.tenCombo" 
+          type="text" 
+          placeholder="Nhập tên combo..." 
+          :class="{ 'is-invalid': errors.tenCombo }"
+          @input="errors.tenCombo = ''"
+        />
+        <span class="error-text" v-if="errors.tenCombo">{{ errors.tenCombo }}</span>
+      </div>
 
-      <label>
-        Giá
-        <input v-model="form.giaCombo" type="number" placeholder="Nhập giá..." />
-      </label>
+      <div class="form-group">
+        <label>Giá (đ)</label>
+        <input 
+          v-model="form.giaCombo" 
+          type="number" 
+          placeholder="Nhập giá..." 
+          :class="{ 'is-invalid': errors.giaCombo }"
+          @input="errors.giaCombo = ''"
+        />
+        <span class="error-text" v-if="errors.giaCombo">{{ errors.giaCombo }}</span>
+      </div>
 
-      <label>
-        Hình ảnh
+      <div class="form-group">
+        <label>Hình ảnh</label>
         <input 
           id="file-upload"
           type="file" 
           accept="image/*" 
           @change="chonAnh" 
           class="input-file"
+          :class="{ 'is-invalid': errors.hinhAnh }"
         />
-      </label>
+        <span class="error-text" v-if="errors.hinhAnh">{{ errors.hinhAnh }}</span>
+      </div>
 
       <div class="khung-xem-anh" v-if="anhPreview || form.hinhAnh">
-        <p class="nhan-anh">Ảnh hiện tại:</p>
+        <p class="nhan-anh">Ảnh hiển thị:</p>
         <img 
           :src="anhPreview || `http://localhost:8080/uploads/${form.hinhAnh}`" 
           alt="Preview" 
         />
       </div>
 
-      <label>
-        Trạng thái
+      <div class="form-group">
+        <label>Trạng thái</label>
         <select v-model.number="form.trangThai">
           <option :value="1">Còn bán</option>
           <option :value="0">Ngưng bán</option>
         </select>
-      </label>
+      </div>
     </div>
 
     <div class="nhom-nut">
-      <button type="button" @click="gui">Lưu</button>
+      <button type="button" @click="gui">Lưu thông tin</button>
     </div>
   </section>
 </template>
@@ -150,10 +253,14 @@ defineExpose({
   gap: 14px;
 }
 
-label {
+.form-group {
   display: flex;
   flex-direction: column;
+}
+
+label {
   color: #d8d8d8;
+  margin-bottom: 6px;
 }
 
 input,
@@ -164,6 +271,14 @@ select {
   color: white;
   border-radius: 16px;
   padding: 14px 16px;
+  outline: none;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+input:focus,
+select:focus {
+  border-color: #f8d46a;
 }
 
 .input-file {
@@ -219,5 +334,17 @@ button {
 select option {
   background: #151515;
   color: #ffffff;
+}
+
+.error-text {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin-top: 6px;
+  margin-left: 8px;
+}
+
+.is-invalid {
+  border: 1px solid #ff6b6b !important;
+  background: rgba(255, 107, 107, 0.05) !important;
 }
 </style>

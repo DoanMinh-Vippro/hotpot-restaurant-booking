@@ -1,6 +1,5 @@
 <template>
   <div class="container">
-    <!-- NÚT QUAY LẠI MÀN HÌNH THỰC ĐƠN -->
     <div class="khu-vuc-dieu-huong">
       <button class="nut-quay-lai" @click="quayLaiThucDon">
         ⬅ Quay lại Thực đơn
@@ -27,7 +26,11 @@
     </div>
 
     <div class="cot-phai">
-      <Form ref="formRef" @submit="luu" />
+      <Form 
+        ref="formRef" 
+        :danh-sach="danhSach"
+        @submit="luu" 
+      />
 
       <Preview :item="itemChon" />
     </div>
@@ -89,7 +92,7 @@ const fetchDuLieu = async () => {
   }
 }
 
-// ĐỔI TẠI ĐÂY: Hàm xử lý chuyển hướng quay về route 'thucDon'
+// Hàm xử lý chuyển hướng quay về route 'thucDon'
 const quayLaiThucDon = () => {
   router.push({ name: 'thucDon' })
 }

@@ -26,7 +26,11 @@
     </div>
 
     <div class="cot-phai">
-      <Form ref="formRef" @submit="luu" />
+      <Form 
+        ref="formRef" 
+        :danh-sach="danhSach"
+        @submit="luu" 
+      />
 
       <Preview :item="itemChon" />
     </div>
@@ -36,7 +40,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router' // Bổ sung useRouter tại đây
+import { useRoute, useRouter } from 'vue-router'
 import ChiTietGiamGiaMonApi from '../api/ChiTietGiamGiaMonApi'
 import DotGiamGiaApi from '../api/DotGiamGiaApi'
 
@@ -51,7 +55,7 @@ import type {
 } from '../api/ChiTietGiamGiaMonApi'
 
 const route = useRoute()
-const router = useRouter() // Khởi tạo router để điều hướng quay lại
+const router = useRouter()
 const danhSach = ref<ChiTietGiamGiaMon[]>([])
 const itemChon = ref<ChiTietGiamGiaMon | undefined>()
 const selectedId = ref<number | null>(null)
@@ -90,7 +94,7 @@ const fetchDuLieu = async () => {
 
 // Hàm xử lý quay lại màn hình danh sách đợt giảm giá chính
 const quayLaiDotGiamGia = () => {
-  router.push({ name: 'dotGiamGia' }) // Khớp chính xác với 'name: dotGiamGia' trong router/index.ts của bạn
+  router.push({ name: 'dotGiamGia' })
 }
 
 const nhanSuKienTimKiem = async (boLoc: { tenChuongTrinh: string, tenMon: string }) => {
