@@ -2,10 +2,6 @@
 import BanApi from '@/api/BanApi';
 import { ref, watch } from 'vue';
 
-// 1. Bạn phải tạo (khai báo) biến này trước thì mới dùng được
-// ref(null) nghĩa là ban đầu nó chưa có dữ liệu gì (rỗng)
-const selectedTable = ref(null);
-
 // Khai báo trạng thái của form
 const formData = ref({
   idBan: 0,

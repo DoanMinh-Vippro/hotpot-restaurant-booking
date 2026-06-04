@@ -82,6 +82,10 @@ const goToAuth = () => {
 
 <li><RouterLink to="/ban" class="nav-link-button">BÀN</RouterLink></li>
 
+          <li><RouterLink to="/ban" class="nav-link-button">BÀN</RouterLink></li>
+          <li><RouterLink to="/dat-ban" class="nav-link-button">ĐẶT BÀN</RouterLink></li>
+          <li><RouterLink to="/dat-ban-quan-ly" class="nav-link-button">ĐẶT BÀN QUẢN LÝ</RouterLink></li>
+
         </ul>
 
         <div class="auth-group">
