@@ -15,6 +15,7 @@ public class MonResponse {
     private Integer idMon;
     private String tenMon;
     private BigDecimal donGiaHienTai;
+    private Integer idDanhMuc;
     private String loaiDanhMuc;
     private Integer trangThai;
 }

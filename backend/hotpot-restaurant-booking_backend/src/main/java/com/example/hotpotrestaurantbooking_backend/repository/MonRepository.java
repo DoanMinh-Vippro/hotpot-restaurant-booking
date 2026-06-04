@@ -15,19 +15,19 @@ import java.util.List;
 @Repository
 public interface MonRepository extends JpaRepository<Mon,Integer> {
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc,m.danhMuc.loaiDanhMuc, m.trangThai)
     from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
 """)
     List<MonResponse>hienThiMon();
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc,m.danhMuc.loaiDanhMuc, m.trangThai)
     from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc where m.tenMon=?1
 """)
     MonResponse detailMon(String tenMon);
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.loaiDanhMuc, m.trangThai)
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc,m.danhMuc.loaiDanhMuc, m.trangThai)
     from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
 """)
     Page<MonResponse> phanTrangMon(Pageable pageable);
@@ -37,7 +37,7 @@ public interface MonRepository extends JpaRepository<Mon,Integer> {
         m.idMon,
         m.tenMon,
         m.donGiaHienTai,
-        m.danhMuc.loaiDanhMuc, m.trangThai
+m.danhMuc.idDanhMuc,        m.danhMuc.loaiDanhMuc, m.trangThai
     )
     from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
     where

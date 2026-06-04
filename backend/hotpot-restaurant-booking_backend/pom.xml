@@ -19,6 +19,7 @@
 
     <properties>
         <java.version>17</java.version>
+        <kotlin.version>1.9.20</kotlin.version>
     </properties>
 
 
@@ -129,6 +130,7 @@
             <artifactId>modelmapper</artifactId>
             <version>3.2.1</version>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -138,6 +140,17 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <goals> <goal>compile</goal> </goals>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>

@@ -22,6 +22,9 @@ public class MonValidator {
         if (ValidateUtil.hasMultipleSpaces(tenMon)) {
             throw new RuntimeException("Tên món không được chứa nhiều khoảng trắng liên tiếp");
         }
+        if (ValidateUtil.hasMultipleSpaces(tenMon)) {
+            throw new RuntimeException("Tên món không được chứa nhiều khoảng trắng liên tiếp");
+        }
 
         if (monRepository.existsByTenMonIgnoreCase(tenMon.trim())) {
             throw new RuntimeException("Tên món đã tồn tại");

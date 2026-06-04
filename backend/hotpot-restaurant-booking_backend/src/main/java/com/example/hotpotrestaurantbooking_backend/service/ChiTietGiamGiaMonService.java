@@ -22,6 +22,7 @@ public interface ChiTietGiamGiaMonService {
 
     Page<ChiTietGiamGiaMonResponse> timKiemCTGGM(
             String tenChuongTrinh,
+            String tenMon,
             BigDecimal mucMin,
             BigDecimal mucMax,
             Integer pageNo,

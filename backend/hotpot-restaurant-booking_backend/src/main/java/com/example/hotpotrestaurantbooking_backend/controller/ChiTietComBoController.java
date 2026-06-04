@@ -6,6 +6,7 @@ import com.example.hotpotrestaurantbooking_backend.dto.ChiTietComboRequest;
 import com.example.hotpotrestaurantbooking_backend.service.ChiTietComBoService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,18 +29,18 @@ public class ChiTietComBoController {
         return sv.detailCTCB(idChiTietCombo);
     }
     @GetMapping("phanTrangCTCB")
-    public List<ChiTietComBoResponse> phanTrangCTCB(@RequestParam(defaultValue = "0") Integer pageNo,
+    public Page<ChiTietComBoResponse> phanTrangCTCB(@RequestParam(defaultValue = "0") Integer pageNo,
                                                     @RequestParam(defaultValue = "5") Integer pageSize){
-        return sv.phanTrangCTCB(pageNo,pageSize).getContent();
+        return sv.phanTrangCTCB(pageNo,pageSize);
     }
     @GetMapping("timKiemCTCB")
-    public List<ChiTietComBoResponse>timKiemCTCB(@RequestParam(required = false) String tenCombo,
+    public Page<ChiTietComBoResponse>timKiemCTCB(@RequestParam(required = false) String tenCombo,
                                                  @RequestParam(required = false) String tenMon,
                                                  @RequestParam(required = false) BigDecimal giaMin,
                                                  @RequestParam(required = false) BigDecimal giaMax,
                                                  @RequestParam(defaultValue = "0") Integer pageNo,
                                                  @RequestParam(defaultValue = "5") Integer pageSize){
-        return sv.timKiemCTCB(tenCombo, tenMon, giaMin, giaMax, pageNo,pageSize).getContent();
+        return sv.timKiemCTCB(tenCombo, tenMon, giaMin, giaMax, pageNo,pageSize);
     }
     @PostMapping("addCTCB")
     public ResponseEntity<ApiResponse>addCTCB(@Valid @RequestBody ChiTietComboRequest req){

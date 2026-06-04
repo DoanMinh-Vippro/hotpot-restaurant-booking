@@ -4,6 +4,7 @@ import com.example.hotpotrestaurantbooking_backend.Validation.ApiResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.ComboRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.ComboResponse;
 import com.example.hotpotrestaurantbooking_backend.service.ComBoService;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestBody;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,17 +29,17 @@ public class ComBoController {
         return sv.detailComBo(tenCombo);
     }
     @GetMapping("phanTrangComBo")
-    public List<ComboResponse> phanTrangComBo(@RequestParam(defaultValue = "0") Integer pageNo,
+    public Page<ComboResponse> phanTrangComBo(@RequestParam(defaultValue = "0") Integer pageNo,
                                               @RequestParam(defaultValue = "5") Integer pageSize){
-        return sv.phanTrangComBo(pageNo, pageSize).getContent();
+        return sv.phanTrangComBo(pageNo, pageSize);
     }
     @GetMapping("timKiemComBo")
-    public List<ComboResponse>timKiemComBo(@RequestParam(required = false) String tenCombo,
+    public Page<ComboResponse>timKiemComBo(@RequestParam(required = false) String tenCombo,
                                            @RequestParam(required = false) BigDecimal giaMin,
                                            @RequestParam(required = false) BigDecimal giaMax,
                                            @RequestParam(defaultValue = "0") Integer pageNo,
                                            @RequestParam(defaultValue = "5") Integer pageSize){
-        return sv.timKiemComBo(tenCombo, giaMin, giaMax, pageNo, pageSize).getContent();
+        return sv.timKiemComBo(tenCombo, giaMin, giaMax, pageNo, pageSize);
     }
     @PostMapping("addComBo")
     public ResponseEntity<ApiResponse>addComBo(@Valid @RequestBody ComboRequest req){

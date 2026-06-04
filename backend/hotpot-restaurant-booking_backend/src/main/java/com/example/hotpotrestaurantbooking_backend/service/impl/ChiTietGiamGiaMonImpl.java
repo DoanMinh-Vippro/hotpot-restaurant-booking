@@ -18,6 +18,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+
+@Service
 public class ChiTietGiamGiaMonImpl implements ChiTietGiamGiaMonService {
     @Autowired
     private ChiTietGiamGiaMonRepository repo;
@@ -41,10 +44,10 @@ public class ChiTietGiamGiaMonImpl implements ChiTietGiamGiaMonService {
         return repo.phanTrangCTGGM(pageable);
     }
 
-    public Page<ChiTietGiamGiaMonResponse> timKiemCTGGM(String tenChuongTrinh, BigDecimal mucMin, BigDecimal mucMax,
+    public Page<ChiTietGiamGiaMonResponse> timKiemCTGGM(String tenChuongTrinh, String tenMon,BigDecimal mucMin, BigDecimal mucMax,
                                                         Integer pageNo, Integer pageSize){
         Pageable pageable= PageRequest.of(pageNo, pageSize);
-        return repo.timKiemCTGGM(tenChuongTrinh, mucMin, mucMax, pageable);
+        return repo.timKiemCTGGM(tenChuongTrinh, tenMon,mucMin, mucMax, pageable);
     }
 
     public void addCTGGM(ChiTietGiamGiaMonRequest req){

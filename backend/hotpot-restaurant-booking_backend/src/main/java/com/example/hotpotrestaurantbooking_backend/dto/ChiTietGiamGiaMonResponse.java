@@ -17,9 +17,9 @@ import java.math.BigDecimal;
 public class ChiTietGiamGiaMonResponse {
 
     private Integer idChiTietGiamGiaMon;
-
+    private Integer idDotGiamGia;
     private String tenChuongTrinh;
-
+    private Integer idMon;
     private String tenMon;
 
     private BigDecimal mucGiam;

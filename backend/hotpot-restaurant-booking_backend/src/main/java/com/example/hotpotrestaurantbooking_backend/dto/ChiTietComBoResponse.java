@@ -14,7 +14,9 @@ import java.math.BigDecimal;
 public class ChiTietComBoResponse {
     private Integer idChiTietCombo;
     private Integer soLuong;
+    private Integer idMon;
     private String tenMon;
+    private Integer idCombo;
     private String tenCombo;
     private BigDecimal giaCombo;
     private String hinhAnh;

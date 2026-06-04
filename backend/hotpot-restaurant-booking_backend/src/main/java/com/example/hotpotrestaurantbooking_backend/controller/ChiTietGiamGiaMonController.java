@@ -6,6 +6,7 @@ import com.example.hotpotrestaurantbooking_backend.dto.ChiTietGiamGiaMonResponse
 import com.example.hotpotrestaurantbooking_backend.service.ChiTietGiamGiaMonService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,19 +27,20 @@ public class ChiTietGiamGiaMonController {
         return sv.detailCTGGM(idChiTietGiamGiaMon);
     }
     @GetMapping("phanTrangCTGGM")
-    public List<ChiTietGiamGiaMonResponse> phanTrangCTGGM(@RequestParam(defaultValue = "0") Integer pageNo,
+    public Page<ChiTietGiamGiaMonResponse> phanTrangCTGGM(@RequestParam(defaultValue = "0") Integer pageNo,
                                                           @RequestParam(defaultValue = "5") Integer pageSize){
 
-        return sv.phanTrangCTGGM(pageNo, pageSize).getContent();
+        return sv.phanTrangCTGGM(pageNo, pageSize);
     }
     @GetMapping("timKiemCTGGM")
-    public List<ChiTietGiamGiaMonResponse> timKiemCTGGM(@RequestParam(required = false) String tenChuongTrinh,
+    public Page<ChiTietGiamGiaMonResponse> timKiemCTGGM(@RequestParam(required = false) String tenChuongTrinh,
+                                                        @RequestParam(required = false) String tenMon,
                                                         @RequestParam(required = false) BigDecimal mucMin,
                                                         @RequestParam(required = false) BigDecimal mucMax,
                                                         @RequestParam(defaultValue = "0") Integer pageNo,
                                                         @RequestParam(defaultValue = "5") Integer pageSize){
 
-        return sv.timKiemCTGGM(tenChuongTrinh, mucMin, mucMax, pageNo, pageSize).getContent();
+        return sv.timKiemCTGGM(tenChuongTrinh, tenMon,mucMin, mucMax, pageNo, pageSize);
     }
     @PostMapping("addCTGGM")
     public ResponseEntity<ApiResponse> addCTGGM(@Valid @RequestBody ChiTietGiamGiaMonRequest req){

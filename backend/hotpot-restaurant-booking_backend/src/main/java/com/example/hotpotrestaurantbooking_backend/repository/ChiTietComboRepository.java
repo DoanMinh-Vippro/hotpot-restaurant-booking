@@ -17,7 +17,7 @@ import java.util.List;
 public interface ChiTietComboRepository extends JpaRepository<ChiTietCombo,Integer> {
     @Query("""
     select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietComBoResponse(
-    ctcb.idChiTietCombo, ctcb.soLuong, ctcb.mon.tenMon, ctcb.combo.tenCombo, ctcb.combo.giaCombo, ctcb.combo.hinhAnh, ctcb.combo.trangThai, ctcb.moTa
+    ctcb.idChiTietCombo, ctcb.soLuong, ctcb.mon.idMon,ctcb.mon.tenMon, ctcb.combo.idCombo,ctcb.combo.tenCombo, ctcb.combo.giaCombo, ctcb.combo.hinhAnh, ctcb.combo.trangThai, ctcb.moTa
     )
     from ChiTietCombo ctcb join Combo cb on ctcb.combo.idCombo=cb.idCombo 
     join Mon m on ctcb.mon.idMon=m.idMon 
@@ -26,7 +26,7 @@ public interface ChiTietComboRepository extends JpaRepository<ChiTietCombo,Integ
 
     @Query("""
     select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietComBoResponse(
-    ctcb.idChiTietCombo, ctcb.soLuong, ctcb.mon.tenMon, ctcb.combo.tenCombo, ctcb.combo.giaCombo, ctcb.combo.hinhAnh, ctcb.combo.trangThai, ctcb.moTa
+    ctcb.idChiTietCombo, ctcb.soLuong, ctcb.mon.idMon,ctcb.mon.tenMon, ctcb.combo.idCombo,ctcb.combo.tenCombo, ctcb.combo.giaCombo, ctcb.combo.hinhAnh, ctcb.combo.trangThai, ctcb.moTa
     )
     from ChiTietCombo ctcb join Combo cb on ctcb.combo.idCombo=cb.idCombo 
     join Mon m on ctcb.mon.idMon=m.idMon where ctcb.idChiTietCombo=?1
@@ -35,7 +35,7 @@ public interface ChiTietComboRepository extends JpaRepository<ChiTietCombo,Integ
 
     @Query("""
     select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietComBoResponse(
-    ctcb.idChiTietCombo, ctcb.soLuong, ctcb.mon.tenMon, ctcb.combo.tenCombo, ctcb.combo.giaCombo, ctcb.combo.hinhAnh, ctcb.combo.trangThai, ctcb.moTa
+    ctcb.idChiTietCombo, ctcb.soLuong, ctcb.mon.idMon,ctcb.mon.tenMon, ctcb.combo.idCombo,ctcb.combo.tenCombo, ctcb.combo.giaCombo, ctcb.combo.hinhAnh, ctcb.combo.trangThai, ctcb.moTa
     )
     from ChiTietCombo ctcb join Combo cb on ctcb.combo.idCombo=cb.idCombo 
     join Mon m on ctcb.mon.idMon=m.idMon 
@@ -43,19 +43,29 @@ public interface ChiTietComboRepository extends JpaRepository<ChiTietCombo,Integ
     Page<ChiTietComBoResponse> phanTrangCTComBo(Pageable pageable);
 
     @Query("""
-select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietComBoResponse(
-    ctcb.idChiTietCombo, ctcb.soLuong, ctcb.mon.tenMon, ctcb.combo.tenCombo, ctcb.combo.giaCombo, ctcb.combo.hinhAnh, ctcb.combo.trangThai, ctcb.moTa
+    select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietComBoResponse(
+        ctcb.idChiTietCombo, 
+        ctcb.soLuong, 
+        m.idMon, 
+        m.tenMon, 
+        cb.idCombo, 
+        cb.tenCombo, 
+        cb.giaCombo, 
+        cb.hinhAnh, 
+        cb.trangThai, 
+        ctcb.moTa
     )
-    from ChiTietCombo ctcb join Combo cb on ctcb.combo.idCombo=cb.idCombo 
-    join Mon m on ctcb.mon.idMon=m.idMon 
+    from ChiTietCombo ctcb 
+    join ctcb.combo cb 
+    join ctcb.mon m 
     where
-        (:tenCombo is null or lower(ctcb.combo.tenCombo) like lower(concat('%', :tenCombo, '%')))
+        (:tenCombo is null or :tenCombo = '' or lower(cb.tenCombo) like lower(concat('%', :tenCombo, '%')))
     and
-        (:tenMon is null or lower(ctcb.mon.tenMon) like lower(concat('%', :tenMon, '%')))
+        (:tenMon is null or :tenMon = '' or lower(m.tenMon) like lower(concat('%', :tenMon, '%')))
     and
-        (:giaMin is null or ctcb.combo.giaCombo >= :giaMin)
+        (:giaMin is null or cb.giaCombo >= :giaMin)
     and
-        (:giaMax is null or ctcb.combo.giaCombo <= :giaMax)
+        (:giaMax is null or cb.giaCombo <= :giaMax)
 """)
     Page<ChiTietComBoResponse> timKiemCTCB(
             @Param("tenCombo") String tenCombo,

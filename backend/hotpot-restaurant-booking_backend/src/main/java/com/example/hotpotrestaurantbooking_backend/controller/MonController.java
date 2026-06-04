@@ -9,6 +9,7 @@ import com.example.hotpotrestaurantbooking_backend.dto.MonResponse;
 import com.example.hotpotrestaurantbooking_backend.service.MonService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,13 +33,13 @@ public class MonController {
         return monService.detailMon(tenMon);
     }
     @GetMapping("phanTrangMon")
-    public List<MonResponse>phanTrangMon(@RequestParam(defaultValue = "0") Integer pageNo,
-                                         @RequestParam(defaultValue = "5") Integer pageSize){
-        return monService.phanTrangMon(pageNo,pageSize).getContent();
+    public Page<MonResponse> phanTrangMon(@RequestParam(defaultValue = "0") Integer pageNo,
+                                          @RequestParam(defaultValue = "5") Integer pageSize){
+        return monService.phanTrangMon(pageNo,pageSize);
     }
 
     @GetMapping("searchMon")
-    public List<MonResponse> timKiemMon(
+    public Page<MonResponse> timKiemMon(
             @RequestParam(required = false) String tenMon,
             @RequestParam(required = false) BigDecimal giaMin,
             @RequestParam(required = false) BigDecimal giaMax,
@@ -53,7 +54,7 @@ public class MonController {
                 loaiDanhMuc,
                 pageNo,
                 pageSize
-        ).getContent();
+        );
     }
     @PostMapping("addMon")
     public ResponseEntity<ApiResponse> addMon(@Valid @RequestBody MonRequest req){

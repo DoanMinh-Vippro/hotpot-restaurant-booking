@@ -16,24 +16,24 @@ public interface DanhMucRepository extends JpaRepository<DanhMuc,Integer> {
 
         DanhMuc findByIdDanhMuc(Integer idDanhMuc);
         @Query("""
-        select new com.example.hotpotrestaurantbooking_backend.dto.DanhMucResponse(dm.idDanhMuc, dm.loaiDanhMuc, dm.loaiDanhMuc)
+        select new com.example.hotpotrestaurantbooking_backend.dto.DanhMucResponse(dm.idDanhMuc, dm.loaiDanhMuc, dm.moTa)
         from DanhMuc dm
                    
 """)
     List<DanhMucResponse>hienThi();
         @Query("""
-        select new com.example.hotpotrestaurantbooking_backend.dto.DanhMucResponse(dm.idDanhMuc, dm.loaiDanhMuc, dm.loaiDanhMuc)
+        select new com.example.hotpotrestaurantbooking_backend.dto.DanhMucResponse(dm.idDanhMuc, dm.loaiDanhMuc, dm.moTa)
         from DanhMuc dm where dm.loaiDanhMuc=?1
 """)
     DanhMucResponse deatilDM(String loaiDanhMuc);
     @Query("""
-        select new com.example.hotpotrestaurantbooking_backend.dto.DanhMucResponse(dm.idDanhMuc, dm.loaiDanhMuc, dm.loaiDanhMuc)
+        select new com.example.hotpotrestaurantbooking_backend.dto.DanhMucResponse(dm.idDanhMuc, dm.loaiDanhMuc, dm.moTa)
         from DanhMuc dm
                    
 """)
     Page<DanhMucResponse> phanTrangDanhMuc(Pageable pageable);
     @Query("""
-        select new com.example.hotpotrestaurantbooking_backend.dto.DanhMucResponse(dm.idDanhMuc, dm.loaiDanhMuc, dm.loaiDanhMuc)
+        select new com.example.hotpotrestaurantbooking_backend.dto.DanhMucResponse(dm.idDanhMuc, dm.loaiDanhMuc, dm.moTa)
         from DanhMuc dm 
         where (:loaiDanhMuc is null or lower(dm.loaiDanhMuc) like lower(concat('%', :loaiDanhMuc ,'%') ) )
                    

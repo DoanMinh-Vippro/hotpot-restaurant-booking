@@ -29,15 +29,15 @@ public class DanhMucController {
         return sv.detailDM(loaiDanhMuc);
     }
     @GetMapping("phanTrangDM")
-    public List<DanhMucResponse> phanTrangDM(@RequestParam(defaultValue = "0")Integer pageNo,
+    public Page<DanhMucResponse> phanTrangDM(@RequestParam(defaultValue = "0")Integer pageNo,
                                              @RequestParam(defaultValue = "5")Integer pageSize){
-        return sv.phanTrangDM(pageNo, pageSize).getContent();
+        return sv.phanTrangDM(pageNo, pageSize);
     }
     @GetMapping("timKiemDM")
-    public List<DanhMucResponse> timKiemDM(@RequestParam(required = false) String loaiDanhMuc,
+    public Page<DanhMucResponse> timKiemDM(@RequestParam(required = false) String loaiDanhMuc,
                                            @RequestParam(defaultValue = "0")Integer pageNo,
                                            @RequestParam(defaultValue = "5")Integer pageSize){
-        return sv.timKiemDM(loaiDanhMuc, pageNo, pageSize).getContent();
+        return sv.timKiemDM(loaiDanhMuc, pageNo, pageSize);
     }
     @PostMapping("addDM")
     public ResponseEntity<ApiResponse> addDM(@Valid @RequestBody DanhMucResquest req){
