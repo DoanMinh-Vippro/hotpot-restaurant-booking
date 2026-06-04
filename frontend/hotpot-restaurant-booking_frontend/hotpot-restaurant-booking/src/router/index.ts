@@ -35,6 +35,16 @@ const router = createRouter({
       path: '/ban',
       name: 'ban',
       component: () => import('@/views/BanView.vue'),
+    },
+    {
+      path: '/dat-ban',
+      name: 'dat-ban',
+      component: () => import('@/views/DatBanView.vue'),
+    },
+    {
+      path: '/dat-ban-quan-ly',
+      name: 'dat-ban-quan-ly',
+      component: () => import('@/views/DatBanQuanLyView.vue'),
     }
   ],
 })

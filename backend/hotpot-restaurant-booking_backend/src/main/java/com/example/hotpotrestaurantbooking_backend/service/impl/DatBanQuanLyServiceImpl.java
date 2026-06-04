@@ -31,6 +31,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                     DTODatBanQuanLyResponse response = mapper.map(d, DTODatBanQuanLyResponse.class);
                     response.setLoaiBan(d.getBan().getLoaiBan());
                     response.setTenKhachHang(d.getKhachHang().getTenKhachHang());
+                    response.setLoaiBan(d.getBan().getLoaiBan());
                     return response;
                 })
                 .toList();
@@ -61,7 +62,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         return datBanRepository
                 .findById(id)
                 .map(db -> {
-                    if (d.getIdBan() != null) db.setBan(db.getBan());
+                    if (d.getLoaiBan() != null) db.setBan(db.getBan());
 
                     if (d.getIdkhachHang() != null) db.setKhachHang(db.getKhachHang());
 

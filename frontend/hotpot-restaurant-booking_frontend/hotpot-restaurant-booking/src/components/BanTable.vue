@@ -31,8 +31,8 @@ const emit = defineEmits(['detail', 'delete']);
         <td>{{ b.tenKhuVuc }}</td>
         <td>{{ b.trangThai }}</td>
         <td>
-          <button class="btn-edit" @click="emit('detail', b)">Chi Tiết</button>
-          <button class="btn-delete" @click="emit('delete', b.idBan)">Xóa</button>
+          <button class="btn-detail" @click="emit('detail', b)">Detail</button>
+          <button class="btn-delete" @click="emit('delete', b.idBan)">Delete</button>
         </td>
       </tr>
     </tbody>
