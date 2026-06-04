@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@CrossOrigin("*")
+@CrossOrigin
 public class ChiTietComBoController {
     @Autowired
     private ChiTietComBoService sv;
