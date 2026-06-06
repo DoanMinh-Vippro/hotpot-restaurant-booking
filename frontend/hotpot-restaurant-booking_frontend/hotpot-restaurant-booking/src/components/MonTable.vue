@@ -106,7 +106,12 @@ const xoa = (id: number) => {
             <td>{{ mon.tenMon }}</td>
             <td>{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ</td>
             <td>{{ mon.loaiDanhMuc }}</td>
-            <td>{{ mon.trangThai === 0 ? 'Còn bán' : 'Ngưng bán' }}</td>
+            
+            <td>
+              <span :class="mon.trangThai === 0 ? 'trang-thai-con' : 'trang-thai-ngung'">
+                {{ mon.trangThai === 0 ? 'Còn bán' : 'Ngưng bán' }}
+              </span>
+            </td>
 
             <td class="hanh-dong">
               <button class="nut-sua" @click="$emit('edit', mon)">Sửa</button>
@@ -276,6 +281,15 @@ tr.active {
   color: #1a1410;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* CẬP NHẬT: Thêm CSS định dạng màu sắc trạng thái đồng bộ với Combo */
+.trang-thai-con {
+  color: #52c41a; /* Màu xanh lá cây */
+}
+
+.trang-thai-ngung {
+  color: #ff4d4f; /* Màu đỏ */
 }
 
 @media (max-width: 1200px) {

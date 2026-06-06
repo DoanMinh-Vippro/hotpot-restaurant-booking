@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import DatBanApi from '@/api/DatBanApi';
+import ComboListSelect from './ComBoInDatBan.vue'; // 1. Import component combo vào đây
 import { ref, watch } from 'vue';
 
-
-// tao object luu data vao form
+// Tạo object lưu data vào form
 const formData = ref({
     idDatBan: 0,
     ngayDat: '',
@@ -16,36 +16,34 @@ const formData = ref({
     soTienCoc: 0,
     phuongThucThanhToan: 0    
 })
-//cong de nhanh du lieu tu DatBanView
+
 const props = defineProps(['datBanForm'])
 
-//watch dung de lay du lieu ma datBanForm nhan doc dua vao object formData
 watch(() => props.datBanForm,(newData) => {
     if(newData){
         formData.value = {...newData}
     }
 })
 
-// bien dung de bao cho table load lai bang
 const emit = defineEmits(['refresh'])
 
 const add = async () =>{
     try {
         await DatBanApi.add(formData.value)
-        alert('them thanh cong')
+        alert('Thêm thành công')
         emit('refresh')
     } catch (error) {
-        console.error('them that bai', error)
+        console.error('Thêm thất bại', error)
     }
 }
 
 const update = async () =>{
     try {
         await DatBanApi.update(formData.value.idDatBan ,formData.value)
-        alert('sua thanh cong')
+        alert('Sửa thành công')
         emit('refresh')
     } catch (error) {
-        console.error('sua that bai', error)
+        console.error('Sửa thất bại', error)
     }
 }
 </script>
@@ -101,14 +99,19 @@ const update = async () =>{
           <option value="DA_XAC_NHAN">Đã xác nhận</option>
           <option value="DA_NHAN_BAN">Đã nhận bàn</option>
           <option value="DA_HUY">Đã hủy</option>
-          <option value="HOAN_THANH">hoàn thành</option>
+          <option value="HOAN_THANH">Hoàn thành</option>
         </select>
       </div>
     </div>
 
     <div class="form-group">
+      <label>Dịch vụ đính kèm gợi ý</label>
+      <ComboListSelect />
+    </div>
+
+    <div class="form-group">
       <label>Ghi Chú</label>
-      <textarea v-model="formData.ghiChu" rows="2"></textarea>
+      <textarea v-model="formData.ghiChu" rows="2" placeholder="Yêu cầu đặc biệt của khách..."></textarea>
     </div>
 
     <div class="button-group">
@@ -146,6 +149,7 @@ label {
   font-size: 0.8rem;
   margin-bottom: 5px;
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 input, select, textarea {
@@ -154,6 +158,10 @@ input, select, textarea {
   border: 1px solid #444;
   color: #fff;
   border-radius: 6px;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: #c5a059;
 }
 
 .button-group {
