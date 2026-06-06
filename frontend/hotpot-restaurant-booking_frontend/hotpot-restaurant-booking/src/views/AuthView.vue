@@ -122,7 +122,7 @@ const toggleMode = () => {
 
             <!-- Nút Submit hành động -->
             <button type="submit" class="btn-auth-submit">
-              {{ isLoginMode ? 'ĐĂNG NHẬP NAY' : 'ĐĂNG KÝ TÀI KHOẢN' }}
+              {{ isLoginMode ? 'ĐĂNG NHẬP NGAY' : 'ĐĂNG KÝ TÀI KHOẢN' }}
             </button>
           </form>
 

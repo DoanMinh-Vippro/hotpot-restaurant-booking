@@ -14,4 +14,5 @@ public interface DatBanService {
     DTODatBanResponse add(DTODatBanRequest datBan);
     DTODatBanResponse update(Integer id,DTODatBanRequest datBan);
     void delete(Integer id);
+    List<DTODatBanResponse> getDatBanByKhachHang(Integer id);
 }

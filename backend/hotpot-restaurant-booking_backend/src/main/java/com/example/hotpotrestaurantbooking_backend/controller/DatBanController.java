@@ -3,12 +3,15 @@ package com.example.hotpotrestaurantbooking_backend.controller;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
+import com.example.hotpotrestaurantbooking_backend.service.KhachHangService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -16,7 +19,21 @@ import java.util.List;
 @RestController
 public class DatBanController {
     private final DatBanService datBanService;
+    private final KhachHangService khachHangService;
 
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("khach")
+    public ResponseEntity<List<DTODatBanResponse>> getMyReservations(Principal principal) {
+        // Lấy username từ token
+        String username = principal.getName();
+        // Tìm khách hàng dựa trên tài khoản/email
+        Integer khachHangId = khachHangService.findByUsername(username).getIdKhachHang();
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(datBanService.getDatBanByKhachHang(khachHangId));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<DTODatBanResponse>> getAll(){
         return ResponseEntity.status(HttpStatus.OK).body(datBanService.getAll());

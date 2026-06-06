@@ -8,14 +8,20 @@ import lombok.*;
 @Getter
 @Setter
 @Entity
-@Table(name = "\"TaiKhoan\"")
+@Table(name = "TaiKhoan")
 public class TaiKhoan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idTaiKhoan;
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     private String maTaiKhoan;
+    @Column(nullable = false, unique = true)
     private String tenDangNhap;
+    @Column(nullable = false)
     private String matKhau;
+    @Column(nullable = false)
     private Boolean trangThai;
+    @ManyToOne
+    @JoinColumn(name = "id_chuc_vu")
+    private ChucVu chucVu;
 }

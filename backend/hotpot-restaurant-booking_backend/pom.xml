@@ -22,8 +22,6 @@
         <kotlin.version>1.9.20</kotlin.version>
     </properties>
 
-
-
     <dependencies>
 
         <!-- WEB API -->
@@ -44,13 +42,13 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- SECURITY -->
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.boot</groupId>-->
-<!--            <artifactId>spring-boot-starter-security</artifactId>-->
-<!--        </dependency>-->
+        <!-- 🔐 SECURITY (FIXED) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
 
-        <!-- JWT AUTH -->
+        <!-- 🔐 JWT (JJWT - SIMPLE MODERN APPROACH) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -70,6 +68,18 @@
             <version>0.11.5</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- JWT RESOURCE SERVER (BẮT BUỘC) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- JOSE (RSA, JWK, Nimbus encoder/decoder) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
+
 
         <!-- SQL SERVER -->
         <dependency>
@@ -84,7 +94,6 @@
             <artifactId>escpos-coffee</artifactId>
             <version>4.1.0</version>
         </dependency>
-
 
         <!-- PDF EXPORT -->
         <dependency>
@@ -116,15 +125,14 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- SWAGGER UI -->
+        <!-- SWAGGER -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.5.0</version>
         </dependency>
 
-        <!-- Model Mapper -->
-        <!-- MODELMAPPER -->
+        <!-- MODEL MAPPER -->
         <dependency>
             <groupId>org.modelmapper</groupId>
             <artifactId>modelmapper</artifactId>
@@ -141,6 +149,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
@@ -148,7 +157,9 @@
                 <executions>
                     <execution>
                         <id>compile</id>
-                        <goals> <goal>compile</goal> </goals>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

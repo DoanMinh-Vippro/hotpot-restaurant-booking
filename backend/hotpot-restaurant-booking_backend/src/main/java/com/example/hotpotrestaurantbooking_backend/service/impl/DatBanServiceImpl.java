@@ -63,4 +63,12 @@ public class DatBanServiceImpl implements DatBanService {
     public void delete(Integer id) {
         datBanRepository.deleteById(id);
     }
+
+    @Override
+    public List<DTODatBanResponse> getDatBanByKhachHang(Integer id) {
+        List<DatBan> list = datBanRepository.findByKhachHang_IdKhachHang(id);
+        return list.stream()
+                .map(dbkh -> mapper.map(dbkh,DTODatBanResponse.class))
+                .toList();
+    }
 }
