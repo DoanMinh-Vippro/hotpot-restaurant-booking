@@ -1,21 +1,18 @@
-// ===========================================
-// ChucVuService
-// ===========================================
-package com.example.hotpotrestaurantbooking_backend.service;
+package org.example.datlich.service;
 
-import com.example.hotpotrestaurantbooking_backend.entity.ChucVu;
-
+import org.example.datlich.dto.DTOChucVuRequest;
+import org.example.datlich.dto.DTOChucVuResponse;
+import org.example.datlich.entity.ChucVu;
 import java.util.List;
 
 public interface ChucVuService {
+    List<DTOChucVuResponse> getAll();
 
-    List<ChucVu> getAll();
+    DTOChucVuResponse getById(Integer id);
 
-    ChucVu getById(Integer id);
+    DTOChucVuResponse add(DTOChucVuRequest request);
 
-    ChucVu add(ChucVu chucVu);
-
-    ChucVu update(Integer id, ChucVu chucVu);
+    DTOChucVuResponse update(Integer id, DTOChucVuRequest request);
 
     void delete(Integer id);
 }

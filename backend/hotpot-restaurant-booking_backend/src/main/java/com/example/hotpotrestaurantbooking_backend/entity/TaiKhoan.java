@@ -1,21 +1,28 @@
-package com.example.hotpotrestaurantbooking_backend.entity;
+    package org.example.datlich.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
 @Entity
-@Table(name = "\"TaiKhoan\"")
+@Table(name = "TaiKhoan")
+@Builder
 public class TaiKhoan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer idTaiKhoan;
-    @Column(unique = true)
+    @Column(name = "id_tai_khoan")
+    private Integer id;
+    @Column(name = "ma_tai_khoan")
     private String maTaiKhoan;
+    @Column(name = "ten_dang_nhap")
     private String tenDangNhap;
+    @Column(name = "mat_khau")
     private String matKhau;
+    @Column(name = "trang_thai")
     private Boolean trangThai;
 }
