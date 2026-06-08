@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/nhan-vien")
+@RequestMapping("api/nhan-vien")
 @CrossOrigin(origins = "*")
 public class NhanVienController {
     @Autowired
