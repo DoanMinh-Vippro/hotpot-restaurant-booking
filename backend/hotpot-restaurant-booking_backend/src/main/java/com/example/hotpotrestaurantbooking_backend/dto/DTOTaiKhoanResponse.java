@@ -1,4 +1,8 @@
 package com.example.hotpotrestaurantbooking_backend.dto;
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6741c3e41b67912050083fa6b80f7e4b3d98e35f
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,6 +1,6 @@
-package org.example.datlich.repository;
+package com.example.hotpotrestaurantbooking_backend.repository;
 
-import org.example.datlich.entity.HoaDon;
+import com.example.hotpotrestaurantbooking_backend.entity.HoaDon;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

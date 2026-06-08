@@ -1,9 +1,9 @@
-    package org.example.datlich.controller;
+    package  com.example.hotpotrestaurantbooking_backend.controller;
 
-    import org.example.datlich.dto.DTOTaiKhoanRequest;
-    import org.example.datlich.dto.DTOTaiKhoanResponse;
-    import org.example.datlich.entity.TaiKhoan;
-    import org.example.datlich.service.TaiKhoanService;
+
+    import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanRequest;
+    import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanResponse;
+    import com.example.hotpotrestaurantbooking_backend.service.TaiKhoanService;
     import org.springframework.beans.factory.annotation.Autowired;
     import org.springframework.web.bind.annotation.*;
 
@@ -22,8 +22,8 @@
         }
 
         @GetMapping("/detail/{id}")
-        public DTOTaiKhoanResponse getById(@PathVariable Integer id) {
-            return service.getById(id);
+        public DTOTaiKhoanResponse findById(@PathVariable Integer id) {
+            return service.findById(id);
         }
 
         @PostMapping("/add")

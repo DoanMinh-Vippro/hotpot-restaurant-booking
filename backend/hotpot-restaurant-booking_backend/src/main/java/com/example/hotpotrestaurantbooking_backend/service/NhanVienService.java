@@ -1,15 +1,13 @@
-package org.example.datlich.service;
-
-import org.example.datlich.dto.DTONhanVienRequest;
-import org.example.datlich.dto.DTONhanVienResponse;
-
+package com.example.hotpotrestaurantbooking_backend.service;
+import com.example.hotpotrestaurantbooking_backend.dto.DTONhanVienRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTONhanVienResponse;
 
 import java.util.List;
 
 public interface NhanVienService {
     List<DTONhanVienResponse> getAll();
 
-    DTONhanVienResponse getById(Integer id);
+    DTONhanVienResponse findById(Integer id);
 
     DTONhanVienResponse add(DTONhanVienRequest request);
 

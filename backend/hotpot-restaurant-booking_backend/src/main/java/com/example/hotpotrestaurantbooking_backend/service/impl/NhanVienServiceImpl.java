@@ -1,12 +1,12 @@
-package org.example.datlich.impl;
+package com.example.hotpotrestaurantbooking_backend.service.impl;
 
-import org.example.datlich.dto.DTONhanVienRequest;
-import org.example.datlich.dto.DTONhanVienResponse;
-import org.example.datlich.entity.NhanVien;
-import org.example.datlich.repository.ChucVuRepository;
-import org.example.datlich.repository.NhanVienRepository;
-import org.example.datlich.repository.TaiKhoanRespository;
-import org.example.datlich.service.NhanVienService;
+import com.example.hotpotrestaurantbooking_backend.dto.DTONhanVienRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTONhanVienResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.NhanVien;
+import com.example.hotpotrestaurantbooking_backend.repository.ChucVuRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.NhanVienRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.TaiKhoanRespository;
+import com.example.hotpotrestaurantbooking_backend.service.NhanVienService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -62,7 +62,7 @@ public class NhanVienServiceImpl implements NhanVienService {
     }
 
     @Override
-    public DTONhanVienResponse getById(Integer id) {
+    public DTONhanVienResponse findById(Integer id) {
         NhanVien nv = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
         return toResponse(nv);
