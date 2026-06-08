@@ -12,22 +12,27 @@ const handleScroll = () => {
   isScrolled.value = window.scrollY > 50
 }
 
-onMounted(() => window.addEventListener('scroll', handleScroll))
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+  
+  // Đảm bảo trạng thái auth được khôi phục khi F5
+  const token = localStorage.getItem('token');
+  if (token && !authStore.isAuthenticated) {
+    authStore.decodeToken(token);
+  }
+})
+
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 
-// Hàm Logout
 const handleLogout = () => {
   authStore.logout()
   router.push('/')
 }
 
-// Hàm chuyển hướng Auth
 const goToAuth = () => {
   router.push('/auth')
 }
 
-
-//nút đặt bàn ngay
 const showDatBanModal = ref(false)
 
 const openDatBan = () => {
@@ -60,8 +65,6 @@ const openDatBan = () => {
             <li><RouterLink to="/ban" class="nav-link-button">BÀN</RouterLink></li>
             <li><RouterLink to="/dat-ban-quan-ly" class="nav-link-button">ĐẶT BÀN QUẢN LÝ</RouterLink></li>
           </template>
-
-          
           
           <li><a href="#contact">LIÊN HỆ</a></li>
         </ul>
@@ -79,16 +82,14 @@ const openDatBan = () => {
             <span class="login-label">ĐĂNG XUẤT</span>
           </div>
 
-          
-<button class="btn-reservation" @click="openDatBan">ĐẶT BÀN NGAY</button>
+          <button class="btn-reservation" @click="openDatBan">ĐẶT BÀN NGAY</button>
 
-<div v-if="showDatBanModal" class="modal-overlay">
-  <div class="modal-content">
-    <button class="close-btn" @click="showDatBanModal = false">ĐÓNG</button>
-    <DatBanView />
-  </div>
-</div>
-
+          <div v-if="showDatBanModal" class="modal-overlay">
+            <div class="modal-content">
+              <button class="close-btn" @click="showDatBanModal = false">ĐÓNG</button>
+              <DatBanView />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 defineProps<{
-    list: any[]
+  list: any[]
 }>()
 
-const emit = defineEmits(['detail','delete'])
+const emit = defineEmits(['detail', 'delete'])
 </script>
 
 <template>
@@ -33,7 +33,7 @@ const emit = defineEmits(['detail','delete'])
           <td>{{ d.loaiBan }}</td>
           <td>{{ d.tenKhachHang }}</td>
           <td>{{ d.sdtKhachHang }}</td>
-          <td>{{ d.ngayDat }}</td>
+          <td>{{ d.ngayDat }}</td>    
           <td>{{ d.gioDat }}</td>
           <td>{{ d.soNguoi }}</td>
           <td>{{ d.thoiGianDenDuKien }}</td>
@@ -43,8 +43,10 @@ const emit = defineEmits(['detail','delete'])
           <td>{{ d.phuongThucThanhToan }}</td>
           <td>{{ d.ghiChu }}</td>
           <td>
-            <button class="btn-detail" @click="emit('detail', d)">DETAIL</button>
-            <button class="btn-delete" @click="emit('delete', d.idDatBan)">DELETE</button>
+            <div class="vertical-actions">
+              <button class="btn-action btn-detail" @click="emit('detail', d)">DETAIL</button>
+              <button class="btn-action btn-delete" @click="emit('delete', d.idDatBan)">DELETE</button>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -56,9 +58,9 @@ const emit = defineEmits(['detail','delete'])
 .table-container {
   width: 100%;
   overflow-x: auto;
-  background: #1a1a1a;
+  background: #0d0d0d;
   border-radius: 12px;
-  border: 1px solid #333;
+  border: 1px solid #222;
   padding: 20px;
 }
 
@@ -66,42 +68,66 @@ table {
   width: 100%;
   border-collapse: collapse;
   color: #fff;
+  white-space: nowrap;
 }
 
 th {
   color: #c5a059;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
   padding: 15px;
-  border-bottom: 2px solid #333;
+  border-bottom: 2px solid #222;
 }
 
 td {
-  padding: 15px;
+  padding: 12px 15px;
   text-align: center;
-  border-bottom: 1px solid #222;
-  font-size: 0.9rem;
+  border-bottom: 1px solid #1a1a1a;
+  font-size: 0.85rem;
 }
 
-.status-badge {
-  background: #252525;
-  padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid #c5a059;
-  color: #c5a059;
-  font-size: 0.7rem;
+/* Vertical Action Container */
+.vertical-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
 }
 
-button {
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: none;
+/* Button Styling */
+.btn-action {
+  width: 85px; /* Cố định chiều rộng để nút cân đối */
+  padding: 6px 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   cursor: pointer;
-  font-weight: bold;
-  margin: 0 4px;
-  font-size: 0.8rem;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  border-radius: 4px;
 }
 
-.btn-detail { background: #c5a059; color: #000; }
-.btn-delete { background: #333; color: #ff4d4d; border: 1px solid #ff4d4d; }
+/* Detail Button (Gold) */
+.btn-detail {
+  background: transparent;
+  border-color: #c5a059;
+  color: #c5a059;
+}
+.btn-detail:hover {
+  background: #c5a059;
+  color: #000;
+}
+
+/* Delete Button (Red) */
+.btn-delete {
+  background: transparent;
+  border-color: #8b0000;
+  color: #ff4d4d;
+}
+.btn-delete:hover {
+  background: #8b0000;
+  color: #fff;
+}
 </style>

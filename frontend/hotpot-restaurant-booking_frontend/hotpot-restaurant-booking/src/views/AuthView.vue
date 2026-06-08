@@ -1,64 +1,57 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+// Đã import các thành phần cần thiết để gọi API
+import AuthApi from '@/api/AuthApi'
+import { useAuthStore } from '@/stores/AuthStore'
 
 const router = useRouter()
+const authStore = useAuthStore() // Khởi tạo store để lưu token sau khi login
 
-// Ref để kiểm tra xem đang ở chế độ Đăng nhập (true) hay Đăng ký (false)
 const isLoginMode = ref(true)
 
-// Khai báo các biến lưu dữ liệu Form
-const email = ref('')
+// [SỬA]: Thay đổi các biến lưu dữ liệu form cho khớp với database
+const username = ref('')     // Thay cho email
 const password = ref('')
 const confirmPassword = ref('')
-const fullName = ref('')
+// [XÓA]: Đã xóa fullName vì database bạn không dùng
 
-// Hàm xử lý khi nhấn Submit Form
-const handleSubmit = () => {
-  if (isLoginMode.value) {
-    console.log('Xử lý Đăng nhập:', { email: email.value, password: password.value })
-    // Gọi API đăng nhập ở đây...
-    // Sau khi thành công có thể điều hướng về trang chủ: router.push('/')
-  } else {
-    if (password.value !== confirmPassword.value) {
-      alert('Mật khẩu nhập lại không trùng khớp!')
-      return
+const handleSubmit = async () => {
+  try {
+    if (isLoginMode.value) {
+      console.log('Đang xử lý đăng nhập...')
+      // SỬA: Phải khớp với tên biến trong class Java (tenDangNhap, matKhau)
+      const res = await AuthApi.login({ 
+        tenDangNhap: username.value, 
+        matKhau: password.value 
+      })
+      
+      authStore.login(res.data.token)
+      alert('Đăng nhập thành công!')
+      router.push('/')
+      
+    } else {
+      // ... phần đăng ký nếu có
     }
-    console.log('Xử lý Đăng ký:', {
-      fullName: fullName.value,
-      email: email.value,
-      password: password.value,
-    })
-    // Gọi API đăng ký ở đây...
+  } catch (error) {
+    console.error()
+    alert('Đăng nhập thất bại, vui lòng kiểm tra lại tài khoản!')
   }
 }
 
-// Hàm chuyển đổi qua lại giữa Login và Register
 const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value
-  // Reset lại form khi chuyển chế độ
-  email.value = ''
+  // [SỬA]: Reset lại các biến mới
+  username.value = ''
   password.value = ''
   confirmPassword.value = ''
-  fullName.value = ''
 }
 </script>
 
 <template>
   <div class="auth-wrapper">
-    <!-- Nút quay lại trang chủ -->
     <div class="back-home" @click="router.push('/')">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="19" y1="12" x2="5" y2="12"></line>
         <polyline points="12 19 5 12 12 5"></polyline>
       </svg>
@@ -66,7 +59,6 @@ const toggleMode = () => {
     </div>
 
     <div class="auth-container">
-      <!-- BÊN TRÁI: Hình ảnh thương hiệu (Ẩn trên mobile để tối ưu) -->
       <div class="auth-image-side">
         <div class="overlay"></div>
         <div class="brand-content">
@@ -75,62 +67,40 @@ const toggleMode = () => {
         </div>
       </div>
 
-      <!-- BÊN PHẢI: Form Đăng nhập / Đăng ký -->
       <div class="auth-form-side">
         <div class="form-box">
-          <!-- Tiêu đề thay đổi động -->
           <div class="form-header">
             <h2>{{ isLoginMode ? 'ĐĂNG NHẬP' : 'TẠO TÀI KHOẢN' }}</h2>
-            <p>
-              {{
-                isLoginMode
-                  ? 'Chào mừng bạn trở lại với chúng tôi!'
-                  : 'Đăng ký để nhận nhiều ưu đãi đặc quyền khi đặt bàn.'
-              }}
-            </p>
+            <p>{{ isLoginMode ? 'Chào mừng bạn trở lại với chúng tôi!' : 'Đăng ký để nhận nhiều ưu đãi đặc quyền.' }}</p>
           </div>
 
           <form @submit.prevent="handleSubmit" class="main-form">
-            <!-- Trường Tên (Chỉ hiện khi Đăng ký) -->
-            <div v-if="!isLoginMode" class="input-group">
-              <label>HỌ VÀ TÊN</label>
-              <input v-model="fullName" type="text" placeholder="Nhập họ và tên của bạn" required />
-            </div>
-
-            <!-- Trường Email -->
             <div class="input-group">
-              <label>EMAIL</label>
-              <input v-model="email" type="email" placeholder="example@gmail.com" required />
+              <label>TÊN ĐĂNG NHẬP</label>
+              <input v-model="username" type="text" placeholder="Nhập tên đăng nhập" required />
             </div>
 
-            <!-- Trường Mật khẩu -->
             <div class="input-group">
               <label>MẬT KHẨU</label>
               <input v-model="password" type="password" placeholder="••••••••" required />
             </div>
 
-            <!-- Trường Nhập lại mật khẩu (Chỉ hiện khi Đăng ký) -->
             <div v-if="!isLoginMode" class="input-group">
               <label>NHẬP LẠI MẬT KHẨU</label>
               <input v-model="confirmPassword" type="password" placeholder="••••••••" required />
             </div>
 
-            <!-- Quên mật khẩu (Chỉ hiện khi Đăng nhập) -->
             <div v-if="isLoginMode" class="forgot-password">
               <a href="#forgot">Quên mật khẩu?</a>
             </div>
 
-            <!-- Nút Submit hành động -->
             <button type="submit" class="btn-auth-submit">
               {{ isLoginMode ? 'ĐĂNG NHẬP NGAY' : 'ĐĂNG KÝ TÀI KHOẢN' }}
             </button>
           </form>
 
-          <!-- Nút chuyển đổi chế độ Form -->
           <div class="form-toggle-footer">
-            <span>
-              {{ isLoginMode ? 'Bạn chưa có tài khoản?' : 'Bạn đã có tài khoản rồi?' }}
-            </span>
+            <span>{{ isLoginMode ? 'Bạn chưa có tài khoản?' : 'Bạn đã có tài khoản rồi?' }}</span>
             <button @click="toggleMode" class="btn-toggle">
               {{ isLoginMode ? 'Đăng ký ngay' : 'Đăng nhập ngay' }}
             </button>

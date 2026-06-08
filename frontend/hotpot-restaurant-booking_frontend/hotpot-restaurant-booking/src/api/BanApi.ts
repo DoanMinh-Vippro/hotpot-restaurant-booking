@@ -1,24 +1,23 @@
-    import axiosClient from "./axiosClient";
-
+import ApiClient from "./ApiClient"
     const BanApi = {
         getAll(){
-            return axiosClient.get("/bans")
+            return ApiClient.get("/api/bans")
         },
 
         findById(id: number){
-            return axiosClient.get(`/bans/${id}`)
+            return ApiClient.get(`/api/bans/${id}`)
         },
 
         add(data: any){
-            return axiosClient.post("/bans",data)
+            return ApiClient.post("/api/bans",data)
         },
 
         update(id: number, data: any){
-            return axiosClient.put(`/bans/${id}`,data)
+            return ApiClient.put(`/api/bans/${id}`,data)
         },
 
         delete(id: number){
-            return axiosClient.delete(`/bans/${id}`)
+            return ApiClient.delete(`/api/bans/${id}`)
         }
 
     }

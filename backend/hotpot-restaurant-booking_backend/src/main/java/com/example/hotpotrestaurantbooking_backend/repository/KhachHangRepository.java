@@ -8,5 +8,4 @@ import java.util.Optional;
 
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang,Integer> {
-    Optional<KhachHang> findByTaiKhoan(String taiKhoan);
 }

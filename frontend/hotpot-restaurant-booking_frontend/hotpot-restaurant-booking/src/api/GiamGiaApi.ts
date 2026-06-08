@@ -1,5 +1,4 @@
-import axiosClient from './axiosClient'
-
+import ApiClient from "./ApiClient"
 export interface GiamGia {
   idGiamGia: number
   maGiamGia: string
@@ -19,42 +18,42 @@ class GiamGiaApi {
    * Lấy danh sách tất cả mã giảm giá
    */
   getDanhSach() {
-    return axiosClient.get<GiamGia[]>('/giam-gia')
+    return ApiClient.get<GiamGia[]>('/giam-gia')
   }
 
   /**
    * Lấy mã giảm giá theo ID
    */
   getById(idGiamGia: number) {
-    return axiosClient.get<GiamGia>(`/giam-gia/${idGiamGia}`)
+    return ApiClient.get<GiamGia>(`/giam-gia/${idGiamGia}`)
   }
 
   /**
    * Tạo mã giảm giá mới
    */
   create(data: Omit<GiamGia, 'idGiamGia'>) {
-    return axiosClient.post<GiamGia>('/giam-gia', data)
+    return ApiClient.post<GiamGia>('/giam-gia', data)
   }
 
   /**
    * Cập nhật mã giảm giá
    */
   update(idGiamGia: number, data: Partial<Omit<GiamGia, 'idGiamGia'>>) {
-    return axiosClient.put<GiamGia>(`/giam-gia/${idGiamGia}`, data)
+    return ApiClient.put<GiamGia>(`/giam-gia/${idGiamGia}`, data)
   }
 
   /**
    * Xóa mã giảm giá
    */
   delete(idGiamGia: number) {
-    return axiosClient.delete(`/giam-gia/${idGiamGia}`)
+    return ApiClient.delete(`/giam-gia/${idGiamGia}`)
   }
 
   /**
    * Tìm kiếm mã giảm giá
    */
   search(keyword: string) {
-    return axiosClient.get<GiamGia[]>('/giam-gia/search', {
+    return ApiClient.get<GiamGia[]>('/giam-gia/search', {
       params: { key: keyword },
     })
   }

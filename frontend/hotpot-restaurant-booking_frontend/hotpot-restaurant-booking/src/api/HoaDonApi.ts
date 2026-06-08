@@ -1,4 +1,4 @@
-import axiosClient from './axiosClient'
+import ApiClient from "./ApiClient"
 
 export interface HoaDon {
   idHoaDon: number
@@ -42,49 +42,49 @@ class HoaDonApi {
    * Lấy danh sách tất cả hóa đơn
    */
   getDanhSach() {
-    return axiosClient.get<HoaDon[]>('/hoa-don')
+    return ApiClient.get<HoaDon[]>('/api/hoa-don')
   }
 
   /**
    * Lấy chi tiết hóa đơn (danh sách items)
    */
   getChiTiet(idHoaDon: number) {
-    return axiosClient.get<HoaDonChiTiet[]>(`/hoa-don/${idHoaDon}/chi-tiet`)
+    return ApiClient.get<HoaDonChiTiet[]>(`/api/hoa-don/${idHoaDon}/chi-tiet`)
   }
 
   /**
    * Lấy hóa đơn theo ID
    */
   getById(idHoaDon: number) {
-    return axiosClient.get<HoaDon>(`/hoa-don/${idHoaDon}`)
+    return ApiClient.get<HoaDon>(`/api/hoa-don/${idHoaDon}`)
   }
 
   /**
    * Tạo hóa đơn mới
    */
   create(data: Omit<HoaDon, 'idHoaDon' | 'ngayTao' | 'ngayCapNhat' | 'gioTao' | 'gioCapNhat'>) {
-    return axiosClient.post<HoaDon>('/hoa-don', data)
+    return ApiClient.post<HoaDon>('/api/hoa-don', data)
   }
 
   /**
    * Cập nhật hóa đơn
    */
   update(idHoaDon: number, data: Partial<HoaDon>) {
-    return axiosClient.put<HoaDon>(`/hoa-don/${idHoaDon}`, data)
+    return ApiClient.put<HoaDon>(`/api/hoa-don/${idHoaDon}`, data)
   }
 
   /**
    * Xóa hóa đơn
    */
   delete(idHoaDon: number) {
-    return axiosClient.delete(`/hoa-don/${idHoaDon}`)
+    return ApiClient.delete(`/api/hoa-don/${idHoaDon}`)
   }
 
   /**
    * Tìm kiếm hóa đơn
    */
   search(keyword: string) {
-    return axiosClient.get<HoaDon[]>('/hoa-don/search', {
+    return ApiClient.get<HoaDon[]>('/api/hoa-don/search', {
       params: { key: keyword },
     })
   }

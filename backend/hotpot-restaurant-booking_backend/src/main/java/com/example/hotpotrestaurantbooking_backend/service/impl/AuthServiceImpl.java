@@ -43,12 +43,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public DTOLoginResponse login(DTOTaiKhoanRequest request) {
-        TaiKhoan tk = taiKhoanRepository
-                .findByTenDangNhap(request.getTenDangNhap())
+        TaiKhoan tk = taiKhoanRepository.findByTenDangNhap(request.getTenDangNhap())
                 .orElseThrow(() -> new RuntimeException("Sai tên đăng nhập hoặc mật khẩu"));
 
-        // Kiểm tra mật khẩu đã mã hóa
-        if (!passwordEncoder.matches(request.getMatKhau(), tk.getMatKhau())) {
+        // Log kiểm tra
+        boolean isMatch = passwordEncoder.matches(request.getMatKhau(), tk.getMatKhau());
+        if (!isMatch) {
+            System.out.println("DEBUG: Mật khẩu input: " + request.getMatKhau());
+            System.out.println("DEBUG: Mật khẩu trong DB: " + tk.getMatKhau());
             throw new RuntimeException("Sai tên đăng nhập hoặc mật khẩu");
         }
 
@@ -56,9 +58,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Tài khoản đã bị khóa");
         }
 
-        // Tạo JWT Token
-        String token = createToken(tk);
-        return new DTOLoginResponse(token);
+        return new DTOLoginResponse(createToken(tk));
     }
 
     private String createToken(TaiKhoan tk) {

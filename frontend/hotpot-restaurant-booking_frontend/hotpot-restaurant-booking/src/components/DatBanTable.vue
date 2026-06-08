@@ -56,55 +56,72 @@ const emit = defineEmits(['detail','delete'])
 <style scoped>
 .table-container {
   width: 100%;
-  margin-top: 20px;
+  margin: 30px auto;
   background: #1a1a1a;
-  border-radius: 12px;
-  overflow: hidden; /* Quan trọng để bo góc bảng */
+  border-radius: 8px;
   border: 1px solid #333;
-  color: #fff;
-  font-family: sans-serif;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 table {
   width: 100%;
-  border-collapse: collapse; /* Đổi sang collapse cho đồng bộ */
+  border-collapse: separate; /* Chuyển sang separate để tạo độ thoáng */
+  border-spacing: 0;
 }
 
 th {
-  background: #c5a059; /* Màu Vàng Gold */
-  color: #000;
-  padding: 15px;
+  background: #1a1a1a;
+  color: #d4af37; /* Vàng kim */
+  padding: 20px 15px;
   text-transform: uppercase;
-  font-size: 0.85rem;
-  letter-spacing: 1px;
+  font-size: 0.7rem; /* Nhỏ lại để tinh tế hơn */
+  letter-spacing: 2px;
+  font-weight: 500;
+  border-bottom: 1px solid #333;
 }
 
 td {
-  padding: 12px;
-  border-top: 1px solid #333;
-  text-align: center;
-  font-size: 0.9rem;
-}
-
-tr:hover {
-  background: #252525;
-}
-
-/* Style cho các nút bấm */
-button {
-  padding: 6px 12px;
-  margin: 0 4px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
+  padding: 18px 15px;
+  color: #d1d1d1;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #252525;
   transition: 0.3s;
 }
 
-button:hover {
-  opacity: 0.8;
+tr:hover {
+  background: #222;
 }
 
-.btn-detail { background: #3498db; color: #fff; }
-.btn-delete { background: #e74c3c; color: #fff; }
+/* Nút bấm tinh tế hơn */
+button {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+}
+
+.btn-detail { 
+  background: transparent; 
+  border-color: #3498db; 
+  color: #3498db; 
+}
+.btn-detail:hover { 
+  background: #3498db; 
+  color: #fff; 
+}
+
+.btn-delete { 
+  background: transparent; 
+  border-color: #8b0000; 
+  color: #8b0000; 
+}
+.btn-delete:hover { 
+  background: #8b0000; 
+  color: #fff; 
+}
 </style>

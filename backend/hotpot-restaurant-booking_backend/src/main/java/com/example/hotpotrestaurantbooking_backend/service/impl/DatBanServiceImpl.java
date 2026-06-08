@@ -5,6 +5,8 @@ import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.PhuongThucThanhToan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
@@ -12,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -39,6 +43,10 @@ public class DatBanServiceImpl implements DatBanService {
     @Override
     public DTODatBanResponse add(DTODatBanRequest datBan) {
         DatBan d = mapper.map(datBan,DatBan.class);
+        d.setGioDat(LocalTime.now());
+        d.setNgayDat(LocalDate.now());
+        d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
+        d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
         datBanRepository.save(d);
         return mapper.map(d,DTODatBanResponse.class);
     }

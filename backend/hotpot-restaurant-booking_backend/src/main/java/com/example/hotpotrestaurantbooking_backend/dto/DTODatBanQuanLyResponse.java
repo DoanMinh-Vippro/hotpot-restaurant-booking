@@ -19,7 +19,9 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class DTODatBanQuanLyResponse {
     private Integer idDatBan;
+    private Integer idBan;
     private String loaiBan;
+    private Integer idKhachHang;
     private String tenKhachHang;
     private LocalDate ngayDat;
     private LocalTime gioDat;

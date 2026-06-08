@@ -21,17 +21,17 @@ public class DatBanController {
     private final DatBanService datBanService;
     private final KhachHangService khachHangService;
 
-    @PreAuthorize("hasRole('USER')")
-    @GetMapping("khach")
-    public ResponseEntity<List<DTODatBanResponse>> getMyReservations(Principal principal) {
-        // Lấy username từ token
-        String username = principal.getName();
-        // Tìm khách hàng dựa trên tài khoản/email
-        Integer khachHangId = khachHangService.findByUsername(username).getIdKhachHang();
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(datBanService.getDatBanByKhachHang(khachHangId));
-    }
+//    @PreAuthorize("hasRole('USER')")
+//    @GetMapping("khach")
+//    public ResponseEntity<List<DTODatBanResponse>> getMyReservations(Principal principal) {
+//        // Lấy username từ token
+//        String username = principal.getName();
+//        // Tìm khách hàng dựa trên tài khoản/email
+//        Integer khachHangId = khachHangService.findByUsername(username).getIdKhachHang();
+//
+//        return ResponseEntity.status(HttpStatus.OK)
+//                .body(datBanService.getDatBanByKhachHang(khachHangId));
+//    }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping

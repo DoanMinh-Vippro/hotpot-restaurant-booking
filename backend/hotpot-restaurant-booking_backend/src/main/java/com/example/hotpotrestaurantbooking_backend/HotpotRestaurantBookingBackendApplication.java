@@ -8,6 +8,7 @@ public class HotpotRestaurantBookingBackendApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(HotpotRestaurantBookingBackendApplication.class, args);
+        System.out.println("Success");
     }
 
 }

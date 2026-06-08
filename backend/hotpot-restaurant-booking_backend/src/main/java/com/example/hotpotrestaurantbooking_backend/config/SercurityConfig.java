@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,25 +24,24 @@ public class SercurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Sửa thành "/api/auth/**" để khớp với @RequestMapping("/api/auth")
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                // Cấu hình để Spring hiểu 'scope' trong JWT chính là quyền (Role)
+                // Spring Boot sẽ tự động tìm Bean JwtDecoder trong Context (đã được tạo ở JwtKeyConfig)
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 )
                 .build();
     }
 
-    // Bean này giúp ánh xạ claim 'scope' trong JWT thành quyền của Spring Security
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
-        converter.setAuthorityPrefix(""); // Vì trong Service ta đã để "ROLE_" rồi
-        converter.setAuthoritiesClaimName("scope"); // Tên claim nhúng trong JWT
+        converter.setAuthorityPrefix(""); // Vì trong Service ta đã gắn "ROLE_" rồi
+        converter.setAuthoritiesClaimName("scope"); // Token phải chứa claim "scope"
 
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
         jwtConverter.setJwtGrantedAuthoritiesConverter(converter);
