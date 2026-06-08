@@ -1,8 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.service;
-
-import org.example.datlich.dto.DTONhanVienRequest;
-import org.example.datlich.dto.DTONhanVienResponse;
-
+import com.example.hotpotrestaurantbooking_backend.dto.DTONhanVienRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTONhanVienResponse;
 
 import java.util.List;
 

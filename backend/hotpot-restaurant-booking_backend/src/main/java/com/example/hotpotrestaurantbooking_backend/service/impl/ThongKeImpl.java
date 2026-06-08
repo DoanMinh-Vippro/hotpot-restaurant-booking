@@ -1,11 +1,12 @@
-package org.example.datlich.impl;
+package com.example.hotpotrestaurantbooking_backend.service;
 
-import org.example.datlich.dto.DTODashboard;
-import org.example.datlich.dto.DTOThongKeDoanhThu;
-import org.example.datlich.dto.DTOThongKeNhanVien;
-import org.example.datlich.dto.DTOThongKeTheoMon;
-import org.example.datlich.repository.ThongKeRepository;
-import org.example.datlich.service.ThongKeService;
+
+
+import com.example.hotpotrestaurantbooking_backend.dto.DTODashboard;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeDoanhThu;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeNhanVien;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeTheoMon;
+import com.example.hotpotrestaurantbooking_backend.repository.ThongKeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
