@@ -1,10 +1,11 @@
-    package org.example.datlich.impl;
+    package com.example.hotpotrestaurantbooking_backend.service.impl;
 
-    import org.example.datlich.dto.DTOTaiKhoanRequest;
-    import org.example.datlich.dto.DTOTaiKhoanResponse;
-    import org.example.datlich.entity.TaiKhoan;
-    import org.example.datlich.repository.TaiKhoanRespository;
-    import org.example.datlich.service.TaiKhoanService;
+    import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanRequest;
+    import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanResponse;
+    import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
+    import com.example.hotpotrestaurantbooking_backend.repository.TaiKhoanRespository;
+
+    import com.example.hotpotrestaurantbooking_backend.service.TaiKhoanService;
     import org.springframework.beans.factory.annotation.Autowired;
     import org.springframework.stereotype.Service;
 

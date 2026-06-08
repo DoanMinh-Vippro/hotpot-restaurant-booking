@@ -1,15 +1,15 @@
-package org.example.datlich.service;
+package com.example.hotpotrestaurantbooking_backend.service;
 
-import org.example.datlich.dto.DTOTaiKhoanRequest;
-import org.example.datlich.dto.DTOTaiKhoanResponse;
-import org.example.datlich.entity.TaiKhoan;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanResponse;
+
 
 import java.util.List;
 
 public interface TaiKhoanService {
     List<DTOTaiKhoanResponse> getAll();
 
-    DTOTaiKhoanResponse getById(Integer id);
+    DTOTaiKhoanResponse findById(Integer id);
 
     DTOTaiKhoanResponse add(DTOTaiKhoanRequest request);
 

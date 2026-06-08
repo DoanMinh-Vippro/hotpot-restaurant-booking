@@ -1,4 +1,4 @@
-package org.example.datlich.service;
+package com.example.hotpotrestaurantbooking_backend.service;
 
 import org.example.datlich.dto.DTODashboard;
 import org.example.datlich.dto.DTOThongKeDoanhThu;

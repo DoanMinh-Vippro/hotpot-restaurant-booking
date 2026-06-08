@@ -1,4 +1,4 @@
-package org.example.datlich.entity;
+package com.example.hotpotrestaurantbooking_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
