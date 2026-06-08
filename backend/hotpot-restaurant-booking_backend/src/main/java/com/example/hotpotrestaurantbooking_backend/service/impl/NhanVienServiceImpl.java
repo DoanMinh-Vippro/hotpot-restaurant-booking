@@ -62,7 +62,7 @@ public class NhanVienServiceImpl implements NhanVienService {
     }
 
     @Override
-    public DTONhanVienResponse getById(Integer id) {
+    public DTONhanVienResponse findById(Integer id) {
         NhanVien nv = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
         return toResponse(nv);

@@ -1,6 +1,7 @@
 package com.example.hotpotrestaurantbooking_backend.repository;
 
-import org.example.datlich.entity.NhanVien;
+
+import com.example.hotpotrestaurantbooking_backend.entity.NhanVien;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
