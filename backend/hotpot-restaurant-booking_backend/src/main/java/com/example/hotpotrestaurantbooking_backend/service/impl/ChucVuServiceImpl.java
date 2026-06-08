@@ -1,10 +1,11 @@
-package org.example.datlich.impl;
+package com.example.hotpotrestaurantbooking_backend.service.impl;
 
-import org.example.datlich.dto.DTOChucVuRequest;
-import org.example.datlich.dto.DTOChucVuResponse;
-import org.example.datlich.entity.ChucVu;
-import org.example.datlich.repository.ChucVuRepository;
-import org.example.datlich.service.ChucVuService;
+
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChucVuRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChucVuResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.ChucVu;
+import com.example.hotpotrestaurantbooking_backend.repository.ChucVuRepository;
+import com.example.hotpotrestaurantbooking_backend.service.ChucVuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +37,7 @@ public class ChucVuServiceImpl implements ChucVuService {
     }
 
     @Override
-    public DTOChucVuResponse getById(Integer id) {
+    public DTOChucVuResponse findById(Integer id) {
         ChucVu cv = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy chức vụ"));
         return toResponse(cv);

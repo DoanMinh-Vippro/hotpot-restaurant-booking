@@ -1,14 +1,15 @@
-package org.example.datlich.service;
+package com.example.hotpotrestaurantbooking_backend.service;
 
-import org.example.datlich.dto.DTOChucVuRequest;
-import org.example.datlich.dto.DTOChucVuResponse;
-import org.example.datlich.entity.ChucVu;
+
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChucVuRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChucVuResponse;
+
 import java.util.List;
 
 public interface ChucVuService {
     List<DTOChucVuResponse> getAll();
 
-    DTOChucVuResponse getById(Integer id);
+    DTOChucVuResponse findById(Integer id);
 
     DTOChucVuResponse add(DTOChucVuRequest request);
 

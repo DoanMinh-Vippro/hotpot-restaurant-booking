@@ -172,7 +172,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             response.setTenKhachHang(hoaDon.getKhachHang().getTenKhachHang());
         }
         if (hoaDon.getNhanVien() != null) {
-            response.setIdNhanVien(hoaDon.getNhanVien().getIdNhanVien());
+            response.setIdNhanVien(hoaDon.getNhanVien().getId());
             response.setTenNhanVien(hoaDon.getNhanVien().getTenNhanVien());
         }
         return response;
