@@ -1,4 +1,4 @@
-package org.example.datlich.repository;
+package com.example.hotpotrestaurantbooking_backend.repository;
 
 import org.example.datlich.entity.NhanVien;
 import org.springframework.data.jpa.repository.JpaRepository;

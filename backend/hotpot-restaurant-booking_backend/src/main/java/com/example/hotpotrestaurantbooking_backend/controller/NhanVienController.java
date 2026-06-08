@@ -1,9 +1,9 @@
-package org.example.datlich.controller;
+package com.example.hotpotrestaurantbooking_backend.controller;
 
 import org.example.datlich.dto.DTONhanVienRequest;
 import org.example.datlich.dto.DTONhanVienResponse;
-import org.example.datlich.entity.NhanVien;
-import org.example.datlich.service.NhanVienService;
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

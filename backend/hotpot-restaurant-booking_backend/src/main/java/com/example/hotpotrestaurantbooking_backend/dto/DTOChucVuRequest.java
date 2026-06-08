@@ -1,4 +1,4 @@
-package org.example.datlich.dto;
+package com.example.hotpotrestaurantbooking_backend.dto;
 
 import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;

@@ -1,4 +1,4 @@
-package org.example.datlich.dto;
+package com.example.hotpotrestaurantbooking_backend.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
