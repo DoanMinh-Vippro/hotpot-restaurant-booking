@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/thong-ke")
+@RequestMapping("api/thong-ke")
 @CrossOrigin(origins = "*")
 public class ThongKeController {
     @Autowired
