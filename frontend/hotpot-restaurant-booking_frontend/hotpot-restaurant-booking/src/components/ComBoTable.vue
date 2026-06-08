@@ -47,43 +47,51 @@ const xoa = (id: number) => {
         <button @click="$emit('add')">Thêm combo</button>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Hình ảnh</th>
-            <th>Tên</th>
-            <th>Giá</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
+      <div class="bang-bao-boc">
+        <table>
+          <thead>
+            <tr>
+              <th>Hình ảnh</th>
+              <th>Tên</th>
+              <th>Giá</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          <tr v-for="cb in danhSachCombo" :key="cb.idCombo">
-            <td>
-              <img
-                v-if="cb.hinhAnh"
-                :src="`http://localhost:8080/uploads/${cb.hinhAnh}`"
-                class="img-combo"
-              />
-              <span v-else>Không có ảnh</span>
-            </td>
-            <td>{{ cb.tenCombo }}</td>
-            <td>{{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ</td>
-            <td>{{ cb.trangThai ? 'Còn bán' : 'Ngưng bán' }}</td>
-            <td class="hanh-dong-o">
-              <button class="nut-xem-ct" @click="$emit('view-detail', cb)">Xem chi tiết</button>
-              <button class="nut-sua" @click="$emit('edit', cb)">Sửa</button>
-              <button class="nut-xoa" @click="xoa(cb.idCombo!)">Xóa</button>
-            </td>
-          </tr>
-          <tr v-if="danhSachCombo.length === 0">
-            <td colspan="5" style="text-align: center; color: #a0a0a0; padding: 20px;">
-              Không tìm thấy combo phù hợp.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+          <tbody>
+            <tr v-for="cb in danhSachCombo" :key="cb.idCombo">
+              <td class="o-anh">
+                <img
+                  v-if="cb.hinhAnh"
+                  :src="`http://localhost:8080/uploads/${cb.hinhAnh}`"
+                  class="img-combo"
+                />
+                <span v-else class="chua-co-anh">Không có ảnh</span>
+              </td>
+              <td class="o-chu-thuong text-dam">{{ cb.tenCombo }}</td>
+              <td class="o-chu-thuong">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ</td>
+              <td class="o-chu-thuong">
+                <span :class="cb.trangThai ? 'trang-thai-con' : 'trang-thai-ngung'">
+                  {{ cb.trangThai ? 'Còn bán' : 'Ngưng bán' }}
+                </span>
+              </td>
+              <td>
+                <div class="hanh-dong-o">
+                  <button class="nut-xem-ct" @click="$emit('view-detail', cb)">Xem chi tiết</button>
+                  <button class="nut-sua" @click="$emit('edit', cb)">Sửa</button>
+                  <button class="nut-xoa" @click="xoa(cb.idCombo!)">Xóa</button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="danhSachCombo.length === 0">
+              <td colspan="5" style="text-align: center; color: #a0a0a0; padding: 30px;">
+                Không tìm thấy combo phù hợp.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
   </div>
@@ -141,8 +149,8 @@ const xoa = (id: number) => {
 }
 
 .danh-sach-panel {
-  background: rgba(15,15,15,.94);
-  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(15, 15, 15, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 28px;
   padding: 26px;
   color: white;
@@ -159,19 +167,46 @@ const xoa = (id: number) => {
   color: #f8d46a;
 }
 
+/* Hỗ trợ cuộn mượt mà nếu danh sách bị quá dài tràn màn hình */
+.bang-bao-boc {
+  width: 100%;
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
 }
 
-th, td {
-  padding: 14px;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  text-align: left;
-}
-
 th {
   color: #f8d46a;
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+  text-align: left;
+  font-weight: 600;
+}
+
+td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+  text-align: left;
+  vertical-align: middle; /* Căn giữa nội dung chữ theo chiều dọc dòng */
+}
+
+/* Định hình dòng chữ thông thường để cân đối với dòng chứa nút flex */
+.o-chu-thuong {
+  line-height: 60px; /* Bằng đúng chiều cao ảnh combo để gióng hàng cực chuẩn */
+  white-space: nowrap;
+}
+
+.text-dam {
+  font-weight: 600;
+}
+
+.o-anh {
+  height: 60px;
+  width: 60px;
+  padding: 14px;
 }
 
 img.img-combo {
@@ -179,11 +214,27 @@ img.img-combo {
   height: 60px;
   object-fit: cover;
   border-radius: 8px;
+  display: block;
 }
 
+.chua-co-anh {
+  font-size: 13px;
+  color: #a0a0a0;
+  display: block;
+  line-height: 60px;
+}
+
+/* Cố định khối hành động để các nút không bao giờ bị nhảy lệch hay rớt dòng */
 .hanh-dong-o {
   display: flex;
-  gap: 6px;
+  align-items: center;      /* Căn giữa nút theo chiều dọc */
+  justify-content: flex-start; /* Đẩy sát nút về phía tiêu đề */
+  gap: 8px;                 /* Khoảng cách chuẩn giữa các nút */
+  height: 60px;             /* Khớp hoàn hảo với chiều cao tổng thể của dòng */
+}
+
+.hanh-dong-o button {
+  white-space: nowrap;      /* Không cho phép chữ trong nút bị bẻ xuống dòng */
 }
 
 button {
@@ -192,6 +243,11 @@ button {
   border: none;
   cursor: pointer;
   font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.85;
 }
 
 .tieu-de-panel button {
@@ -208,12 +264,20 @@ button {
 }
 
 .nut-sua {
-  background: rgba(248,212,106,.15);
+  background: rgba(248, 212, 106, 0.15);
   color: #f8d46a;
 }
 
 .nut-xoa {
-  background: rgba(255,107,107,.15);
+  background: rgba(255, 107, 107, 0.15);
   color: #ff6b6b;
+}
+
+.trang-thai-con {
+  color: #52c41a;
+}
+
+.trang-thai-ngung {
+  color: #ff4d4f;
 }
 </style>
