@@ -1,18 +1,25 @@
 package com.example.hotpotrestaurantbooking_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+import java.util.List;
+
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor // Thêm @NoArgsConstructor để Hibernate khởi tạo entity
-@Table(name = "\"KhachHang\"")
+@Table(name = "KhachHang")
 public class KhachHang {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_khach_hang") // Khớp với tên cột trong DB
+    @Column(name = "id_khach_hang")
     private Integer idKhachHang;
 
     @Column(name = "ma_khach_hang")
@@ -36,7 +43,10 @@ public class KhachHang {
     @Column(name = "trang_thai")
     private Boolean trangThai;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_tai_khoan") // Khớp với tên cột khóa ngoại trong DB
+    @ManyToOne
+    @JoinColumn(name = "id_tai_khoan")
     private TaiKhoan taiKhoan;
+    @OneToMany(mappedBy = "khachHang", fetch = FetchType.EAGER)
+    @JsonManagedReference
+    private List<DatBan> datBanList;
 }
