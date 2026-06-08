@@ -40,7 +40,7 @@
         }
 
         @Override
-        public DTOTaiKhoanResponse getById(Integer id) {
+        public DTOTaiKhoanResponse findById(Integer id) {
             TaiKhoan tk = repository.findById(id).orElse(null);
             return tk != null ? toResponse(tk) : null;
         }

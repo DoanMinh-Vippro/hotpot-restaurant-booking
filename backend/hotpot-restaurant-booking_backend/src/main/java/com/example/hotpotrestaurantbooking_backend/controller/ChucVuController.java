@@ -1,10 +1,8 @@
-package org.example.datlich.controller;
+package com.example.hotpotrestaurantbooking_backend.controller;
 
-import org.example.datlich.dto.DTOChucVuRequest;
-import org.example.datlich.dto.DTOChucVuResponse;
-import org.example.datlich.entity.ChucVu;
-import org.example.datlich.entity.TaiKhoan;
-import org.example.datlich.service.ChucVuService;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChucVuRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChucVuResponse;
+import com.example.hotpotrestaurantbooking_backend.service.ChucVuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,8 +21,8 @@ public class ChucVuController {
     }
 
     @GetMapping("/detail/{id}")
-    public DTOChucVuResponse getById(@PathVariable Integer id){
-        return service.getById(id);
+    public DTOChucVuResponse findById(@PathVariable Integer id){
+        return service.findById(id);
     }
 
     @PostMapping("/add")

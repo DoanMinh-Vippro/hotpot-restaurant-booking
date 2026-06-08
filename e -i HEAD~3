@@ -1,0 +1,53 @@
+[33m89139f9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/my-update[m[33m, [m[1;31morigin/feature/my-update[m[33m)[m Dat done
+[33m9002caf[m Dat done
+[33m996c81e[m Dat sua xong
+[33mfa1c485[m Dat da xong
+[33me85c466[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/feature/my-feature[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Nam-Cập nhật giao diện đặt bàn và menu ở trang chủ
+[33m5f216f8[m Update GiamGia service
+[33m2252ab7[m nam-Done FE
+[33m89011a0[m nam-update BE
+[33m184da47[m nam-Done FE
+[33m33240e9[m resolve merge conflict
+[33ma6d7ee5[m nam-90% FE
+[33m241c7f3[m done crud DatBan & DatBanQuanLy
+[33m8848431[m Nam-done 90%FE
+[33m421f1f0[m Nam-done 95%
+[33mc11e6df[m fix CorsConfig
+[33mc96a6f2[m Ban Fontend, config api ở backend và fontend...
+[33m35e0fc8[m Merge branch 'main' of https://github.com/DoanMinh-Vippro/hotpot-restaurant-booking
+[33m467257e[m Nam-Đã phân tầng
+[33mb90f40f[m Nam-Đã phân tầng
+[33mbbb1e34[m update hoa don va giam gia
+[33m282c10f[m axios
+[33mf350523[m Add discount management and invoice updates
+[33m0012d25[m Thieu nghiep vu
+[33m70695cb[m done ComBo-ChiTietComBo 90% dang xem lai nghiep vu
+[33m79ed702[m done ComBo, ChiTietComBo done 90% cần tìm hiểu thêm về nghiệp vụ
+[33m8754ace[m update gitignore
+[33m6ca0021[m done DatBanOnline
+[33m096560c[m remove gradle cache files
+[33m8a5d0a4[m món xong 96,69%
+[33m4b7145d[m Cap nhat validation va mon
+[33mc9b751f[m done Ban
+[33mc6dd07e[m done Ban
+[33me0d5c71[m Add trang_thai column to Mon table
+[33mfd80841[m Cập nhật cấu hình application
+[33mc87c4b2[m update
+[33m7846123[m rename Impl -> impl
+[33md900878[m CRUD Ban + Enum
+[33mf4aaf43[m fix conflicts: prioritize local changes
+[33mc073cfa[m update source entity, repository, service, enum, dto...
+[33m79d671c[m Hoàn các entity và chức năng hoá đơn
+[33m18997a6[m update pomx
+[33m522b117[m thêm cấu trúc và 1 phần chức năng đặt bàn, hoàn thiện 1 phần nhỏ entity
+[33meafd1ee[m create databse and insert data
+[33m0f74720[m add pomx và thêm chia tầng cấu trúc
+[33m9badfc8[m Feat: Hoàn thành thiết kế các section giao diện Frontend
+[33m5b9ab66[m chore: remove node_nodules from tracking
+[33m0595f8b[m feat: create fontend
+[33mb5f6535[m thêm cấu trúc backend và db
+[33mcf47136[m chore: add project placeholder files
+[33m08d58ac[m resolve merge conflict
+[33m3e4cd1f[m Initial commit
+[33mdaed110[m Update README.md
+[33m64bd907[m Initial commit
