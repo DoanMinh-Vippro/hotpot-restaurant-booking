@@ -18,16 +18,16 @@ public class ChucVuServiceImpl implements ChucVuService {
 
     private ChucVu toEntity(DTOChucVuRequest req){
         return ChucVu.builder()
-                .ma_chuc_vu(req.getMaChucVu())
-                .ten_chuc_vu(req.getTenChucVu())
+                .maChucVu(req.getMaChucVu())
+                .tenChucVu(req.getTenChucVu())
                 .build();
     }
 
     private DTOChucVuResponse toResponse(ChucVu cv){
         return new DTOChucVuResponse(
-                cv.getId(),
-                cv.getMa_chuc_vu(),
-                cv.getTen_chuc_vu()
+                cv.getIdChucVu(),
+                cv.getMaChucVu(),
+                cv.getTenChucVu()
         );
     }
 
@@ -53,8 +53,8 @@ public class ChucVuServiceImpl implements ChucVuService {
         ChucVu old = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy chức vụ"));
 
-        old.setMa_chuc_vu(request.getMaChucVu());
-        old.setTen_chuc_vu(request.getTenChucVu());
+        old.setMaChucVu(request.getMaChucVu());
+        old.setTenChucVu(request.getTenChucVu());
 
         return toResponse(repository.save(old));
     }

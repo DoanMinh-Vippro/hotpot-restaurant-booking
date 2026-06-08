@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
-    NhanVien findByTaiKhoan_Id(Integer idTaiKhoan);
+    NhanVien findByTaiKhoan_IdTaiKhoan(Integer idTaiKhoan);
 }

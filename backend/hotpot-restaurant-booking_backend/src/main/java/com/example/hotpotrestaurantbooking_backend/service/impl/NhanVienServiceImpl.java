@@ -47,9 +47,9 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .soDienThoai(nv.getSoDienThoai())
                 .email(nv.getEmail())
 
-                .idChucVu(nv.getChucVu() != null ? nv.getChucVu().getId() : null)
-                .idTaiKhoan(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getId() : null)
-                .tenChucVu(nv.getChucVu() != null ? nv.getChucVu().getTen_chuc_vu() : null)
+                .idChucVu(nv.getChucVu() != null ? nv.getChucVu().getIdChucVu() : null)
+                .idTaiKhoan(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getIdTaiKhoan() : null)
+                .tenChucVu(nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : null)
                 .tenDangNhap(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getTenDangNhap() : null)
                 .diaChi(nv.getDiaChi())
                 .trangThai(nv.getTrangThai())
