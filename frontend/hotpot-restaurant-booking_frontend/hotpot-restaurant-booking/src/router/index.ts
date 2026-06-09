@@ -77,6 +77,21 @@ const router = createRouter({
       component: () => import('@/views/DatBanQuanLyView.vue'),
     },
     {
+      path: '/khach-hang',
+      name: 'khach-hang',
+      component: () => import('@/views/KhachHangView.vue'), // Sửa khachhang/KhachHangView
+    },
+    {
+      path: '/khu-vuc',
+      name: 'khu-vuc',
+      component: () => import('@/views/KhuVucList.vue'), // Sửa khuvuc/KhuVucList
+    },
+    {
+      path: '/coc',
+      name: 'coc',
+      component: () => import('@/views/TienCocList.vue'), // Sửa coc/TienCocList
+    },
+    {
       path: '/dat-ban',
       name: 'dat-ban',
       component: () => import('@/views/DatBanView.vue'),
