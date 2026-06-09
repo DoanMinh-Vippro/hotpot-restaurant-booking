@@ -87,7 +87,7 @@ const router = createRouter({
     component: ()=> import('@/views/NhanVienView.vue'),
     },
     {
-<<<<<<< HEAD
+
       path: '/tai-khoan',
       name: 'tai-khoan',
     component: ()=> import('@/views/TaiKhoanView.vue'),
@@ -102,33 +102,13 @@ const router = createRouter({
       name: 'thong-ke',
     component: ()=> import('@/views/ThongKeView.vue'),
     },
-=======
-      path: '/dat-ban-quan-ly',
+  {
+     path: '/dat-ban-quan-ly',
       name: 'dat-ban-quan-ly',
       component: () => import('@/views/DatBanQuanLyView.vue'),
-    },
-     {
-          path: '/nhan-vien',
-          name: 'nhan-vien',
-        component: ()=> import('@/views/NhanVienView.vue'),
-        },
-        {
-          path: '/tai-khoan',
-          name: 'tai-khoan',
-        component: ()=> import('@/views/TaiKhoanView.vue'),
-        },
-         {
-          path: '/chuc-vu',
-          name: 'chuc-vu',
-        component: ()=> import('@/views/ChucVuView.vue'),
-        },
-        {
-          path: '/thong-ke',
-          name: 'thong-ke',
-        component: ()=> import('@/views/ThongKeView.vue'),
-        },
->>>>>>> feature/my-update
-  ],
-})
+  }
+]
+},
+)
 
 export default router
