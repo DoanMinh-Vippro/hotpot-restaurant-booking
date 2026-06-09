@@ -10,7 +10,11 @@ const formData= ref({
     soDienThoai:"",
     email:"",
     diaChi:"",
+<<<<<<< HEAD
     trangThai: true,
+=======
+    trangThai: 1,
+>>>>>>> feature/my-update
     idChucVu: null,
     idTaiKhoan: null,
 })
@@ -28,7 +32,11 @@ const add= async ()=>{
     soDienThoai:"",
     email:"",
     diaChi:"",
+<<<<<<< HEAD
     trangThai: true,
+=======
+    trangThai: 1,
+>>>>>>> feature/my-update
     idChucVu: null,
     idTaiKhoan: null
     }
@@ -59,6 +67,7 @@ const update = async () => {
   }
 }
 const props = defineProps(['formData']);
+<<<<<<< HEAD
 watch(() => props.formData, (newTableData) => {
   if (newTableData) {
     formData.value = {
@@ -67,6 +76,29 @@ watch(() => props.formData, (newTableData) => {
       idTaiKhoan: newTableData.idTaiKhoan
     };
   }
+=======
+watch(() => props.formData, (newVal) => {
+  if (!newVal) {
+    formData.value = {
+      id: null,
+      maNhanVien: "",
+      tenNhanVien: "",
+      gioiTinh: true,
+      soDienThoai: "",
+      email: "",
+      diaChi: "",
+      trangThai: 1,  
+      idChucVu: null,
+      idTaiKhoan: null,
+    };
+    return;
+  }
+  
+  formData.value = {
+    ...newVal,
+    trangThai: newVal.trangThai ? 1 : 0
+  };
+>>>>>>> feature/my-update
 }, { immediate: true });
 </script>
 <template>
@@ -101,12 +133,20 @@ watch(() => props.formData, (newTableData) => {
   <label>Trạng thái:</label>
 
   <label>
+<<<<<<< HEAD
     <input type="radio" :value="true" v-model="formData.trangThai">
+=======
+    <input type="radio" :value="1" v-model="formData.trangThai">
+>>>>>>> feature/my-update
     Hoạt động
   </label>
 
   <label>
+<<<<<<< HEAD
     <input type="radio" :value="false" v-model="formData.trangThai">
+=======
+    <input type="radio" :value="0" v-model="formData.trangThai">
+>>>>>>> feature/my-update
     Ngừng
   </label>
 </div>

@@ -17,17 +17,29 @@ const emit =defineEmits(['detail', 'delete'])
                 <th>Trạng thái</th>
                 <th>Chức vụ</th>
                 <th>Tài khoản</th>
+<<<<<<< HEAD
             </tr>
         </thead>
         <tbody>
             <tr v-for="nv in tableList" :key="nv.idNhanVien">
+=======
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="nv in tableList" :key="nv.id">
+>>>>>>> feature/my-update
                 <td>{{ nv.maNhanVien }}</td>
                 <td>{{ nv.tenNhanVien }}</td>
                 <td>{{ nv.gioiTinh? 'Nam':'Nữ' }}</td>
                 <td>{{ nv.soDienThoai }}</td>
                 <td>{{ nv.email }}</td>
                 <td>{{ nv.diaChi }}</td>
+<<<<<<< HEAD
                 <td>{{ nv.trangThai? 'Hoạt động':'Ngừng' }}</td>
+=======
+                <td>{{ nv.trangThai ==1? 'Hoạt động':'Ngừng' }}</td>
+>>>>>>> feature/my-update
                 <td>{{ nv.tenChucVu }}</td>
                 <td>{{ nv.tenDangNhap }}</td>
                 <td>
