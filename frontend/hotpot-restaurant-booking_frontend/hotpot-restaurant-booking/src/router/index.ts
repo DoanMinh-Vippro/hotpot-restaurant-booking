@@ -80,7 +80,27 @@ const router = createRouter({
       path: '/dat-ban-quan-ly',
       name: 'dat-ban-quan-ly',
       component: () => import('@/views/DatBanQuanLyView.vue'),
-    }
+    },
+     {
+          path: '/nhan-vien',
+          name: 'nhan-vien',
+        component: ()=> import('@/views/NhanVienView.vue'),
+        },
+        {
+          path: '/tai-khoan',
+          name: 'tai-khoan',
+        component: ()=> import('@/views/TaiKhoanView.vue'),
+        },
+         {
+          path: '/chuc-vu',
+          name: 'chuc-vu',
+        component: ()=> import('@/views/ChucVuView.vue'),
+        },
+        {
+          path: '/thong-ke',
+          name: 'thong-ke',
+        component: ()=> import('@/views/ThongKeView.vue'),
+        },
   ],
 })
 
