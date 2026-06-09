@@ -2,10 +2,17 @@ package com.example.hotpotrestaurantbooking_backend.repository;
 
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import java.util.List;
 
-@Repository
-public interface KhachHangRepository extends JpaRepository<KhachHang,Integer> {
+public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
+
+    List<KhachHang>
+    findByTenKhachHangContainingOrMaKhachHangContainingOrSoDienThoaiContainingOrEmailContainingOrTaiKhoan_MaTaiKhoanContaining(
+            String tenKhachHang,
+            String maKhachHang,
+            String soDienThoai,
+            String email,
+            String maTaiKhoan
+    );
 }
