@@ -2,12 +2,14 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.Combo;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.PhuongThucThanhToan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
+import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
 import lombok.RequiredArgsConstructor;
@@ -23,48 +25,91 @@ import java.util.List;
 public class DatBanServiceImpl implements DatBanService {
     private final DatBanRepository datBanRepository;
     private final ModelMapper mapper;
+    private final ComboRepository comboRepository;
+    private static final String COMBO_NULL_MSG = "Đơn đặt bàn này không chọn combo đặt trước";
+
+    private void setComboInfo(DatBan db, DTODatBanResponse res) {
+        // Kiểm tra null của cả đối tượng Combo trước
+        if (db.getCombo() != null && db.getCombo().getIdCombo() != null) {
+            res.setIdCombo(db.getCombo().getIdCombo());
+            res.setTenCombo(db.getCombo().getTenCombo());
+        } else {
+            res.setTenCombo(COMBO_NULL_MSG);
+            res.setIdCombo(null); // Đảm bảo trả về null cho FE dễ nhận diện
+        }
+    }
+
     @Override
     public List<DTODatBanResponse> getAll() {
-        return datBanRepository
-                .findAll()
-                .stream()
-                .map(db -> mapper.map(db,DTODatBanResponse.class))
-                .toList();
+        return datBanRepository.findAll().stream().map(db -> {
+            DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
+            setComboInfo(db, res);
+            return res;
+        }).toList();
     }
 
     @Override
     public DTODatBanResponse findById(Integer id) {
-        return datBanRepository
-                .findById(id)
-                .map(db -> mapper.map(db, DTODatBanResponse.class))
-                .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
+        return datBanRepository.findById(id).map(db -> {
+            DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
+            setComboInfo(db, res);
+            return res;
+        }).orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay don dat ban"));
     }
 
     @Override
     public DTODatBanResponse add(DTODatBanRequest datBan) {
-        DatBan d = mapper.map(datBan,DatBan.class);
+        DatBan d = mapper.map(datBan, DatBan.class);
+        d.setIdDatBan(null);
+        // PHẢI TÌM VÀ SET COMBO THỦ CÔNG
+        if (datBan.getIdCombo() != null) {
+            // CÁCH TỐI ƯU: Tạo một đối tượng Combo "rỗng" chỉ chứa ID
+            // Cách này giúp Hibernate không bao giờ "nhìn" thấy các bản ghi cũ
+            // Dùng Proxy Object thay vì comboRepository.findById()
+            // Lý do: Khi dùng findById(), Hibernate sẽ quản lý đối tượng Combo trong Persistence Context,
+            // điều này vô tình gây ra lỗi "dirty checking" hoặc cập nhật nhầm các bản ghi cũ liên quan.
+            // Việc chỉ set ID (giả lập Proxy) giúp Hibernate coi đây là Foreign Key đơn thuần,
+            // đảm bảo lệnh save() luôn thực hiện INSERT thay vì UPDATE nhầm.
+            Combo proxyCombo = new Combo();
+            proxyCombo.setIdCombo(datBan.getIdCombo());
+            d.setCombo(proxyCombo);
+        } else {
+            d.setCombo(null);
+        }
+
         d.setGioDat(LocalTime.now());
         d.setNgayDat(LocalDate.now());
         d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
         d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
         datBanRepository.save(d);
-        return mapper.map(d,DTODatBanResponse.class);
+
+        DTODatBanResponse res = mapper.map(d, DTODatBanResponse.class);
+        setComboInfo(d, res);
+        return res;
     }
 
     @Override
     public DTODatBanResponse update(Integer id, DTODatBanRequest datBan) {
-        return datBanRepository
-                .findById(id)
-                .map(db -> {
-                    if(datBan.getSdtKhachHang() != null && !datBan.getSdtKhachHang().isBlank()) db.setSdtKhachHang(datBan.getSdtKhachHang());
-                    if(datBan.getSoNguoi() != null) db.setSoNguoi(datBan.getSoNguoi());
-                    if(datBan.getThoiGianDenDuKien() != null) db.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());
-                    if(datBan.getSoTienCoc() != null) db.setSoTienCoc(datBan.getSoTienCoc());
-                    if(datBan.getPhuongThucThanhToan() != null) db.setPhuongThucThanhToan(datBan.getPhuongThucThanhToan());
-                    datBanRepository.save(db);
-                    return mapper.map(db,DTODatBanResponse.class);
-                })
-                .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
+        return datBanRepository.findById(id).map(db -> {
+            if(datBan.getSdtKhachHang() != null && !datBan.getSdtKhachHang().isBlank()) db.setSdtKhachHang(datBan.getSdtKhachHang());
+            if(datBan.getSoNguoi() != null) db.setSoNguoi(datBan.getSoNguoi());
+            if(datBan.getThoiGianDenDuKien() != null) db.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());
+            if(datBan.getSoTienCoc() != null) db.setSoTienCoc(datBan.getSoTienCoc());
+            if(datBan.getPhuongThucThanhToan() != null) db.setPhuongThucThanhToan(datBan.getPhuongThucThanhToan());
+// PHẢI TÌM VÀ SET COMBO THỦ CÔNG
+            if (datBan.getIdCombo() != null) {
+                db.setCombo(comboRepository.findById(datBan.getIdCombo())
+                        .orElseThrow(() -> new CustomResourceNotFoundException("Combo này không tồn tại trong hệ thống!")));
+            } else {
+                db.setCombo(null);
+            }
+
+            datBanRepository.save(db);
+
+            DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
+            setComboInfo(db, res);
+            return res;
+        }).orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay don dat ban"));
     }
 
     @Override
@@ -74,9 +119,10 @@ public class DatBanServiceImpl implements DatBanService {
 
     @Override
     public List<DTODatBanResponse> getDatBanByKhachHang(Integer id) {
-        List<DatBan> list = datBanRepository.findByKhachHang_IdKhachHang(id);
-        return list.stream()
-                .map(dbkh -> mapper.map(dbkh,DTODatBanResponse.class))
-                .toList();
+        return datBanRepository.findByKhachHang_IdKhachHang(id).stream().map(db -> {
+            DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
+            setComboInfo(db, res);
+            return res;
+        }).toList();
     }
 }

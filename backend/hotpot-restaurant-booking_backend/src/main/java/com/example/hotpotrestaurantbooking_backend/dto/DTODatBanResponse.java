@@ -20,6 +20,8 @@ public class DTODatBanResponse {
     private LocalDate ngayDat;
     private LocalTime gioDat;
     private String sdtKhachHang;
+    private Integer idCombo;
+    private String tenCombo;
     private TrangThaiDatBan trangThai;
     private int soNguoi;
     private String ghiChu;

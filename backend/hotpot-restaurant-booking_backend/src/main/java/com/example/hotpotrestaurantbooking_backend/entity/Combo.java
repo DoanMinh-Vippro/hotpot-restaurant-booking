@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @Entity
-@Table(name = "\"Combo\"")
+@Table(name = "Combo")
 public class Combo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

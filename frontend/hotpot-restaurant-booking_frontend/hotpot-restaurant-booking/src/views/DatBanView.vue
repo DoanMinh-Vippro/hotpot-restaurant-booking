@@ -39,10 +39,10 @@ onMounted(loadData)
   min-height: 100vh;
   padding: 30px;
   background: #0f0f0f;
+
   display: grid;
-  grid-template-columns: 460px 1fr;
+  grid-template-columns: 1fr;
   gap: 24px;
-  align-items: start;
 }
 
 @media (max-width: 1200px) {

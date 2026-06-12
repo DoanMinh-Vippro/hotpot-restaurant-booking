@@ -1,53 +1,96 @@
 <script setup lang="ts">
 import DatBanApi from '@/api/DatBanApi';
 import { ref, watch } from 'vue';
+import ComBoInDatBan from './ComBoInDatBan.vue';
+import router from '@/router/index.ts';
 
 
 // tao object luu data vao form
 const formData = ref({
-    idDatBan: 0,
+    idDatBan: null as number | null,
     sdtKhachHang: '',
     soNguoi: 0,
     ghiChu: '',
     thoiGianDenDuKien: '',
     soTienCoc: 0,
-    phuongThucThanhToan: 0    
+    phuongThucThanhToan: 0,
+    idCombo: null as number | null
 })
 //cong de nhanh du lieu tu DatBanView
 const props = defineProps(['datBanForm'])
 
+// 1. Thêm biến trạng thái để chặn watch
+const isAdding = ref(false);
+
 //watch dung de lay du lieu ma datBanForm nhan doc dua vao object formData
-watch(() => props.datBanForm,(newData) => {
-    if(newData){
-        formData.value = {...newData}
+watch(() => props.datBanForm, (newData) => {
+    // Nếu đang thêm mới (isAdding = true) hoặc newData null thì KHÔNG làm gì cả
+    if (isAdding.value || !newData) return;
+    
+    if (newData.idDatBan !== formData.value.idDatBan) {
+        formData.value = { 
+            ...newData,
+            idCombo: newData.idCombo || null 
+        };
     }
-})
+}, { deep: true });
 
 // bien dung de bao cho table load lai bang
 const emit = defineEmits(['refresh'])
 
-const add = async () =>{
+
+
+const add = async () => {
+    isAdding.value = true; // Bật khóa: chặn mọi sự thay đổi từ props
     try {
-        await DatBanApi.add(formData.value)
-        alert('them thanh cong')
-        emit('refresh')
+        await DatBanApi.add(formData.value);
+        alert('them thanh cong');
+        emit('refresh');
+        resetForm();
     } catch (error) {
-        console.error('them that bai', error)
+        console.error('them that bai', error);
+    } finally {
+        isAdding.value = false; // Mở khóa sau khi đã xử lý xong
     }
 }
 
-const update = async () =>{
-    try {
-        await DatBanApi.update(formData.value.idDatBan ,formData.value)
-        alert('sua thanh cong')
-        emit('refresh')
-    } catch (error) {
-        console.error('sua that bai', error)
-    }
+const update = async () => {
+  console.log("FORM DATA:", formData.value)
+  if (formData.value.idDatBan == null) {
+    console.error("Không có idDatBan để update")
+    return
+  }
+
+  try {
+    await DatBanApi.update(formData.value.idDatBan, formData.value)
+    alert('sửa thành công')
+    emit('refresh')
+    resetForm()
+  } catch (error) {
+    console.error('sửa thất bại', error)
+  }
+}
+
+const resetForm = () => {
+    formData.value = {
+        idDatBan: null,
+        sdtKhachHang: '',
+        soNguoi: 0,
+        ghiChu: '',
+        thoiGianDenDuKien: '',
+        soTienCoc: 0,
+        phuongThucThanhToan: 0,
+        idCombo: null
+    };
+}
+
+const quayLai  =()=>{
+  router.push("/")
 }
 </script>
 
 <template>
+  <div class="page-container">
   <div class="form-container">
     <h3>Thông Tin Đặt Bàn</h3>
     
@@ -79,7 +122,7 @@ const update = async () =>{
       </div>
       <div class="form-group">
         <label>Tiền Cọc</label>
-        <input v-model.number="formData.soTienCoc" type="number" readonly/>
+        <input v-model.number="formData.soTienCoc" type="number" />
       </div>
     </div>
 
@@ -88,10 +131,23 @@ const update = async () =>{
       <textarea v-model="formData.ghiChu" rows="2"></textarea>
     </div>
 
+
     <div class="button-group">
       <button class="btn-add" @click.prevent="add()">Thêm Mới</button>
       <button class="btn-update" @click.prevent="update()">Cập Nhật</button>
     </div>
+  </div>
+
+  <div class="combo-section">
+    <ComBoInDatBan
+    v-model="formData.idCombo"
+    ></ComBoInDatBan>
+  
+    <div class="go-home">
+      <button class="btn-back" @click.prevent="quayLai()">Trở về trang chủ</button>
+    </div>
+  </div>
+
   </div>
 </template>
 
@@ -199,5 +255,89 @@ select {
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     filter: invert(1); /* Đảo màu icon lịch để hợp với nền đen */
     cursor: pointer;
+}
+/* Container cha chứa cả Form và Combo */
+.page-container {
+  display: flex;       /* Chia làm 2 cột */
+  justify-content: center; /* Căn giữa */
+  align-items: flex-start; /* Căn đều phía trên */
+  gap: 30px;           /* Khoảng cách giữa 2 cột */
+  padding: 20px;
+  flex-wrap: wrap;     /* Cho phép tự xuống dòng nếu màn hình hẹp */
+}
+
+/* Sửa lại form-container một chút */
+.form-container {
+  background: #1a1a1a;
+  padding: 35px;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 500px;    /* Giới hạn chiều rộng form */
+  border: 1px solid #3d3d3d;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  margin: 0;           /* Bỏ margin auto để dùng Flex căn giữa */
+}
+
+/* Định dạng cột bên phải */
+.combo-section {
+  width: 100%;
+  max-width: 400px;    /* Tùy chỉnh độ rộng phần combo */
+  min-width: 300px;
+}
+@media (max-width: 768px) {
+  .page-container {
+    flex-direction: column; /* Chuyển từ ngang sang dọc */
+  }
+  
+  .form-container, .combo-section {
+    max-width: 100%; /* Chiếm hết chiều rộng màn hình */
+  }
+}
+.go-home{
+  margin-top: 25px;
+}
+
+.btn-back{
+  width: 100%;
+  padding: 14px 20px;
+
+  background: linear-gradient(
+    135deg,
+    #1f1f1f,
+    #2a2a2a
+  );
+
+  border: 1px solid #d4af37;
+  border-radius: 4px;
+
+  color: #d4af37;
+
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  letter-spacing: 2px;
+  text-transform: uppercase;
+
+  cursor: pointer;
+
+  transition: all 0.3s ease;
+
+  box-shadow:
+    0 0 0 rgba(212,175,55,0),
+    0 10px 20px rgba(0,0,0,0.3);
+}
+
+.btn-back:hover{
+  background: #d4af37;
+  color: #1a1a1a;
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(212,175,55,0.25);
+}
+
+.btn-back:active{
+  transform: translateY(0);
 }
 </style>

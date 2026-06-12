@@ -3,15 +3,22 @@ import { onMounted, ref } from 'vue'
 import ComBoApi from '@/api/ComBoApi'
 import type { Combo } from '@/api/ComBoApi'
 
+// v-model từ DatBanForm
+const props = defineProps<{ modelValue: number | null }>()
+const emit = defineEmits(['update:modelValue'])
+
 const danhSachCombo = ref<Combo[]>([])
 const loading = ref(false)
 
+// load data
 const loadComboGoiY = async () => {
   loading.value = true
   try {
     const res = await ComBoApi.hienThiComBo()
-    // Lọc chỉ hiển thị những combo đang ở trạng thái "Còn bán" (trangThai === 1)
-    danhSachCombo.value = (res.data || []).filter((cb: Combo) => cb.trangThai === 1)
+
+    danhSachCombo.value = (res.data || []).filter(
+      (cb: Combo) => cb.trangThai === 1
+    )
   } catch (error) {
     console.error('Không thể tải danh sách combo gợi ý:', error)
   } finally {
@@ -19,37 +26,63 @@ const loadComboGoiY = async () => {
   }
 }
 
+// chọn combo (sync chuẩn v-model, không check stale state nữa)
+const selectCombo = (id: number | null) => {
+  emit('update:modelValue', id)
+}
+
 onMounted(loadComboGoiY)
 </script>
 
 <template>
   <div class="combo-select-box">
+
     <div class="combo-header">
-      <span>🍱 Gói Combo Ưu Đãi Bán Chạy</span>
+      <span>🍱 Gói Combo Ưu Đãi (Chọn 1)</span>
+
+      <button
+        v-if="modelValue !== null"
+        @click="selectCombo(null)"
+      >
+        Bỏ chọn
+      </button>
     </div>
 
-    <div v-if="loading" class="loading-text">Đang tải danh sách combo...</div>
+    <div v-if="loading" class="loading-text">
+      Đang tải...
+    </div>
 
     <div v-else class="luoi-combo-mini">
-      <div v-for="cb in danhSachCombo" :key="cb.idCombo" class="card-combo-mini">
+
+      <div
+        v-for="cb in danhSachCombo"
+        :key="cb.idCombo"
+        class="card-combo-mini"
+        :class="{ active: modelValue === cb.idCombo }"
+        @click="selectCombo(cb.idCombo)"
+      >
+
         <div class="khung-anh">
-          <img 
-            v-if="cb.hinhAnh" 
-            :src="`http://localhost:8080/uploads/${cb.hinhAnh}`" 
-            alt="Combo"
+          <img
+            v-if="cb.hinhAnh"
+            :src="`http://localhost:8080/uploads/${cb.hinhAnh}`"
           />
-          <div v-else class="no-img">No Name</div>
+          <div v-else class="no-img">
+            No Image
+          </div>
         </div>
+
         <div class="chi-tiet">
-          <h4 class="ten" :title="cb.tenCombo">{{ cb.tenCombo }}</h4>
-          <span class="gia">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ</span>
+          <h4 class="ten">{{ cb.tenCombo }}</h4>
+          <span class="gia">
+            {{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ
+          </span>
         </div>
+
       </div>
+
     </div>
 
-    <div v-if="!loading && danhSachCombo.length === 0" class="trong-text">
-      Không có combo nào đang mở bán.
-    </div>
   </div>
 </template>
 
@@ -152,5 +185,21 @@ onMounted(loadComboGoiY)
   font-size: 12px;
   color: #888;
   padding: 10px 0;
+}
+.card-combo-mini {
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.card-combo-mini:hover {
+  border-color: #ccc;
+}
+
+/* Class active này được thêm vào khi modelValue trùng với idCombo */
+.card-combo-mini.active {
+  border: 2px solid #ff4500; /* Màu cam nổi bật */
+  background-color: #fff5f0;
+  transform: scale(1.02);
 }
 </style>

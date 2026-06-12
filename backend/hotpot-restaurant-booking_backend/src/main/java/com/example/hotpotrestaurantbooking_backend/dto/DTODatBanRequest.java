@@ -17,7 +17,9 @@ public class DTODatBanRequest {
         @NotBlank(message = "không được b trống số điện thoại")
         @Pattern(regexp = "^[0][1-9][0-9]{8}$", message = "Số điện thoại không đúng định dạng (VD: 0987654321)")
         private String sdtKhachHang;
+        private Integer idCombo;
         @NotNull(message = "số người không được bỏ trống")
+        @Min(value = 1, message = "số người phải > 0")
         private Integer soNguoi;
         @FutureOrPresent(message = "Không được chọn ngày trong quá khứ")
         private LocalDateTime thoiGianDenDuKien;

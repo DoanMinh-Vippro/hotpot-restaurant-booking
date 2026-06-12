@@ -116,16 +116,66 @@ const openDatBan = () => {
 .btn-reservation:hover { background: #c5a059; color: #000; }
 @media (max-width: 1024px) { .nav-links { display: none; } .auth-group { border: none; padding: 0; } .login-label { display: none; } }
 .modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.9); z-index: 9999;
-  display: flex; align-items: center; justify-content: center;
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0,0,0,0.15);
+
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+
+  z-index: 9999;
+
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+
+  padding: 0;
 }
+
 .modal-content {
-  background: #111; padding: 20px; width: 90%; max-width: 900px;
-  max-height: 90vh; overflow-y: auto; border: 1px solid #c5a059;
+  width: 100vw;
+  height: 100vh;
+
+  max-width: none;
+  max-height: none;
+
+  margin: 0;
+  border-radius: 0;
+
+  overflow-y: auto;
+
+  background: rgba(10, 10, 10, 0.85);
+
+  border: none;
+
+  padding: 30px;
 }
+
 .close-btn {
-  background: #c5a059; border: none; padding: 8px 15px;
-  color: #000; font-weight: bold; cursor: pointer; margin-bottom: 15px;
+  position: sticky;
+  top: 0;
+
+  background: transparent;
+  border: 1px solid #c5a059;
+
+  color: #c5a059;
+
+  padding: 10px 18px;
+  margin-bottom: 15px;
+
+  font-weight: 600;
+  letter-spacing: 1px;
+
+  cursor: pointer;
+
+  transition: all .3s ease;
+
+  border-radius: 8%;
+}
+
+.close-btn:hover {
+  background: #c5a059;
+  color: #111;
 }
 </style>

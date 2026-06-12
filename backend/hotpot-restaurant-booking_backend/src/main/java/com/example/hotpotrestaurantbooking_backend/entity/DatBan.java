@@ -32,6 +32,9 @@ public class DatBan {
     @ManyToOne
     @JoinColumn(name = "id_khach_hang")
     private KhachHang khachHang;
+    @ManyToOne
+    @JoinColumn(name = "id_combo")
+    private Combo combo;
     private LocalDate ngayDat;
     private LocalTime gioDat;
     private String sdtKhachHang;
