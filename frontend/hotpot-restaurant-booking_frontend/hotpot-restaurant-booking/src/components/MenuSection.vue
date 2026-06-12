@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import ComBoApi from '../api/ComBoApi' // Import API Combo hệ thống
-import MonApi from '../api/MonApi'     // Import API Món ăn hệ thống của bạn
+import ComBoApi from '../api/ComBoApi'
+import MonApi from '../api/MonApi'
 import type { Combo } from '../api/ComBoApi'
 import type { Mon } from '../api/MonApi'
 
@@ -11,27 +11,71 @@ const comboItems = ref<Combo[]>([])
 const activeTab = ref<'mon-le' | 'combo'>('mon-le')
 const loading = ref(false)
 
+// 1. Biến quản lý phân trang cho Món lẻ
+const pageNoMon = ref(0)
+const pageSizeMon = ref(5) 
+const totalPagesMon = ref(0) 
+
+// 2. Biến quản lý phân trang cho Combo
+const pageNoCombo = ref(0)
+const pageSizeCombo = ref(5) 
+const totalPagesCombo = ref(0) 
+
 // Ảnh phôi mặc định sang trọng dành cho món lẻ không có ảnh
 const anhMacDinhMonLe = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80'
 
-const fetchThucDonTongHop = async () => {
+// Hàm tải danh sách Món lẻ theo trang
+const fetchMonByPage = async (pageMucTieu: number) => {
+  pageNoMon.value = pageMucTieu
   loading.value = true
   try {
-    // 1. Gọi API lấy danh sách Món lẻ thực tế từ Backend
-    const resMon = await MonApi.hienThiMon()
-    // Lọc lấy các món đang ở trạng thái "Còn bán" (trangThai === 0)
-    monItems.value = (resMon.data || []).filter((m: Mon) => m.trangThai === 0)
-
-    // 2. Gọi API lấy danh sách Gói Combo thực tế từ Backend
-    const resCombo = await ComBoApi.hienThiComBo()
-    // Lọc lấy các combo đang ở trạng thái "Còn bán" (trangThai === 1)
-    comboItems.value = (resCombo.data || []).filter((cb: Combo) => cb.trangThai === 1)
-
+    const resMon = await MonApi.phanTrangMon(pageNoMon.value, pageSizeMon.value)
+    const responseData = resMon.data as any
+    
+    if (responseData && responseData.content) {
+      monItems.value = responseData.content.filter((m: Mon) => m.trangThai === 0)
+      totalPagesMon.value = responseData.totalPages || 0
+    } else {
+      const dsMon = Array.isArray(responseData) ? responseData : []
+      monItems.value = dsMon.filter((m: Mon) => m.trangThai === 0)
+      totalPagesMon.value = 1
+    }
   } catch (error) {
-    console.error('Hệ thống gặp lỗi khi tải dữ liệu thực đơn công khai:', error)
+    console.error('Lỗi khi tải trang món lẻ:', error)
   } finally {
     loading.value = false
   }
+}
+
+// Hàm tải danh sách Combo theo trang
+const fetchComboByPage = async (pageMucTieu: number) => {
+  pageNoCombo.value = pageMucTieu
+  loading.value = true
+  try {
+    const resCombo = await ComBoApi.phanTrangComBo(pageNoCombo.value, pageSizeCombo.value)
+    const responseData = resCombo.data as any
+    
+    if (responseData && responseData.content) {
+      comboItems.value = responseData.content.filter((cb: Combo) => cb.trangThai === 1)
+      totalPagesCombo.value = responseData.totalPages || 0
+    } else {
+      const dsCombo = Array.isArray(responseData) ? responseData : []
+      comboItems.value = dsCombo.filter((cb: Combo) => cb.trangThai === 1)
+      totalPagesCombo.value = 1
+    }
+  } catch (error) {
+    console.error('Lỗi khi tải trang combo:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Hàm nạp lần đầu khi load component
+const fetchThucDonTongHop = async () => {
+  await Promise.all([
+    fetchMonByPage(0),
+    fetchComboByPage(0)
+  ])
 }
 
 onMounted(fetchThucDonTongHop)
@@ -69,51 +113,119 @@ onMounted(fetchThucDonTongHop)
       </div>
 
       <div v-else>
-        <div v-if="activeTab === 'mon-le'" class="menu-grid">
-          <div v-for="mon in monItems" :key="mon.idMon" class="menu-card animate-fade">
-            <div class="menu-img">
-              <img :src="anhMacDinhMonLe" :alt="mon.tenMon" />
-            </div>
-            <div class="menu-info">
-              <div class="header">
-                <span class="name">{{ mon.tenMon }}</span>
-                <span class="badge-danh-muc" v-if="mon.loaiDanhMuc">{{ mon.loaiDanhMuc }}</span>
-                <div class="dots"></div>
-                <span class="price">{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }}đ</span>
+        <div v-if="activeTab === 'mon-le'">
+          <div class="menu-grid">
+            <div v-for="mon in monItems" :key="mon.idMon" class="menu-card animate-fade">
+              <div class="menu-img">
+                <img :src="anhMacDinhMonLe" :alt="mon.tenMon" />
               </div>
-              <p class="desc">Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.</p>
+              <div class="menu-info">
+                <div class="header">
+                  <span class="name">{{ mon.tenMon }}</span>
+                  <span class="badge-danh-muc" v-if="mon.loaiDanhMuc">{{ mon.loaiDanhMuc }}</span>
+                  <div class="dots"></div>
+                  <span class="price">{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }}đ</span>
+                </div>
+                <p class="desc">Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.</p>
+              </div>
             </div>
           </div>
 
           <div v-if="monItems.length === 0" class="menu-trong">
             Hiện tại danh mục món lẻ đang được cập nhật, vui lòng quay lại sau!
           </div>
+
+          <div class="phan-trang animate-fade">
+            <button 
+              class="btn-trang" 
+              :disabled="pageNoMon === 0" 
+              @click="fetchMonByPage(0)"
+            >
+              &laquo;
+            </button>
+            <button 
+              class="btn-trang" 
+              :disabled="pageNoMon === 0" 
+              @click="fetchMonByPage(pageNoMon - 1)"
+            >
+              &#9664;
+            </button>
+            <span class="thong-tin-trang">Trang <span class="so-trang-noi-bat">{{ pageNoMon + 1 }}</span> / {{ totalPagesMon }}</span>
+            <button 
+              class="btn-trang vàng" 
+              :disabled="pageNoMon >= totalPagesMon - 1" 
+              @click="fetchMonByPage(pageNoMon + 1)"
+            >
+              &#9654;
+            </button>
+            <button 
+              class="btn-trang" 
+              :disabled="pageNoMon >= totalPagesMon - 1" 
+              @click="fetchMonByPage(totalPagesMon - 1)"
+            >
+              &raquo;
+            </button>
+          </div>
         </div>
 
-        <div v-if="activeTab === 'combo'" class="menu-grid">
-          <div v-for="cb in comboItems" :key="cb.idCombo" class="menu-card animate-fade">
-            <div class="menu-img">
-              <img 
-                :src="cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe" 
-                :alt="cb.tenCombo" 
-              />
-            </div>
-            <div class="menu-info">
-              <div class="header">
-                <span class="name tags-combo">{{ cb.tenCombo }}</span>
-                <div class="dots"></div>
-                <span class="price">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ</span>
+        <div v-if="activeTab === 'combo'">
+          <div class="menu-grid">
+            <div v-for="cb in comboItems" :key="cb.idCombo" class="menu-card animate-fade">
+              <div class="menu-img">
+                <img 
+                  :src="cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe" 
+                  :alt="cb.tenCombo" 
+                />
               </div>
-              <p class="desc">Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.</p>
+              <div class="menu-info">
+                <div class="header">
+                  <span class="name tags-combo">{{ cb.tenCombo }}</span>
+                  <div class="dots"></div>
+                  <span class="price">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ</span>
+                </div>
+                <p class="desc">Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.</p>
+              </div>
             </div>
           </div>
 
           <div v-if="comboItems.length === 0" class="menu-trong">
             Hiện tại nhà hàng đang cập nhật các gói Combo mới, vui lòng quay lại sau!
           </div>
-        </div>
-      </div>
 
+          <div class="phan-trang animate-fade">
+            <button 
+              class="btn-trang" 
+              :disabled="pageNoCombo === 0" 
+              @click="fetchComboByPage(0)"
+            >
+              &laquo;
+            </button>
+            <button 
+              class="btn-trang" 
+              :disabled="pageNoCombo === 0" 
+              @click="fetchComboByPage(pageNoCombo - 1)"
+            >
+              &#9664;
+            </button>
+            <span class="thong-tin-trang">Trang <span class="so-trang-noi-bat">{{ pageNoCombo + 1 }}</span> / {{ totalPagesCombo }}</span>
+            <button 
+              class="btn-trang vàng" 
+              :disabled="pageNoCombo >= totalPagesCombo - 1" 
+              @click="fetchComboByPage(pageNoCombo + 1)"
+            >
+              &#9654;
+            </button>
+            <button 
+              class="btn-trang" 
+              :disabled="pageNoCombo >= totalPagesCombo - 1" 
+              @click="fetchComboByPage(totalPagesCombo - 1)"
+            >
+              &raquo;
+            </button>
+          </div>
+        </div>
+
+      </div>
     </div>
   </section>
 </template>
@@ -160,7 +272,6 @@ onMounted(fetchThucDonTongHop)
   font-size: 0.8rem;
 }
 
-/* THANH ĐIỀU HƯỚNG TAB */
 .menu-tabs {
   display: flex;
   justify-content: center;
@@ -225,7 +336,7 @@ onMounted(fetchThucDonTongHop)
 }
 .header {
   display: flex;
-  align-items: center; /* Giúp tên món, tag danh mục và dấu chấm thẳng hàng */
+  align-items: center; 
 }
 .name {
   font-size: 1rem;
@@ -236,7 +347,6 @@ onMounted(fetchThucDonTongHop)
 .tags-combo {
   color: #f8d46a;
 }
-/* Nhãn danh mục nhỏ gọn đính kèm bên cạnh tên món lẻ */
 .badge-danh-muc {
   font-size: 0.7rem;
   background: rgba(197, 160, 89, 0.15);
@@ -274,13 +384,67 @@ onMounted(fetchThucDonTongHop)
   color: #f8d46a;
 }
 
-/* Hiệu ứng mượt fade-in khi switch tab */
 .animate-fade {
   animation: fadeIn 0.4s ease-in-out forwards;
 }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- CSS CỤM BỘ NÚT PHÂN TRANG THEO ẢNH MẪU --- */
+.phan-trang {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 50px;
+}
+
+.btn-trang {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #888;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+/* Kiểu định dạng cho nút có mũi tên đang được chọn hoặc hoạt động tốt */
+.btn-trang.vàng {
+  color: #f8d46a;
+  border-color: rgba(248, 212, 106, 0.2);
+  background: rgba(248, 212, 106, 0.05);
+}
+
+.btn-trang:hover:not(:disabled) {
+  border-color: #f8d46a;
+  color: #f8d46a;
+  background: rgba(248, 212, 106, 0.08);
+}
+
+.btn-trang:disabled {
+  border-color: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.1);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.thong-tin-trang {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  margin: 0 8px;
+}
+
+.so-trang-noi-bat {
+  color: #f8d46a;
+  font-weight: 600;
 }
 
 @media (max-width: 992px) {
