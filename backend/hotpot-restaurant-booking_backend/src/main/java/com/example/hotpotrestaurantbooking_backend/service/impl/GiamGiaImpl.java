@@ -100,6 +100,17 @@ public class GiamGiaImpl implements GiamGiaService {
         repo.deleteById(idGiamGia);
     }
 
+    @Override
+    public List<GiamGiaDTO> search(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAll(null);
+        }
+        return repo.findByMaGiamGiaContainingIgnoreCaseOrDieuKienSuDungContainingIgnoreCase(keyword, keyword, Pageable.unpaged())
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     private GiamGiaDTO toDto(GiamGia entity) {
         return GiamGiaDTO.builder()
                 .idGiamGia(entity.getIdGiamGia())

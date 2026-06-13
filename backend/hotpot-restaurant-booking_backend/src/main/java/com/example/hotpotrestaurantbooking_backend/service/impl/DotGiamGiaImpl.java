@@ -58,4 +58,12 @@ public class DotGiamGiaImpl implements DotGiamGiaService {
         dgg.setNgayKetThuc(req.getNgayKetThuc());
         repo.save(dgg);
     }
+
+    @Override
+    public void deleteDGG(Integer idDotGiamGia){
+        if (!repo.existsById(idDotGiamGia)) {
+            throw new RuntimeException("Không tìm thấy đợt giảm giá");
+        }
+        repo.deleteById(idDotGiamGia);
+    }
 }

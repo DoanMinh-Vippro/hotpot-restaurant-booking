@@ -11,4 +11,5 @@ public interface GiamGiaService {
     void createGiamGia(GiamGiaRequest request);
     void updateGiamGia(Integer idGiamGia, GiamGiaRequest request);
     void deleteGiamGia(Integer idGiamGia);
+    List<GiamGiaDTO> search(String keyword);
 }

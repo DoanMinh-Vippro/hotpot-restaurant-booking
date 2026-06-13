@@ -52,11 +52,6 @@ const router = createRouter({
       component: () => import('../views/DanhMucView.vue'),
     },
     {
-      path: '/dotGiamGia',
-      name: 'dotGiamGia',
-      component: () => import('../views/DotGiamGiaView.vue'),
-    },
-    {
       path: '/CTGGM',
       name: 'CTGGM',
       component: () => import('../views/ChiTietGiamGiaMonView.vue'),

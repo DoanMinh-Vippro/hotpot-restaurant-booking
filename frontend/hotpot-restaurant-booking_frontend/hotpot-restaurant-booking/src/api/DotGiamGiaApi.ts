@@ -53,6 +53,12 @@ class DotGiamGiaApi {
       params: { idDotGiamGia }
     })
   }
+
+  delete(idDotGiamGia: number) {
+    return ApiClient.delete('/deleteDGG', {
+      params: { idDotGiamGia }
+    })
+  }
 }
 
 export default new DotGiamGiaApi()

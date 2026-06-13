@@ -51,4 +51,10 @@ public class DotGiamGiaController {
         sv.updateDGG(idDotGiamGia, req);
         return ResponseEntity.ok(new ApiResponse("Update đợt giảm giá thành công"));
     }
+
+    @DeleteMapping("deleteDGG")
+    public ResponseEntity<ApiResponse> deleteDGG(@RequestParam("idDotGiamGia") Integer idDotGiamGia){
+        sv.deleteDGG(idDotGiamGia);
+        return ResponseEntity.ok(new ApiResponse("Xóa đợt giảm giá thành công"));
+    }
 }

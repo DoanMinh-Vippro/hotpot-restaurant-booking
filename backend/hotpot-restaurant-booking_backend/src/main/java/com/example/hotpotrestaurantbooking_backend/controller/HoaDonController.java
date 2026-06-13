@@ -27,6 +27,8 @@ public class HoaDonController {
         return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.getAll());
     }
 
+
+
     @GetMapping("{id}")
     public ResponseEntity<DTOHoaDonResponse> findById(@PathVariable Integer id) {
         return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.findById(id));
