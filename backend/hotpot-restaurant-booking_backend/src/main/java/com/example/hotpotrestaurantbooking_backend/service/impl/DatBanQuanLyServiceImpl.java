@@ -28,19 +28,32 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private KhachHang kh;
     private Ban b;
 
+    private DTODatBanQuanLyResponse mapToResponse(DatBan d) {
+        DTODatBanQuanLyResponse response = mapper.map(d, DTODatBanQuanLyResponse.class);
+        // Xử lý Bàn (Bỏ qua lỗi nếu null)
+        if (d.getBan() != null) {
+            response.setLoaiBan(d.getBan().getLoaiBan());
+            response.setIdBan(d.getBan().getIdBan());
+        } else {
+            response.setLoaiBan("Chưa xếp bàn");
+        }
+
+        // Xử lý Khách hàng (Bỏ qua lỗi nếu null)
+        if (d.getKhachHang() != null) {
+            response.setTenKhachHang(d.getKhachHang().getTenKhachHang());
+            response.setIdKhachHang(d.getKhachHang().getIdKhachHang());
+        } else {
+            response.setTenKhachHang("Khách vãng lai");
+        }
+        return response;
+    }
+
     @Override
     public List<DTODatBanQuanLyResponse> getAll() {
         return datBanRepository
                 .findAll()
                 .stream()
-                .map(d -> {
-                    DTODatBanQuanLyResponse response = mapper.map(d, DTODatBanQuanLyResponse.class);
-                    response.setLoaiBan(d.getBan().getLoaiBan());
-                    response.setTenKhachHang(d.getKhachHang().getTenKhachHang());
-                    response.setIdBan(d.getBan().getIdBan());
-                    response.setIdKhachHang(d.getKhachHang().getIdKhachHang());
-                    return response;
-                })
+                .map(this::mapToResponse)
                 .toList();
     }
 
@@ -48,14 +61,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     public DTODatBanQuanLyResponse findById(Integer id) {
         return datBanRepository
                 .findById(id)
-                .map(d -> {
-                    DTODatBanQuanLyResponse response = mapper.map(d, DTODatBanQuanLyResponse.class);
-                    response.setLoaiBan(d.getBan().getLoaiBan());
-                    response.setTenKhachHang(d.getKhachHang().getTenKhachHang());
-                    response.setIdBan(d.getBan().getIdBan());
-                    response.setIdKhachHang(d.getKhachHang().getIdKhachHang());
-                    return response;
-                })
+                .map(this::mapToResponse)
                 .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
     }
 

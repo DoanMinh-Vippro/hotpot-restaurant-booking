@@ -1,89 +1,88 @@
 <script setup lang="ts">
-import DatBanQuanLyApi from '@/api/DatBanQuanLy';
-import { onMounted, ref, watch, computed } from 'vue';
-import router from '@/router';
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import { ref, watch, computed } from 'vue'
+import router from '@/router'
 
-
-const props = defineProps(['datBanQuanLy','listBan'])
+const props = defineProps(['datBanQuanLy', 'listBan'])
 const emit = defineEmits(['refresh'])
 
-const errors = ref<Record<string, string>>({}); //biến chứa lỗi
+const errors = ref<Record<string, string>>({}) //biến chứa lỗi
 
-// 1. Khởi tạo form 
+// 1. Khởi tạo form
 const initForm = () => ({
-    idDatBan: 0,
-    idBan: null as number | null,
-    idkhachHang: null as number | null,
-    sdtKhachHang: '',
-    soNguoi: 0,
-    trangThai: null as number | null,
-    ghiChu: '',
-    thoiGianDenDuKien: '',
-    soTienCoc: 0,
-    trangThaiCoc: null as number | null,
-    phuongThucThanhToan: null as number | null
-});
+  idDatBan: 0,
+  idBan: null as number | null,
+  idkhachHang: null as number | null,
+  sdtKhachHang: '',
+  soNguoi: 0,
+  trangThai: null as number | null,
+  ghiChu: '',
+  thoiGianDenDuKien: '',
+  soTienCoc: 0,
+  trangThaiCoc: null as number | null,
+  phuongThucThanhToan: null as number | null,
+})
 
-const formData = ref(initForm());
+const formData = ref(initForm())
 
 // 2. Công tắc kiểm tra: Nếu idDatBan > 0 là Đang Sửa, ngược lại là Thêm mới
-const isEditing = computed(() => formData.value.idDatBan > 0);
+const isEditing = computed(() => formData.value.idDatBan > 0)
 
 // 3. Watch: Tự động reset khi props thay đổi
-watch(() => props.datBanQuanLy, (newData) => {
+watch(
+  () => props.datBanQuanLy,
+  (newData) => {
     if (newData) {
-        formData.value = { ...newData };
+      formData.value = { ...newData }
     } else {
-        formData.value = initForm();
+      formData.value = initForm()
     }
-}, { immediate: true });
-
+  },
+  { immediate: true },
+)
 
 const save = async () => {
-              errors.value ={}
+  errors.value = {}
 
-    try {
-        if (isEditing.value) {
-            await DatBanQuanLyApi.update(formData.value.idDatBan, formData.value);
-            alert('Sửa thành công');
-        } else {
-            await DatBanQuanLyApi.add(formData.value);
-            alert('Thêm thành công');
-            console.log("--- DEBUG SAVE ---");
-            console.log("ID hiện tại là:", formData.value.idDatBan);
-            console.log("isEditing là:", isEditing.value);
-        }
-        emit('refresh');
-    } catch (error) {
-        console.error('Lỗi thực hiện:', error);
+  try {
+    if (isEditing.value) {
+      await DatBanQuanLyApi.update(formData.value.idDatBan, formData.value)
+      alert('Sửa thành công')
+    } else {
+      await DatBanQuanLyApi.add(formData.value)
+      alert('Thêm thành công')
+      console.log('--- DEBUG SAVE ---')
+      console.log('ID hiện tại là:', formData.value.idDatBan)
+      console.log('isEditing là:', isEditing.value)
     }
-};
+    emit('refresh')
+  } catch (error) {
+    console.error('Lỗi thực hiện:', error)
+  }
+}
 
 // Thêm hàm này vào script setup
 const resetForm = () => {
-    formData.value = initForm();
-};
-
+  formData.value = initForm()
+}
 </script>
 
 <template>
   <div class="form-wrapper">
-    <button class="back-home-btn" @click="router.push('/')">
-      &larr; TRANG CHỦ
-    </button>
+    <button class="back-home-btn" @click="router.push('/')">&larr; TRANG CHỦ</button>
 
     <h2 class="form-title">QUẢN LÝ ĐẶT BÀN</h2>
-    
+
     <div class="form-grid">
       <div class="input-field">
         <label>SĐT Khách Hàng</label>
-        <input v-model="formData.sdtKhachHang" type="text">
+        <input v-model="formData.sdtKhachHang" type="text" />
         <span v-if="errors.sdtKhachHang" class="error-msg">{{ errors.sdtKhachHang }}</span>
       </div>
 
       <div class="input-field">
         <label>ID Khách Hàng</label>
-        <input v-model.number="formData.idkhachHang" type="number">
+        <input v-model.number="formData.idkhachHang" type="number" />
         <span v-if="errors.idkhachHang" class="error-msg">{{ errors.idkhachHang }}</span>
       </div>
 
@@ -97,23 +96,25 @@ const resetForm = () => {
         </select>
         <span v-if="errors.idBan" class="error-msg">{{ errors.idBan }}</span>
       </div>
-      
+
       <div class="input-field">
         <label>Số Người</label>
-        <input v-model.number="formData.soNguoi" type="number">
+        <input v-model.number="formData.soNguoi" type="number" />
         <span v-if="errors.soNguoi" class="error-msg">{{ errors.soNguoi }}</span>
       </div>
 
       <div class="input-field">
         <label>Tiền Cọc</label>
-        <input v-model.number="formData.soTienCoc" type="number" class="highlight-gold">
+        <input v-model.number="formData.soTienCoc" type="number" class="highlight-gold" />
         <span v-if="errors.soTienCoc" class="error-msg">{{ errors.soTienCoc }}</span>
       </div>
 
       <div class="input-field">
         <label>Thời Gian Đến</label>
-        <input v-model="formData.thoiGianDenDuKien" type="datetime-local">
-        <span v-if="errors.thoiGianDenDuKien" class="error-msg">{{ errors.thoiGianDenDuKien }}</span>
+        <input v-model="formData.thoiGianDenDuKien" type="datetime-local" />
+        <span v-if="errors.thoiGianDenDuKien" class="error-msg">{{
+          errors.thoiGianDenDuKien
+        }}</span>
       </div>
 
       <div class="input-field">
@@ -123,7 +124,9 @@ const resetForm = () => {
           <option value="VNPAY">VNPAY</option>
           <option value="TIEN_MAT">Tiền mặt</option>
         </select>
-        <span v-if="errors.phuongThucThanhToan" class="error-msg">{{ errors.phuongThucThanhToan }}</span>
+        <span v-if="errors.phuongThucThanhToan" class="error-msg">{{
+          errors.phuongThucThanhToan
+        }}</span>
       </div>
 
       <div class="input-field">
@@ -149,15 +152,11 @@ const resetForm = () => {
       <button class="btn-primary" @click.prevent="save()">
         {{ isEditing ? 'CẬP NHẬT THÔNG TIN' : 'THÊM MỚI ĐẶT BÀN' }}
       </button>
-      
-      <button v-if="isEditing" class="btn-secondary" @click.prevent="resetForm()">
-        HỦY CHỌN
-      </button>
+
+      <button v-if="isEditing" class="btn-secondary" @click.prevent="resetForm()">HỦY CHỌN</button>
     </div>
   </div>
 </template>
-
-
 
 <style scoped>
 .form-wrapper {
@@ -166,7 +165,7 @@ const resetForm = () => {
   max-width: 650px;
   margin: 40px auto;
   border: 1px solid #222;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
   border-radius: 12px;
 }
 
@@ -186,10 +185,10 @@ const resetForm = () => {
   gap: 30px 20px;
 }
 
-.input-field { 
-  display: flex; 
-  flex-direction: column; 
-  width: 100%; 
+.input-field {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 label {
@@ -202,7 +201,9 @@ label {
 }
 
 /* INPUT & SELECT "GẠCH CHÂN" */
-input, select, textarea {
+input,
+select,
+textarea {
   width: 100%;
   padding: 10px 0;
   border: none;
@@ -222,14 +223,21 @@ select option {
   padding: 10px;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-bottom: 1px solid #c5a059;
   outline: none;
 }
 
-.input-field:focus-within label { color: #c5a059; }
+.input-field:focus-within label {
+  color: #c5a059;
+}
 
-.full-width { grid-column: span 2; margin-top: 10px; }
+.full-width {
+  grid-column: span 2;
+  margin-top: 10px;
+}
 
 .button-bar {
   display: flex;
@@ -238,7 +246,8 @@ input:focus, select:focus, textarea:focus {
   margin-top: 50px;
 }
 
-.btn-primary, .btn-secondary {
+.btn-primary,
+.btn-secondary {
   padding: 12px 40px;
   font-size: 0.7rem;
   letter-spacing: 2px;
@@ -248,11 +257,25 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid #c5a059;
 }
 
-.btn-primary { background: #c5a059; color: #000; font-weight: bold; }
-.btn-primary:hover { background: #fff; border-color: #fff; }
+.btn-primary {
+  background: #c5a059;
+  color: #000;
+  font-weight: bold;
+}
+.btn-primary:hover {
+  background: #fff;
+  border-color: #fff;
+}
 
-.btn-secondary { background: transparent; color: #c5a059; }
-.btn-secondary:hover { background: #333; border-color: #fff; color: #fff; }
+.btn-secondary {
+  background: transparent;
+  color: #c5a059;
+}
+.btn-secondary:hover {
+  background: #333;
+  border-color: #fff;
+  color: #fff;
+}
 .form-wrapper {
   position: relative; /* Rất quan trọng để nút absolute nằm trong form */
   /* ... các style cũ của bạn giữ nguyên ... */

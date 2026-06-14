@@ -33,7 +33,7 @@ const emit = defineEmits(['detail', 'delete'])
           <td>{{ d.loaiBan }}</td>
           <td>{{ d.tenKhachHang }}</td>
           <td>{{ d.sdtKhachHang }}</td>
-          <td>{{ d.ngayDat }}</td>    
+          <td>{{ d.ngayDat }}</td>
           <td>{{ d.gioDat }}</td>
           <td>{{ d.soNguoi }}</td>
           <td>{{ d.thoiGianDenDuKien }}</td>
@@ -45,7 +45,9 @@ const emit = defineEmits(['detail', 'delete'])
           <td>
             <div class="vertical-actions">
               <button class="btn-action btn-detail" @click="emit('detail', d)">DETAIL</button>
-              <button class="btn-action btn-delete" @click="emit('delete', d.idDatBan)">DELETE</button>
+              <button class="btn-action btn-delete" @click="emit('delete', d.idDatBan)">
+                DELETE
+              </button>
             </div>
           </td>
         </tr>
