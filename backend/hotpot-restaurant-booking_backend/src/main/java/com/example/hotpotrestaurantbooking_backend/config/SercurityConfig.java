@@ -27,7 +27,14 @@ public class SercurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // 2. Cho phép xem danh sách phân trang (không cần Token)
+                        .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()
+
+                        // 3. Cho phép xem ảnh tĩnh công khai từ thư mục WebConfig (không cần Token)
+                        .requestMatchers("/uploads/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Spring Boot sẽ tự động tìm Bean JwtDecoder trong Context (đã được tạo ở JwtKeyConfig)
