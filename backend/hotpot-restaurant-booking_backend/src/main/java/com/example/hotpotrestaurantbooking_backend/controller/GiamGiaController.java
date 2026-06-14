@@ -24,6 +24,7 @@ public class GiamGiaController {
         return service.getAll(keyword);
     }
 
+
     @GetMapping("/{id}")
     public GiamGiaDTO getById(@PathVariable("id") Integer id) {
         return service.getById(id);

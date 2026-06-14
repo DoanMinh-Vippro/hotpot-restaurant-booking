@@ -94,7 +94,7 @@ const fetchDuLieu = async () => {
 
 // Hàm xử lý quay lại màn hình danh sách đợt giảm giá chính
 const quayLaiDotGiamGia = () => {
-  router.push({ name: 'dotGiamGia' })
+  router.push({ name: 'giam-gia', query: { tab: 'dot-giam-gia' } })
 }
 
 const nhanSuKienTimKiem = async (boLoc: { tenChuongTrinh: string, tenMon: string }) => {

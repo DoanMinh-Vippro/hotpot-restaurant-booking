@@ -1,11 +1,27 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import GiamGiaList from '../components/GiamGiaList.vue'
 import GiamGiaForm from '../components/GiamGiaForm.vue'
 import GiamGiaPreview from '../components/GiamGiaPreview.vue'
+import DotGiamGiaTable from '../components/DotGiamGiaTable.vue'
+import DotGiamGiaForm from '../components/DotGiamGiaForm.vue'
+import DotGiamGiaPreview from '../components/DotGiamGiaPreview.vue'
+import Pagination from '../components/Pagination.vue'
 import GiamGiaApi from '../api/GiamGiaApi'
+import DotGiamGiaApi from '../api/DotGiamGiaApi'
 import type { GiamGia } from '../api/GiamGiaApi'
+import type { DotGiamGia, DotGiamGiaRequest } from '../api/DotGiamGiaApi'
 
+const route = useRoute()
+const router = useRouter()
+
+// Tab state
+const activeTab = ref<'giam-gia' | 'dot-giam-gia'>(
+  (route.query.tab as 'giam-gia' | 'dot-giam-gia') || 'giam-gia'
+)
+
+// GiamGia state
 const danh_sach_giam_gia = ref<GiamGia[]>([])
 const dang_tai = ref(false)
 const dang_gui = ref(false)
@@ -15,6 +31,20 @@ const tim_kiem_query = ref('')
 const id_da_chon = ref<number | null>(null)
 const che_do_bieu_mau = ref<'create' | 'edit'>('create')
 const bieu_mau_ref = ref<InstanceType<typeof GiamGiaForm>>()
+
+// DotGiamGia state
+const danhSach = ref<DotGiamGia[]>([])
+const itemChon = ref<DotGiamGia | undefined>()
+const selectedId = ref<number | null>(null)
+const formRef = ref<InstanceType<typeof DotGiamGiaForm>>()
+const bieuThucTenChuongTrinh = ref('')
+const bieuThucTuNgay = ref('')
+const bieuThucDenNgay = ref('')
+const trangHienTai = ref(0)
+const kichThuocTrang = ref(5)
+const tongSoTrang = ref(0)
+const dang_tai_dot = ref(false)
+const loi_dot = ref('')
 
 const giam_gia_da_chon = computed(() => danh_sach_giam_gia.value.find((item) => item.idGiamGia === id_da_chon.value))
 
@@ -27,6 +57,7 @@ const danh_sach_da_loc = computed(() => {
   )
 })
 
+// GiamGia methods
 const tai_danh_sach_giam_gia = async () => {
   dang_tai.value = true
   loi_may_chu.value = ''
@@ -114,7 +145,121 @@ const xu_ly_them_moi = () => {
   xu_ly_huy_bieu_mau()
 }
 
-onMounted(tai_danh_sach_giam_gia)
+// DotGiamGia methods
+const fetchDuLieu = async () => {
+  dang_tai_dot.value = true
+  loi_dot.value = ''
+  try {
+    const tuNgayTarget = bieuThucTuNgay.value
+    const denNgayTarget = bieuThucDenNgay.value
+
+    if (tuNgayTarget && denNgayTarget && new Date(denNgayTarget) < new Date(tuNgayTarget)) {
+      loi_dot.value = "Tìm kiếm thất bại: Ngày kết thúc không được nhỏ hơn ngày bắt đầu lọc!"
+      return
+    }
+
+    const res = await DotGiamGiaApi.search(
+      bieuThucTenChuongTrinh.value,
+      tuNgayTarget || undefined,
+      denNgayTarget || undefined,
+      trangHienTai.value,
+      kichThuocTrang.value
+    )
+    
+    const responseData = res.data as any
+    
+    if (responseData && responseData.content) {
+      danhSach.value = responseData.content
+      tongSoTrang.value = responseData.totalPages || 0
+    } else {
+      danhSach.value = Array.isArray(responseData) ? responseData : []
+      tongSoTrang.value = 1
+    }
+  } catch (error) {
+    loi_dot.value = "Không tải được dữ liệu đợt giảm giá"
+    console.error(error)
+  } finally {
+    dang_tai_dot.value = false
+  }
+}
+
+const nhanSuKienTimKiem = async (boLoc: { tenChuongTrinh: string, tuNgay: string, denNgay: string }) => {
+  bieuThucTenChuongTrinh.value = boLoc.tenChuongTrinh
+  bieuThucTuNgay.value = boLoc.tuNgay
+  bieuThucDenNgay.value = boLoc.denNgay
+  trangHienTai.value = 0
+  await fetchDuLieu()
+}
+
+const chuyenTrang = async (trangMucTieu: number) => {
+  trangHienTai.value = trangMucTieu
+  await fetchDuLieu()
+}
+
+const lamMoiTimKiem = async () => {
+  bieuThucTenChuongTrinh.value = ''
+  bieuThucTuNgay.value = ''
+  bieuThucDenNgay.value = ''
+  trangHienTai.value = 0
+  await fetchDuLieu()
+}
+
+const themMoi = () => {
+  itemChon.value = undefined
+  selectedId.value = null
+  formRef.value?.fillForm()
+}
+
+const sua = (item: DotGiamGia) => {
+  itemChon.value = item
+  selectedId.value = item.idDotGiamGia
+  formRef.value?.fillForm(item)
+}
+
+const luu = async (payload: DotGiamGiaRequest) => {
+  const isUpdate = selectedId.value !== null
+  const tenHanhDong = isUpdate ? 'cập nhật' : 'thêm mới'
+
+  if (!confirm(`Bạn có chắc chắn muốn ${tenHanhDong} chương trình giảm giá này không?`)) return
+
+  try {
+    if (isUpdate && selectedId.value) {
+      await DotGiamGiaApi.update(selectedId.value, payload)
+    } else {
+      await DotGiamGiaApi.add(payload)
+    }
+
+    alert(`${isUpdate ? 'Cập nhật' : 'Thêm mới'} chương trình giảm giá thành công!`)
+    themMoi()
+    await fetchDuLieu()
+  } catch (error: any) {
+    const messageLoiBackend = error.response?.data?.message || error.response?.data || `Lỗi hệ thống khi thực hiện ${tenHanhDong}!`;
+    alert(messageLoiBackend)
+  }
+}
+
+const xoa = async (id: number) => {
+  try {
+    await DotGiamGiaApi.delete(id)
+    if (selectedId.value === id) themMoi()
+    await fetchDuLieu()
+  } catch (error: any) {
+    console.error('Lỗi khi xóa đợt giảm giá:', error)
+    alert(error.response?.data?.message || 'Không thể xóa đợt giảm giá')
+  }
+}
+
+const chuyenSangChiTiet = (item: DotGiamGia) => {
+  router.push({
+    name: 'CTGGM',
+    query: { idDotGiamGia: item.idDotGiamGia.toString() }
+  })
+}
+
+onMounted(() => {
+  tai_danh_sach_giam_gia()
+  fetchDuLieu()
+})
 </script>
 
 <template>
@@ -122,12 +267,32 @@ onMounted(tai_danh_sach_giam_gia)
     <header class="tieu-de-trang">
       <div>
         <p class="tieu-le">Quản lý giảm giá</p>
-        <h1>CRUD Giảm giá</h1>
+        <h1>Giảm Giá & Đợt Giảm Giá</h1>
       </div>
-      <button class="nut-chinh" type="button" @click="tai_danh_sach_giam_gia">Tải lại</button>
+      <div class="header-buttons">
+        <button class="nut-chinh" type="button" @click="router.push('/')">Trang chủ</button>
+        <button class="nut-chinh" type="button" @click="activeTab === 'giam-gia' ? tai_danh_sach_giam_gia() : fetchDuLieu()">Tải lại</button>
+      </div>
     </header>
 
-    <section class="giam-gia-grid">
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button 
+        :class="['tab-button', { active: activeTab === 'giam-gia' }]"
+        @click="activeTab = 'giam-gia'"
+      >
+        Mã Giảm Giá
+      </button>
+      <button 
+        :class="['tab-button', { active: activeTab === 'dot-giam-gia' }]"
+        @click="activeTab = 'dot-giam-gia'"
+      >
+        Đợt Giảm Giá
+      </button>
+    </div>
+
+    <!-- Tab 1: GiamGia -->
+    <section v-show="activeTab === 'giam-gia'" class="giam-gia-grid">
       <GiamGiaList
         :danh_sach_giam_gia="danh_sach_da_loc"
         :loading="dang_tai"
@@ -150,6 +315,45 @@ onMounted(tai_danh_sach_giam_gia)
           @reset="xu_ly_huy_bieu_mau"
         />
         <GiamGiaPreview :giam_gia_da_chon="giam_gia_da_chon" />
+      </div>
+    </section>
+
+    <!-- Tab 2: DotGiamGia -->
+    <section v-show="activeTab === 'dot-giam-gia'" class="dot-giam-gia-container">
+      <p v-if="loi_dot" class="thong-bao-loi">{{ loi_dot }}</p>
+      
+      <div class="dot-giam-gia-grid">
+        <div class="cot-trai">
+          <DotGiamGiaTable
+            :danh-sach="danhSach"
+            :selected-id="selectedId"
+            :loading="dang_tai_dot"
+            @edit="sua"
+            @delete="xoa"
+            @add="themMoi"
+            @search="nhanSuKienTimKiem"
+            @reset="lamMoiTimKiem"
+            @view-detail="chuyenSangChiTiet"
+          />
+
+          <Pagination 
+            :page-no="trangHienTai"
+            :total-pages="tongSoTrang"
+            @change-page="chuyenTrang"
+          />
+        </div>
+
+        <div class="cot-phai">
+          <DotGiamGiaForm
+            ref="formRef"
+            :danh-sach="danhSach"
+            @submit="luu"
+          />
+
+          <DotGiamGiaPreview
+            :item="itemChon"
+          />
+        </div>
       </div>
     </section>
   </main>
@@ -177,6 +381,12 @@ onMounted(tai_danh_sach_giam_gia)
   font-size: clamp(2rem, 2.4vw, 2.6rem);
 }
 
+.header-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
 .tieu-le {
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -194,23 +404,100 @@ onMounted(tai_danh_sach_giam_gia)
   padding: 0 16px;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.giam-gia-grid {
+.nut-chinh:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(248, 212, 106, 0.4);
+}
+
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0;
+}
+
+.tab-button {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tab-button:hover {
+  color: #c5a059;
+}
+
+.tab-button.active {
+  color: #f8d46a;
+  border-bottom-color: #f8d46a;
+}
+
+/* Grids */
+.giam-gia-grid,
+.dot-giam-gia-grid {
   display: grid;
   grid-template-columns: minmax(320px, 1.2fr) minmax(360px, 0.9fr);
   gap: 24px;
   align-items: start;
 }
 
+.dot-giam-gia-container {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.thong-bao-loi {
+  background: rgba(231, 76, 60, 0.2);
+  border-left: 3px solid #e74c3c;
+  color: #e74c3c;
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
+
+.cot-trai,
+.cot-phai {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 @media (max-width: 1024px) {
-  .giam-gia-grid {
+  .giam-gia-grid,
+  .dot-giam-gia-grid {
     grid-template-columns: 1fr;
   }
 
   .tieu-de-trang {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .tab-navigation {
+    flex-wrap: wrap;
   }
 }
 </style>

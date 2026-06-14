@@ -11,4 +11,5 @@ public interface HoaDonService {
     DTOHoaDonResponse add(DTOHoaDonRequest request);
     DTOHoaDonResponse update(Integer id, DTOHoaDonRequest request);
     void delete(Integer id);
+    List<DTOHoaDonResponse> search(String keyword);
 }

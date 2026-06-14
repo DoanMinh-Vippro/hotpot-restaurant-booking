@@ -39,4 +39,6 @@ public interface DotGiamGiaService {
 
     void updateDGG(Integer idDotGiamGia,
                    DotGiamGiaRequest req);
+
+    void deleteDGG(Integer idDotGiamGia);
 }
