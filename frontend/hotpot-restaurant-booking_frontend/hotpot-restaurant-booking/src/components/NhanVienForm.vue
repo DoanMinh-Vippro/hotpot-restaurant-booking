@@ -10,15 +10,13 @@ const formData= ref({
     soDienThoai:"",
     email:"",
     diaChi:"",
-<<<<<<< HEAD
+
     trangThai: true,
-=======
     trangThai: 1,
->>>>>>> feature/my-update
     idChucVu: null,
     idTaiKhoan: null,
 })
-const emit = defineEmits(['refresh']) 
+const emit = defineEmits(['refresh'])
 const add= async ()=>{
     try{
      await NhanVienApi.add(formData.value)
@@ -32,11 +30,11 @@ const add= async ()=>{
     soDienThoai:"",
     email:"",
     diaChi:"",
-<<<<<<< HEAD
+
     trangThai: true,
-=======
+
     trangThai: 1,
->>>>>>> feature/my-update
+
     idChucVu: null,
     idTaiKhoan: null
     }
@@ -67,16 +65,6 @@ const update = async () => {
   }
 }
 const props = defineProps(['formData']);
-<<<<<<< HEAD
-watch(() => props.formData, (newTableData) => {
-  if (newTableData) {
-    formData.value = {
-      ...newTableData,
-      idChucVu: newTableData.idChucVu,
-      idTaiKhoan: newTableData.idTaiKhoan
-    };
-  }
-=======
 watch(() => props.formData, (newVal) => {
   if (!newVal) {
     formData.value = {
@@ -87,18 +75,17 @@ watch(() => props.formData, (newVal) => {
       soDienThoai: "",
       email: "",
       diaChi: "",
-      trangThai: 1,  
+      trangThai: 1,
       idChucVu: null,
       idTaiKhoan: null,
     };
     return;
   }
-  
+
   formData.value = {
     ...newVal,
     trangThai: newVal.trangThai ? 1 : 0
   };
->>>>>>> feature/my-update
 }, { immediate: true });
 </script>
 <template>
@@ -128,25 +115,16 @@ watch(() => props.formData, (newVal) => {
         <input type="text" v-model="formData.diaChi">
         </div>
 
-        
+
         <div>
   <label>Trạng thái:</label>
 
   <label>
-<<<<<<< HEAD
-    <input type="radio" :value="true" v-model="formData.trangThai">
-=======
     <input type="radio" :value="1" v-model="formData.trangThai">
->>>>>>> feature/my-update
     Hoạt động
   </label>
-
   <label>
-<<<<<<< HEAD
-    <input type="radio" :value="false" v-model="formData.trangThai">
-=======
     <input type="radio" :value="0" v-model="formData.trangThai">
->>>>>>> feature/my-update
     Ngừng
   </label>
 </div>
@@ -170,7 +148,7 @@ watch(() => props.formData, (newVal) => {
         </div>
     </div>
     <div>
-        <button @click.prevent="add()">ADD</button> 
+        <button @click.prevent="add()">ADD</button>
     <button @click.prevent="update()">UPDATE</button>
     </div>
 </template>

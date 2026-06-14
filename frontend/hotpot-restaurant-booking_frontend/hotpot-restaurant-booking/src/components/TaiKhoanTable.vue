@@ -12,10 +12,7 @@ const emit =defineEmits(['detail', 'delete'])
                 <th>Tên đăng nhập</th>
                 <th>Mật khẩu</th>
                 <th>Trạng thái</th>
-<<<<<<< HEAD
-=======
                 <th>Hành động</th>
->>>>>>> feature/my-update
             </tr>
         </thead>
         <tbody>
@@ -23,11 +20,8 @@ const emit =defineEmits(['detail', 'delete'])
                 <td>{{ nv.maTaiKhoan }}</td>
                 <td>{{ nv.tenDangNhap }}</td>
                 <td>{{ nv.matKhau }}</td>
-<<<<<<< HEAD
                 <td>{{ nv.trangThai? 'Hoạt động':'Ngừng' }}</td>
-=======
                 <td>{{ nv.trangThai  ? 'Hoạt động' : 'Ngừng' }}</td>
->>>>>>> feature/my-update
                 <td>
                     <button class="btn-edit" @click="emit('detail', nv)">Chi Tiết</button>
           <button class="btn-delete" @click="emit('delete', nv.id)">Xóa</button>
