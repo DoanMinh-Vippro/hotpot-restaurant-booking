@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/thong-ke")
-@CrossOrigin(origins = "*")
 public class ThongKeController {
     @Autowired
     private ThongKeService service;

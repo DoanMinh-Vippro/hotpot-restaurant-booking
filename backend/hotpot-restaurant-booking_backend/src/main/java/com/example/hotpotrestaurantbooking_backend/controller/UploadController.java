@@ -12,7 +12,6 @@ import java.nio.file.Paths;
 import java.util.UUID;
 
 @RestController
-@CrossOrigin
 public class UploadController {
 
     // Thư mục lưu ảnh (nằm ngay ngoài cùng của project hoặc thư mục bạn đã cấu hình)

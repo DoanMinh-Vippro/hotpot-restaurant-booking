@@ -15,7 +15,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@CrossOrigin
 public class ComBoController {
     @Autowired
     private ComBoService sv;

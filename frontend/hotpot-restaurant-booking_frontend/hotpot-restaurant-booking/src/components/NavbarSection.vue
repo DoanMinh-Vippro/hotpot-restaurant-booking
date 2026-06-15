@@ -33,6 +33,10 @@ const goToAuth = () => {
   router.push('/auth')
 }
 
+const goToRegister = () => {
+  router.push('/register')
+}
+
 const showDatBanModal = ref(false)
 
 const openDatBan = () => {
@@ -79,6 +83,10 @@ const openDatBan = () => {
             <span class="login-label">ĐĂNG NHẬP</span>
           </div>
 
+          <button v-if="!authStore.isAuthenticated" class="btn-register-nav" @click="goToRegister" title="Đăng ký">
+            ĐĂNG KÝ
+          </button>
+
           <div v-else class="login-trigger" @click="handleLogout" title="Đăng xuất">
             <span class="login-label">ĐĂNG XUẤT</span>
           </div>
@@ -115,6 +123,8 @@ const openDatBan = () => {
 .gold { color: #c5a059; }
 .btn-reservation { background: transparent; border: 1px solid #c5a059; color: #c5a059; padding: 10px 22px; cursor: pointer; letter-spacing: 1px; font-size: 0.75rem; font-weight: 600; transition: 0.4s; }
 .btn-reservation:hover { background: #c5a059; color: #000; }
+.btn-register-nav { background: transparent; border: 1px solid rgba(197, 160, 89, 0.6); color: #c5a059; padding: 8px 18px; cursor: pointer; letter-spacing: 1px; font-size: 0.7rem; font-weight: 600; transition: 0.3s; }
+.btn-register-nav:hover { border-color: #c5a059; background: rgba(197, 160, 89, 0.1); }
 @media (max-width: 1024px) { .nav-links { display: none; } .auth-group { border: none; padding: 0; } .login-label { display: none; } }
 .modal-overlay {
   position: fixed;

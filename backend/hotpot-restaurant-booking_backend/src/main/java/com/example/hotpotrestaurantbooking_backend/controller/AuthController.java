@@ -1,8 +1,10 @@
 package com.example.hotpotrestaurantbooking_backend.controller;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTOLoginResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.DTORegisterRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.KhachHangResponse;
 import com.example.hotpotrestaurantbooking_backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,11 @@ public class AuthController {
     @PostMapping("register")
     public ResponseEntity<DTOTaiKhoanResponse> register(@Valid @RequestBody DTOTaiKhoanRequest request){
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    @PostMapping("register-customer")
+    public ResponseEntity<KhachHangResponse> registerCustomer(@Valid @RequestBody DTORegisterRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerCustomer(request));
     }
 
     @PostMapping("login")

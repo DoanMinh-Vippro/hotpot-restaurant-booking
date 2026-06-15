@@ -15,7 +15,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/hoa-don")
-@CrossOrigin
 @RequiredArgsConstructor
 public class HoaDonController {
 

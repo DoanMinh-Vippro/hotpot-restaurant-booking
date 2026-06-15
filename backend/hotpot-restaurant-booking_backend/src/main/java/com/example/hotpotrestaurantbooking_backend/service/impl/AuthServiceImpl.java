@@ -1,9 +1,15 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTOLoginResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.DTORegisterRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.KhachHangResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.ChucVu;
+import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
 import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
+import com.example.hotpotrestaurantbooking_backend.repository.ChucVuRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.TaiKhoanRepository;
 import com.example.hotpotrestaurantbooking_backend.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -16,11 +22,14 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final TaiKhoanRepository taiKhoanRepository;
+    private final KhachHangRepository khachHangRepository;
+    private final ChucVuRepository chucVuRepository;
     private final ModelMapper mapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder; // Tiêm JwtEncoder vào
@@ -39,6 +48,54 @@ public class AuthServiceImpl implements AuthService {
         tk.setMaTaiKhoan(String.format("TK%03d", tk.getIdTaiKhoan()));
         taiKhoanRepository.save(tk);
         return mapper.map(tk, DTOTaiKhoanResponse.class);
+    }
+
+    @Override
+    public KhachHangResponse registerCustomer(DTORegisterRequest request) {
+        // Kiểm tra tên đăng nhập đã tồn tại
+        if (taiKhoanRepository.existsByTenDangNhap(request.getTenDangNhap())){
+            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
+        }
+
+        // Kiểm tra số điện thoại đã tồn tại
+        if (khachHangRepository.existsBySoDienThoai(request.getSoDienThoai())) {
+            throw new IllegalArgumentException("Số điện thoại đã được đăng ký");
+        }
+
+        // Tạo TaiKhoan mới với role USER (id = 3)
+        TaiKhoan taiKhoan = new TaiKhoan();
+        taiKhoan.setTenDangNhap(request.getTenDangNhap());
+        taiKhoan.setMatKhau(passwordEncoder.encode(request.getMatKhau()));
+        taiKhoan.setTrangThai(true);
+
+        // Set role USER (id = 3)
+        ChucVu roleUser = chucVuRepository.findById(3)
+                .orElseThrow(() -> new RuntimeException("Role USER không tồn tại"));
+        taiKhoan.setChucVu(roleUser);
+
+        // Lưu TaiKhoan
+        taiKhoanRepository.save(taiKhoan);
+
+        // Tạo mã tài khoản
+        taiKhoan.setMaTaiKhoan(String.format("TK%03d", taiKhoan.getIdTaiKhoan()));
+        taiKhoanRepository.save(taiKhoan);
+
+        // Tạo KhachHang mới
+        KhachHang khachHang = new KhachHang();
+        khachHang.setMaKhachHang("KH" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        khachHang.setTenKhachHang(request.getTenKhachHang());
+        khachHang.setGioiTinh(request.getGioiTinh());
+        khachHang.setSoDienThoai(request.getSoDienThoai());
+        khachHang.setEmail(request.getEmail());
+        khachHang.setDiaChi(request.getDiaChi());
+        khachHang.setTrangThai(true);
+        khachHang.setTaiKhoan(taiKhoan);
+
+        // Lưu KhachHang
+        khachHangRepository.save(khachHang);
+
+        // Trả về response
+        return mapper.map(khachHang, KhachHangResponse.class);
     }
 
     @Override

@@ -22,6 +22,11 @@ const router = createRouter({
       component: () => import('@/views/AuthView.vue'),
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/RegisterView.vue'),
+    },
+    {
       path: '/hoa-don',
       name: 'hoa-don',
       component: () => import('@/views/HoaDonView.vue'),
@@ -90,28 +95,30 @@ const router = createRouter({
       path: '/dat-ban',
       name: 'dat-ban',
       component: () => import('@/views/DatBanView.vue'),
-    }
-     {
-      path: '/nhan-vien',
-      name: 'nhan-vien',
-    component: ()=> import('@/views/NhanVienView.vue'),
     },
     {
-
+      path: '/nhan-vien',
+      name: 'nhan-vien',
+      component: () => import('@/views/NhanVienView.vue'),
+    },
+    {
       path: '/tai-khoan',
       name: 'tai-khoan',
-    component: ()=> import('@/views/TaiKhoanView.vue'),
+      component: () => import('@/views/TaiKhoanView.vue'),
     },
-     {
+    {
       path: '/chuc-vu',
       name: 'chuc-vu',
-    component: ()=> import('@/views/ChucVuView.vue'),
+      component: () => import('@/views/ChucVuView.vue'),
     },
     {
       path: '/thong-ke',
       name: 'thong-ke',
-    component: ()=> import('@/views/ThongKeView.vue'),
+      component: () => import('@/views/ThongKeView.vue'),
+    },
   ],
 })
+
+
 
 export default router

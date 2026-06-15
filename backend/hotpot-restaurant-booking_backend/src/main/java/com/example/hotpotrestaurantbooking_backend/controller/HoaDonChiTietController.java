@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/hoa-don-chi-tiet")
-@CrossOrigin("*")
 @RequiredArgsConstructor
 public class HoaDonChiTietController {
 

@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/nhan-vien")
-@CrossOrigin(origins = "*")
 public class NhanVienController {
     @Autowired
     private NhanVienService service;

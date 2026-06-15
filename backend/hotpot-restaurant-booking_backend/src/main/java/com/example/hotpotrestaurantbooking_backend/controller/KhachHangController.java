@@ -15,7 +15,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/khach_hang")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 
 public class KhachHangController {
     private final KhachHangService khachHangService;

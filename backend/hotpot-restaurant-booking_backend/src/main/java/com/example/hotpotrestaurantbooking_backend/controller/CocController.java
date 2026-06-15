@@ -12,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/coc")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173") // Khớp cổng với React/Vue của bạn
 public class CocController {
 
     private final CocService cocService;
