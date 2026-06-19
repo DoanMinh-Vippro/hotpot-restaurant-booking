@@ -64,7 +64,7 @@ const openDatBan = () => {
           
           <template v-if="authStore.isAdmin">
             <li><button class="nav-link-button" @click="router.push('/thucDon')">THỰC ĐƠN</button></li>
-            <li><button class="nav-link-button" @click="router.push('/dotGiamGia')">ĐỢT GIẢM GIÁ</button></li>
+            <li><button class="nav-link-button" @click="router.push('/GGM')">ĐỢT GIẢM GIÁ</button></li>
             <li><button class="nav-link-button" @click="router.push('/hoa-don')">HÓA ĐƠN</button></li>
             <li><button class="nav-link-button" @click="router.push('/giam-gia')">GIẢM GIÁ</button></li>
             <li><RouterLink to="/ban" class="nav-link-button">BÀN</RouterLink></li>

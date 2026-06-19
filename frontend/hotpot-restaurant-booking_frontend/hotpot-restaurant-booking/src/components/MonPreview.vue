@@ -16,9 +16,24 @@ defineProps<{
     </p>
 
     <p>
-      <strong>Giá:</strong>
-      {{ Number(monDaChon.donGiaHienTai).toLocaleString('vi-VN') }} đ
-    </p>
+  <strong>Giá gốc:</strong>
+  {{ Number(monDaChon.donGiaHienTai).toLocaleString('vi-VN') }} đ
+</p>
+
+<p>
+  <strong>Giá sau giảm:</strong>
+  {{ Number(monDaChon.giaSauGiam).toLocaleString('vi-VN') }} đ
+</p>
+
+<p>
+  <strong>Số tiền giảm:</strong>
+  {{ Number(monDaChon.soTienDuocGiam).toLocaleString('vi-VN') }} đ
+</p>
+
+<p>
+  <strong>Khuyến mãi:</strong>
+  {{ monDaChon.tenChuongTrinhGiamGia }}
+</p>
 
     <p>
       <strong>Danh mục:</strong>

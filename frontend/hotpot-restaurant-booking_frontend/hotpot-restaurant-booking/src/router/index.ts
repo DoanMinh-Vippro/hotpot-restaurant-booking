@@ -61,6 +61,11 @@ const router = createRouter({
       name: 'CTGGM',
       component: () => import('../views/ChiTietGiamGiaMonView.vue'),
     },
+        {
+      path: '/GGM',
+      name: 'GGM',
+      component: () => import('../views/DotGiamGiaView.vue'),
+    },
     {
       path: '/thucDon',
       name: 'thucDon',

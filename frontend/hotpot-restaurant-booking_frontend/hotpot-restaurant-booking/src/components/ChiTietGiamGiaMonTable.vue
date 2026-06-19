@@ -72,6 +72,8 @@ const xoa = (id: number) => {
             <th>Món</th>
             <th>Chương trình</th>
             <th>Mức giảm</th>
+            <th>Loại giảm</th>
+            <th>Trạng Thái</th>
             <th>Hành động</th>
           </tr>
         </thead>
@@ -84,8 +86,13 @@ const xoa = (id: number) => {
           >
             <td>{{ item.tenMon }}</td>
             <td>{{ item.tenChuongTrinh }}</td>
-            <td>{{ item.mucGiam }}%</td>
-
+            <td>{{ item.mucGiam }}</td>
+            <td>{{ item.loaiGiam }}</td>
+            <td>
+              <span :class="item.trangThai === 0 ? 'trang-thai-con' : 'trang-thai-ngung'">
+                {{ item.trangThai === 0 ? 'Còn hiệu lực' : 'Hết hiệu lực' }}
+              </span>
+            </td>
             <td class="hanh-dong">
               <button class="nut-sua" @click="$emit('edit', item)">
                 Sửa
@@ -234,6 +241,13 @@ tr.active {
   color: #1a1410;
   font-weight: 600;
   cursor: pointer;
+}
+.trang-thai-con {
+  color: #52c41a; /* Màu xanh lá cây */
+}
+
+.trang-thai-ngung {
+  color: #ff4d4f; /* Màu đỏ */
 }
 
 @media (max-width: 1200px) {

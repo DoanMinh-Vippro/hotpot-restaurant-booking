@@ -6,6 +6,8 @@ export interface ChiTietGiamGiaMon {
   tenChuongTrinh: string
   tenMon: string
   mucGiam: number
+  loaiGiam: string
+  trangThai: number
 }
 
 // SỬA: Đổi public thành export đúng chuẩn TypeScript
@@ -13,6 +15,8 @@ export interface ChiTietGiamGiaMonRequest {
   idMon: number
   idDotGiamGia: number
   mucGiam: number
+  loaiGiam: string
+  trangThai: number
 }
 
 class ChiTietGiamGiaMonApi {
@@ -50,5 +54,4 @@ class ChiTietGiamGiaMonApi {
   }
 }
 
-// SỬA: Dòng 51 chí mạng đổi từ "public default" thành "export default"
 export default new ChiTietGiamGiaMonApi()

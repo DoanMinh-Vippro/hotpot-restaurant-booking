@@ -4,6 +4,9 @@ export interface Mon {
   idMon: number
   tenMon: string
   donGiaHienTai: number
+  giaSauGiam: number
+  soTienDuocGiam: number
+  tenChuongTrinhGiamGia: string
   idDanhMuc: number
   loaiDanhMuc: string
   trangThai: number
