@@ -27,12 +27,23 @@ const load = async () => {
       ThongKeApi.theoNam()
     ]);
 
-    dashboard.value = db.data;
-    topMon.value = mon.data;
-    topNhanVien.value = nv.data;
-    ngay.value = dNgay.data;
-    thang.value = dThang.data;
-    nam.value = dNam.data;
+    // ✅ GÁN DATA AN TOÀN
+    dashboard.value = db?.data || {};
+    topMon.value = mon?.data || [];
+    topNhanVien.value = nv?.data || [];
+    ngay.value = dNgay?.data || [];
+    thang.value = dThang?.data || [];
+    nam.value = dNam?.data || [];
+
+    // 🔥 DEBUG (CỰC QUAN TRỌNG)
+    console.log("===== API DATA =====");
+    console.log("Dashboard:", dashboard.value);
+    console.log("Top món:", topMon.value);
+    console.log("Top NV:", topNhanVien.value);
+    console.log("Ngày:", ngay.value);
+    console.log("Tháng:", thang.value);
+    console.log("Năm:", nam.value);
+
   } catch (err) {
     console.error("LOAD ERROR:", err);
   }
@@ -45,13 +56,31 @@ const chartData = computed(() => {
   else if (mode.value === "nam") data = nam.value;
   else data = thang.value;
 
-  return data.map(i => ({
-    ...i,
-    thoiGian:
-      mode.value === "ngay"
-        ? (i?.thoiGian ? i.thoiGian.slice(5) : "")
-        : i?.thoiGian || ""
-  }));
+  return (data || []).map(i => {
+    let thoiGian = "";
+
+    if (mode.value === "ngay") {
+      // 👉 2026-05-18 → 05-18
+      thoiGian = i?.thoiGian ? i.thoiGian.slice(5) : "";
+    } 
+    else if (mode.value === "thang") {
+      // 🔥 GIỮ NGUYÊN yyyy-MM
+      thoiGian = i?.thoiGian || "";
+    } 
+    else if (mode.value === "nam") {
+      // 👉 chỉ lấy năm
+      thoiGian = i?.thoiGian ? i.thoiGian.toString().slice(0, 4) : "";
+    }
+
+    return {
+      thoiGian,
+      tongDoanhThu:
+        i?.tongDoanhThu ||
+        i?.doanhThu ||
+        i?.tongTien ||
+        0
+    };
+  });
 });
 
 onMounted(load);
@@ -97,7 +126,11 @@ onMounted(load);
 
     <!-- CHART -->
     <div class="chart-box">
-      <RevenueChart :key="mode" :data="chartData" />
+     <RevenueChart 
+  :key="mode + chartData.length" 
+  :data="chartData"
+  :mode="mode"
+/>
     </div>
 
     <!-- GRID -->
