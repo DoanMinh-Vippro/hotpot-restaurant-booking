@@ -21,6 +21,8 @@ public class ChiTietGiamGiaMonResponse {
     private String tenChuongTrinh;
     private Integer idMon;
     private String tenMon;
-
     private BigDecimal mucGiam;
+    private String loaiGiam;
+    private Integer trangThai;
+
 }

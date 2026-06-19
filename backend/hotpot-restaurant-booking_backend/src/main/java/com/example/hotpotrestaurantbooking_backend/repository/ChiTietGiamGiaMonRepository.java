@@ -17,7 +17,7 @@ public interface ChiTietGiamGiaMonRepository extends JpaRepository<ChiTietGiamGi
     @Query("""
     select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietGiamGiaMonResponse(
     ctggm.idChiTietGiamGiaMon, ctggm.dotGiamGia.idDotGiamGia, ctggm.dotGiamGia.tenChuongTrinh,
-    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam
+    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam, ctggm.loaiGiam, ctggm.trangThai
     )
     from ChiTietGiamGiaMon ctggm 
     join DotGiamGia dgg on ctggm.dotGiamGia.idDotGiamGia=dgg.idDotGiamGia
@@ -28,7 +28,7 @@ public interface ChiTietGiamGiaMonRepository extends JpaRepository<ChiTietGiamGi
     @Query("""
     select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietGiamGiaMonResponse(
     ctggm.idChiTietGiamGiaMon, ctggm.dotGiamGia.idDotGiamGia, ctggm.dotGiamGia.tenChuongTrinh,
-    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam
+    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam, ctggm.loaiGiam, ctggm.trangThai
     )
     from ChiTietGiamGiaMon ctggm 
     join DotGiamGia dgg on ctggm.dotGiamGia.idDotGiamGia=dgg.idDotGiamGia
@@ -40,7 +40,7 @@ public interface ChiTietGiamGiaMonRepository extends JpaRepository<ChiTietGiamGi
     @Query("""
     select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietGiamGiaMonResponse(
     ctggm.idChiTietGiamGiaMon, ctggm.dotGiamGia.idDotGiamGia, ctggm.dotGiamGia.tenChuongTrinh,
-    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam
+    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam, ctggm.loaiGiam, ctggm.trangThai
     )
     from ChiTietGiamGiaMon ctggm 
     join DotGiamGia dgg on ctggm.dotGiamGia.idDotGiamGia=dgg.idDotGiamGia
@@ -51,7 +51,7 @@ public interface ChiTietGiamGiaMonRepository extends JpaRepository<ChiTietGiamGi
     @Query("""
         select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietGiamGiaMonResponse(
             ctggm.idChiTietGiamGiaMon, ctggm.dotGiamGia.idDotGiamGia, ctggm.dotGiamGia.tenChuongTrinh,
-    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam
+    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam, ctggm.loaiGiam, ctggm.trangThai
         )
         from ChiTietGiamGiaMon ctggm 
         join ctggm.dotGiamGia dgg 
@@ -82,4 +82,6 @@ public interface ChiTietGiamGiaMonRepository extends JpaRepository<ChiTietGiamGi
             Integer idMon,
             Integer idDotGiamGia
     );
+
+    List<ChiTietGiamGiaMon> findByMon_IdMon(Integer idMon);
 }

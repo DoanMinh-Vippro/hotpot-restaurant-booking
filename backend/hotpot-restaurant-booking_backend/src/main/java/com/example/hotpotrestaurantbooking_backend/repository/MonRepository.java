@@ -33,12 +33,7 @@ public interface MonRepository extends JpaRepository<Mon,Integer> {
     Page<MonResponse> phanTrangMon(Pageable pageable);
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(
-        m.idMon,
-        m.tenMon,
-        m.donGiaHienTai,
-m.danhMuc.idDanhMuc,        m.danhMuc.loaiDanhMuc, m.trangThai
-    )
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc, m.danhMuc.loaiDanhMuc, m.trangThai)
     from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
     where
         (:tenMon is null or lower(m.tenMon) like lower(concat('%', :tenMon, '%')))
