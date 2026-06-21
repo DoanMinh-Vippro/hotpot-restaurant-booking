@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue'
 
 // Định nghĩa kiểu dữ liệu nội bộ (Nếu bạn chưa có file API, có thể dùng trực tiếp kiểu này)
 interface DanhMucRequest {
-  tenDanhMuc: string
+  loaiDanhMuc: string
   moTa: string
 }
 
@@ -18,19 +18,19 @@ const isEditMode = ref(false)
 const idDanhMucHienTai = ref<number | null>(null)
 
 const form = reactive({
-  tenDanhMuc: '',
+  loaiDanhMuc: '',
   moTa: '',
 })
 
 // Trạng thái lưu trữ thông báo lỗi validate hiển thị lên giao diện
 const errors = reactive({
-  tenDanhMuc: '',
+  loaiDanhMuc: '',
   moTa: '',
 })
 
 // Xóa sạch thông báo lỗi cũ khi người dùng thao tác lại
 const clearErrors = () => {
-  errors.tenDanhMuc = ''
+  errors.loaiDanhMuc = ''
   errors.moTa = ''
 }
 
@@ -39,31 +39,31 @@ const validateForm = () => {
   clearErrors()
   let isValid = true
 
-  const ten = form.tenDanhMuc ? form.tenDanhMuc.trim() : ''
+  const ten = form.loaiDanhMuc ? form.loaiDanhMuc.trim() : ''
   const mTa = form.moTa ? form.moTa.trim() : ''
 
   // =============== 1. VALIDATE TÊN DANH MỤC ===============
   if (ten === '') {
-    errors.tenDanhMuc = "Tên danh mục không được để trống"
+    errors.loaiDanhMuc = "Tên danh mục không được để trống"
     isValid = false
   } else if (ten.length < 2 || ten.length > 50) {
-    errors.tenDanhMuc = "Tên danh mục phải nằm trong khoảng từ 2 đến 50 ký tự"
+    errors.loaiDanhMuc = "Tên danh mục phải nằm trong khoảng từ 2 đến 50 ký tự"
     isValid = false
-  } else if (ten !== form.tenDanhMuc) {
-    errors.tenDanhMuc = "Tên danh mục không được chứa khoảng trắng thừa ở đầu hoặc cuối"
+  } else if (ten !== form.loaiDanhMuc) {
+    errors.loaiDanhMuc = "Tên danh mục không được chứa khoảng trắng thừa ở đầu hoặc cuối"
     isValid = false
   } else if (/\s{2,}/.test(ten)) {
-    errors.tenDanhMuc = "Tên danh mục không được chứa nhiều khoảng trắng liên tiếp"
+    errors.loaiDanhMuc = "Tên danh mục không được chứa nhiều khoảng trắng liên tiếp"
     isValid = false
   }
   // Bộ lọc Regex: Chống lách luật gõ lặp ký tự (ví dụ: "Lẩuuuuuuu", "Combooooo")
   else if (/([a-àảãáạăằẳẵắặâầẩẫấậeèẻẽéẹêềểễếệiìỉĩíịoòỏõóọôồổỗốộơờởỡớợuùủũúụưừửữứựyỳỷỹýỵ])\1{3,}/i.test(ten)) {
-    errors.tenDanhMuc = "Tên danh mục chứa ký tự lặp lại quá nhiều lần (Spam)"
+    errors.loaiDanhMuc = "Tên danh mục chứa ký tự lặp lại quá nhiều lần (Spam)"
     isValid = false
   }
   // Bộ lọc Regex: Chống lách luật lặp từ (ví dụ: "Lẩu lẩu lẩu lẩu")
   else if (/\b(\w+)\b(?:\s+\1\b){2,}/i.test(ten)) {
-    errors.tenDanhMuc = "Tên danh mục không được lặp lại một từ quá nhiều lần"
+    errors.loaiDanhMuc = "Tên danh mục không được lặp lại một từ quá nhiều lần"
     isValid = false
   }
   // Kiểm tra trùng lặp tên danh mục trong hệ thống
@@ -73,11 +73,11 @@ const validateForm = () => {
       if (isEditMode.value && item.idDanhMuc === idDanhMucHienTai.value) {
         return false
       }
-      return item.tenDanhMuc?.toString().trim().toLowerCase() === ten.toLowerCase()
+      return item.loaiDanhMuc?.toString().trim().toLowerCase() === ten.toLowerCase()
     })
 
     if (biTrungTen) {
-      errors.tenDanhMuc = "Tên danh mục này đã tồn tại trong hệ thống. Vui lòng chọn tên khác."
+      errors.loaiDanhMuc = "Tên danh mục này đã tồn tại trong hệ thống. Vui lòng chọn tên khác."
       isValid = false
     }
   }
@@ -104,7 +104,7 @@ const gui = () => {
   if (!validateForm()) return
 
   emit('submit', {
-    tenDanhMuc: form.tenDanhMuc.trim(),
+    loaiDanhMuc: form.loaiDanhMuc.trim(),
     moTa: form.moTa.trim(),
   } as DanhMucRequest)
 }
@@ -117,7 +117,7 @@ defineExpose({
     if (!item) {
       isEditMode.value = false
       idDanhMucHienTai.value = null
-      form.tenDanhMuc = ''
+      form.loaiDanhMuc = ''
       form.moTa = ''
       return
     }
@@ -125,7 +125,7 @@ defineExpose({
     // Thiết lập dữ liệu và bật chế độ Cập nhật (Sửa dòng)
     isEditMode.value = true
     idDanhMucHienTai.value = item.idDanhMuc
-    form.tenDanhMuc = item.tenDanhMuc || ''
+    form.loaiDanhMuc = item.loaiDanhMuc || ''
     form.moTa = item.moTa || ''
   },
 })
@@ -142,13 +142,13 @@ defineExpose({
       <div class="form-group">
         <label>Tên danh mục <span class="bat-buoc">*</span></label>
         <input 
-          v-model="form.tenDanhMuc" 
+          v-model="form.loaiDanhMuc" 
           type="text" 
           placeholder="Ví dụ: Lẩu đặc sắc, Món nướng..." 
-          :class="{ 'is-invalid': errors.tenDanhMuc }"
-          @input="errors.tenDanhMuc = ''"
+          :class="{ 'is-invalid': errors.loaiDanhMuc }"
+          @input="errors.loaiDanhMuc = ''"
         />
-        <span class="error-text" v-if="errors.tenDanhMuc">{{ errors.tenDanhMuc }}</span>
+        <span class="error-text" v-if="errors.loaiDanhMuc">{{ errors.loaiDanhMuc }}</span>
       </div>
 
       <div class="form-group">

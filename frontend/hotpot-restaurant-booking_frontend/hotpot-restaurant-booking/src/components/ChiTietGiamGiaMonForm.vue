@@ -129,7 +129,7 @@ if (chuoiMucGiam === '') {
     isValid = false
   }
 
-  else if (form.loaiGiam === 'PHAN_TRAM') {
+  else if (form.loaiGiam === 'PHANTRAM') {
     if (giaTriMucGiam > 100) {
       errors.mucGiam = 'Mức giảm tối đa không được vượt quá 100%'
       isValid = false
@@ -177,6 +177,8 @@ defineExpose({
       form.mucGiam = ''
       form.idMon = ''
       form.idDotGiamGia = ''
+      form.loaiGiam = ''
+      form.trangThai = 0
       return
     }
 
@@ -202,6 +204,8 @@ defineExpose({
       item.mucGiam !== undefined && item.mucGiam !== null ? item.mucGiam.toString() : ''
     form.idMon = item.idMon ?? item.mon?.idMon ?? ''
     form.idDotGiamGia = item.idDotGiamGia ?? item.dotGiamGia?.idDotGiamGia ?? ''
+    form.loaiGiam = item.loaiGiam ??''
+    form.trangThai = item.trangThai ?? 0
   },
 })
 </script>
@@ -252,7 +256,7 @@ defineExpose({
         <label>Loại Giảm</label>
         <select v-model="form.loaiGiam">
           <option value="">-- Chọn loại giảm --</option>
-          <option value="PHAN_TRAM">Phần trăm</option>
+          <option value="PHANTRAM">Phần trăm</option>
           <option value="TIEN">Tiền mặt</option>
         </select>
         <span class="error-text" v-if="errors.loaiGiam">{{ errors.loaiGiam }}</span>
