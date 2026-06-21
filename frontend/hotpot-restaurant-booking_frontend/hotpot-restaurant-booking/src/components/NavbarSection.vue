@@ -69,6 +69,10 @@ const openDatBan = () => {
             <li><button class="nav-link-button" @click="router.push('/giam-gia')">GIẢM GIÁ</button></li>
             <li><RouterLink to="/ban" class="nav-link-button">BÀN</RouterLink></li>
             <li><RouterLink to="/dat-ban-quan-ly" class="nav-link-button">ĐẶT BÀN QUẢN LÝ</RouterLink></li>
+            <li><RouterLink to="/chuc-vu" class="nav-link-button">Chức vụ</RouterLink></li>
+            <li><RouterLink to="/nhan-vien" class="nav-link-button">Nhân viên</RouterLink></li>
+            <li><RouterLink to="/thong-ke" class="nav-link-button">Thống kê</RouterLink></li>
+            <li><RouterLink to="/tai-khoan" class="nav-link-button">Tài khoản</RouterLink></li>
           </template>
           
           <li><a href="#contact">LIÊN HỆ</a></li>

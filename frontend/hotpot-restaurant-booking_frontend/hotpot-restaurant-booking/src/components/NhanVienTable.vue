@@ -20,11 +20,6 @@ const emit =defineEmits(['detail', 'delete'])
             </tr>
         </thead>
         <tbody>
-            <tr v-for="nv in tableList" :key="nv.idNhanVien">
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
             <tr v-for="nv in tableList" :key="nv.id">
                 <td>{{ nv.maNhanVien }}</td>
                 <td>{{ nv.tenNhanVien }}</td>
