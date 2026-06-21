@@ -84,4 +84,5 @@ public interface ChiTietGiamGiaMonRepository extends JpaRepository<ChiTietGiamGi
     );
 
     List<ChiTietGiamGiaMon> findByMon_IdMon(Integer idMon);
+    List<ChiTietGiamGiaMon> findAllByTrangThai(Integer trangThai);
 }
