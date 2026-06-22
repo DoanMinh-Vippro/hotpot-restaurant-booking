@@ -5,14 +5,15 @@ const formData= ref({
      id: null,
   maNhanVien: "",
   tenNhanVien: "",
-  gioiTinh: 1,
+  gioiTinh: null,
   soDienThoai: "",
   email: "",
   diaChi: "",
-  trangThai: 1,
+  trangThai: null,
   idChucVu: null,
   idTaiKhoan: null
 })
+
 const emit = defineEmits(['refresh'])
 const add= async ()=>{
     try{
@@ -23,11 +24,11 @@ const add= async ()=>{
         id: null,
     maNhanVien:"",
     tenNhanVien:"",
-    gioiTinh: 1,
+    gioiTinh: null,
     soDienThoai:"",
     email:"",
     diaChi:"",
-    trangThai: 1,
+    trangThai: null,
     idChucVu: null,
     idTaiKhoan: null
     }
@@ -57,30 +58,36 @@ const update = async () => {
     console.log("SERVER:", error?.response?.data)
   }
 }
-const props = defineProps(['formData']);
-watch(() => props.formData, (newVal) => {
-  if (!newVal) {
-    formData.value = {
-      id: null,
-      maNhanVien: "",
-      tenNhanVien: "",
-      gioiTinh: 1,
-      soDienThoai: "",
-      email: "",
-      diaChi: "",
-      trangThai: 1,
-      idChucVu: null,
-      idTaiKhoan: null,
-    };
+const resetForm = () => {
+  formData.value = {
+    id: null,
+    maNhanVien: "",
+    tenNhanVien: "",
+    gioiTinh: null,
+    soDienThoai: "",
+    email: "",
+    diaChi: "",
+    trangThai: null,
+    idChucVu: null,
+    idTaiKhoan: null
+  };
+};
+const props = defineProps<{
+  selectedNhanVien: any
+}>()
+watch(() => props.selectedNhanVien, (nv) => {
+  if (!nv) {
+    resetForm();
     return;
   }
 
   formData.value = {
-    ...newVal,
-    gioiTinh: Number(newVal.gioiTinh),
-    trangThai: Number(newVal.trangThai),
-  };
-}, { immediate: true, deep: true });
+  ...nv,
+  gioiTinh: nv.gioiTinh,
+  trangThai: nv.trangThai
+};
+
+}, { immediate: true });
 </script>
 <template>
     <div class="form-container">
@@ -96,16 +103,10 @@ watch(() => props.formData, (newVal) => {
 
     <div>
   <label>Giới tính:</label>
-
-  <label>
-    <input type="radio" :value="1" v-model="formData.gioiTinh">
-    Nam
-  </label>
-
-  <label>
-    <input type="radio" :value="0" v-model="formData.gioiTinh">
-    Nữ
-  </label>
+ <select v-model="formData.gioiTinh">
+  <option :value="true">Nam</option>
+  <option :value="false">Nữ</option>
+</select>
 </div>
 
         <div>
@@ -127,28 +128,24 @@ watch(() => props.formData, (newVal) => {
         <div>
   <label>Trạng thái:</label>
 
-  <label>
-    <input type="radio" :value="1" v-model="formData.trangThai">
-    Hoạt động
-  </label>
-  <label>
-    <input type="radio" :value="0" v-model="formData.trangThai">
-    Ngừng
-  </label>
+  <select v-model="formData.trangThai">
+  <option :value="true">Hoạt động</option>
+  <option :value="false">Ngừng</option>
+</select>
 </div>
 
         <div>
         <label>Chức vụ: </label>
-        <select v-model.number="formData.idChucVu">
-            <option :value="1">Quản lý</option>
-            <option :value="2">Thu ngân</option>
-            <option :value="3">Nhân viên</option>
+        <select v-model="formData.idChucVu">
+            <option :value="1">ADMIN</option>
+            <option :value="2">SFAFF</option>
+            <option :value="3">USER</option>
         </select>
         </div>
 
       <div>
         <label>Tài khoản: </label>
-        <select v-model.number="formData.idTaiKhoan">
+        <select v-model="formData.idTaiKhoan">
             <option :value="1">Admin</option>
             <option :value="2">Thungan01</option>
             <option :value="3">Nhanvien01</option>
