@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import DatBanView from '@/views/DatBanView.vue'
+import UserProfileDropdown from '@/components/UserProfileDropdown.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -23,11 +24,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
-
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/')
-}
 
 const goToAuth = () => {
   router.push('/auth')
@@ -91,9 +87,7 @@ const openDatBan = () => {
             ĐĂNG KÝ
           </button>
 
-          <div v-else class="login-trigger" @click="handleLogout" title="Đăng xuất">
-            <span class="login-label">ĐĂNG XUẤT</span>
-          </div>
+          <UserProfileDropdown v-else />
 
           <button class="btn-reservation" @click="openDatBan">ĐẶT BÀN NGAY</button>
 

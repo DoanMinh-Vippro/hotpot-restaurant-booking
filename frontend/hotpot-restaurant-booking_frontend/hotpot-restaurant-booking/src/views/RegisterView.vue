@@ -84,6 +84,20 @@ const handleRegister = async () => {
     })
 
     console.log('Đăng ký thành công!', res.data)
+    
+    // Lưu thông tin khách hàng vào store
+    if (res.data) {
+      authStore.setCustomerInfo({
+        khachHangId: res.data.idKhachHang,
+        tenKhachHang: res.data.tenKhachHang,
+        soDienThoai: res.data.soDienThoai,
+        email: res.data.email,
+        diaChi: res.data.diaChi,
+        gioiTinh: res.data.gioiTinh,
+        maKhachHang: res.data.maKhachHang
+      })
+    }
+    
     alert('Đăng ký thành công! Vui lòng đăng nhập.')
 
     // Chuyển đến trang login

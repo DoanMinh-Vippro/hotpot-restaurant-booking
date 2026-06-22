@@ -88,6 +88,13 @@ class HoaDonApi {
       params: { key: keyword },
     })
   }
+
+  /**
+   * Lấy danh sách hóa đơn theo khách hàng ID
+   */
+  getByKhachHangId(khachHangId: number) {
+    return ApiClient.get<HoaDon[]>(`/api/hoa-don/khach-hang/${khachHangId}`)
+  }
 }
 
 export default new HoaDonApi()

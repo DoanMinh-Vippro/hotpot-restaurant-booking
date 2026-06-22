@@ -11,4 +11,12 @@ import lombok.Setter;
 @AllArgsConstructor
 public class DTOLoginResponse {
     private String token;
+    private Integer khachHangId;
+    private String tenKhachHang;
+    private String soDienThoai;
+    private String email;
+    private String diaChi;
+    private Boolean gioiTinh;
+    private String maKhachHang;
+    private String role;
 }

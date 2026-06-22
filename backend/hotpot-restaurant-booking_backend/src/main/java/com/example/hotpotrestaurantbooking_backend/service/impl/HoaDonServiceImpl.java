@@ -81,6 +81,15 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .toList();
     }
 
+    @Override
+    public List<DTOHoaDonResponse> findByKhachHangId(Integer khachHangId) {
+        return hoaDonRepository.findAll()
+                .stream()
+                .filter(hoaDon -> hoaDon.getKhachHang() != null && hoaDon.getKhachHang().getIdKhachHang().equals(khachHangId))
+                .map(this::convertToResponse)
+                .toList();
+    }
+
     private void updateEntityFromRequest(HoaDon hd, DTOHoaDonRequest request) {
         if (request.getMaHoaDon() != null) hd.setMaHoaDon(request.getMaHoaDon());
         if (request.getMaGiaoDich() != null) hd.setMaGiaoDich(request.getMaGiaoDich());

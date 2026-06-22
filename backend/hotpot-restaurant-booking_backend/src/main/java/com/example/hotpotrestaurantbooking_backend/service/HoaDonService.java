@@ -12,4 +12,5 @@ public interface HoaDonService {
     DTOHoaDonResponse update(Integer id, DTOHoaDonRequest request);
     void delete(Integer id);
     List<DTOHoaDonResponse> search(String keyword);
+    List<DTOHoaDonResponse> findByKhachHangId(Integer khachHangId);
 }

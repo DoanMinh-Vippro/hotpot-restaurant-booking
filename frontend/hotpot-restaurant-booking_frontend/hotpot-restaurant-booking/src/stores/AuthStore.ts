@@ -1,39 +1,95 @@
 import { defineStore } from 'pinia'
 import { jwtDecode } from 'jwt-decode'
 
-// 1. Định nghĩa interface cho Payload của JWT
-// Giúp TypeScript hiểu rõ cấu trúc của decoded token
 interface JwtPayload {
   scope: string
-  // Thêm các trường khác nếu cần, ví dụ: sub, exp...
 }
 
-// 2. Định nghĩa interface cho State
+interface CustomerInfo {
+  khachHangId: number | null
+  tenKhachHang: string | null
+  soDienThoai: string | null
+  email: string | null
+  diaChi: string | null
+  gioiTinh: boolean | null
+  maKhachHang: string | null
+}
+
 interface AuthState {
   token: string | null
   userRole: string | null
+  customerInfo: CustomerInfo
 }
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     token: localStorage.getItem('token'),
     userRole: null,
+    customerInfo: {
+      khachHangId: localStorage.getItem('khachHangId') ? parseInt(localStorage.getItem('khachHangId')!) : null,
+      tenKhachHang: localStorage.getItem('tenKhachHang'),
+      soDienThoai: localStorage.getItem('soDienThoai'),
+      email: localStorage.getItem('email'),
+      diaChi: localStorage.getItem('diaChi'),
+      gioiTinh: localStorage.getItem('gioiTinh') ? JSON.parse(localStorage.getItem('gioiTinh')!) : null,
+      maKhachHang: localStorage.getItem('maKhachHang')
+    },
   }),
 
   actions: {
-    login(token: string) {
+    login(token: string, customerInfo?: Partial<CustomerInfo>) {
       this.token = token
       localStorage.setItem('token', token)
+      
+      if (customerInfo) {
+        this.setCustomerInfo(customerInfo)
+      }
+      
       this.decodeToken(token)
+    },
+
+    setCustomerInfo(info: Partial<CustomerInfo>) {
+      if (info.khachHangId !== undefined) {
+        this.customerInfo.khachHangId = info.khachHangId
+        localStorage.setItem('khachHangId', info.khachHangId?.toString() || '')
+      }
+      
+      if (info.tenKhachHang !== undefined) {
+        this.customerInfo.tenKhachHang = info.tenKhachHang
+        localStorage.setItem('tenKhachHang', info.tenKhachHang || '')
+      }
+      
+      if (info.soDienThoai !== undefined) {
+        this.customerInfo.soDienThoai = info.soDienThoai
+        localStorage.setItem('soDienThoai', info.soDienThoai || '')
+      }
+      
+      if (info.email !== undefined) {
+        this.customerInfo.email = info.email
+        localStorage.setItem('email', info.email || '')
+      }
+      
+      if (info.diaChi !== undefined) {
+        this.customerInfo.diaChi = info.diaChi
+        localStorage.setItem('diaChi', info.diaChi || '')
+      }
+      
+      if (info.gioiTinh !== undefined) {
+        this.customerInfo.gioiTinh = info.gioiTinh
+        localStorage.setItem('gioiTinh', JSON.stringify(info.gioiTinh))
+      }
+      
+      if (info.maKhachHang !== undefined) {
+        this.customerInfo.maKhachHang = info.maKhachHang
+        localStorage.setItem('maKhachHang', info.maKhachHang || '')
+      }
     },
 
     decodeToken(token: string) {
       try {
-        // Sử dụng Generic type <JwtPayload> thay cho 'any'
         const decoded = jwtDecode<JwtPayload>(token)
         this.userRole = decoded.scope || null
       } catch {
-        // Dùng dấu _ để linter hiểu là ta cố tình bỏ qua biến này
         this.logout()
       }
     },
@@ -41,7 +97,23 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.token = null
       this.userRole = null
+      this.customerInfo = {
+        khachHangId: null,
+        tenKhachHang: null,
+        soDienThoai: null,
+        email: null,
+        diaChi: null,
+        gioiTinh: null,
+        maKhachHang: null
+      }
       localStorage.removeItem('token')
+      localStorage.removeItem('khachHangId')
+      localStorage.removeItem('tenKhachHang')
+      localStorage.removeItem('soDienThoai')
+      localStorage.removeItem('email')
+      localStorage.removeItem('diaChi')
+      localStorage.removeItem('gioiTinh')
+      localStorage.removeItem('maKhachHang')
     },
   },
 
@@ -49,5 +121,7 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (state) => !!state.token,
     isAdmin: (state) => state.userRole === 'ROLE_ADMIN' || state.userRole === 'ROLE_STAFF',
     isUser: (state) => state.userRole === 'ROLE_USER',
+    khachHangId: (state) => state.customerInfo.khachHangId,
+    tenKhachHang: (state) => state.customerInfo.tenKhachHang,
   },
 })
