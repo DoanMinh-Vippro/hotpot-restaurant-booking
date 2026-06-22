@@ -1,28 +1,28 @@
-import axiosClient from "./axiosClient";
+import ApiClient from "./ApiClient";
 
 const ThongKeApi = {
   dashboard() {
-    return axiosClient.get("/thong-ke/dashboard");
+    return ApiClient.get("/api/thong-ke/dashboard");
   },
 
   theoNgay(from: string, to: string) {
-    return axiosClient.get(`/thong-ke/theo-ngay?from=${from}&to=${to}`);
+    return ApiClient.get(`/api/thong-ke/theo-ngay?from=${from}&to=${to}`);
   },
 
   theoThang() {
-    return axiosClient.get("/thong-ke/theo-thang");
+    return ApiClient.get("/api/thong-ke/theo-thang");
   },
 
   theoNam() {
-    return axiosClient.get("/thong-ke/theo-nam");
+    return ApiClient.get("/api/thong-ke/theo-nam");
   },
 
   topMon(page = 0, size = 5) {
-    return axiosClient.get(`/thong-ke/top-mon?page=${page}&size=${size}`);
+    return ApiClient.get(`/api/thong-ke/top-mon?page=${page}&size=${size}`);
   },
 
   topNhanVien() {
-    return axiosClient.get("/thong-ke/top-nhan-vien");
+    return ApiClient.get("/api/thong-ke/top-nhan-vien");
   }
 };
 
