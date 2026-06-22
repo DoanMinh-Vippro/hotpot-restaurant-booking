@@ -12,18 +12,15 @@ const loadData= async ()=>{
     const res= await NhanVienApi.getAll();
     tableList.value= res.data;
 };
-const handleDetail = (table: any) => {
-  console.log("DETAIL:", table)
-
-  selectedtable.value = table
-
-  selected.value = {
-    ...table,
-    // Nếu bị đảo thì đảo ngược lại
-    trangThai: table.trangThai ? 0 : 1  // Đảo ngược logic
-  };
-
-}
+const handleDetail = (nv: any) => {
+  console.log("DETAIL:", nv)
+  selectedtable.value = nv
+   selected.value = {
+    ...nv,
+    gioiTinh: nv.gioiTinh? 0:1,
+    trangThai: nv.trangThai ? 0 : 1,
+};
+};
 const handleDelete = async (id: number)=>{
     if(confirm("Bạn có chắc muốn xóa ?")){
         await NhanVienApi.delete(id);
