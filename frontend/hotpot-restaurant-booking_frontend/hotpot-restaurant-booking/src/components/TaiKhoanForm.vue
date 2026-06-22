@@ -7,9 +7,10 @@ const formData= ref({
     maTaiKhoan:"",
     tenDangNhap:"",
     matKhau:"",
-    trangThai: true
+    trangThai: true,
+     idChucVu: 1
 })
-const emit = defineEmits(['refresh']) 
+const emit = defineEmits(['refresh'])
 const add= async ()=>{
     try{
      await TaiKhoanApi.add(formData.value)
@@ -21,6 +22,7 @@ const add= async ()=>{
     tenDangNhap:"",
     matKhau:"",
     trangThai: true,
+     idChucVu: 1
     }
     }catch (error){
         console.error('them that bai:', error)
@@ -49,12 +51,17 @@ const update = async () => {
   }
 }
 const props = defineProps(['formData']);
-watch(() => props.formData, (newTableData) => {
-  if (newTableData) {
-    formData.value = {
-      ...newTableData
-    };
-  }
+watch(() => props.formData, (newVal) => {
+  if (!newVal) return;
+
+  formData.value = {
+    id: newVal.id ?? null,
+    maTaiKhoan: newVal.maTaiKhoan ?? "",
+    tenDangNhap: newVal.tenDangNhap ?? "",
+    matKhau: newVal.matKhau ?? "",
+    trangThai: newVal.trangThai ?? true,
+    idChucVu: newVal.idChucVu ?? 1   // 🔥 thêm
+  };
 }, { immediate: true });
 </script>
 <template>
@@ -71,7 +78,7 @@ watch(() => props.formData, (newTableData) => {
 
         <div>
         <label>Mật khẩu: </label>
-        <input type="number" v-model="formData.matKhau">
+        <input type="text" v-model="formData.matKhau">
         </div>
 
          <div>
@@ -87,8 +94,16 @@ watch(() => props.formData, (newTableData) => {
     Ngừng
   </label>
 </div>
+<div>
+  <label>Chức vụ:</label>
+  <select v-model.number="formData.idChucVu">
+    <option :value="1">ADMIN</option>
+    <option :value="2">STAFF</option>
+    <option :value="3">USER</option>
+  </select>
+</div>
     </div>
-         <button @click.prevent="add()">ADD</button> 
+         <button @click.prevent="add()">ADD</button>
     <button @click.prevent="update()">UPDATE</button>
 </template>
 <style scoped>
