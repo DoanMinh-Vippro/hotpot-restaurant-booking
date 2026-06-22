@@ -11,6 +11,11 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DTOTaiKhoanResponse {
+    private Integer id;   // nên thêm luôn id
     private String maTaiKhoan;
     private String tenDangNhap;
+    private String matKhau;
+    private Boolean trangThai;
+    private String tenChucVu;
+    private Integer idChucVu;
 }
