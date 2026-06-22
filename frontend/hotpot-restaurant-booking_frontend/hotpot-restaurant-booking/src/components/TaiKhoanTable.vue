@@ -12,16 +12,17 @@ const emit =defineEmits(['detail', 'delete'])
                 <th>Tên đăng nhập</th>
                 <th>Mật khẩu</th>
                 <th>Trạng thái</th>
+                <th>Chức vụ</th>
                 <th>Hành động</th>
             </tr>
         </thead>
         <tbody>
-            <tr v-for="nv in tableList" :key="nv.idTaiKhoan">
+            <tr v-for="nv in tableList" :key="nv.id">
                 <td>{{ nv.maTaiKhoan }}</td>
                 <td>{{ nv.tenDangNhap }}</td>
                 <td>{{ nv.matKhau }}</td>
                 <td>{{ nv.trangThai? 'Hoạt động':'Ngừng' }}</td>
-                <td>{{ nv.trangThai  ? 'Hoạt động' : 'Ngừng' }}</td>
+                <td>{{ nv.tenChucVu }}</td>
                 <td>
                     <button class="btn-edit" @click="emit('detail', nv)">Chi Tiết</button>
           <button class="btn-delete" @click="emit('delete', nv.id)">Xóa</button>
