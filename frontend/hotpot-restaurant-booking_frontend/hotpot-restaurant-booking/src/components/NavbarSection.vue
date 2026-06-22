@@ -73,6 +73,9 @@ const openDatBan = () => {
             <li><RouterLink to="/nhan-vien" class="nav-link-button">Nhân viên</RouterLink></li>
             <li><RouterLink to="/thong-ke" class="nav-link-button">Thống kê</RouterLink></li>
             <li><RouterLink to="/tai-khoan" class="nav-link-button">Tài khoản</RouterLink></li>
+            <li><RouterLink to="/khu-vuc" class="nav-link-button">Khu Vực</RouterLink></li>
+            <li><RouterLink to="/khach-hang" class="nav-link-button">Khách Hàng</RouterLink></li>
+            <li><RouterLink to="/coc" class="nav-link-button">Tiền cọc</RouterLink></li>
           </template>
           
           <li><a href="#contact">LIÊN HỆ</a></li>
