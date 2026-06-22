@@ -115,7 +115,28 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Tài khoản đã bị khóa");
         }
 
-        return new DTOLoginResponse(createToken(tk));
+        String role = (tk.getChucVu() != null) ? tk.getChucVu().getTenChucVu() : "USER";
+        String token = createToken(tk);
+        
+        // Lấy thông tin khách hàng nếu là user
+        DTOLoginResponse response = new DTOLoginResponse();
+        response.setToken(token);
+        response.setRole(role);
+        
+        if ("USER".equalsIgnoreCase(role)) {
+            KhachHang kh = khachHangRepository.findByTaiKhoan(tk);
+            if (kh != null) {
+                response.setKhachHangId(kh.getIdKhachHang());
+                response.setTenKhachHang(kh.getTenKhachHang());
+                response.setSoDienThoai(kh.getSoDienThoai());
+                response.setEmail(kh.getEmail());
+                response.setDiaChi(kh.getDiaChi());
+                response.setGioiTinh(kh.getGioiTinh());
+                response.setMaKhachHang(kh.getMaKhachHang());
+            }
+        }
+        
+        return response;
     }
 
     private String createToken(TaiKhoan tk) {

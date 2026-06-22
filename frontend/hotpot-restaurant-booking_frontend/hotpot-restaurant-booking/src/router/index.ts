@@ -27,6 +27,11 @@ const router = createRouter({
       component: () => import('@/views/RegisterView.vue'),
     },
     {
+      path: '/customer-profile',
+      name: 'customer-profile',
+      component: () => import('@/views/CustomerProfileView.vue'),
+    },
+    {
       path: '/hoa-don',
       name: 'hoa-don',
       component: () => import('@/views/HoaDonView.vue'),

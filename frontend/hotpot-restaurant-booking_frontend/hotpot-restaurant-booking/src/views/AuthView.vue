@@ -16,13 +16,20 @@ const password = ref('')
 const handleSubmit = async () => {
   try {
     console.log('Đang xử lý đăng nhập...')
-    // SỬA: Phải khớp với tên biến trong class Java (tenDangNhap, matKhau)
     const res = await AuthApi.login({ 
       tenDangNhap: username.value, 
       matKhau: password.value 
     })
     
-    authStore.login(res.data.token)
+    authStore.login(res.data.token, {
+      khachHangId: res.data.khachHangId,
+      tenKhachHang: res.data.tenKhachHang,
+      soDienThoai: res.data.soDienThoai,
+      email: res.data.email,
+      diaChi: res.data.diaChi,
+      gioiTinh: res.data.gioiTinh,
+      maKhachHang: res.data.maKhachHang
+    })
     alert('Đăng nhập thành công!')
     router.push('/')
   } catch (error) {
