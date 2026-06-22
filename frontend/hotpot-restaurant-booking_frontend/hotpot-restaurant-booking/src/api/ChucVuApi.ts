@@ -1,19 +1,19 @@
-import axiosClient from "./axiosClient";
+import ApiClient from "./ApiClient";
 const ChucVuApi= {
     getAll(){
-        return axiosClient.get("/chuc-vu/hien-thi")
+        return ApiClient.get("/api/chuc-vu/hien-thi")
     },
     findById(id: number){
-        return axiosClient.get(`/chuc-vu/detail/${id}`)
+        return ApiClient.get(`/api/chuc-vu/detail/${id}`)
     },
     add(data: any){
-        return axiosClient.post("/chuc-vu/add", data)
+        return ApiClient.post("/api/chuc-vu/add", data)
     },
     update(id: number, data: any){
-        return axiosClient.put(`/chuc-vu/update/${id}`, data)
+        return ApiClient.put(`/api/chuc-vu/update/${id}`, data)
     },
     delete(id: number){
-        return axiosClient.delete(`/chuc-vu/delete/${id}`)
+        return ApiClient.delete(`/api/chuc-vu/delete/${id}`)
     }
 }
 export default ChucVuApi
