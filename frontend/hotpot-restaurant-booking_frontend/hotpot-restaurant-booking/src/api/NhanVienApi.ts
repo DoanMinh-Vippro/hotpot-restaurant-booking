@@ -1,19 +1,19 @@
-import axiosClient from "./axiosClient";
+import ApiClient from "./ApiClient";
 const NhanVienApi= {
     getAll(){
-        return axiosClient.get("/nhan-vien/hien-thi")
+        return ApiClient.get("/api/nhan-vien/hien-thi")
     },
     findById(id: number){
-        return axiosClient.get(`/nhan-vien/detail/${id}`)
+        return ApiClient.get(`/api/nhan-vien/detail/${id}`)
     },
     add(data: any){
-        return axiosClient.post("/nhan-vien/add", data)
+        return ApiClient.post("/api/nhan-vien/add", data)
     },
     update(id: number, data: any){
-        return axiosClient.put(`/nhan-vien/update/${id}`, data)
+        return ApiClient.put(`/api/nhan-vien/update/${id}`, data)
     },
     delete(id: number){
-        return axiosClient.delete(`/nhan-vien/delete/${id}`)
+        return ApiClient.delete(`/api/nhan-vien/delete/${id}`)
     }
 }
 export default NhanVienApi
