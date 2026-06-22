@@ -1,20 +1,17 @@
 <script setup lang="ts">
 import NhanVienApi from '@/api/NhanVienApi';
 import { ref, watch } from 'vue';
-const selected= ref(null)
 const formData= ref({
-    id: null,
-    maNhanVien:"",
-    tenNhanVien:"",
-    gioiTinh:true,
-    soDienThoai:"",
-    email:"",
-    diaChi:"",
-
-    trangThai: true,
-    trangThai: 1,
-    idChucVu: null,
-    idTaiKhoan: null,
+     id: null,
+  maNhanVien: "",
+  tenNhanVien: "",
+  gioiTinh: 1,
+  soDienThoai: "",
+  email: "",
+  diaChi: "",
+  trangThai: 1,
+  idChucVu: null,
+  idTaiKhoan: null
 })
 const emit = defineEmits(['refresh'])
 const add= async ()=>{
@@ -26,15 +23,11 @@ const add= async ()=>{
         id: null,
     maNhanVien:"",
     tenNhanVien:"",
-    gioiTinh:true,
+    gioiTinh: 1,
     soDienThoai:"",
     email:"",
     diaChi:"",
-
-    trangThai: true,
-
     trangThai: 1,
-
     idChucVu: null,
     idTaiKhoan: null
     }
@@ -71,7 +64,7 @@ watch(() => props.formData, (newVal) => {
       id: null,
       maNhanVien: "",
       tenNhanVien: "",
-      gioiTinh: true,
+      gioiTinh: 1,
       soDienThoai: "",
       email: "",
       diaChi: "",
@@ -84,9 +77,10 @@ watch(() => props.formData, (newVal) => {
 
   formData.value = {
     ...newVal,
-    trangThai: newVal.trangThai ? 1 : 0
+    gioiTinh: Number(newVal.gioiTinh),
+    trangThai: Number(newVal.trangThai),
   };
-}, { immediate: true });
+}, { immediate: true, deep: true });
 </script>
 <template>
     <div class="form-container">
@@ -99,6 +93,20 @@ watch(() => props.formData, (newVal) => {
         <label>Tên nhân viên: </label>
         <input type="text" v-model="formData.tenNhanVien">
         </div>
+
+    <div>
+  <label>Giới tính:</label>
+
+  <label>
+    <input type="radio" :value="1" v-model="formData.gioiTinh">
+    Nam
+  </label>
+
+  <label>
+    <input type="radio" :value="0" v-model="formData.gioiTinh">
+    Nữ
+  </label>
+</div>
 
         <div>
         <label>Số điện thoại: </label>
@@ -154,53 +162,56 @@ watch(() => props.formData, (newVal) => {
 </template>
 <style scoped>
 .form-container {
-  background: #1b1b1b;
+  background: linear-gradient(145deg, #141414, #0f0f0f);
   padding: 24px;
   border-radius: 14px;
-  border: 1px solid #2f2f2f;
+  border: 1px solid #2a2a2a;
   max-width: 420px;
   margin: 20px auto;
   color: #fff;
   font-family: "Segoe UI", sans-serif;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
 }
 
+/* FIELD */
 .form-container > div {
   margin-bottom: 14px;
   display: flex;
   flex-direction: column;
 }
 
+/* LABEL - gold sang hơn */
 label {
   margin-bottom: 6px;
   font-size: 12px;
-  color: #c5a059;
+  color: #d4af37;   /* GOLD */
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
+/* INPUT / SELECT */
 input, select {
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid #3a3a3a;
-  background: #242424;
+  border: 1px solid #333;
+  background: #1c1c1c;
   color: white;
   outline: none;
   transition: 0.2s;
 }
 
 input:focus, select:focus {
-  border-color: #c5a059;
-  box-shadow: 0 0 0 2px rgba(197,160,89,0.2);
+  border-color: #d4af37;
+  box-shadow: 0 0 0 2px rgba(212,175,55,0.2);
 }
 
 /* RADIO */
 input[type="radio"] {
-  accent-color: #c5a059;
+  accent-color: #d4af37;
 }
 
-/* BUTTON AREA */
+/* BUTTON */
 button {
   padding: 10px 14px;
   margin-right: 10px;
@@ -211,10 +222,10 @@ button {
   text-transform: uppercase;
 }
 
-/* ADD */
+/* ADD BUTTON */
 button:first-of-type {
-  background: #c5a059;
-  color: #000;
+  background: linear-gradient(135deg, #d4af37, #b8860b);
+  color: #111;
   border: none;
 }
 
@@ -222,15 +233,15 @@ button:first-of-type:hover {
   filter: brightness(1.1);
 }
 
-/* UPDATE */
+/* UPDATE BUTTON */
 button:last-of-type {
   background: transparent;
-  border: 1px solid #c5a059;
-  color: #c5a059;
+  border: 1px solid #d4af37;
+  color: #d4af37;
 }
 
 button:last-of-type:hover {
-  background: #c5a059;
-  color: #000;
+  background: #d4af37;
+  color: #111;
 }
 </style>
