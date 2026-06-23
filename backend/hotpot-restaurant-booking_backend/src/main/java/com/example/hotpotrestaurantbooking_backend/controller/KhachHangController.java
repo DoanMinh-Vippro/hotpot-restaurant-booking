@@ -15,10 +15,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/khach_hang")
 @RequiredArgsConstructor
-<<<<<<< Updated upstream
-=======
-@CrossOrigin(origins = "http://localhost:5173")
->>>>>>> Stashed changes
 
 public class KhachHangController {
     private final KhachHangService khachHangService;

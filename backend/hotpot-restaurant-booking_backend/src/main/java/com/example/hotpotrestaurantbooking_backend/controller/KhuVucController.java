@@ -13,10 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/khu_vuc")
-<<<<<<< Updated upstream
-=======
-@CrossOrigin(origins = "http://localhost:5173")
->>>>>>> Stashed changes
 
 @RequiredArgsConstructor
 public class KhuVucController {

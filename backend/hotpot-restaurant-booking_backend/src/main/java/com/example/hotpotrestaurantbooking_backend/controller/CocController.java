@@ -12,10 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/coc")
 @RequiredArgsConstructor
-<<<<<<< Updated upstream
-=======
-@CrossOrigin(origins = "http://localhost:5173") // Khớp cổng với React/Vue của bạn
->>>>>>> Stashed changes
 public class CocController {
 
     private final CocService cocService;
