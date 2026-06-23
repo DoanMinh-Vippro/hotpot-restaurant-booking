@@ -16,7 +16,7 @@ const emit = defineEmits([
   'add',
   'search',
   'reset',
-  'go-to-category' // Khai báo sự kiện chuyển màn danh mục
+  'go-to-category', // Khai báo sự kiện chuyển màn danh mục
 ])
 
 // Quản lý trạng thái bộ lọc nội bộ
@@ -26,7 +26,7 @@ const searchLoaiDanhMuc = ref('')
 const kichHoatTimKiem = () => {
   emit('search', {
     tenMon: searchTenMon.value,
-    loaiDanhMuc: searchLoaiDanhMuc.value
+    loaiDanhMuc: searchLoaiDanhMuc.value,
   })
 }
 
@@ -43,26 +43,21 @@ const xoa = (id: number) => {
 
 <template>
   <div class="khu-vuc-danh-sach">
-    
     <div class="bo-loc-panel">
-      <input 
-        v-model="searchTenMon" 
-        type="text" 
-        placeholder="🔍 Tìm theo tên món..." 
+      <input
+        v-model="searchTenMon"
+        type="text"
+        placeholder="🔍 Tìm theo tên món..."
         @keyup.enter="kichHoatTimKiem"
       />
-      
+
       <select v-model="searchLoaiDanhMuc" @change="kichHoatTimKiem">
         <option value="">Tất cả danh mục</option>
-        <option 
-          v-for="dm in danhSachDanhMuc" 
-          :key="dm.idDanhMuc" 
-          :value="dm.loaiDanhMuc"
-        >
+        <option v-for="dm in danhSachDanhMuc" :key="dm.idDanhMuc" :value="dm.loaiDanhMuc">
           {{ dm.loaiDanhMuc }}
         </option>
       </select>
-      
+
       <button class="nut-tim" @click="kichHoatTimKiem">Tìm kiếm</button>
       <button class="nut-lam-moi" @click="kichHoatLamMoi">Làm mới</button>
       <button class="nut-danh-muc" @click="$emit('go-to-category')">📂 Quản lý danh mục</button>
@@ -75,13 +70,7 @@ const xoa = (id: number) => {
           <p>Quản lý các món ăn hiện có.</p>
         </div>
 
-        <button
-          class="nut-phu"
-          type="button"
-          @click="$emit('add')"
-        >
-          Thêm món
-        </button>
+        <button class="nut-phu" type="button" @click="$emit('add')">Thêm món</button>
       </div>
 
       <div v-if="loading" class="trang-thai-tai">Đang tải dữ liệu thực đơn...</div>
@@ -91,6 +80,7 @@ const xoa = (id: number) => {
           <tr>
             <th>Tên món</th>
             <th>Giá</th>
+            <th>Khuyến mãi</th>
             <th>Danh mục</th>
             <th>Trạng thái</th>
             <th>Hành động</th>
@@ -104,9 +94,22 @@ const xoa = (id: number) => {
             :class="{ active: mon.idMon === selectedId }"
           >
             <td>{{ mon.tenMon }}</td>
-            <td>{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ</td>
+            <td>
+              <template v-if="mon.soTienDuocGiam > 0">
+                <div class="gia-goc">{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ</div>
+
+                <div class="gia-giam">{{ Number(mon.giaSauGiam).toLocaleString('vi-VN') }} đ</div>
+              </template>
+
+              <template v-else>
+                {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ
+              </template>
+            </td>
+            <td>
+              {{ mon.tenChuongTrinhGiamGia }}
+            </td>
             <td>{{ mon.loaiDanhMuc }}</td>
-            
+
             <td>
               <span :class="mon.trangThai === 0 ? 'trang-thai-con' : 'trang-thai-ngung'">
                 {{ mon.trangThai === 0 ? 'Còn bán' : 'Ngưng bán' }}
@@ -119,14 +122,13 @@ const xoa = (id: number) => {
             </td>
           </tr>
           <tr v-if="danhSachMon.length === 0">
-            <td colspan="5" style="text-align: center; color: #a0a0a0; padding: 20px;">
+            <td colspan="5" style="text-align: center; color: #a0a0a0; padding: 20px">
               Không tìm thấy món ăn nào phù hợp.
             </td>
           </tr>
         </tbody>
       </table>
     </section>
-
   </div>
 </template>
 
@@ -201,8 +203,8 @@ const xoa = (id: number) => {
 }
 
 .danh-sach-panel {
-  background: rgba(15,15,15,.94);
-  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(15, 15, 15, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 28px;
   padding: 26px;
 }
@@ -237,7 +239,7 @@ th {
 
 td {
   padding: 14px;
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 tr.active {
@@ -256,7 +258,7 @@ tr.active {
 }
 
 .nut-sua {
-  background: rgba(248,212,106,.15);
+  background: rgba(248, 212, 106, 0.15);
   color: #f8d46a;
   border: none;
   padding: 8px 12px;
@@ -265,7 +267,7 @@ tr.active {
 }
 
 .nut-xoa {
-  background: rgba(255,107,107,.15);
+  background: rgba(255, 107, 107, 0.15);
   color: #ff6b6b;
   border: none;
   padding: 8px 12px;
@@ -290,6 +292,16 @@ tr.active {
 
 .trang-thai-ngung {
   color: #ff4d4f; /* Màu đỏ */
+}
+.gia-goc {
+  text-decoration: line-through;
+  color: #888;
+  font-size: 13px;
+}
+
+.gia-giam {
+  color: #ff4d4f;
+  font-weight: 700;
 }
 
 @media (max-width: 1200px) {

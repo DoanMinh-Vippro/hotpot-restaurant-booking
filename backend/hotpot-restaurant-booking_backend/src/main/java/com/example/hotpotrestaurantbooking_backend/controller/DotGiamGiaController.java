@@ -14,7 +14,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@CrossOrigin
 public class DotGiamGiaController {
     @Autowired
     private DotGiamGiaService sv;

@@ -57,7 +57,7 @@ const validateForm = () => {
     isValid = false
   } else {
     // ----------------------------------------------------------------------
-    // THUẬT TOÁN MỚI: CHUẨN HÓA CHUỖI ĐỂ CHẶN CỐ TÌNH LẶP KÝ TỰ (LÁCH LUẬT)
+    //  CHUẨN HÓA CHUỖI ĐỂ CHẶN CỐ TÌNH LẶP KÝ TỰ (LÁCH LUẬT)
     // ----------------------------------------------------------------------
     
     // Bước A: Chuyển về chữ thường, lột sạch toàn bộ dấu tiếng Việt (mực tươii -> muc tuoiii)

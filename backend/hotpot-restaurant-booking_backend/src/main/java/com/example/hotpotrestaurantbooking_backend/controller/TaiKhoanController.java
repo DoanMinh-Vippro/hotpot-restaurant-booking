@@ -11,7 +11,6 @@
 
     @RestController
     @RequestMapping("api/tai-khoan")
-    @CrossOrigin(origins = "*")
     public class TaiKhoanController {
         @Autowired
         private TaiKhoanService service;

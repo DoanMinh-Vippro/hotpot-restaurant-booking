@@ -13,10 +13,11 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Áp dụng cho tất cả các đường dẫn API
-                        .allowedOriginPatterns("*") // Cho phép mọi origin
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Các phương thức được phép
+                        .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*") // Cho phép localhost
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH") // Các phương thức được phép
                         .allowedHeaders("*") // Cho phép tất cả các header
-                        .allowCredentials(true);
+                        .allowCredentials(true) // Cho phép gửi credentials (cookies, auth headers)
+                        .maxAge(3600); // Cache CORS trong 1 giờ
             }
         };
     }

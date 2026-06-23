@@ -20,6 +20,12 @@ public class ChiTietGiamGiaMon {
     @Column(name = "muc_giam")
     private BigDecimal mucGiam;
 
+    @Column(name = "loai_giam")
+    private String loaiGiam;
+
+    @Column(name = "trang_thai")
+    private Integer trangThai;
+
     @ManyToOne @JoinColumn(name = "id_mon")
     private Mon mon;
     @ManyToOne @JoinColumn(name = "id_dot_giam_gia")

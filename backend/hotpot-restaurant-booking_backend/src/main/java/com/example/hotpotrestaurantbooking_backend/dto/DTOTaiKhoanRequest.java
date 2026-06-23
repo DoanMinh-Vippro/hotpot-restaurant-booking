@@ -16,5 +16,7 @@ public class DTOTaiKhoanRequest {
     private String tenDangNhap;
     @NotBlank(message = "tên đng nập không được bỏ trống")
     @Size(min = 6, message = "mật khẩu tối thiểu 6 kí tự")
-    private String matKhau;
+     private String matKhau;
+    private Integer idChucVu;
+    private Boolean trangThai;
 }

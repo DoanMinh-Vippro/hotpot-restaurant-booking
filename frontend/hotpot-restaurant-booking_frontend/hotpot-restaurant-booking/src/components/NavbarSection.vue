@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import DatBanView from '@/views/DatBanView.vue'
+import UserProfileDropdown from '@/components/UserProfileDropdown.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -24,13 +25,12 @@ onMounted(() => {
 
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/')
-}
-
 const goToAuth = () => {
   router.push('/auth')
+}
+
+const goToRegister = () => {
+  router.push('/register')
 }
 
 const showDatBanModal = ref(false)
@@ -56,13 +56,22 @@ const openDatBan = () => {
         <ul class="nav-links">
           <li><a href="#home">TRANG CHỦ</a></li>
           <li><a href="#about">GIỚI THIỆU</a></li>
-          <li><button class="nav-link-button" @click="router.push('/thucDon')">THỰC ĐƠN</button></li>
+
           
           <template v-if="authStore.isAdmin">
+            <li><button class="nav-link-button" @click="router.push('/thucDon')">THỰC ĐƠN</button></li>
+            <li><button class="nav-link-button" @click="router.push('/GGM')">ĐỢT GIẢM GIÁ</button></li>
             <li><button class="nav-link-button" @click="router.push('/hoa-don')">HÓA ĐƠN</button></li>
             <li><button class="nav-link-button" @click="router.push('/giam-gia')">GIẢM GIÁ</button></li>
             <li><RouterLink to="/ban" class="nav-link-button">BÀN</RouterLink></li>
             <li><RouterLink to="/dat-ban-quan-ly" class="nav-link-button">ĐẶT BÀN QUẢN LÝ</RouterLink></li>
+            <li><RouterLink to="/chuc-vu" class="nav-link-button">Chức vụ</RouterLink></li>
+            <li><RouterLink to="/nhan-vien" class="nav-link-button">Nhân viên</RouterLink></li>
+            <li><RouterLink to="/thong-ke" class="nav-link-button">Thống kê</RouterLink></li>
+            <li><RouterLink to="/tai-khoan" class="nav-link-button">Tài khoản</RouterLink></li>
+            <li><RouterLink to="/khu-vuc" class="nav-link-button">Khu Vực</RouterLink></li>
+            <li><RouterLink to="/khach-hang" class="nav-link-button">Khách Hàng</RouterLink></li>
+            <li><RouterLink to="/coc" class="nav-link-button">Tiền cọc</RouterLink></li>
           </template>
           
           <li><a href="#contact">LIÊN HỆ</a></li>
@@ -77,9 +86,11 @@ const openDatBan = () => {
             <span class="login-label">ĐĂNG NHẬP</span>
           </div>
 
-          <div v-else class="login-trigger" @click="handleLogout" title="Đăng xuất">
-            <span class="login-label">ĐĂNG XUẤT</span>
-          </div>
+          <button v-if="!authStore.isAuthenticated" class="btn-register-nav" @click="goToRegister" title="Đăng ký">
+            ĐĂNG KÝ
+          </button>
+
+          <UserProfileDropdown v-else />
 
           <button class="btn-reservation" @click="openDatBan">ĐẶT BÀN NGAY</button>
 
@@ -113,6 +124,8 @@ const openDatBan = () => {
 .gold { color: #c5a059; }
 .btn-reservation { background: transparent; border: 1px solid #c5a059; color: #c5a059; padding: 10px 22px; cursor: pointer; letter-spacing: 1px; font-size: 0.75rem; font-weight: 600; transition: 0.4s; }
 .btn-reservation:hover { background: #c5a059; color: #000; }
+.btn-register-nav { background: transparent; border: 1px solid rgba(197, 160, 89, 0.6); color: #c5a059; padding: 8px 18px; cursor: pointer; letter-spacing: 1px; font-size: 0.7rem; font-weight: 600; transition: 0.3s; }
+.btn-register-nav:hover { border-color: #c5a059; background: rgba(197, 160, 89, 0.1); }
 @media (max-width: 1024px) { .nav-links { display: none; } .auth-group { border: none; padding: 0; } .login-label { display: none; } }
 .modal-overlay {
   position: fixed;

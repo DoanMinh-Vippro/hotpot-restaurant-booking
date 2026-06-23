@@ -2,11 +2,14 @@ package com.example.hotpotrestaurantbooking_backend.Validation;
 
 import com.example.hotpotrestaurantbooking_backend.dto.ChiTietGiamGiaMonRequest;
 import com.example.hotpotrestaurantbooking_backend.entity.ChiTietGiamGiaMon;
+import com.example.hotpotrestaurantbooking_backend.entity.Mon;
 import com.example.hotpotrestaurantbooking_backend.repository.ChiTietGiamGiaMonRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DotGiamGiaRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.MonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 @Component
 @RequiredArgsConstructor
@@ -47,6 +50,41 @@ public class ChiTietGiamGiaMonValidator {
         if (mucGiam.compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Mức giảm phải lớn hơn 0");
         }
+        // ====== check loại giảm ======
+
+        if (ValidateUtil.isBlank(request.getLoaiGiam())) {
+            throw new RuntimeException("Loại giảm không được để trống");
+        }
+
+        String loaiGiam = request.getLoaiGiam().trim().toUpperCase();
+
+        if (!loaiGiam.equals("TIEN")
+                && !loaiGiam.equals("PHANTRAM")) {
+
+            throw new RuntimeException(
+                    "Loại giảm chỉ được là TIEN hoặc PHANTRAM");
+        }
+
+// ====== check giá món ======
+
+        Mon mon = monRepository.findById(idMon)
+                .orElseThrow(() ->
+                        new RuntimeException("Không tìm thấy món"));
+
+        if (loaiGiam.equals("PHANTRAM")
+                && mucGiam.compareTo(BigDecimal.valueOf(100)) > 0) {
+
+            throw new RuntimeException(
+                    "Phần trăm giảm không được vượt quá 100%");
+        }
+
+        if (loaiGiam.equals("TIEN")
+                && mucGiam.compareTo(mon.getDonGiaHienTai()) > 0) {
+
+            throw new RuntimeException(
+                    "Số tiền giảm không được lớn hơn giá món");
+        }
+
     }
 
     // ====== UPDATE ======
@@ -72,6 +110,36 @@ public class ChiTietGiamGiaMonValidator {
 
         if (mucGiam.compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Mức giảm phải lớn hơn 0");
+        }
+        if (ValidateUtil.isBlank(request.getLoaiGiam())) {
+            throw new RuntimeException("Loại giảm không được để trống");
+        }
+
+        String loaiGiam = request.getLoaiGiam().trim().toUpperCase();
+
+        if (!loaiGiam.equals("TIEN")
+                && !loaiGiam.equals("PHANTRAM")) {
+
+            throw new RuntimeException(
+                    "Loại giảm chỉ được là TIEN hoặc PHANTRAM");
+        }
+
+        Mon mon = monRepository.findById(idMon)
+                .orElseThrow(() ->
+                        new RuntimeException("Không tìm thấy món"));
+
+        if (loaiGiam.equals("PHANTRAM")
+                && mucGiam.compareTo(BigDecimal.valueOf(100)) > 0) {
+
+            throw new RuntimeException(
+                    "Phần trăm giảm không được vượt quá 100%");
+        }
+
+        if (loaiGiam.equals("TIEN")
+                && mucGiam.compareTo(mon.getDonGiaHienTai()) > 0) {
+
+            throw new RuntimeException(
+                    "Số tiền giảm không được lớn hơn giá món");
         }
     }
 }

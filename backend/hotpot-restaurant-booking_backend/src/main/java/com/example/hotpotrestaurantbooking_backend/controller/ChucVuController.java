@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/chuc-vu")
-@CrossOrigin(origins = "*")
 public class ChucVuController {
     @Autowired
     private ChucVuService service;

@@ -71,6 +71,8 @@ public class ChiTietGiamGiaMonImpl implements ChiTietGiamGiaMonService {
         Mon m= repo3.findByIdMon(req.getIdMon());
         ctggm.setMon(m);
         ctggm.setMucGiam(req.getMucGiam());
+        ctggm.setLoaiGiam(req.getLoaiGiam());
+        ctggm.setTrangThai(req.getTrangThai());
         repo.save(ctggm);
     }
 }

@@ -13,13 +13,13 @@ const loading = ref(false)
 
 // 1. Biến quản lý phân trang cho Món lẻ
 const pageNoMon = ref(0)
-const pageSizeMon = ref(5) 
-const totalPagesMon = ref(0) 
+const pageSizeMon = ref(5)
+const totalPagesMon = ref(0)
 
 // 2. Biến quản lý phân trang cho Combo
 const pageNoCombo = ref(0)
-const pageSizeCombo = ref(5) 
-const totalPagesCombo = ref(0) 
+const pageSizeCombo = ref(5)
+const totalPagesCombo = ref(0)
 
 // Ảnh phôi mặc định sang trọng dành cho món lẻ không có ảnh
 const anhMacDinhMonLe = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80'
@@ -31,7 +31,7 @@ const fetchMonByPage = async (pageMucTieu: number) => {
   try {
     const resMon = await MonApi.phanTrangMon(pageNoMon.value, pageSizeMon.value)
     const responseData = resMon.data as any
-    
+
     if (responseData && responseData.content) {
       monItems.value = responseData.content.filter((m: Mon) => m.trangThai === 0)
       totalPagesMon.value = responseData.totalPages || 0
@@ -54,7 +54,7 @@ const fetchComboByPage = async (pageMucTieu: number) => {
   try {
     const resCombo = await ComBoApi.phanTrangComBo(pageNoCombo.value, pageSizeCombo.value)
     const responseData = resCombo.data as any
-    
+
     if (responseData && responseData.content) {
       comboItems.value = responseData.content.filter((cb: Combo) => cb.trangThai === 1)
       totalPagesCombo.value = responseData.totalPages || 0
@@ -72,10 +72,7 @@ const fetchComboByPage = async (pageMucTieu: number) => {
 
 // Hàm nạp lần đầu khi load component
 const fetchThucDonTongHop = async () => {
-  await Promise.all([
-    fetchMonByPage(0),
-    fetchComboByPage(0)
-  ])
+  await Promise.all([fetchMonByPage(0), fetchComboByPage(0)])
 }
 
 onMounted(fetchThucDonTongHop)
@@ -91,16 +88,16 @@ onMounted(fetchThucDonTongHop)
         <h2>THỰC ĐƠN ĐẶC SẮC</h2>
 
         <div class="menu-tabs">
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeTab === 'mon-le' }" 
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'mon-le' }"
             @click="activeTab = 'mon-le'"
           >
             Món Lẻ Thực Đơn
           </button>
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeTab === 'combo' }" 
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'combo' }"
             @click="activeTab = 'combo'"
           >
             Gói Combo Ưu Đãi
@@ -124,9 +121,28 @@ onMounted(fetchThucDonTongHop)
                   <span class="name">{{ mon.tenMon }}</span>
                   <span class="badge-danh-muc" v-if="mon.loaiDanhMuc">{{ mon.loaiDanhMuc }}</span>
                   <div class="dots"></div>
-                  <span class="price">{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }}đ</span>
+                  <div class="price-box">
+                    <template v-if="mon.soTienDuocGiam > 0">
+                      <div class="gia-goc">
+                        {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }}đ
+                      </div>
+
+                      <div class="gia-giam">
+                        {{ Number(mon.giaSauGiam).toLocaleString('vi-VN') }}đ
+                      </div>
+                    </template>
+
+                    <template v-else>
+                      <div class="gia-thuong">
+                        {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }}đ
+                      </div>
+                    </template>
+
+                  </div>
                 </div>
-                <p class="desc">Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.</p>
+                <p class="desc">
+                  Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.
+                </p>
               </div>
             </div>
           </div>
@@ -136,31 +152,30 @@ onMounted(fetchThucDonTongHop)
           </div>
 
           <div class="phan-trang animate-fade">
-            <button 
-              class="btn-trang" 
-              :disabled="pageNoMon === 0" 
-              @click="fetchMonByPage(0)"
-            >
+            <button class="btn-trang" :disabled="pageNoMon === 0" @click="fetchMonByPage(0)">
               &laquo;
             </button>
-            <button 
-              class="btn-trang" 
-              :disabled="pageNoMon === 0" 
+            <button
+              class="btn-trang"
+              :disabled="pageNoMon === 0"
               @click="fetchMonByPage(pageNoMon - 1)"
             >
               &#9664;
             </button>
-            <span class="thong-tin-trang">Trang <span class="so-trang-noi-bat">{{ pageNoMon + 1 }}</span> / {{ totalPagesMon }}</span>
-            <button 
-              class="btn-trang vàng" 
-              :disabled="pageNoMon >= totalPagesMon - 1" 
+            <span class="thong-tin-trang"
+              >Trang <span class="so-trang-noi-bat">{{ pageNoMon + 1 }}</span> /
+              {{ totalPagesMon }}</span
+            >
+            <button
+              class="btn-trang vàng"
+              :disabled="pageNoMon >= totalPagesMon - 1"
               @click="fetchMonByPage(pageNoMon + 1)"
             >
               &#9654;
             </button>
-            <button 
-              class="btn-trang" 
-              :disabled="pageNoMon >= totalPagesMon - 1" 
+            <button
+              class="btn-trang"
+              :disabled="pageNoMon >= totalPagesMon - 1"
               @click="fetchMonByPage(totalPagesMon - 1)"
             >
               &raquo;
@@ -172,9 +187,11 @@ onMounted(fetchThucDonTongHop)
           <div class="menu-grid">
             <div v-for="cb in comboItems" :key="cb.idCombo" class="menu-card animate-fade">
               <div class="menu-img">
-                <img 
-                  :src="cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe" 
-                  :alt="cb.tenCombo" 
+                <img
+                  :src="
+                    cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe
+                  "
+                  :alt="cb.tenCombo"
                 />
               </div>
               <div class="menu-info">
@@ -183,7 +200,9 @@ onMounted(fetchThucDonTongHop)
                   <div class="dots"></div>
                   <span class="price">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ</span>
                 </div>
-                <p class="desc">Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.</p>
+                <p class="desc">
+                  Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.
+                </p>
               </div>
             </div>
           </div>
@@ -193,38 +212,36 @@ onMounted(fetchThucDonTongHop)
           </div>
 
           <div class="phan-trang animate-fade">
-            <button 
-              class="btn-trang" 
-              :disabled="pageNoCombo === 0" 
-              @click="fetchComboByPage(0)"
-            >
+            <button class="btn-trang" :disabled="pageNoCombo === 0" @click="fetchComboByPage(0)">
               &laquo;
             </button>
-            <button 
-              class="btn-trang" 
-              :disabled="pageNoCombo === 0" 
+            <button
+              class="btn-trang"
+              :disabled="pageNoCombo === 0"
               @click="fetchComboByPage(pageNoCombo - 1)"
             >
               &#9664;
             </button>
-            <span class="thong-tin-trang">Trang <span class="so-trang-noi-bat">{{ pageNoCombo + 1 }}</span> / {{ totalPagesCombo }}</span>
-            <button 
-              class="btn-trang vàng" 
-              :disabled="pageNoCombo >= totalPagesCombo - 1" 
+            <span class="thong-tin-trang"
+              >Trang <span class="so-trang-noi-bat">{{ pageNoCombo + 1 }}</span> /
+              {{ totalPagesCombo }}</span
+            >
+            <button
+              class="btn-trang vàng"
+              :disabled="pageNoCombo >= totalPagesCombo - 1"
               @click="fetchComboByPage(pageNoCombo + 1)"
             >
               &#9654;
             </button>
-            <button 
-              class="btn-trang" 
-              :disabled="pageNoCombo >= totalPagesCombo - 1" 
+            <button
+              class="btn-trang"
+              :disabled="pageNoCombo >= totalPagesCombo - 1"
               @click="fetchComboByPage(totalPagesCombo - 1)"
             >
               &raquo;
             </button>
           </div>
         </div>
-
       </div>
     </div>
   </section>
@@ -336,7 +353,7 @@ onMounted(fetchThucDonTongHop)
 }
 .header {
   display: flex;
-  align-items: center; 
+  align-items: center;
 }
 .name {
   font-size: 1rem;
@@ -373,7 +390,8 @@ onMounted(fetchThucDonTongHop)
   margin-top: 8px;
 }
 
-.menu-loading, .menu-trong {
+.menu-loading,
+.menu-trong {
   grid-column: 1 / -1;
   text-align: center;
   color: #888;
@@ -388,8 +406,14 @@ onMounted(fetchThucDonTongHop)
   animation: fadeIn 0.4s ease-in-out forwards;
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* --- CSS CỤM BỘ NÚT PHÂN TRANG THEO ẢNH MẪU --- */
@@ -461,5 +485,27 @@ onMounted(fetchThucDonTongHop)
     width: 80%;
     max-width: 300px;
   }
+}
+.price-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.gia-goc {
+  text-decoration: line-through;
+  color: red;
+  font-size: 0.85rem;
+}
+
+.gia-giam {
+  color: #c5a059;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.gia-thuong {
+  color: #c5a059;
+  font-weight: bold;
+  font-size: 1rem;
 }
 </style>

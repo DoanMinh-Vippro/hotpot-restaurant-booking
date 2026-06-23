@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -26,4 +28,7 @@ public class Mon {
 
     @ManyToOne @JoinColumn(name = "id_danh_muc")
     private DanhMuc danhMuc;
+
+    @OneToMany(mappedBy = "mon", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<ChiTietGiamGiaMon> chiTietGiamGiaMon;
 }

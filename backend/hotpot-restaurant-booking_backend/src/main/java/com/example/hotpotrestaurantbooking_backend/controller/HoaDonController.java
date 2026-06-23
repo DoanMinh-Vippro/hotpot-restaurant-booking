@@ -15,7 +15,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/hoa-don")
-@CrossOrigin
 @RequiredArgsConstructor
 public class HoaDonController {
 
@@ -37,6 +36,11 @@ public class HoaDonController {
     @GetMapping("{id}/chi-tiet")
     public ResponseEntity<List<DTOHoaDonChiTietResponse>> getChiTietByHoaDonId(@PathVariable Integer id) {
         return ResponseEntity.status(HttpStatus.OK).body(hoaDonChiTietService.getChiTietByHoaDonId(id));
+    }
+
+    @GetMapping("khach-hang/{khachHangId}")
+    public ResponseEntity<List<DTOHoaDonResponse>> getByKhachHangId(@PathVariable Integer khachHangId) {
+        return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.findByKhachHangId(khachHangId));
     }
 
     @PostMapping

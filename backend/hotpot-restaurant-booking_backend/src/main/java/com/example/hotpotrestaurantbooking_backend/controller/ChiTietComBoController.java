@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@CrossOrigin
 public class ChiTietComBoController {
     @Autowired
     private ChiTietComBoService sv;

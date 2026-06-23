@@ -23,7 +23,7 @@ public class NhanVienServiceImpl implements NhanVienService {
     @Autowired
     private TaiKhoanRespository taiKhoanRepo;
 
-    private NhanVien toEntity(DTONhanVienRequest req){
+  private NhanVien toEntity(DTONhanVienRequest req){
         return NhanVien.builder()
                 .maNhanVien(req.getMaNhanVien())
                 .tenNhanVien(req.getTenNhanVien())
@@ -32,27 +32,30 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .email(req.getEmail())
                 .diaChi(req.getDiaChi())
                 .trangThai(req.getTrangThai())
-                .chucVu(chucVuRepo.findById(req.getIdChucVu()).orElse(null))
-                .taiKhoan(taiKhoanRepo.findById(req.getIdTaiKhoan()).orElse(null))
+
+                .chucVu(chucVuRepo.findById(req.getIdChucVu())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy chức vụ")))
+
+                .taiKhoan(taiKhoanRepo.findById(req.getIdTaiKhoan())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản")))
                 .build();
     }
 
 
-    private DTONhanVienResponse toResponse(NhanVien nv){
+   private DTONhanVienResponse toResponse(NhanVien nv){
         return DTONhanVienResponse.builder()
                 .id(nv.getId())
                 .maNhanVien(nv.getMaNhanVien())
                 .tenNhanVien(nv.getTenNhanVien())
-                .gioiTinh(nv.getGioiTinh())
+                .gioiTinh(nv.getGioiTinh() != null ? nv.getGioiTinh() : false)  // Đảm bảo đúng
+                .trangThai(nv.getTrangThai() != null ? nv.getTrangThai() : false)
                 .soDienThoai(nv.getSoDienThoai())
                 .email(nv.getEmail())
-
-                .idChucVu(nv.getChucVu() != null ? nv.getChucVu().getIdChucVu() : null)
-                .idTaiKhoan(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getIdTaiKhoan() : null)
-                .tenChucVu(nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : null)
-                .tenDangNhap(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getTenDangNhap() : null)
                 .diaChi(nv.getDiaChi())
-                .trangThai(nv.getTrangThai())
+                .idChucVu(nv.getChucVu() != null ? nv.getChucVu().getIdChucVu() : null)
+                .tenChucVu(nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : null)
+                .idTaiKhoan(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getIdTaiKhoan() : null)
+                .tenDangNhap(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getTenDangNhap() : null)
                 .build();
     }
 
@@ -79,15 +82,38 @@ public class NhanVienServiceImpl implements NhanVienService {
         NhanVien old = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
 
-        old.setMaNhanVien(request.getMaNhanVien());
-        old.setTenNhanVien(request.getTenNhanVien());
-        old.setGioiTinh(request.getGioiTinh());
-        old.setSoDienThoai(request.getSoDienThoai());
-        old.setEmail(request.getEmail());
-        old.setDiaChi(request.getDiaChi());
-        old.setTrangThai(request.getTrangThai());
-        old.setChucVu(chucVuRepo.findById(request.getIdChucVu()).orElse(null));
-        old.setTaiKhoan(taiKhoanRepo.findById(request.getIdTaiKhoan()).orElse(null));
+        if (request.getMaNhanVien() != null)
+            old.setMaNhanVien(request.getMaNhanVien());
+
+        if (request.getTenNhanVien() != null)
+            old.setTenNhanVien(request.getTenNhanVien());
+
+        if (request.getGioiTinh() != null)
+            old.setGioiTinh(request.getGioiTinh());
+
+        if (request.getSoDienThoai() != null)
+            old.setSoDienThoai(request.getSoDienThoai());
+
+        if (request.getEmail() != null)
+            old.setEmail(request.getEmail());
+
+        if (request.getDiaChi() != null)
+            old.setDiaChi(request.getDiaChi());
+
+        if (request.getTrangThai() != null)
+            old.setTrangThai(request.getTrangThai());
+
+        if (request.getIdChucVu() != null)
+            old.setChucVu(
+                    chucVuRepo.findById(request.getIdChucVu())
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy chức vụ"))
+            );
+
+        if (request.getIdTaiKhoan() != null)
+            old.setTaiKhoan(
+                    taiKhoanRepo.findById(request.getIdTaiKhoan())
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"))
+            );
 
         return toResponse(repository.save(old));
     }

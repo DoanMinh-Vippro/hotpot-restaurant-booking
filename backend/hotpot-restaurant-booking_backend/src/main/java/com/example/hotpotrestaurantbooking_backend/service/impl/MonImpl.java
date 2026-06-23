@@ -8,6 +8,7 @@ import com.example.hotpotrestaurantbooking_backend.entity.Mon;
 import com.example.hotpotrestaurantbooking_backend.repository.DanhMucRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.MonRepository;
 import com.example.hotpotrestaurantbooking_backend.service.MonService;
+import com.example.hotpotrestaurantbooking_backend.service.TinhTienService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,22 +28,51 @@ public class MonImpl implements MonService {
     private DanhMucRepository repo2;
     @Autowired
     private final MonValidator monValidator;
+    @Autowired
+    private final TinhTienService tienService;
     @Override
     public List<MonResponse> hienThiMon(){
-        return repo.hienThiMon();
+        List<MonResponse> list = repo.hienThiMon();
+
+        list.forEach(tienService::ganThongTinGiamGia);
+
+        return list;
     }
     @Override
     public MonResponse detailMon(String tenMon){
-        return repo.detailMon(tenMon);
+        MonResponse response = repo.detailMon(tenMon);
+
+        tienService.ganThongTinGiamGia(response);
+
+        return response;
     }
     @Override
     public Page<MonResponse> phanTrangMon(Integer pageNo, Integer pageSize){
-        Pageable pageable= PageRequest.of(pageNo, pageSize);
-        return repo.phanTrangMon(pageable);
-    }   @Override
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+
+        Page<MonResponse> page = repo.phanTrangMon(pageable);
+
+        page.getContent()
+                .forEach(tienService::ganThongTinGiamGia);
+
+        return page;
+    }
+    @Override
     public Page<MonResponse> timKiemMon(String tenMon, BigDecimal giaMin, BigDecimal giaMax, String loaiDanhMuc, Integer pageNo, Integer pageSize ) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
-        return repo.timKiemMon(tenMon, giaMin, giaMax, loaiDanhMuc, pageable);
+        Page<MonResponse> page =
+                repo.timKiemMon(
+                        tenMon,
+                        giaMin,
+                        giaMax,
+                        loaiDanhMuc,
+                        pageable
+                );
+
+        page.getContent()
+                .forEach(tienService::ganThongTinGiamGia);
+
+        return page;
     }
     @Override
     public void addMon(MonRequest req){

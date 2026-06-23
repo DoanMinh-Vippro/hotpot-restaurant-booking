@@ -1,6 +1,7 @@
 package com.example.hotpotrestaurantbooking_backend.repository;
 
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
+import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -15,4 +16,8 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
             String email,
             String maTaiKhoan
     );
+
+    boolean existsBySoDienThoai(String soDienThoai);
+    
+    KhachHang findByTaiKhoan(TaiKhoan taiKhoan);
 }

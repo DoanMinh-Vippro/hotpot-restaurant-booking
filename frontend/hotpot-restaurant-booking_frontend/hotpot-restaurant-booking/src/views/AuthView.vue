@@ -8,31 +8,30 @@ import { useAuthStore } from '@/stores/AuthStore'
 const router = useRouter()
 const authStore = useAuthStore() // Khởi tạo store để lưu token sau khi login
 
-const isLoginMode = ref(true)
-
 // [SỬA]: Thay đổi các biến lưu dữ liệu form cho khớp với database
 const username = ref('')     // Thay cho email
 const password = ref('')
-const confirmPassword = ref('')
 // [XÓA]: Đã xóa fullName vì database bạn không dùng
 
 const handleSubmit = async () => {
   try {
-    if (isLoginMode.value) {
-      console.log('Đang xử lý đăng nhập...')
-      // SỬA: Phải khớp với tên biến trong class Java (tenDangNhap, matKhau)
-      const res = await AuthApi.login({ 
-        tenDangNhap: username.value, 
-        matKhau: password.value 
-      })
-      
-      authStore.login(res.data.token)
-      alert('Đăng nhập thành công!')
-      router.push('/')
-      
-    } else {
-      // ... phần đăng ký nếu có
-    }
+    console.log('Đang xử lý đăng nhập...')
+    const res = await AuthApi.login({ 
+      tenDangNhap: username.value, 
+      matKhau: password.value 
+    })
+    
+    authStore.login(res.data.token, {
+      khachHangId: res.data.khachHangId,
+      tenKhachHang: res.data.tenKhachHang,
+      soDienThoai: res.data.soDienThoai,
+      email: res.data.email,
+      diaChi: res.data.diaChi,
+      gioiTinh: res.data.gioiTinh,
+      maKhachHang: res.data.maKhachHang
+    })
+    alert('Đăng nhập thành công!')
+    router.push('/')
   } catch (error) {
     console.error()
     alert('Đăng nhập thất bại, vui lòng kiểm tra lại tài khoản!')
@@ -40,11 +39,8 @@ const handleSubmit = async () => {
 }
 
 const toggleMode = () => {
-  isLoginMode.value = !isLoginMode.value
-  // [SỬA]: Reset lại các biến mới
-  username.value = ''
-  password.value = ''
-  confirmPassword.value = ''
+  // Redirect to register view instead of toggling mode
+  router.push('/register')
 }
 </script>
 
@@ -70,8 +66,8 @@ const toggleMode = () => {
       <div class="auth-form-side">
         <div class="form-box">
           <div class="form-header">
-            <h2>{{ isLoginMode ? 'ĐĂNG NHẬP' : 'TẠO TÀI KHOẢN' }}</h2>
-            <p>{{ isLoginMode ? 'Chào mừng bạn trở lại với chúng tôi!' : 'Đăng ký để nhận nhiều ưu đãi đặc quyền.' }}</p>
+            <h2>ĐĂNG NHẬP</h2>
+            <p>Chào mừng bạn trở lại với chúng tôi!</p>
           </div>
 
           <form @submit.prevent="handleSubmit" class="main-form">
@@ -85,24 +81,19 @@ const toggleMode = () => {
               <input v-model="password" type="password" placeholder="••••••••" required />
             </div>
 
-            <div v-if="!isLoginMode" class="input-group">
-              <label>NHẬP LẠI MẬT KHẨU</label>
-              <input v-model="confirmPassword" type="password" placeholder="••••••••" required />
-            </div>
-
-            <div v-if="isLoginMode" class="forgot-password">
+            <div class="forgot-password">
               <a href="#forgot">Quên mật khẩu?</a>
             </div>
 
             <button type="submit" class="btn-auth-submit">
-              {{ isLoginMode ? 'ĐĂNG NHẬP NGAY' : 'ĐĂNG KÝ TÀI KHOẢN' }}
+              ĐĂNG NHẬP NGAY
             </button>
           </form>
 
           <div class="form-toggle-footer">
-            <span>{{ isLoginMode ? 'Bạn chưa có tài khoản?' : 'Bạn đã có tài khoản rồi?' }}</span>
+            <span>Bạn chưa có tài khoản?</span>
             <button @click="toggleMode" class="btn-toggle">
-              {{ isLoginMode ? 'Đăng ký ngay' : 'Đăng nhập ngay' }}
+              Đăng ký ngay
             </button>
           </div>
         </div>

@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue'
 
-import type {
-  ChiTietGiamGiaMon,
-  ChiTietGiamGiaMonRequest,
-} from '../api/ChiTietGiamGiaMonApi'
+import type { ChiTietGiamGiaMon, ChiTietGiamGiaMonRequest } from '../api/ChiTietGiamGiaMonApi'
 
 import type { Mon } from '../api/MonApi'
 import type { DotGiamGia } from '../api/DotGiamGiaApi'
@@ -30,6 +27,8 @@ const form = reactive({
   mucGiam: '' as number | string, // Cho phép nhận chuỗi rỗng tạm thời khi xóa ô nhập liệu trên giao diện
   idMon: '' as number | '',
   idDotGiamGia: '' as number | '',
+  loaiGiam: '' as string | '',
+  trangThai: 0,
 })
 
 // Trạng thái lưu trữ thông báo lỗi validate hiển thị lên giao diện
@@ -37,6 +36,8 @@ const errors = reactive({
   mucGiam: '',
   idMon: '',
   idDotGiamGia: '',
+  loaiGiam: '',
+  trangThai: '',
 })
 
 // Xóa sạch thông báo lỗi cũ khi người dùng thao tác lại
@@ -44,18 +45,21 @@ const clearErrors = () => {
   errors.mucGiam = ''
   errors.idMon = ''
   errors.idDotGiamGia = ''
+  errors.loaiGiam = ''
+  errors.trangThai = ''
 }
 
 onMounted(async () => {
   try {
-    const [monRes, dggRes] = await Promise.all([
-      MonApi.hienThiMon(),
-      DotGiamGiaApi.getDanhSach(),
-    ])
-    danhSachMon.value = Array.isArray(monRes.data) ? monRes.data : (monRes.data as any).content || []
-    danhSachDGG.value = Array.isArray(dggRes.data) ? dggRes.data : (dggRes.data as any).content || []
+    const [monRes, dggRes] = await Promise.all([MonApi.hienThiMon(), DotGiamGiaApi.getDanhSach()])
+    danhSachMon.value = Array.isArray(monRes.data)
+      ? monRes.data
+      : (monRes.data as any).content || []
+    danhSachDGG.value = Array.isArray(dggRes.data)
+      ? dggRes.data
+      : (dggRes.data as any).content || []
   } catch (error) {
-    console.error("Lỗi khi tải cấu hình danh mục lựa chọn:", error)
+    console.error('Lỗi khi tải cấu hình danh mục lựa chọn:', error)
   }
 })
 
@@ -66,51 +70,86 @@ const validateForm = () => {
 
   // 1. Validate Chương trình giảm giá
   if (!form.idDotGiamGia) {
-    errors.idDotGiamGia = "Vui lòng chọn chương trình giảm giá áp dụng"
+    errors.idDotGiamGia = 'Vui lòng chọn chương trình giảm giá áp dụng'
     isValid = false
   }
 
   // 2. Validate Món ăn
   if (!form.idMon) {
-    errors.idMon = "Vui lòng chọn món ăn muốn áp dụng giảm giá"
+    errors.idMon = 'Vui lòng chọn món ăn muốn áp dụng giảm giá'
     isValid = false
   }
 
+  if (!form.loaiGiam) {
+  errors.loaiGiam = 'Vui lòng chọn loại giảm'
+  isValid = false
+}
+
   // 3. Kiểm tra trùng lặp: Nếu chọn đầy đủ cả Chương trình và Món, tiến hành quét xem món này đã được cấu hình giảm giá trong đợt này chưa
   if (form.idDotGiamGia && form.idMon && props.danhSach && props.danhSach.length > 0) {
-    const biTrungCap = props.danhSach.some(item => {
+    const biTrungCap = props.danhSach.some((item) => {
       // Bóc tách ID phẳng hoặc lồng đối tượng thực thể JPA Hibernate trả về từ API
-      const itemDggId = (item as any).idDotGiamGia ?? (item as any).dotGiamGia?.idDotGiamGia;
-      const itemMonId = (item as any).idMon ?? (item as any).mon?.idMon;
+      const itemDggId = (item as any).idDotGiamGia ?? (item as any).dotGiamGia?.idDotGiamGia
+      const itemMonId = (item as any).idMon ?? (item as any).mon?.idMon
 
       // Nếu đang ở chế độ Sửa dòng hiện tại, bỏ qua không đối chiếu trùng với chính bản thân nó
       if (isEditMode.value && item.idChiTietGiamGiaMon === idChiTietGiamGiaMonHienTai.value) {
         return false
       }
 
-      return Number(itemDggId) === Number(form.idDotGiamGia) && Number(itemMonId) === Number(form.idMon)
+      return (
+        Number(itemDggId) === Number(form.idDotGiamGia) && Number(itemMonId) === Number(form.idMon)
+      )
     })
 
     if (biTrungCap) {
-      errors.idMon = "Món ăn này đã được thêm vào đợt giảm giá này rồi. Vui lòng chọn món khác hoặc bấm nút 'Sửa' dòng cũ để cập nhật mức giảm."
+      errors.idMon =
+        "Món ăn này đã được thêm vào đợt giảm giá này rồi. Vui lòng chọn món khác hoặc bấm nút 'Sửa' dòng cũ để cập nhật mức giảm."
       isValid = false
     }
   }
 
   // 4. Validate Mức giảm (%)
-  const chuoiMucGiam = form.mucGiam !== null && form.mucGiam !== undefined ? form.mucGiam.toString().trim() : '';
-  if (chuoiMucGiam === '') {
-    errors.mucGiam = "Mức giảm phần trăm không được để trống"
+  const chuoiMucGiam =
+    form.mucGiam !== null && form.mucGiam !== undefined ? form.mucGiam.toString().trim() : ''
+if (chuoiMucGiam === '') {
+  errors.mucGiam =
+    form.loaiGiam === 'TIEN'
+      ? 'Số tiền giảm không được để trống'
+      : 'Mức giảm phần trăm không được để trống'
+  isValid = false
+} else {
+  const giaTriMucGiam = Number(form.mucGiam)
+
+  if (isNaN(giaTriMucGiam) || giaTriMucGiam <= 0) {
+    errors.mucGiam =
+      form.loaiGiam === 'TIEN'
+        ? 'Số tiền giảm phải lớn hơn 0'
+        : 'Mức giảm phần trăm phải lớn hơn 0'
     isValid = false
-  } else {
-    const giaTriMucGiam = Number(form.mucGiam)
-    if (isNaN(giaTriMucGiam) || giaTriMucGiam <= 0) {
-      errors.mucGiam = "Mức giảm giá phải lớn hơn 0%"
-      isValid = false
-    } else if (giaTriMucGiam > 100) {
-      errors.mucGiam = "Mức giảm tối đa của một món ăn không được vượt quá 100%"
+  }
+
+  else if (form.loaiGiam === 'PHANTRAM') {
+    if (giaTriMucGiam > 100) {
+      errors.mucGiam = 'Mức giảm tối đa không được vượt quá 100%'
       isValid = false
     }
+  }
+
+  else if (form.loaiGiam === 'TIEN') {
+    const monDaChon = danhSachMon.value.find(
+      m => Number(m.idMon) === Number(form.idMon)
+    )
+
+    if (
+      monDaChon &&
+      giaTriMucGiam > Number(monDaChon.donGiaHienTai)
+    ) {
+      errors.mucGiam =
+        `Số tiền giảm không được vượt quá giá món (${Number(monDaChon.donGiaHienTai).toLocaleString()} VNĐ)`
+      isValid = false
+    }
+  }
   }
 
   return isValid
@@ -123,26 +162,30 @@ const gui = () => {
     mucGiam: Number(form.mucGiam),
     idMon: form.idMon as number,
     idDotGiamGia: form.idDotGiamGia as number,
+    loaiGiam: form.loaiGiam as string,
+    trangThai: form.trangThai,
   })
 }
 
 defineExpose({
   fillForm(item?: any) {
     clearErrors() // Dọn sạch lỗi cũ
-    
+
     if (!item) {
       isEditMode.value = false
       idChiTietGiamGiaMonHienTai.value = null
       form.mucGiam = ''
       form.idMon = ''
       form.idDotGiamGia = ''
+      form.loaiGiam = ''
+      form.trangThai = 0
       return
     }
 
     // Trường hợp chuyển giao đặc biệt: Nhấp từ nút "Xem chi tiết" ở màn hình Đợt Giảm Giá sang (Chỉ truyền idDotGiamGia)
-    const checkIdDgg = item.idDotGiamGia ?? null;
-    const checkIdChiTiet = item.idChiTietGiamGiaMon ?? null;
-    const checkMucGiam = item.mucGiam ?? null;
+    const checkIdDgg = item.idDotGiamGia ?? null
+    const checkIdChiTiet = item.idChiTietGiamGiaMon ?? null
+    const checkMucGiam = item.mucGiam ?? null
 
     if (checkIdDgg !== null && checkIdChiTiet === null && checkMucGiam === null) {
       isEditMode.value = false
@@ -157,9 +200,12 @@ defineExpose({
     isEditMode.value = true
     idChiTietGiamGiaMonHienTai.value = item.idChiTietGiamGiaMon
 
-    form.mucGiam = item.mucGiam !== undefined && item.mucGiam !== null ? item.mucGiam.toString() : ''
+    form.mucGiam =
+      item.mucGiam !== undefined && item.mucGiam !== null ? item.mucGiam.toString() : ''
     form.idMon = item.idMon ?? item.mon?.idMon ?? ''
     form.idDotGiamGia = item.idDotGiamGia ?? item.dotGiamGia?.idDotGiamGia ?? ''
+    form.loaiGiam = item.loaiGiam ??''
+    form.trangThai = item.trangThai ?? 0
   },
 })
 </script>
@@ -168,19 +214,23 @@ defineExpose({
   <section class="bieu-mau-panel">
     <div class="tieu-de-panel">
       <h2>Chi tiết giảm giá món</h2>
-      <p>{{ isEditMode ? 'Cập nhật cấu hình món giảm giá' : 'Áp dụng món ăn vào chương trình giảm giá' }}</p>
+      <p>
+        {{
+          isEditMode ? 'Cập nhật cấu hình món giảm giá' : 'Áp dụng món ăn vào chương trình giảm giá'
+        }}
+      </p>
     </div>
 
     <div class="luoi-bieu-mau">
       <div class="form-group">
         <label>Chương trình giảm giá</label>
-        <select v-model="form.idDotGiamGia" :class="{ 'is-invalid': errors.idDotGiamGia }" @change="errors.idDotGiamGia = ''">
+        <select
+          v-model="form.idDotGiamGia"
+          :class="{ 'is-invalid': errors.idDotGiamGia }"
+          @change="errors.idDotGiamGia = ''"
+        >
           <option value="">-- Chọn chương trình --</option>
-          <option
-            v-for="d in danhSachDGG"
-            :key="d.idDotGiamGia"
-            :value="d.idDotGiamGia"
-          >
+          <option v-for="d in danhSachDGG" :key="d.idDotGiamGia" :value="d.idDotGiamGia">
             {{ d.tenChuongTrinh }}
           </option>
         </select>
@@ -189,7 +239,11 @@ defineExpose({
 
       <div class="form-group">
         <label>Món ăn áp dụng</label>
-        <select v-model="form.idMon" :class="{ 'is-invalid': errors.idMon }" @change="errors.idMon = ''">
+        <select
+          v-model="form.idMon"
+          :class="{ 'is-invalid': errors.idMon }"
+          @change="errors.idMon = ''"
+        >
           <option value="">-- Chọn món --</option>
           <option v-for="m in danhSachMon" :key="m.idMon" :value="m.idMon">
             {{ m.tenMon }}
@@ -199,24 +253,40 @@ defineExpose({
       </div>
 
       <div class="form-group">
-        <label>Mức giảm (%)</label>
-        <input 
-          v-model="form.mucGiam" 
-          type="number" 
-          min="1" 
+        <label>Loại Giảm</label>
+        <select v-model="form.loaiGiam">
+          <option value="">-- Chọn loại giảm --</option>
+          <option value="PHANTRAM">Phần trăm</option>
+          <option value="TIEN">Tiền mặt</option>
+        </select>
+        <span class="error-text" v-if="errors.loaiGiam">{{ errors.loaiGiam }}</span>
+      </div>
+
+      <div class="form-group">
+        <label>Mức giảm</label>
+        <input
+          v-model="form.mucGiam"
+          type="number"
+          min="1"
           max="100"
-          placeholder="Nhập phần trăm giảm..." 
+          :placeholder="form.loaiGiam === 'TIEN'?'Nhập số tiền giảm...':'Nhập phần trăm giảm...'"
           :class="{ 'is-invalid': errors.mucGiam }"
           @input="errors.mucGiam = ''"
         />
         <span class="error-text" v-if="errors.mucGiam">{{ errors.mucGiam }}</span>
       </div>
+
+      <div class="form-group">
+        <label>Trạng thái</label>
+        <select v-model.number="form.trangThai">
+          <option :value="0">Còn hiệu Lực</option>
+          <option :value="1">Hết Hiệu Lực</option>
+        </select>
+      </div>
     </div>
 
     <div class="nhom-nut">
-      <button class="nut-chinh" type="button" @click="gui">
-        Lưu thông tin
-      </button>
+      <button class="nut-chinh" type="button" @click="gui">Lưu thông tin</button>
     </div>
   </section>
 </template>
@@ -258,8 +328,8 @@ select {
   margin-top: 6px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   color: white;
   outline: none;
   box-sizing: border-box;
