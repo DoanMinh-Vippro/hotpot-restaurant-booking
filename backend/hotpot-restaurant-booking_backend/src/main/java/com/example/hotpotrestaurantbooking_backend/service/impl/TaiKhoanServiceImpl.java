@@ -3,6 +3,7 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.ChucVu;
 import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.TaiKhoanRepository;
@@ -12,6 +13,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -19,7 +21,7 @@ import java.util.List;
 public class TaiKhoanServiceImpl implements TaiKhoanService {
     private final ModelMapper mapper;
     private final TaiKhoanRepository taiKhoanRepository;
- private DTOTaiKhoanResponse toDTO(TaiKhoan t) {
+    private DTOTaiKhoanResponse toDTO(TaiKhoan t) {
         DTOTaiKhoanResponse dto = new DTOTaiKhoanResponse();
 
         dto.setId(t.getIdTaiKhoan());
@@ -36,23 +38,12 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         return dto;
     }
     @Override
-     private DTOTaiKhoanResponse toDTO(TaiKhoan t) {
-        DTOTaiKhoanResponse dto = new DTOTaiKhoanResponse();
-
-        dto.setId(t.getIdTaiKhoan());
-        dto.setMaTaiKhoan(t.getMaTaiKhoan());
-        dto.setTenDangNhap(t.getTenDangNhap());
-        dto.setMatKhau(t.getMatKhau());
-        dto.setTrangThai(t.getTrangThai());
-
-        if (t.getChucVu() != null) {
-            dto.setIdChucVu(t.getChucVu().getIdChucVu());
-            dto.setTenChucVu(t.getChucVu().getTenChucVu());
-        }
-
-        return dto;
+    public List<DTOTaiKhoanResponse> getAll() {  // ← Đổi thành getAll
+        return taiKhoanRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
-
     @Override
     public DTOTaiKhoanResponse findById(Integer id) {
         return taiKhoanRepository.findById(id)
@@ -104,7 +95,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
                         t.setTenDangNhap(tk.getTenDangNhap());
 
                     if (tk.getMatKhau() != null)
-                        t.setMatKhau(tk.getMatKhau());
+                        t.setMatKhau(   tk.getMatKhau());
 
                     if (tk.getTrangThai() != null)
                         t.setTrangThai(tk.getTrangThai());
