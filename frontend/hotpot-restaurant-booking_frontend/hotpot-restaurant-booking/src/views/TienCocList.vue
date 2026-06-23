@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+// Import thêm useRouter từ vue-router để xử lý điều hướng trang chủ
+import { useRouter } from 'vue-router'
 import { 
   getAllTienCoc, 
   getTienCocByTrangThai, 
   getTienCocByKhachHang, 
   getTongTienDaThu 
-} from '../api/coc' 
+} from '../api/coc'
+
+const router = useRouter()
 
 // Các biến quản lý dữ liệu
 const tatCaDieuDuLieuGoc = ref<any[]>([]) // Bản gốc để lọc offline siêu tốc
@@ -17,6 +21,11 @@ const loading = ref(true)
 // Biến phục vụ bộ lọc
 const filterTrangThai = ref<string>('all')
 const searchKeyword = ref<string>('') // Đổi tên cho rộng nghĩa (tìm cả tên, id, sdt)
+
+  // Hàm xử lý nhảy về trang chủ
+const goToHome = () => {
+  router.push('/') // Trả về trang chính mặc định của hệ thống
+}
 
 // 1. Hàm tải dữ liệu ban đầu
 const loadInitialData = async () => {
@@ -90,11 +99,22 @@ onMounted(() => {
 <template>
   <div class="coc-page">
     <div class="coc-header">
+      <div class="header-left">
+
       <h2>👑 BÁO CÁO & QUẢN LÝ TIỀN CỌC</h2>
       <div class="revenue-badge">
         <span class="lbl">TỔNG TIỀN ĐÃ THU:</span>
         <span class="val">{{ tongTienDaThu.toLocaleString() }}đ</span>
       </div>
+    </div>
+          
+    <button class="btn-back-home" @click="goToHome">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Quay về trang chủ
+      </button>
     </div>
     <hr class="line-break" />
 
@@ -207,6 +227,34 @@ onMounted(() => {
 <style scoped>
 /* Giữ nguyên phần CSS đẹp mắt phía dưới */
 .coc-page { padding: 25px; background-color: #121212; min-height: 100vh; font-family: Arial, sans-serif; color: #ffffff; }
+
+/* CẬP NHẬT: Chia không gian flexbox cho thanh tiêu đề */
+.coc-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+.header-left { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+
+/* THÊM MỚI: Style nút quay về trang chủ */
+.btn-back-home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border: 1px solid #444;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-back-home:hover {
+  background-color: #2a2a2a;
+  border-color: #ffc107;
+  color: #ffc107;
+}
+.btn-back-home svg { transition: transform 0.2s ease; }
+.btn-back-home:hover svg { transform: scale(1.1); }
+
 .coc-header { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; }
 h2 { color: #ffc107; margin: 0; font-weight: bold; }
 .revenue-badge { background-color: #1e2b22; border: 1px solid #28a745; padding: 10px 18px; border-radius: 6px; }

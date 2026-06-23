@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+// Import thêm useRouter từ vue-router để xử lý điều hướng
+import { useRouter } from 'vue-router'
 // Đường dẫn tương đối từ thư mục views ra src rồi vào api
 import { 
   getAllKhachHang, 
@@ -7,6 +9,8 @@ import {
   updateKhachHang, 
   deleteKhachHang
 } from '../api/khachhang'
+
+const router = useRouter()
 
 // Trạng thái dữ liệu danh sách
 const danhSachKhachHang = ref<any[]>([])
@@ -26,6 +30,11 @@ const formKhachHang = ref({
 // === BIẾN ĐIỀU KHIỂN XEM CHI TIẾT (MODAL) ===
 const showDetailModal = ref(false)
 const selectedKhachHang = ref<any>(null) // Lưu trữ thông tin khách hàng đang được chọn xem
+  
+// Hàm điều hướng quay lại trang chủ
+const goToHome = () => {
+  router.push('/') // Bạn sửa lại thành '/' nếu route trang chủ của bạn đặt là dấu gạch chéo nhé
+}
 
 // 1. Hàm tải danh sách khách hàng và lọc dữ liệu
 const loadData = async () => {
@@ -58,6 +67,10 @@ const loadData = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  loadData()
+})
 
 const handleSearch = () => {
   loadData()
@@ -162,7 +175,18 @@ const formatDateTime = (dateTimeStr: string) => {
 
 <template>
   <div class="khach-hang-page">
+    <div class="page-header-wrapper">
     <h2>👑 QUẢN LÝ DANH SÁCH KHÁCH HÀNG</h2>
+          
+    <button class="btn-back-home" @click="goToHome">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Quay về trang chủ
+      </button>
+    </div>
+    
     <hr class="line-break" />
 
     <div class="search-section">
@@ -372,6 +396,45 @@ const formatDateTime = (dateTimeStr: string) => {
   color: #ffffff;
 }
 
+/* THÊM MỚI: Flexbox CSS cho vùng header của trang */
+.page-header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+/* THÊM MỚI: Định dạng nút bấm Quay về trang chủ */
+.btn-back-home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border: 1px solid #444;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-back-home:hover {
+  background-color: #2a2a2a;
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.btn-back-home svg {
+  transition: transform 0.2s ease;
+}
+
+.btn-back-home:hover svg {
+  transform: scale(1.1);
+}
+
+h2 { color: #ffc107; margin: 0; }
 h2 { color: #ffc107; margin-top: 0; }
 .line-break { border: 0; border-top: 1px solid #333; margin-bottom: 20px; }
 

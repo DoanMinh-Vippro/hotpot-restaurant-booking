@@ -117,16 +117,32 @@ public class KhuVucServiceImpl implements KhuVucService {
 
     @Override
     public KhuVucResponse update(KhuVucRequest khuVucRequest, Integer id) {
+        // 1. Tìm khu vực cũ dưới DB lên
         KhuVuc khuVuc = repository.findById(id)
-                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khu vực"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khu vực"));
 
+        // 2. Cập nhật dữ liệu mới từ request vào entity
         khuVuc.setTenKhuVuc(khuVucRequest.getTenKhuVuc());
         khuVuc.setMoTa(khuVucRequest.getMoTa());
         khuVuc.setTrangThai(khuVucRequest.getTrangThai());
 
-        khuVuc = repository.save(khuVuc);
+        // 3. Lưu vào Database
+        KhuVuc khuVucDaUpdate = repository.save(khuVuc);
 
-        return modelMapper.map(khuVuc, KhuVucResponse.class);    }
+        // 4. TỰ MAP THỦ CÔNG: Tự tạo object Response để trả về, KHÔNG DÙNG ModelMapper nữa
+        KhuVucResponse response = new KhuVucResponse();
+        response.setId(khuVucDaUpdate.getIdKhuVuc());
+        response.setTenKhuVuc(khuVucDaUpdate.getTenKhuVuc());
+        response.setMoTa(khuVucDaUpdate.getMoTa());
+        response.setTrangThai(khuVucDaUpdate.getTrangThai());
+
+        // Chủ động gán danh sách bàn bằng null để triệt tiêu tận gốc lỗi DTO bên Bàn
+        response.setBanList(null);
+
+        // 5. Trả về kết quả hoàn toàn sạch lỗi
+        return response;
+    }
+
 
     @Override
     public List<KhuVucResponse> search(String keyword) {
@@ -136,14 +152,32 @@ public class KhuVucServiceImpl implements KhuVucService {
                 .map(khuVuc->modelMapper.map(khuVuc,KhuVucResponse.class))
                 .toList();    }
 
+    // Bạn check xem tên hàm của bạn là gì nhé (ví dụ: changeStatus)
     @Override
     public KhuVucResponse changeStatus(Integer id) {
+        // 1. Tìm khu vực cũ dưới DB
         KhuVuc khuVuc = repository.findById(id)
-                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khu vực"));
 
-        khuVuc.setTrangThai(khuVuc.getTrangThai() == 1 ? 0 : 1);
+        // 2. Logic đảo ngược trạng thái (Ví dụ: Đang 1 thành 0, đang 0 thành 1)
+        // Hoặc nếu Frontend truyền status nào vào thì bạn gán trực tiếp bằng status đó
+        if (khuVuc.getTrangThai() == 1) {
+            khuVuc.setTrangThai(0); // Đổi thành Đang khóa
+        } else {
+            khuVuc.setTrangThai(1); // Đổi thành Hoạt động
+        }
 
-        repository.save(khuVuc);
+        // 3. Lưu vào Database
+        KhuVuc khuVucDaUpdate = repository.save(khuVuc);
 
-        return modelMapper.map(khuVuc, KhuVucResponse.class);    }
+        // 4. XÓA MODELMAPPER - THAY BẰNG MAP THỦ CÔNG TẠI ĐÂY
+        KhuVucResponse response = new KhuVucResponse();
+        response.setId(khuVucDaUpdate.getIdKhuVuc() );
+        response.setTenKhuVuc(khuVucDaUpdate.getTenKhuVuc());
+        response.setMoTa(khuVucDaUpdate.getMoTa());
+        response.setTrangThai(khuVucDaUpdate.getTrangThai());
+        response.setBanList(null); // Triệt tiêu tận gốc lỗi Enum TrangThaiBan
+
+        return response;
+    }
 }

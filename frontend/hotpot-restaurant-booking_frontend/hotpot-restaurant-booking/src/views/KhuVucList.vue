@@ -1,6 +1,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+// Import thêm useRouter từ vue-router để xử lý điều hướng trang chủ
+import { useRouter } from 'vue-router'
 // Giữ nguyên đường dẫn tương đối gọi API đang chạy ổn định của bạn
 import { 
   getAllKhuVuc, 
@@ -9,6 +11,9 @@ import {
   deleteKhuVuc, 
   changeStatusKhuVuc 
 } from '../api/khuvuc'
+
+
+const router = useRouter()
 
 // Các trạng thái dữ liệu
 const danhSachKhuVuc = ref<any[]>([])
@@ -27,6 +32,11 @@ const formKhuVuc = ref({
 // === BIẾN ĐIỀU KHIỂN MODAL XEM CHI TIẾT BÀN LỒNG NHAU ===
 const showDetailModal = ref(false)
 const selectedKhuVuc = ref<any>(null)
+
+  // Hàm xử lý nhảy về trang chủ
+const goToHome = () => {
+  router.push('/') // Trả về trang chính mặc định của hệ thống
+}
 
 // 1. Hàm tải danh sách khu vực và kết hợp bộ lọc
 const loadData = async () => {
@@ -58,6 +68,10 @@ const loadData = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  loadData()
+})
 
 const handleSearch = () => {
   loadData()
@@ -158,7 +172,20 @@ const resetFilter = () => {
 
 <template>
   <div class="khu-vuc-page">
+           
+    <div class="page-header-wrapper">
+    
     <h2>👑 QUẢN LÝ KHU VỰC NHÀ HÀNG</h2>
+              
+    <button class="btn-back-home" @click="goToHome">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Quay về trang chủ
+      </button>
+    </div>
+    
     <hr class="line-break" />
 
     <div class="search-section">
@@ -335,6 +362,45 @@ const resetFilter = () => {
   color: #ffffff;
 }
 
+/* THÊM MỚI: Flexbox căn chỉnh Header chứa tiêu đề và nút Trang chủ */
+.page-header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+/* THÊM MỚI: Style nút quay về trang chủ */
+.btn-back-home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border: 1px solid #444;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-back-home:hover {
+  background-color: #2a2a2a;
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.btn-back-home svg {
+  transition: transform 0.2s ease;
+}
+
+.btn-back-home:hover svg {
+  transform: scale(1.1);
+}
+
+h2 { color: #ffc107; margin: 0; font-weight: bold; }
 h2 { color: #ffc107; margin-top: 0; font-weight: bold; }
 .line-break { border: 0; border-top: 1px solid #333; margin-bottom: 25px; }
 
