@@ -12,4 +12,5 @@ public interface HoaDonChiTietService {
     DTOHoaDonChiTietResponse update(Integer id, DTOHoaDonChiTietRequest request);
     void delete(Integer id);
     List<DTOHoaDonChiTietResponse> getChiTietByHoaDonId(Integer idHoaDon);
+    void deleteByIdHoaDon(Integer idHoaDon);
 }

@@ -1,5 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.dto;
 
+import com.example.hotpotrestaurantbooking_backend.enums.LoaiBan;
 import com.example.hotpotrestaurantbooking_backend.enums.PhuongThucThanhToan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
@@ -20,7 +21,7 @@ import java.time.LocalTime;
 public class DTODatBanQuanLyResponse {
     private Integer idDatBan;
     private Integer idBan;
-    private String loaiBan;
+    private LoaiBan loaiBan;
     private Integer idKhachHang;
     private String tenKhachHang;
     private LocalDate ngayDat;

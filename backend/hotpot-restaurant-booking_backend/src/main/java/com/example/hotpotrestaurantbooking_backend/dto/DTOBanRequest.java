@@ -1,5 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.dto;
 
+import com.example.hotpotrestaurantbooking_backend.enums.LoaiBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,8 +12,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DTOBanRequest {
-    private String loaiBan;
-    private int soLuongBan;
+    private LoaiBan loaiBan;
+    private String tenBan;
     private Integer idKhuVuc;
     private TrangThaiBan trangThai;
 }

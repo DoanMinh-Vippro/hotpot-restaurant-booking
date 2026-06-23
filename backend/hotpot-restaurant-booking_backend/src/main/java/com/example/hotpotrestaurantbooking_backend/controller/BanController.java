@@ -49,15 +49,4 @@ public class BanController {
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/search")
-    public ResponseEntity<List<DTOBanResponse>> search(@RequestParam(required = false) String key){
-        return ResponseEntity.status(HttpStatus.OK).body(banService.search(key,key));
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/sort")
-    public ResponseEntity<List<DTOBanResponse>> sort(){
-        return ResponseEntity.status(HttpStatus.OK).body(banService.sort());
-    }
 }

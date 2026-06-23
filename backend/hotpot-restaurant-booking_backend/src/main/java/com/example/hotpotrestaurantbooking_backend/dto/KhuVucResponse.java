@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 public class KhuVucResponse {
-    private Integer id;
+    private Integer idKhuVuc;
     private String tenKhuVuc;
     private String moTa;
     private Integer trangThai;

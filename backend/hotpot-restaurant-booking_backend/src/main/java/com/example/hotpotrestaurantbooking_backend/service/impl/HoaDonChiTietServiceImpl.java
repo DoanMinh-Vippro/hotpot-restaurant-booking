@@ -16,11 +16,13 @@ import com.example.hotpotrestaurantbooking_backend.service.HoaDonChiTietService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
     private final HoaDonChiTietRepository hoaDonChiTietRepository;
     private final HoaDonRepository hoaDonRepository;
@@ -50,6 +52,11 @@ public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
                 .stream()
                 .map(this::convertToResponse)
                 .toList();
+    }
+
+    @Override
+    public void deleteByIdHoaDon(Integer idHoaDon) {
+        hoaDonChiTietRepository.deleteByHoaDon_IdHoaDon(idHoaDon);
     }
 
     @Override
@@ -105,10 +112,12 @@ public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
         if (chiTiet.getMon() != null) {
             dto.setIdMon(chiTiet.getMon().getIdMon());
             dto.setTenMon(chiTiet.getMon().getTenMon());
+            dto.setDonGiaHienTai(chiTiet.getMon() != null ? chiTiet.getMon().getDonGiaHienTai() : null);
         }
         if (chiTiet.getCombo() != null) {
             dto.setIdCombo(chiTiet.getCombo().getIdCombo());
             dto.setTenCombo(chiTiet.getCombo().getTenCombo());
+            dto.setGiaCombo(chiTiet.getCombo() != null ? chiTiet.getCombo().getGiaCombo() : null);
             dto.setComboItems(chiTietComboRepository.findMonNamesByComboId(chiTiet.getCombo().getIdCombo()));
         }
         if (chiTiet.getHoaDon() != null) {

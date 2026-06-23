@@ -1,6 +1,7 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.Validation.HoaDonValidator;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.*;
@@ -8,6 +9,7 @@ import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFo
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonService;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -23,6 +25,8 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final KhachHangRepository khachHangRepository;
     private final NhanVienRepository nhanVienRepository;
     private final HoaDonValidator hoaDonValidator;
+    private final ModelMapper mapper;
+    private final HoaDonChiTietRepository hoaDonChiTietRepository;
 
     @Override
     public List<DTOHoaDonResponse> getAll() {
@@ -79,6 +83,27 @@ public class HoaDonServiceImpl implements HoaDonService {
                 )
                 .map(this::convertToResponse)
                 .toList();
+    }
+
+    @Override
+    public DTOHoaDonResponse findByBanAndStatus(Integer idBan, Integer trangThaiHoaDon) {
+
+        HoaDon hoaDon = hoaDonRepository
+                .findByBan_IdBanAndTrangThaiHoaDon(idBan, trangThaiHoaDon)
+                .orElseThrow(() ->
+                        new CustomResourceNotFoundException("Không tìm thấy hóa đơn"));
+
+        DTOHoaDonResponse dto = mapper.map(hoaDon, DTOHoaDonResponse.class);
+
+        dto.setChiTiet(
+                hoaDonChiTietRepository
+                        .findByHoaDon_IdHoaDon(hoaDon.getIdHoaDon())
+                        .stream()
+                        .map(item -> mapper.map(item, DTOHoaDonChiTietResponse.class))
+                        .toList()
+        );
+
+        return dto;
     }
 
     private void updateEntityFromRequest(HoaDon hd, DTOHoaDonRequest request) {

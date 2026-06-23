@@ -17,8 +17,10 @@ public class DTOHoaDonChiTietResponse {
     private String maHoaDonChiTiet;
     private Integer idMon;
     private String tenMon;
+    private BigDecimal donGiaHienTai;
     private Integer idCombo;
     private String tenCombo;
+    private BigDecimal giaCombo;
     private Integer idHoaDon;
     private Integer soLuong;
     private BigDecimal giaBanTaiThoiDiem;

@@ -53,14 +53,14 @@ public class BanServiceImplement implements BanService {
     public DTOBanResponse add(DTOBanRequest request) {
         Ban b = new Ban();
         b.setLoaiBan(request.getLoaiBan());
-        b.setSoLuongBan(request.getSoLuongBan());
         b.setTrangThai(request.getTrangThai());
 
         KhuVuc k = khuVucRepository.findById(request.getIdKhuVuc()).orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay khu vuc"));
 
         b.setKhuVuc(k);
         banRepository.save(b);
-
+        b.setTenBan("B"+b.getIdBan());
+        banRepository.save(b);
         DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
         response.setTenKhuVuc(
                 b.getKhuVuc().getTenKhuVuc()
@@ -73,8 +73,7 @@ public class BanServiceImplement implements BanService {
         return banRepository
                 .findById(id)
                 .map(b -> {
-                    if (request.getLoaiBan() != null && !request.getLoaiBan().trim().isEmpty()) b.setLoaiBan(request.getLoaiBan());
-                    if (request.getSoLuongBan() > 0) b.setSoLuongBan(request.getSoLuongBan());
+                    if (request.getLoaiBan() != null) b.setLoaiBan(request.getLoaiBan());
                     if (request.getIdKhuVuc() != null ){
                         KhuVuc k = khuVucRepository
                                 .findById(request.getIdKhuVuc())
@@ -84,8 +83,7 @@ public class BanServiceImplement implements BanService {
                     if (request.getTrangThai() != null ) b.setTrangThai(request.getTrangThai());
                     banRepository.save(b);
                     DTOBanResponse response = mapper.map(b, DTOBanResponse.class);
-                    response.setTenKhuVuc( // set tay ten khu vuc
-                            b.getKhuVuc().getTenKhuVuc());
+                    response.setTenKhuVuc(b.getKhuVuc().getTenKhuVuc());//set tay tên khu vực
                     return response;
                 })
                 .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay ban nay"));
@@ -94,31 +92,5 @@ public class BanServiceImplement implements BanService {
     @Override
     public void delete(Integer id) {
         banRepository.deleteById(id);
-    }
-
-    @Override
-    public List<DTOBanResponse> search(String tenKhuVuc, String loaiBan) {
-        return banRepository
-                .findAllByKhuVuc_TenKhuVucOrLoaiBanContainingIgnoreCase(tenKhuVuc,loaiBan)
-                .stream()
-                .map(b -> {
-                    DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
-                    response.setTenKhuVuc(b.getKhuVuc().getTenKhuVuc());
-                    return response;
-                })
-                .toList();
-    }
-
-    @Override
-    public List<DTOBanResponse> sort() {
-        return banRepository
-                .findAllByOrderByIdBanDesc()
-                .stream()
-                .map(b -> {
-                    DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
-                    response.setTenKhuVuc(b.getKhuVuc().getTenKhuVuc());
-                    return response;
-                })
-                .toList();
     }
 }

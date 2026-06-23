@@ -1,0 +1,158 @@
+<script setup lang="ts">
+/**
+ * =====================================================
+ * POPUP DANH SÁCH ĐƠN ĐẶT BÀN ĐÃ XÁC NHẬN
+ * =====================================================
+ */
+
+const emit = defineEmits<{
+  (e: 'close'): void
+}>()
+
+/**
+ * Mock data
+ *
+ * Sau này:
+ * DatBanApi.getByTrangThai('DA_XAC_NHAN')
+ */
+const danhSachDatBan = [
+  {
+    idDatBan: 1,
+    tenKhachHang: 'Nguyễn Văn A',
+    sdtKhachHang: '0901111111',
+    soNguoi: 4,
+  },
+
+  {
+    idDatBan: 2,
+    tenKhachHang: 'Trần Văn B',
+    sdtKhachHang: '0902222222',
+    soNguoi: 6,
+  },
+
+  {
+    idDatBan: 3,
+    tenKhachHang: 'Lê Văn C',
+    sdtKhachHang: '0903333333',
+    soNguoi: 8,
+  },
+]
+
+const dongPopup = () => {
+  emit('close')
+}
+</script>
+
+<template>
+  <div class="overlay" @click="dongPopup">
+    <div class="popup" @click.stop>
+      <div class="popup-header">Danh sách đơn đã xác nhận</div>
+
+      <div class="popup-body">
+        <div v-for="datBan in danhSachDatBan" :key="datBan.idDatBan" class="dat-ban-card">
+          <div>
+            <strong>Mã đơn:</strong>
+            #{{ datBan.idDatBan }}
+          </div>
+
+          <div>
+            <strong>Khách:</strong>
+            {{ datBan.tenKhachHang }}
+          </div>
+
+          <div>
+            <strong>SĐT:</strong>
+            {{ datBan.sdtKhachHang }}
+          </div>
+
+          <div>
+            <strong>Số người:</strong>
+            {{ datBan.soNguoi }}
+          </div>
+
+          <button class="btn-chon">Chọn</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.6);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 999;
+}
+
+.popup {
+  width: 900px;
+  max-height: 80vh;
+
+  overflow-y: auto;
+
+  background: #1d1d1d;
+
+  border-radius: 16px;
+
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.popup-header {
+  padding: 20px;
+
+  text-align: center;
+
+  font-size: 22px;
+  font-weight: 700;
+
+  color: #ffd86b;
+
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.popup-body {
+  padding: 20px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+}
+
+.dat-ban-card {
+  background: #2a2a2a;
+
+  border-radius: 12px;
+
+  padding: 16px;
+
+  color: white;
+
+  border: 1px solid rgba(212, 175, 55, 0.15);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-chon {
+  background: linear-gradient(135deg, #ffd86b, #d4af37);
+
+  border: none;
+
+  padding: 10px 18px;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}
+</style>

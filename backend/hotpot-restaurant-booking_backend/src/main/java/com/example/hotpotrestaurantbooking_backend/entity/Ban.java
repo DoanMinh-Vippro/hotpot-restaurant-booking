@@ -1,5 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.entity;
 
+import com.example.hotpotrestaurantbooking_backend.enums.LoaiBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -17,8 +18,10 @@ public class Ban {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idBan;
-    private String loaiBan;
-    private int soLuongBan;
+    private String tenBan;
+    @Enumerated(EnumType.ORDINAL)
+    @Column(name = "loai_ban")
+    private LoaiBan loaiBan;
     @ManyToOne
     @JoinColumn(name = "id_khu_vuc")
     private KhuVuc khuVuc;

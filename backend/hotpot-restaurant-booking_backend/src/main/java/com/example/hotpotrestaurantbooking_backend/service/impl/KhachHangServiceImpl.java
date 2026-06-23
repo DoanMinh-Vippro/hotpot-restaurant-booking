@@ -97,9 +97,9 @@ public class KhachHangServiceImpl implements KhachHangService {
                     dbDto.setSdtKhachHang(datBan.getSdtKhachHang());
 
                     // Lấy thông tin loại bàn từ liên kết Entity
-                    if (datBan.getBan() != null) {
-                        dbDto.setTenBan(datBan.getBan().getLoaiBan());
-                    }
+//                    if (datBan.getBan() != null) {
+//                        dbDto.setTenBan(datBan.getBan().getLoaiBan());
+//                    }
 
                     // Xử lý chuyển đổi Enum Trạng thái đặt bàn -> sang số Integer (1/0)
                     if (datBan.getTrangThai() != null) {

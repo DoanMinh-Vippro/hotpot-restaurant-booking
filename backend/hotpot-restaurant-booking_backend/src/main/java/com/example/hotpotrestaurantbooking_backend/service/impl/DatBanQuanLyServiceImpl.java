@@ -35,7 +35,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             response.setLoaiBan(d.getBan().getLoaiBan());
             response.setIdBan(d.getBan().getIdBan());
         } else {
-            response.setLoaiBan("Chưa xếp bàn");
+            response.setLoaiBan(null);
         }
 
         // Xử lý Khách hàng (Bỏ qua lỗi nếu null)

@@ -54,4 +54,14 @@ public class HoaDonController {
         hoaDonService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/ban/{idBan}/status/{trangThai}")
+    public ResponseEntity<DTOHoaDonResponse> findByBanAndStatus(
+            @PathVariable Integer idBan,
+            @PathVariable Integer trangThai) {
+
+        return ResponseEntity.ok(
+                hoaDonService.findByBanAndStatus(idBan, trangThai)
+        );
+    }
 }

@@ -1,4 +1,4 @@
-import ApiClient from "./ApiClient"
+import ApiClient from './ApiClient'
 
 export interface HoaDon {
   idHoaDon: number
@@ -87,6 +87,10 @@ class HoaDonApi {
     return ApiClient.get<HoaDon[]>('/api/hoa-don/search', {
       params: { key: keyword },
     })
+  }
+  /////
+  findByBanAndStatus(idBan: number, trangThai: number) {
+    return ApiClient.get(`/api/hoa-don/ban/${idBan}/status/${trangThai}`)
   }
 }
 

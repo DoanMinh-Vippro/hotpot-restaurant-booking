@@ -63,7 +63,7 @@ public class KhuVucServiceImpl implements KhuVucService {
         return repository.findAll().stream().map(khuVuc -> {
 
             KhuVucResponse res = new KhuVucResponse();
-            res.setId(khuVuc.getIdKhuVuc());
+            res.setIdKhuVuc(khuVuc.getIdKhuVuc());
             res.setTenKhuVuc(khuVuc.getTenKhuVuc());
             res.setMoTa(khuVuc.getMoTa());
             res.setTrangThai(khuVuc.getTrangThai());
@@ -74,8 +74,8 @@ public class KhuVucServiceImpl implements KhuVucService {
                     BanResponse banDto = new BanResponse();
 
                     banDto.setId(ban.getIdBan());
-                    banDto.setLoaiBan(ban.getLoaiBan());
-                    banDto.setSoLuongBan(ban.getSoLuongBan());
+//                    banDto.setLoaiBan(ban.getLoaiBan());
+//                    banDto.setSoLuongBan(ban.getSoLuongBan());
 
                     // --- FIX LỖI GẠCH ĐỎ DÒNG 79 TẠI ĐÂY ---
                     // Chuyển đổi Enum TrangThaiBan sang dạng số nguyên (Integer) dựa trên vị trí Ordinal (0, 1, 2...)

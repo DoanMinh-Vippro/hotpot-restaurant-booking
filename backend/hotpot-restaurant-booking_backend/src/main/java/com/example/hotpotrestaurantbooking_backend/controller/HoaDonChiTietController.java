@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/hoa-don-chi-tiet")
-@CrossOrigin("*")
+//@CrossOrigin("*") hàng phế thải lỗi fe không dùng được
 @RequiredArgsConstructor
 public class HoaDonChiTietController {
 
@@ -42,6 +42,12 @@ public class HoaDonChiTietController {
     @DeleteMapping("{id}")
     public ResponseEntity<Void> deleteById(@PathVariable Integer id) {
         hoaDonChiTietService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/hoa-don/{idHoaDon}")
+    public ResponseEntity<Void> deleteByIdHoaDon(@PathVariable Integer idHoaDon) {
+        hoaDonChiTietService.deleteByIdHoaDon(idHoaDon);
         return ResponseEntity.noContent().build();
     }
 }

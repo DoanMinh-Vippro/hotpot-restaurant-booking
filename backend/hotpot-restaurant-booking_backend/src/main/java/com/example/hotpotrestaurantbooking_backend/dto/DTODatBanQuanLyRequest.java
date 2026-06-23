@@ -1,6 +1,7 @@
 package com.example.hotpotrestaurantbooking_backend.dto;
 
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
+import com.example.hotpotrestaurantbooking_backend.enums.LoaiBan;
 import com.example.hotpotrestaurantbooking_backend.enums.PhuongThucThanhToan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
@@ -21,8 +22,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class DTODatBanQuanLyRequest {
     private Integer idBan;
-    @NotBlank(message = "hãy chọn loại bàn")
-    private String loaiBan;
+    private LoaiBan loaiBan;
     private Integer idkhachHang;
     private String sdtKhachHang;
     @NotNull(message = "số người không được để trống")
