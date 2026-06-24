@@ -23,11 +23,11 @@ const emit =defineEmits(['detail', 'delete'])
             <tr v-for="nv in tableList" :key="nv.id">
                 <td>{{ nv.maNhanVien }}</td>
                 <td>{{ nv.tenNhanVien }}</td>
-                <td>{{ nv.gioiTinh==1? 'Nam':'Nữ' }}</td>
+                <td>{{ nv.gioiTinh? 'Nam':'Nữ' }}</td>
                 <td>{{ nv.soDienThoai }}</td>
                 <td>{{ nv.email }}</td>
                 <td>{{ nv.diaChi }}</td>
-                <td>{{ nv.trangThai==1? 'Hoạt động':'Ngừng' }}</td>
+                <td>{{ nv.trangThai? 'Hoạt động':'Ngừng' }}</td>
                 <td>{{ nv.tenChucVu }}</td>
                 <td>{{ nv.tenDangNhap }}</td>
                 <td>
