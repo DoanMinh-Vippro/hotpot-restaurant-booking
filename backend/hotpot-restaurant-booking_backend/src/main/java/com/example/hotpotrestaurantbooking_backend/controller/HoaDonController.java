@@ -38,10 +38,10 @@ public class HoaDonController {
         return ResponseEntity.status(HttpStatus.OK).body(hoaDonChiTietService.getChiTietByHoaDonId(id));
     }
 
-    @GetMapping("khach-hang/{khachHangId}")
-    public ResponseEntity<List<DTOHoaDonResponse>> getByKhachHangId(@PathVariable Integer khachHangId) {
-        return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.findByKhachHangId(khachHangId));
-    }
+//    @GetMapping("khach-hang/{khachHangId}")
+//    public ResponseEntity<List<DTOHoaDonResponse>> getByKhachHangId(@PathVariable Integer khachHangId) {
+//        return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.findByKhachHangId(khachHangId));
+//    }
 
     @PostMapping
     public ResponseEntity<DTOHoaDonResponse> add(@Valid @RequestBody DTOHoaDonRequest request) {
