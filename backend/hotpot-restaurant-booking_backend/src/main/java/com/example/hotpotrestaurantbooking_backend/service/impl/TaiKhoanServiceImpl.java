@@ -3,6 +3,7 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.ChucVu;
 import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.TaiKhoanRepository;
@@ -10,7 +11,7 @@ import com.example.hotpotrestaurantbooking_backend.service.TaiKhoanService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-
+import java.util.stream.Collectors;
 import java.util.List;
 
 
