@@ -13,25 +13,25 @@ const formData= ref({
   idChucVu: null,
   idTaiKhoan: null
 })
-
+const resetForm = () =>{
+  formData.value = {
+  id: null, maNhanVien: "",
+  tenNhanVien: "",
+  gioiTinh: null,
+  soDienThoai: "",
+  email: "", diaChi: "",
+  trangThai: null,
+  idChucVu: null,
+  idTaiKhoan: null
+};
+};
 const emit = defineEmits(['refresh'])
 const add= async ()=>{
     try{
      await NhanVienApi.add(formData.value)
     alert('Them thanh cong!')
     emit('refresh')
-    formData.value={
-        id: null,
-    maNhanVien:"",
-    tenNhanVien:"",
-    gioiTinh: null,
-    soDienThoai:"",
-    email:"",
-    diaChi:"",
-    trangThai: null,
-    idChucVu: null,
-    idTaiKhoan: null
-    }
+    resetForm();
     }catch (error){
         console.error('them that bai:', error)
     };
@@ -58,34 +58,41 @@ const update = async () => {
     console.log("SERVER:", error?.response?.data)
   }
 }
-const resetForm = () => {
-  formData.value = {
-    id: null,
-    maNhanVien: "",
-    tenNhanVien: "",
-    gioiTinh: null,
-    soDienThoai: "",
-    email: "",
-    diaChi: "",
-    trangThai: null,
-    idChucVu: null,
-    idTaiKhoan: null
-  };
+const toBoolean = (val: any) => {
+  if (val === true || val === 1 || val === "1") return true;
+  if (val === false || val === 0 || val === "0") return false;
+
+  if (typeof val === "string") {
+    return val.toLowerCase() === "true";
+  }
+
+  return false;
 };
 const props = defineProps<{
   selectedNhanVien: any
 }>()
 watch(() => props.selectedNhanVien, (nv) => {
   if (!nv) {
-    resetForm();
+    formData.value = {
+      id: null,
+      maNhanVien: "",
+      tenNhanVien: "",
+      gioiTinh: null,
+      soDienThoai: "",
+      email: "",
+      diaChi: "",
+      trangThai: null,
+      idChucVu: null,
+      idTaiKhoan: null,
+    };
     return;
   }
 
   formData.value = {
-  ...nv,
-  gioiTinh: nv.gioiTinh,
-  trangThai: nv.trangThai
-};
+    ...nv,
+    gioiTinh: toBoolean(nv.gioiTinh),
+    trangThai: toBoolean(nv.trangThai),
+  };
 
 }, { immediate: true });
 </script>
@@ -127,8 +134,7 @@ watch(() => props.selectedNhanVien, (nv) => {
 
         <div>
   <label>Trạng thái:</label>
-
-  <select v-model="formData.trangThai">
+ <select v-model="formData.trangThai">
   <option :value="true">Hoạt động</option>
   <option :value="false">Ngừng</option>
 </select>
@@ -136,16 +142,16 @@ watch(() => props.selectedNhanVien, (nv) => {
 
         <div>
         <label>Chức vụ: </label>
-        <select v-model="formData.idChucVu">
+        <select v-model.number="formData.idChucVu">
             <option :value="1">ADMIN</option>
-            <option :value="2">SFAFF</option>
+            <option :value="2">STAFF</option>
             <option :value="3">USER</option>
         </select>
         </div>
 
       <div>
         <label>Tài khoản: </label>
-        <select v-model="formData.idTaiKhoan">
+        <select v-model.number="formData.idTaiKhoan">
             <option :value="1">Admin</option>
             <option :value="2">Thungan01</option>
             <option :value="3">Nhanvien01</option>

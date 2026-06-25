@@ -47,13 +47,15 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .id(nv.getId())
                 .maNhanVien(nv.getMaNhanVien())
                 .tenNhanVien(nv.getTenNhanVien())
-                .gioiTinh(nv.getGioiTinh() != null ? nv.getGioiTinh() : false)  // Đảm bảo đúng
-                .trangThai(nv.getTrangThai() != null ? nv.getTrangThai() : false)
+                .gioiTinh(nv.getGioiTinh())
                 .soDienThoai(nv.getSoDienThoai())
                 .email(nv.getEmail())
                 .diaChi(nv.getDiaChi())
+                .trangThai(nv.getTrangThai())
+
                 .idChucVu(nv.getChucVu() != null ? nv.getChucVu().getIdChucVu() : null)
                 .tenChucVu(nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : null)
+
                 .idTaiKhoan(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getIdTaiKhoan() : null)
                 .tenDangNhap(nv.getTaiKhoan() != null ? nv.getTaiKhoan().getTenDangNhap() : null)
                 .build();

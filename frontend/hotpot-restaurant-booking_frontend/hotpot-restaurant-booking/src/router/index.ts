@@ -22,6 +22,16 @@ const router = createRouter({
       component: () => import('@/views/AuthView.vue'),
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/RegisterView.vue'),
+    },
+    {
+      path: '/customer-profile',
+      name: 'customer-profile',
+      component: () => import('@/views/CustomerProfileView.vue'),
+    },
+    {
       path: '/hoa-don',
       name: 'hoa-don',
       component: () => import('@/views/HoaDonView.vue'),
@@ -55,6 +65,11 @@ const router = createRouter({
       path: '/CTGGM',
       name: 'CTGGM',
       component: () => import('../views/ChiTietGiamGiaMonView.vue'),
+    },
+        {
+      path: '/GGM',
+      name: 'GGM',
+      component: () => import('../views/DotGiamGiaView.vue'),
     },
     {
       path: '/thucDon',
@@ -92,11 +107,28 @@ const router = createRouter({
       component: () => import('@/views/DatBanView.vue'),
     },
     {
-      path: '/ban-hang',
-      name: 'ban-hang',
-      component: () => import('@/views/BanHang.vue'),
+      path: '/nhan-vien',
+      name: 'nhan-vien',
+      component: () => import('@/views/NhanVienView.vue'),
+    },
+    {
+      path: '/tai-khoan',
+      name: 'tai-khoan',
+      component: () => import('@/views/TaiKhoanView.vue'),
+    },
+    {
+      path: '/chuc-vu',
+      name: 'chuc-vu',
+      component: () => import('@/views/ChucVuView.vue'),
+    },
+    {
+      path: '/thong-ke',
+      name: 'thong-ke',
+      component: () => import('@/views/ThongKeView.vue'),
     },
   ],
 })
+
+
 
 export default router

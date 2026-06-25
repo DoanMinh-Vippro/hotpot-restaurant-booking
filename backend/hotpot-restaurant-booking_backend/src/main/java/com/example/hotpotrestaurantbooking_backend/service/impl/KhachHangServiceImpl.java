@@ -147,8 +147,14 @@ public class KhachHangServiceImpl implements KhachHangService {
     @Override
     public KhachHangResponse add(KhachHangRequest khachHangRequest) {
         KhachHang khachHang = modelMapper.map(khachHangRequest, KhachHang.class);
+        long count = khachHangRepository.count();
+        String maTuSinh = String.format("KH%03d", count + 1); // Kết quả dạng: KH002, KH003...
+        khachHang.setMaKhachHang(maTuSinh);
+        khachHang.setTrangThai(true);
         khachHangRepository.save(khachHang);
-        return modelMapper.map(khachHang, KhachHangResponse.class);    }
+        return modelMapper.map(khachHang, KhachHangResponse.class);
+
+    }
 
     @Override
     public KhachHangResponse update(KhachHangRequest khachHangRequest, Integer id) {

@@ -1,47 +1,42 @@
 <script setup lang="ts">
-const props = defineProps<{
+defineProps<{
   tableList: any[]
-}>()
-
-const emit = defineEmits(['detail', 'delete'])
+}>();
+const emit =defineEmits(['detail', 'delete'])
 </script>
-
 <template>
-  <table class="table-container">
-    <thead>
-      <tr>
-        <th>Mã nhân viên</th>
-        <th>Tên nhân viên</th>
-        <th>Giới tính</th>
-        <th>SĐT</th>
-        <th>Email</th>
-        <th>Địa chỉ</th>
-        <th>Trạng thái</th>
-        <th>Chức vụ</th>
-        <th>Tài khoản</th>
-        <th>Hành động</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      <tr v-for="nv in props.tableList" :key="nv.id">
-        <td>{{ nv.maNhanVien }}</td>
-        <td>{{ nv.tenNhanVien }}</td>
-        <td>{{ nv.gioiTinh ? 'Nam' : 'Nữ' }}</td>
-        <td>{{ nv.soDienThoai }}</td>
-        <td>{{ nv.email }}</td>
-        <td>{{ nv.diaChi }}</td>
-        <td>{{ nv.trangThai  ? 'Hoạt động' : 'Ngừng' }}</td>
-        <td>{{ nv.tenChucVu }}</td>
-        <td>{{ nv.tenDangNhap }}</td>
-
-        <td>
-        <button @click="emit('detail', nv)"> Chi tiết</button>
-          <button @click="emit('delete', nv.id)">Xóa</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+    <table class="table-container">
+        <thead>
+            <tr>
+                <th>Mã nhân viên</th>
+                <th>Tên nhân viên</th>
+                <th>Giới tính</th>
+                <th>Số điện thoại</th>
+                <th>Email</th>
+                <th>Địa chỉ</th>
+                <th>Trạng thái</th>
+                <th>Chức vụ</th>
+                <th>Tài khoản</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="nv in tableList" :key="nv.id">
+                <td>{{ nv.maNhanVien }}</td>
+                <td>{{ nv.tenNhanVien }}</td>
+                <td>{{ nv.gioiTinh? 'Nam':'Nữ' }}</td>
+                <td>{{ nv.soDienThoai }}</td>
+                <td>{{ nv.email }}</td>
+                <td>{{ nv.diaChi }}</td>
+                <td>{{ nv.trangThai? 'Hoạt động':'Ngừng' }}</td>
+                <td>{{ nv.tenChucVu }}</td>
+                <td>{{ nv.tenDangNhap }}</td>
+                <td>
+                    <button class="btn-edit" @click="emit('detail', nv)">Chi Tiết</button>
+          <button class="btn-delete" @click="emit('delete', nv.id)">Xóa</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </template>
 <style scoped>
 .table-container {

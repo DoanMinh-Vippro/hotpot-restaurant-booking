@@ -38,10 +38,10 @@ public class HoaDonController {
         return ResponseEntity.status(HttpStatus.OK).body(hoaDonChiTietService.getChiTietByHoaDonId(id));
     }
 
-//    @GetMapping("khach-hang/{khachHangId}")
-//    public ResponseEntity<List<DTOHoaDonResponse>> getByKhachHangId(@PathVariable Integer khachHangId) {
-//        return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.findByKhachHangId(khachHangId));
-//    }
+    @GetMapping("khach-hang/{khachHangId}")
+    public ResponseEntity<List<DTOHoaDonResponse>> getByKhachHangId(@PathVariable Integer khachHangId) {
+        return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.findByKhachHangId(khachHangId));
+    }
 
     @PostMapping
     public ResponseEntity<DTOHoaDonResponse> add(@Valid @RequestBody DTOHoaDonRequest request) {
@@ -57,15 +57,5 @@ public class HoaDonController {
     public ResponseEntity<Void> deleteById(@PathVariable Integer id) {
         hoaDonService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/ban/{idBan}/status/{trangThai}")
-    public ResponseEntity<DTOHoaDonResponse> findByBanAndStatus(
-            @PathVariable Integer idBan,
-            @PathVariable Integer trangThai) {
-
-        return ResponseEntity.ok(
-                hoaDonService.findByBanAndStatus(idBan, trangThai)
-        );
     }
 }
