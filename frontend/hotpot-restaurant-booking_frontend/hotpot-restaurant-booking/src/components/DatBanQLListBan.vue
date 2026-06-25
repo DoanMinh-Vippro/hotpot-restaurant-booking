@@ -84,7 +84,10 @@ const moBanDetail = (ban: any) => {
         v-for="ban in danhSachBanHienThi"
         :key="ban.idBan"
         class="ban-card"
-        :class="{ active: ban.idBan === banDangChon?.idBan }"
+        :class="{
+          active: ban.idBan === banDangChon?.idBan,
+          'dang-co-khach': ban.coHoaDon,
+        }"
         @click="chonBan(ban)"
         @dblclick="moBanDetail(ban)"
       >
@@ -195,5 +198,23 @@ const moBanDetail = (ban: any) => {
   color: #aaa;
 
   font-size: 12px;
+}
+/* =====================================================
+   BÀN ĐANG CÓ KHÁCH
+===================================================== */
+
+.ban-card.dang-co-khach {
+  border-color: #00ff88;
+
+  background: linear-gradient(145deg, #123d2a, #0f0f11);
+
+  box-shadow:
+    0 0 12px rgba(0, 255, 136, 0.5),
+    0 0 25px rgba(0, 255, 136, 0.25);
+}
+
+.ban-card.dang-co-khach .ban-status {
+  color: #00ff88;
+  font-weight: 700;
 }
 </style>

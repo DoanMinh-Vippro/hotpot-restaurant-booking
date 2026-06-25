@@ -16,9 +16,7 @@ const loadComboGoiY = async () => {
   try {
     const res = await ComBoApi.hienThiComBo()
 
-    danhSachCombo.value = (res.data || []).filter(
-      (cb: Combo) => cb.trangThai === 1
-    )
+    danhSachCombo.value = (res.data || []).filter((cb: Combo) => cb.trangThai === 1)
   } catch (error) {
     console.error('Không thể tải danh sách combo gợi ý:', error)
   } finally {
@@ -36,24 +34,15 @@ onMounted(loadComboGoiY)
 
 <template>
   <div class="combo-select-box">
-
     <div class="combo-header">
       <span>🍱 Gói Combo Ưu Đãi (Chọn 1)</span>
 
-      <button
-        v-if="modelValue !== null"
-        @click="selectCombo(null)"
-      >
-        Bỏ chọn
-      </button>
+      <button v-if="modelValue !== null" @click="selectCombo(null)">Bỏ chọn</button>
     </div>
 
-    <div v-if="loading" class="loading-text">
-      Đang tải...
-    </div>
+    <div v-if="loading" class="loading-text">Đang tải...</div>
 
     <div v-else class="luoi-combo-mini">
-
       <div
         v-for="cb in danhSachCombo"
         :key="cb.idCombo"
@@ -61,28 +50,17 @@ onMounted(loadComboGoiY)
         :class="{ active: modelValue === cb.idCombo }"
         @click="selectCombo(cb.idCombo)"
       >
-
         <div class="khung-anh">
-          <img
-            v-if="cb.hinhAnh"
-            :src="`http://localhost:8080/uploads/${cb.hinhAnh}`"
-          />
-          <div v-else class="no-img">
-            No Image
-          </div>
+          <img v-if="cb.hinhAnh" :src="`http://localhost:8080/uploads/${cb.hinhAnh}`" />
+          <div v-else class="no-img">No Image</div>
         </div>
 
         <div class="chi-tiet">
           <h4 class="ten">{{ cb.tenCombo }}</h4>
-          <span class="gia">
-            {{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ
-          </span>
+          <span class="gia"> {{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ </span>
         </div>
-
       </div>
-
     </div>
-
   </div>
 </template>
 
@@ -180,7 +158,8 @@ onMounted(loadComboGoiY)
   font-weight: bold;
 }
 
-.loading-text, .trong-text {
+.loading-text,
+.trong-text {
   text-align: center;
   font-size: 12px;
   color: #888;

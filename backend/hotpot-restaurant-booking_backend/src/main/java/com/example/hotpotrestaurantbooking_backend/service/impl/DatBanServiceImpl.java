@@ -96,6 +96,7 @@ public class DatBanServiceImpl implements DatBanService {
             if(datBan.getThoiGianDenDuKien() != null) db.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());
             if(datBan.getSoTienCoc() != null) db.setSoTienCoc(datBan.getSoTienCoc());
             if(datBan.getPhuongThucThanhToan() != null) db.setPhuongThucThanhToan(datBan.getPhuongThucThanhToan());
+            if(datBan.getGhiChu() != null) db.setGhiChu(datBan.getGhiChu());
 // PHẢI TÌM VÀ SET COMBO THỦ CÔNG
             if (datBan.getIdCombo() != null) {
                 db.setCombo(comboRepository.findById(datBan.getIdCombo())

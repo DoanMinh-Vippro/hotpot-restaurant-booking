@@ -346,15 +346,18 @@ onMounted(() => {
           <button class="btn-minus" @click="giamSoLuong(item)">-</button>
 
           <div class="item-info">
-            <!-- TÊN ĐỒNG BỘ SCRIPT -->
-            <div>
+            <div class="item-name">
               {{ item.tenMon || item.tenCombo }}
             </div>
 
-            <div>x{{ item.soLuong }}</div>
+            <div class="item-bottom">
+              <div class="item-qty">x{{ item.soLuong }}</div>
 
-            <!-- GIÁ ĐỒNG BỘ SCRIPT -->
-            <div>{{ Number(item.gia ?? 0).toLocaleString('vi-VN') }} đ</div>
+              <div class="item-price">
+                {{ item.soLuong }} × {{ Number(item.gia ?? 0).toLocaleString('vi-VN') }} đ
+                <b> = {{ ((item.gia ?? 0) * (item.soLuong ?? 1)).toLocaleString('vi-VN') }} đ </b>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -674,7 +677,7 @@ onMounted(() => {
 }
 
 .item-info div:last-child {
-  font-size: 14px;
+  font-size: 18px;
   opacity: 0.9;
 }
 
@@ -849,5 +852,24 @@ hr {
   border-color: #ffd86b;
   transform: translateY(-2px);
   box-shadow: 0 0 12px rgba(255, 216, 107, 0.2);
+}
+.item-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 6px;
+}
+
+/* tên món */
+.item-name {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* số lượng to hơn, nhưng không phá layout */
+.item-qty {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffd86b;
 }
 </style>
