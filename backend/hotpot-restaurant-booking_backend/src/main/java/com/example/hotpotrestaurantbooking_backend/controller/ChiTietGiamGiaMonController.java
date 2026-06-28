@@ -36,10 +36,11 @@ public class ChiTietGiamGiaMonController {
                                                         @RequestParam(required = false) String tenMon,
                                                         @RequestParam(required = false) BigDecimal mucMin,
                                                         @RequestParam(required = false) BigDecimal mucMax,
+                                                        @RequestParam(required = false)  String loaiGiam,
                                                         @RequestParam(defaultValue = "0") Integer pageNo,
                                                         @RequestParam(defaultValue = "5") Integer pageSize){
 
-        return sv.timKiemCTGGM(tenChuongTrinh, tenMon,mucMin, mucMax, pageNo, pageSize);
+        return sv.timKiemCTGGM(tenChuongTrinh, tenMon,mucMin, mucMax, loaiGiam, pageNo, pageSize);
     }
     @PostMapping("addCTGGM")
     public ResponseEntity<ApiResponse> addCTGGM(@Valid @RequestBody ChiTietGiamGiaMonRequest req){

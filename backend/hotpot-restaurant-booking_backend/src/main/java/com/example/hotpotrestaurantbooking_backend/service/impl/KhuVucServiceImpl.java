@@ -131,7 +131,7 @@ public class KhuVucServiceImpl implements KhuVucService {
 
         // 4. TỰ MAP THỦ CÔNG: Tự tạo object Response để trả về, KHÔNG DÙNG ModelMapper nữa
         KhuVucResponse response = new KhuVucResponse();
-        response.setId(khuVucDaUpdate.getIdKhuVuc());
+        response.setIdKhuVuc(khuVucDaUpdate.getIdKhuVuc());
         response.setTenKhuVuc(khuVucDaUpdate.getTenKhuVuc());
         response.setMoTa(khuVucDaUpdate.getMoTa());
         response.setTrangThai(khuVucDaUpdate.getTrangThai());
@@ -172,7 +172,7 @@ public class KhuVucServiceImpl implements KhuVucService {
 
         // 4. XÓA MODELMAPPER - THAY BẰNG MAP THỦ CÔNG TẠI ĐÂY
         KhuVucResponse response = new KhuVucResponse();
-        response.setId(khuVucDaUpdate.getIdKhuVuc() );
+        response.setIdKhuVuc(khuVucDaUpdate.getIdKhuVuc() );
         response.setTenKhuVuc(khuVucDaUpdate.getTenKhuVuc());
         response.setMoTa(khuVucDaUpdate.getMoTa());
         response.setTrangThai(khuVucDaUpdate.getTrangThai());
