@@ -71,11 +71,19 @@ const xoa = (id: number) => {
               </td>
               <td class="o-chu-thuong text-dam">{{ cb.tenCombo }}</td>
               <td class="o-chu-thuong">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ</td>
-              <td class="o-chu-thuong">
-                <span :class="cb.trangThai ? 'trang-thai-con' : 'trang-thai-ngung'">
-                  {{ cb.trangThai ? 'Còn bán' : 'Ngưng bán' }}
-                </span>
-              </td>
+              <td class="o-chu-thuong">               
+              <span
+                :class="{
+                  'trang-thai-con': cb.trangThai === 1,
+                  'trang-thai-ngung': cb.trangThai === 0,
+                  'trang-thai-het': cb.trangThai === 2,
+                }"
+              >
+                {{
+                  cb.trangThai === 1 ? 'Còn bán' : cb.trangThai === 0 ? 'Ngưng bán' : 'Tạm hết món'
+                }}
+              </span>
+            </td>
               <td>
                 <div class="hanh-dong-o">
                   <button class="nut-xem-ct" @click="$emit('view-detail', cb)">Xem chi tiết</button>
@@ -279,5 +287,8 @@ button:hover {
 
 .trang-thai-ngung {
   color: #ff4d4f;
+}
+.trang-thai-het {
+  color: #fa8c16; /* Màu cam hổ phách */
 }
 </style>

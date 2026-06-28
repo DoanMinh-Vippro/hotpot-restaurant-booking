@@ -13,17 +13,20 @@ const emit = defineEmits(['edit', 'delete', 'add', 'search', 'reset'])
 // Quản lý trạng thái bộ lọc tìm kiếm nội bộ của Table
 const searchTenChuongTrinh = ref('')
 const searchTenMon = ref('')
+const searchLoaiGiam = ref('') // SỬA LỖI: Định nghĩa ref thay thế cho form.loaiGiam bị thiếu
 
 const kichHoatTimKiem = () => {
   emit('search', {
     tenChuongTrinh: searchTenChuongTrinh.value,
-    tenMon: searchTenMon.value
+    tenMon: searchTenMon.value,
+    loaiGiam: searchLoaiGiam.value // Đưa loaiGiam vào dữ liệu emit
   })
 }
 
 const kichHoatLamMoi = () => {
   searchTenChuongTrinh.value = ''
   searchTenMon.value = ''
+  searchLoaiGiam.value = '' // Reset combobox loại giảm về rỗng
   emit('reset')
 }
 
@@ -50,6 +53,13 @@ const xoa = (id: number) => {
         placeholder="🔍 Tìm tên món ăn..." 
         @keyup.enter="kichHoatTimKiem"
       />
+      
+      <select v-model="searchLoaiGiam" @change="kichHoatTimKiem">
+        <option value="">-- Chọn loại giảm --</option>
+        <option value="PHANTRAM">Phần trăm</option>
+        <option value="TIEN">Tiền mặt</option>      
+      </select>
+
       <button class="nut-tim" @click="kichHoatTimKiem">Tìm kiếm</button>
       <button class="nut-lam-moi" @click="kichHoatLamMoi">Làm mới</button>
     </div>
@@ -87,7 +97,9 @@ const xoa = (id: number) => {
             <td>{{ item.tenMon }}</td>
             <td>{{ item.tenChuongTrinh }}</td>
             <td>{{ item.mucGiam }}</td>
-            <td>{{ item.loaiGiam }}</td>
+            <td>
+              {{ item.loaiGiam === 'PHANTRAM' ? 'Phần trăm (%)' : 'Tiền mặt (đ)' }}
+            </td>
             <td>
               <span :class="item.trangThai === 0 ? 'trang-thai-con' : 'trang-thai-ngung'">
                 {{ item.trangThai === 0 ? 'Còn hiệu lực' : 'Hết hiệu lực' }}
@@ -102,8 +114,9 @@ const xoa = (id: number) => {
               </button>
             </td>
           </tr>
+          
           <tr v-if="danhSach.length === 0">
-            <td colspan="4" style="text-align: center; color: #a0a0a0; padding: 20px;">
+            <td colspan="6" style="text-align: center; color: #a0a0a0; padding: 20px;">
               Không tìm thấy chi tiết giảm giá món nào phù hợp.
             </td>
           </tr>
@@ -132,7 +145,9 @@ const xoa = (id: number) => {
   align-items: center;
 }
 
-.bo-loc-panel input {
+/* CẬP NHẬT: Thêm select vào đây để đồng bộ CSS Dark Mode với ô Input */
+.bo-loc-panel input,
+.bo-loc-panel select {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #f5f5f5;
@@ -141,10 +156,18 @@ const xoa = (id: number) => {
   outline: none;
   flex: 1;
   transition: border-color 0.2s;
+  font-family: inherit;
 }
 
-.bo-loc-panel input:focus {
+.bo-loc-panel input:focus,
+.bo-loc-panel select:focus {
   border-color: #f8d46a;
+}
+
+/* Đảm bảo menu đổ xuống hiển thị đẹp mắt trên nền tối */
+.bo-loc-panel select option {
+  background: #151515;
+  color: #fff;
 }
 
 .nut-tim, .nut-lam-moi {
@@ -242,12 +265,13 @@ tr.active {
   font-weight: 600;
   cursor: pointer;
 }
+
 .trang-thai-con {
-  color: #52c41a; /* Màu xanh lá cây */
+  color: #52c41a;
 }
 
 .trang-thai-ngung {
-  color: #ff4d4f; /* Màu đỏ */
+  color: #ff4d4f;
 }
 
 @media (max-width: 1200px) {
