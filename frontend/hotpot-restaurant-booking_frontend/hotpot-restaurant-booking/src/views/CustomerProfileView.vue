@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { getAllKhachHang, updateKhachHang } from '@/api/khachhang'
 import HoaDonApi from '@/api/HoaDonApi'
+import type { HoaDon, HoaDonChiTiet } from '@/api/HoaDonApi'
+import { printInvoiceReceipt } from '@/utils/printInvoice'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -11,9 +13,11 @@ const router = useRouter()
 // Dữ liệu khách hàng
 const customerInfo = ref<any>(null)
 const invoiceHistory = ref<any[]>([])
+const invoiceDetails = ref<Record<number, HoaDonChiTiet[]>>({})
 const loading = ref(true)
 const isEditing = ref(false)
 const editForm = ref<any>(null)
+const activeProfileTab = ref<'info' | 'invoices'>('info')
 
 // Dữ liệu từ form
 const formData = ref({
@@ -50,7 +54,7 @@ const loadCustomerInfo = async () => {
     if (!customerInfo.value) {
       const res = await getAllKhachHang()
       const allCustomers = res.data || []
-      customerInfo.value = allCustomers.find(kh => kh.idKhachHang === authStore.customerInfo.khachHangId)
+      customerInfo.value = allCustomers.find((kh: any) => kh.idKhachHang === authStore.customerInfo.khachHangId)
     }
     
     // Cập nhật form từ store info (thông tin khi vừa đăng ký)
@@ -74,9 +78,26 @@ const loadInvoiceHistory = async () => {
     }
     
     const res = await HoaDonApi.getByKhachHangId(authStore.customerInfo.khachHangId)
-    invoiceHistory.value = res.data || []
+    const invoices = res.data || []
+    invoiceHistory.value = invoices
+    currentPage.value = 1
+
+    const detailEntries = await Promise.all(
+      invoices.map(async (invoice: any) => {
+        try {
+          const detailRes = await HoaDonApi.getChiTiet(invoice.idHoaDon)
+          return [invoice.idHoaDon, detailRes.data || []] as const
+        } catch (error) {
+          console.warn('Không lấy được chi tiết hóa đơn:', invoice.idHoaDon, error)
+          return [invoice.idHoaDon, []] as const
+        }
+      }),
+    )
+    invoiceDetails.value = Object.fromEntries(detailEntries)
   } catch (error) {
     console.error('Lỗi khi tải lịch sử hoá đơn:', error)
+    invoiceHistory.value = []
+    invoiceDetails.value = {}
   }
 }
 
@@ -158,19 +179,56 @@ const formatCurrency = (value: any) => {
   }).format(num)
 }
 
-const formatDate = (date: any) => {
-  if (!date) return '-'
-  if (Array.isArray(date)) {
-    const [year, month, day, hour, minute] = date
-    return `${day}/${month}/${year} ${hour}:${String(minute).padStart(2, '0')}`
+const formatDateTime = (dateTimeValue: any) => {
+  if (!dateTimeValue) return '-'
+
+  let date: Date
+  if (Array.isArray(dateTimeValue)) {
+    const [year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0] = dateTimeValue
+    date = new Date(year, month - 1, day, hour, minute, second)
+  } else {
+    date = new Date(dateTimeValue)
   }
-  return new Date(date).toLocaleDateString('vi-VN')
+
+  if (isNaN(date.getTime())) return String(dateTimeValue)
+
+  return new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date)
+}
+
+const invoiceStatusLabel = (status: number | null | undefined) => {
+  if (status === 1) return 'Đã xuất'
+  if (status === 0) return 'Nháp'
+  return 'Không rõ'
+}
+
+const paymentStatusLabel = (status: number | null | undefined) => {
+  if (status === 1) return 'Đã thanh toán'
+  if (status === 0) return 'Chưa thanh toán'
+  return 'Không rõ'
+}
+
+const paymentMethodLabel = (method: number | null | undefined) => {
+  if (method === 1) return 'Tiền mặt'
+  if (method === 2) return 'Chuyển khoản'
+  if (method === 3) return 'Thẻ'
+  return 'Chưa có'
+}
+
+const invoiceItemName = (item: HoaDonChiTiet) => {
+  return item.tenMon ?? item.tenCombo ?? 'Món chưa đặt tên'
 }
 
 const goToPage = (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
   }
+}
+
+const exportInvoicePdf = (invoice: HoaDon) => {
+  printInvoiceReceipt(invoice, invoiceDetails.value[invoice.idHoaDon] || [])
 }
 </script>
 
@@ -200,9 +258,24 @@ const goToPage = (page: number) => {
 
     <!-- Main content -->
     <div v-else class="profile-content">
+      <div class="profile-tabs">
+        <button
+          :class="['profile-tab', { active: activeProfileTab === 'info' }]"
+          @click="activeProfileTab = 'info'"
+        >
+          Thông tin khách hàng
+        </button>
+        <button
+          :class="['profile-tab', { active: activeProfileTab === 'invoices' }]"
+          @click="activeProfileTab = 'invoices'"
+        >
+          Lịch sử hoá đơn
+        </button>
+      </div>
+
       <div class="profile-main">
         <!-- Customer Info Section -->
-        <section class="info-section">
+        <section v-if="activeProfileTab === 'info'" class="info-section">
           <div class="section-header">
             <h2>THÔNG TIN CÁ NHÂN</h2>
             <button 
@@ -300,7 +373,7 @@ const goToPage = (page: number) => {
         </section>
 
         <!-- Invoice History Section -->
-        <section class="invoice-section">
+        <section v-if="activeProfileTab === 'invoices'" class="invoice-section">
           <div class="section-header">
             <h2>LỊCH SỬ HÓA ĐƠN</h2>
             <span class="invoice-count">{{ invoiceHistory.length }} hoá đơn</span>
@@ -314,34 +387,107 @@ const goToPage = (page: number) => {
           <!-- Invoice Cards -->
           <div v-else class="invoices-container">
             <div v-for="invoice in paginatedInvoices" :key="invoice.idHoaDon" class="invoice-card">
-              <div class="card-top">
-                <div class="invoice-info">
+              <div class="invoice-card-header">
+                <div>
+                  <span class="invoice-status">{{ invoiceStatusLabel(invoice.trangThaiHoaDon) }}</span>
                   <h4 class="invoice-code">{{ invoice.maHoaDon }}</h4>
-                  <p class="invoice-date">{{ formatDate(invoice.thoiGianXuat) }}</p>
+                  <p class="invoice-date">{{ formatDateTime(invoice.thoiGianXuat) }}</p>
                 </div>
-                <span :class="['status-badge', `status-${invoice.trangThaiThanhToan}`]">
-                  {{ invoice.trangThaiThanhToan === 1 ? 'Đã TT' : 'Chưa TT' }}
-                </span>
+                <div class="invoice-total-box">
+                  <span>Tổng tiền</span>
+                  <strong>{{ formatCurrency(invoice.tongTien) }}</strong>
+                  <button class="btn-export-pdf" @click.stop="exportInvoicePdf(invoice)">
+                    🖨️ In hoá đơn
+                  </button>
+                </div>
               </div>
 
-              <div class="card-divider"></div>
+              <div class="invoice-info-grid">
+                <div>
+                  <span>Khách hàng</span>
+                  <strong>{{ invoice.tenKhachHang || authStore.customerInfo.tenKhachHang || customerInfo?.tenKhachHang || 'Khách lẻ' }}</strong>
+                </div>
+                <div>
+                  <span>Số điện thoại</span>
+                  <strong>{{ invoice.sdtKhachHang || authStore.customerInfo.soDienThoai || customerInfo?.soDienThoai || 'Chưa có' }}</strong>
+                </div>
+                <div>
+                  <span>Bàn</span>
+                  <strong>{{ invoice.loaiBan || `Bàn ${invoice.idBan || '-'}` }}</strong>
+                </div>
+                <div>
+                  <span>Nhân viên</span>
+                  <strong>{{ invoice.tenNhanVien || 'Chưa có' }}</strong>
+                </div>
+                <div>
+                  <span>Thanh toán</span>
+                  <strong :class="invoice.trangThaiThanhToan === 1 ? 'status-paid-text' : 'status-pending-text'">
+                    {{ paymentStatusLabel(invoice.trangThaiThanhToan) }}
+                  </strong>
+                </div>
+                <div>
+                  <span>Phương thức</span>
+                  <strong>{{ paymentMethodLabel(invoice.phuongThucThanhToan) }}</strong>
+                </div>
+                <div>
+                  <span>Mã giao dịch</span>
+                  <strong>{{ invoice.maGiaoDich || 'Không có' }}</strong>
+                </div>
+                <div>
+                  <span>Mã giảm giá</span>
+                  <strong>{{ invoice.maGiamGia || 'Không có' }}</strong>
+                </div>
+              </div>
 
-              <div class="card-details">
-                <div class="detail-item">
-                  <span class="label">Bàn:</span>
-                  <span class="value">{{ invoice.loaiBan || '-' }}</span>
+              <div class="invoice-money-grid">
+                <div>
+                  <span>Trước giảm</span>
+                  <strong>{{ formatCurrency(invoice.tienTruocGiam) }}</strong>
                 </div>
-                <div class="detail-item">
-                  <span class="label">Tiền trước:</span>
-                  <span class="value">{{ formatCurrency(invoice.tienTruocGiam) }}</span>
+                <div>
+                  <span>Tiền cọc</span>
+                  <strong>{{ formatCurrency(invoice.tienCoc) }}</strong>
                 </div>
-                <div class="detail-item">
-                  <span class="label">Giảm giá:</span>
-                  <span class="value">{{ formatCurrency(invoice.tienGiamGia) }}</span>
+                <div>
+                  <span>Giảm giá</span>
+                  <strong>{{ formatCurrency(invoice.tienGiamGia) }}</strong>
                 </div>
-                <div class="detail-item total">
-                  <span class="label">Tổng:</span>
-                  <span class="value">{{ formatCurrency(invoice.tongTien) }}</span>
+              </div>
+
+              <div class="invoice-detail-table-wrap">
+                <div class="invoice-detail-title">Chi tiết món</div>
+                <table class="invoice-detail-table">
+                  <thead>
+                    <tr>
+                      <th>Mã</th>
+                      <th>Món / combo</th>
+                      <th>SL</th>
+                      <th>Đơn giá</th>
+                      <th>Giảm</th>
+                      <th>Thành tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="item in invoiceDetails[invoice.idHoaDon] || []"
+                      :key="item.idHoaDonChiTiet"
+                    >
+                      <td>{{ item.maHoaDonChiTiet }}</td>
+                      <td>
+                        <div>{{ invoiceItemName(item) }}</div>
+                        <div v-if="item.comboItems?.length" class="combo-items">
+                          Gồm: {{ item.comboItems.join(', ') }}
+                        </div>
+                      </td>
+                      <td>{{ item.soLuong || 0 }}</td>
+                      <td>{{ formatCurrency(item.giaBanTaiThoiDiem) }}</td>
+                      <td>{{ formatCurrency(item.tienGiamGiaMon) }}</td>
+                      <td>{{ formatCurrency(item.thanhTien) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div v-if="(invoiceDetails[invoice.idHoaDon] || []).length === 0" class="invoice-empty-detail">
+                  Hóa đơn này chưa có chi tiết món.
                 </div>
               </div>
             </div>
@@ -442,6 +588,38 @@ const goToPage = (page: number) => {
   max-width: 1200px;
   margin: 0 auto;
   padding-bottom: 40px;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(197, 160, 89, 0.25);
+  padding-bottom: 10px;
+}
+
+.profile-tab {
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8d8d8;
+  border: 1px solid rgba(197, 160, 89, 0.25);
+  padding: 10px 18px;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  transition: all 0.25s;
+}
+
+.profile-tab:hover {
+  background: rgba(197, 160, 89, 0.12);
+  color: #fff;
+}
+
+.profile-tab.active {
+  background: #c5a059;
+  color: #111;
+  border-color: #c5a059;
 }
 
 .profile-main {
@@ -640,7 +818,7 @@ const goToPage = (page: number) => {
   background: rgba(197, 160, 89, 0.05);
   border: 1px solid rgba(197, 160, 89, 0.15);
   border-radius: 8px;
-  padding: 15px;
+  padding: 16px;
   transition: all 0.3s;
 }
 
@@ -650,21 +828,20 @@ const goToPage = (page: number) => {
   box-shadow: 0 4px 12px rgba(197, 160, 89, 0.1);
 }
 
-.card-top {
+.invoice-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.invoice-info {
-  flex: 1;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(197, 160, 89, 0.15);
 }
 
 .invoice-code {
   margin: 0;
   color: #c5a059;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -674,64 +851,129 @@ const goToPage = (page: number) => {
   font-size: 12px;
 }
 
-.status-badge {
-  padding: 4px 10px;
+.invoice-status {
+  display: inline-block;
+  color: #111;
+  background: #c5a059;
   border-radius: 4px;
+  padding: 2px 6px;
   font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  white-space: nowrap;
+  font-weight: 700;
+  margin-bottom: 7px;
 }
 
-.status-1 {
-  background: rgba(76, 175, 80, 0.2);
-  color: #81c784;
+.invoice-total-box {
+  min-width: 150px;
+  text-align: right;
 }
 
-.status-0 {
-  background: rgba(244, 67, 54, 0.2);
-  color: #ef5350;
+.invoice-total-box span,
+.invoice-info-grid span,
+.invoice-money-grid span {
+  display: block;
+  color: #999;
+  font-size: 12px;
+  margin-bottom: 4px;
 }
 
-.card-divider {
-  height: 1px;
-  background: rgba(197, 160, 89, 0.15);
-  margin: 12px 0;
+.invoice-total-box strong {
+  color: #c5a059;
+  font-size: 17px;
 }
 
-.card-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-}
-
-.detail-item {
-  display: flex;
-  justify-content: space-between;
+.btn-export-pdf {
+  margin-top: 8px;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #c5a059;
+  color: #111;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 110px;
+}
+
+.btn-export-pdf:hover {
+  background: #dcb86b;
+}
+
+.invoice-info-grid,
+.invoice-money-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-bottom: 14px;
+}
+
+.invoice-info-grid strong,
+.invoice-money-grid strong {
+  color: #e0e0e0;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.invoice-money-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(197, 160, 89, 0.15);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.status-paid-text {
+  color: #81c784 !important;
+}
+
+.status-pending-text {
+  color: #ef5350 !important;
+}
+
+.invoice-detail-table-wrap {
+  overflow-x: auto;
+}
+
+.invoice-detail-title {
+  color: #c5a059;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.invoice-detail-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 12px;
 }
 
-.detail-item .label {
-  color: #999;
-  font-weight: 500;
+.invoice-detail-table th,
+.invoice-detail-table td {
+  border-bottom: 1px solid rgba(197, 160, 89, 0.15);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
 }
 
-.detail-item .value {
-  color: #e0e0e0;
-  font-weight: 600;
-}
-
-.detail-item.total {
-  grid-column: 1 / -1;
-  border-top: 1px solid rgba(197, 160, 89, 0.15);
-  padding-top: 8px;
-  margin-top: 4px;
-}
-
-.detail-item.total .value {
+.invoice-detail-table th {
   color: #c5a059;
-  font-size: 14px;
+  background: rgba(197, 160, 89, 0.08);
+}
+
+.combo-items {
+  color: #999;
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.invoice-empty-detail {
+  color: #999;
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
 }
 
 /* Pagination */
@@ -816,4 +1058,3 @@ const goToPage = (page: number) => {
   }
 }
 </style>
-

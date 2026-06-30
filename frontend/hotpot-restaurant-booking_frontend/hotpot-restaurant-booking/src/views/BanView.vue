@@ -5,14 +5,12 @@ import { getAllKhuVuc } from '@/api/khuvuc'
 import BanTab from '@/components/BanTab.vue'
 import BanList from '@/components/BanList.vue'
 import BanDetail from '@/components/BanDetail.vue'
-import AddBan from '@/components/AddBan.vue'
 
 /**
  * 1. DATA CHÍNH
  */
 const danhSachBan = ref<any[]>([])
-const danhSachKhuVuc = ref<any[]>([])
-const showPopupAdd = ref(false)
+const danhSachKhuVuc = ref<any[]>([]) // nếu chưa có API thì mock cũng được
 
 /**
  * 2. STATE UI
@@ -80,20 +78,6 @@ const closePopup = () => {
   showPopupCheck.value = false
 }
 
-//hàm mở popup AddBan
-const openPopupAdd = () => {
-  showPopupAdd.value = true
-}
-//hàm sau khi thêm thành công
-const handleAddSuccess = async () => {
-  showPopupAdd.value = false
-  await loadBan()
-}
-//hàm đóng AddBan
-const closePopupAdd = () => {
-  showPopupAdd.value = false
-}
-
 onMounted(() => {
   loadBan()
   loadKhuVuc()
@@ -103,7 +87,7 @@ onMounted(() => {
 <template>
   <div class="ban-view">
     <!-- TAB KHU VỰC -->
-    <BanTab :listKhuVuc="danhSachKhuVuc" @change="handleChangeTab" @add="openPopupAdd">
+    <BanTab :listKhuVuc="danhSachKhuVuc" @change="handleChangeTab">
       <template #default="{ idKhuVuc }">
         <!-- LIST BÀN -->
         <BanList
@@ -123,8 +107,6 @@ onMounted(() => {
       @close="closePopup"
       @success="loadBan"
     />
-
-    <AddBan v-if="showPopupAdd" @close="closePopupAdd" @success="handleAddSuccess" />
   </div>
 </template>
 

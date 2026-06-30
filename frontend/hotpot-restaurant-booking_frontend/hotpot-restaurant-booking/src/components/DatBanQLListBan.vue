@@ -86,8 +86,7 @@ const moBanDetail = (ban: any) => {
         class="ban-card"
         :class="{
           active: ban.idBan === banDangChon?.idBan,
-          'ban-dang-dung': ban.trangThai === 'DANG_SU_DUNG',
-          'ban-trong': ban.trangThai === 'TRONG',
+          'dang-co-khach': ban.coHoaDon,
         }"
         @click="chonBan(ban)"
         @dblclick="moBanDetail(ban)"
@@ -120,118 +119,102 @@ const moBanDetail = (ban: any) => {
 
 .ban-wrapper {
   padding: 12px;
+
   background: #0b0b0d;
+
   border-radius: 12px;
+
   border: 1px solid rgba(212, 175, 55, 0.2);
 }
 
 /* =====================================================
-   GRID
+   GRID BÀN
 ===================================================== */
 
 .ban-grid {
   display: grid;
+
   grid-template-columns: repeat(4, 1fr);
+
   gap: 12px;
 }
 
 /* =====================================================
-   CARD BASE
+   CARD BÀN
 ===================================================== */
 
 .ban-card {
   background: #0f0f11;
+
   border: 1px solid rgba(212, 175, 55, 0.15);
+
   border-radius: 10px;
+
   padding: 12px;
 
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
 
-  gap: 6px;
+  transition: 0.3s;
 
   cursor: pointer;
-
-  transition: all 0.25s ease;
 }
 
-/* hover thường */
 .ban-card:hover {
   border-color: rgba(212, 175, 55, 0.5);
-  transform: translateY(-2px);
 }
 
 /* =====================================================
-   ACTIVE (đang click chọn)
+   BÀN ĐANG CHỌN
 ===================================================== */
 
 .ban-card.active {
   border-color: #ffd86b;
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
-  transform: scale(1.03);
+
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
 }
 
 /* =====================================================
-   🟡 BÀN ĐANG DÙNG (GOLD)
+   THÔNG TIN BÀN
 ===================================================== */
 
-.ban-card.ban-dang-dung {
-  background: linear-gradient(135deg, #facc15, #eab308);
-  border: 1px solid #f59e0b;
+.ban-info {
+  display: flex;
 
-  color: #1f2937;
+  flex-direction: column;
 
-  box-shadow:
-    0 10px 25px rgba(234, 179, 8, 0.35),
-    0 0 18px rgba(234, 179, 8, 0.25);
-
-  transform: scale(1.02);
+  gap: 4px;
 }
-
-/* text trong bàn vàng */
-.ban-card.ban-dang-dung .ban-name,
-.ban-card.ban-dang-dung .ban-type,
-.ban-card.ban-dang-dung .ban-status {
-  color: #1f2937;
-  font-weight: 600;
-}
-
-/* hover vàng */
-.ban-card.ban-dang-dung:hover {
-  transform: scale(1.06);
-  box-shadow: 0 15px 35px rgba(234, 179, 8, 0.5);
-}
-
-/* =====================================================
-   🟢 BÀN TRỐNG
-===================================================== */
-
-.ban-card.ban-trong {
-  background: #0f0f11;
-  border: 1px solid rgba(212, 175, 55, 0.12);
-}
-
-/* text bàn trống */
-.ban-card.ban-trong .ban-name {
-  color: #9ca3af;
-}
-
-.ban-card.ban-trong .ban-status {
-  color: #6b7280;
-}
-
-/* =====================================================
-   TEXT BASE
-===================================================== */
 
 .ban-name {
-  font-weight: 600;
   color: #ffd86b;
+
+  font-weight: 600;
 }
 
 .ban-type,
 .ban-status {
-  font-size: 12px;
   color: #aaa;
+
+  font-size: 12px;
+}
+/* =====================================================
+   BÀN ĐANG CÓ KHÁCH
+===================================================== */
+
+.ban-card.dang-co-khach {
+  border-color: #00ff88;
+
+  background: linear-gradient(145deg, #123d2a, #0f0f11);
+
+  box-shadow:
+    0 0 12px rgba(0, 255, 136, 0.5),
+    0 0 25px rgba(0, 255, 136, 0.25);
+}
+
+.ban-card.dang-co-khach .ban-status {
+  color: #00ff88;
+  font-weight: 700;
 }
 </style>

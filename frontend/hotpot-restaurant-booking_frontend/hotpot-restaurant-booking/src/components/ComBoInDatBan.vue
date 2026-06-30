@@ -5,7 +5,7 @@ import type { Combo } from '@/api/ComBoApi'
 
 // v-model từ DatBanForm
 const props = defineProps<{ modelValue: number | null }>()
-const emit = defineEmits(['update:modelValue', 'selectedCombo'])
+const emit = defineEmits(['update:modelValue'])
 
 const danhSachCombo = ref<Combo[]>([])
 const loading = ref(false)
@@ -27,15 +27,6 @@ const loadComboGoiY = async () => {
 // chọn combo (sync chuẩn v-model, không check stale state nữa)
 const selectCombo = (id: number | null) => {
   emit('update:modelValue', id)
-
-  if (id == null) {
-    emit('selectedCombo', null)
-    return
-  }
-
-  const combo = danhSachCombo.value.find((c) => c.idCombo === id)
-
-  emit('selectedCombo', combo)
 }
 
 onMounted(loadComboGoiY)

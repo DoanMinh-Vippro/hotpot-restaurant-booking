@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -77,6 +76,11 @@ const router = createRouter({
       component: () => import('../views/ThucDonView.vue'),
     },
     {
+      path: '/menu',
+      name: 'menu',
+      component: () => import('../views/MenuView.vue'),
+    },
+    {
       path: '/ban',
       name: 'ban',
       component: () => import('@/views/BanView.vue'),
@@ -87,19 +91,16 @@ const router = createRouter({
       component: () => import('@/views/DatBanQuanLyView.vue'),
     },
     {
-      path: '/khach-hang',
-      name: 'khach-hang',
-      component: () => import('@/views/KhachHangView.vue'), // Sửa khachhang/KhachHangView
-    },
-    {
       path: '/khu-vuc',
       name: 'khu-vuc',
-      component: () => import('@/views/KhuVucList.vue'), // Sửa khuvuc/KhuVucList
+      // Sửa khuvuc/KhuVucList
+      component: () => import('@/views/KhuVucList.vue'),
     },
     {
       path: '/coc',
       name: 'coc',
-      component: () => import('@/views/TienCocList.vue'), // Sửa coc/TienCocList
+      // Sửa coc/TienCocList
+      component: () => import('@/views/TienCocList.vue'),
     },
     {
       path: '/dat-ban',
@@ -107,31 +108,30 @@ const router = createRouter({
       component: () => import('@/views/DatBanView.vue'),
     },
     {
+      path: '/khach-hang',
+      name: 'khach-hang',
+      redirect: '/tai-khoan',
+    },
+    {
       path: '/nhan-vien',
       name: 'nhan-vien',
-      component: () => import('@/views/NhanVienView.vue'),
+      redirect: '/tai-khoan',
     },
     {
       path: '/tai-khoan',
       name: 'tai-khoan',
-      component: () => import('@/views/TaiKhoanView.vue'),
+      component: () => import('@/views/QuanLyTaiKhoanView.vue'),
     },
     {
       path: '/chuc-vu',
       name: 'chuc-vu',
-      component: () => import('@/views/ChucVuView.vue'),
+      redirect: '/tai-khoan',
     },
     {
       path: '/thong-ke',
       name: 'thong-ke',
       component: () => import('@/views/ThongKeView.vue'),
     },
-    {
-      path: '/ban-hang',
-      name: 'ban-hang',
-      component: () => import('@/views/BanHang.vue'),
-    },
   ],
 })
-
 export default router

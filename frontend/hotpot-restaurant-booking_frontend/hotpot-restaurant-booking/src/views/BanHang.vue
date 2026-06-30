@@ -45,7 +45,6 @@ const idKhuVucDangChon = ref<number | null>(null)
  */
 const banDangChon = ref<any | null>(null)
 
-const datBanDangChon = ref<any | null>(null)
 /**
  * HIỂN THỊ POPUP
  */
@@ -111,15 +110,6 @@ const moDanhSachDatBan = () => {
   showPopupDaXacNhan.value = true
 }
 
-/////////////
-const chonDatBan = (datBan: any) => {
-  datBanDangChon.value = datBan
-
-  showPopupDaXacNhan.value = false
-
-  manHinhHienTai.value = 'thanhToan'
-}
-
 ////
 const quayVeDanhSachBan = async () => {
   manHinhHienTai.value = 'danhSachBan'
@@ -158,17 +148,12 @@ onMounted(async () => {
         @khongCoDonDatBan="moManHinhthanhToan"
       />
 
-      <PopupListDatBan
-        v-if="showPopupDaXacNhan"
-        @close="showPopupDaXacNhan = false"
-        @chonDatBan="chonDatBan"
-      />
+      <PopupListDatBan v-if="showPopupDaXacNhan" @close="showPopupDaXacNhan = false" />
     </template>
 
     <ThanhToan
       v-if="manHinhHienTai === 'thanhToan'"
       :ban="banDangChon"
-      :datBan="datBanDangChon"
       @quayLai="quayVeDanhSachBan"
     />
   </div>

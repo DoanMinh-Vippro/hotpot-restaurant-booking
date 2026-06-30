@@ -12,12 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'change', idKhuVuc: number): void
-  (e: 'add'): void
 }>()
-
-const themBan = () => {
-  emit('add')
-}
 
 // tab đang được chọn (id khu vực)
 const tabDangChon = ref<number | null>(null)
@@ -50,19 +45,15 @@ const chonTab = (idKhuVuc: number) => {
   <div class="tab-wrapper">
     <!-- Thanh tab khu vực -->
     <div class="tab-header">
-      <div class="tab-list">
-        <div
-          v-for="khuVuc in listKhuVuc"
-          :key="khuVuc.idKhuVuc"
-          class="tab-item"
-          :class="{ active: tabDangChon === khuVuc.idKhuVuc }"
-          @click="chonTab(khuVuc.idKhuVuc)"
-        >
-          {{ khuVuc.tenKhuVuc }}
-        </div>
+      <div
+        v-for="khuVuc in listKhuVuc"
+        :key="khuVuc.idKhuVuc"
+        class="tab-item"
+        :class="{ active: tabDangChon === khuVuc.idKhuVuc }"
+        @click="chonTab(khuVuc.idKhuVuc)"
+      >
+        {{ khuVuc.tenKhuVuc }}
       </div>
-
-      <button class="btn-add" @click="themBan">+ Thêm bàn</button>
     </div>
 
     <!-- Nội dung tab (slot để BanList nhét vào) -->
@@ -79,114 +70,55 @@ const chonTab = (idKhuVuc: number) => {
   border-radius: 12px;
   border: 1px solid rgba(212, 175, 55, 0.25);
   box-shadow: 0 0 20px rgba(212, 175, 55, 0.08);
-  backdrop-filter: blur(10px);
 }
 
-/* Header */
+/* Thanh tab */
 .tab-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-
+  gap: 10px;
   border-bottom: 1px solid rgba(212, 175, 55, 0.25);
-  padding-bottom: 12px;
-  margin-bottom: 14px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
 }
 
-/* Tab */
+/* Tab item */
 .tab-item {
-  padding: 10px 18px;
-
+  padding: 10px 16px;
   cursor: pointer;
-
-  border-radius: 10px;
-
+  border-radius: 8px;
   background: linear-gradient(145deg, #141416, #0e0e10);
-
   color: #c9c9c9;
-  font-weight: 600;
-  letter-spacing: 0.4px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all 0.25s ease;
 
   border: 1px solid rgba(212, 175, 55, 0.15);
-
-  transition: all 0.25s ease;
 }
 
+/* Hover cho có cảm giác "đắt tiền" */
 .tab-item:hover {
   color: #ffd86b;
-  border-color: rgba(212, 175, 55, 0.45);
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
   transform: translateY(-1px);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.18);
 }
 
+/* Tab đang active */
 .tab-item.active {
-  background: linear-gradient(145deg, #1b1b1f, #111214);
+  background: linear-gradient(145deg, #1a1a1d, #0f0f11);
   color: #ffd86b;
-
-  border-color: rgba(212, 175, 55, 0.75);
-
+  border: 1px solid rgba(212, 175, 55, 0.7);
   box-shadow: 0 0 14px rgba(212, 175, 55, 0.25);
-}
-
-/* Nút thêm */
-.btn-add {
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  padding: 11px 18px;
-
-  border: none;
-  border-radius: 10px;
-
-  background: linear-gradient(135deg, #d4af37, #f0cd63);
-  color: #111;
-
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition: 0.25s;
-}
-
-.btn-add:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35);
-}
-
-.btn-add:active {
-  transform: scale(0.98);
 }
 
 /* Nội dung */
 .tab-content {
   background: #0f0f11;
-
   border-radius: 10px;
-
   padding: 14px;
-
   border: 1px solid rgba(212, 175, 55, 0.15);
 }
-.tab-list {
-  display: flex;
-  gap: 10px;
-  flex: 1;
-
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
-}
-
-.tab-list::-webkit-scrollbar {
-  height: 6px;
-}
-
-.tab-list::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.35);
-  border-radius: 20px;
+.tab-wrapper {
+  backdrop-filter: blur(10px);
 }
 </style>

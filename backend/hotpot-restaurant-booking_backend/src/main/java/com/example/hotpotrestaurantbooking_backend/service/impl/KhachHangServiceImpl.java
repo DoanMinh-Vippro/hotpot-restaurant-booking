@@ -72,7 +72,9 @@ public class KhachHangServiceImpl implements KhachHangService {
             res.setDiaChi(khachHang.getDiaChi());
             res.setGioiTinh(khachHang.getGioiTinh());
             res.setTrangThai(khachHang.getTrangThai());
-
+                if (khachHang.getTaiKhoan() != null) {
+                    res.setTaiKhoan(khachHang.getTaiKhoan());
+                }
             // 2. Map danh sách đơn Đặt Bàn lồng bên trong Khách Hàng
             if (khachHang.getDatBanList() != null) {
 
@@ -142,7 +144,18 @@ public class KhachHangServiceImpl implements KhachHangService {
     @Override
     public KhachHangResponse findById(Integer id) {
         return khachHangRepository.findById(id)
-                .map(khachHang -> modelMapper.map(khachHang, KhachHangResponse.class)).orElseThrow((()->new CustomResourceNotFoundException("Không có dữ liệu")));    }
+                .map(khachHang -> modelMapper.map(khachHang, KhachHangResponse.class))
+                .orElseThrow((() -> new CustomResourceNotFoundException("Không có dữ liệu")));
+    }
+
+    @Override
+    public KhachHangResponse findByTaiKhoanId(Integer idTaiKhoan) {
+        KhachHang khachHang = khachHangRepository.findByTaiKhoan_IdTaiKhoan(idTaiKhoan);
+        if (khachHang == null) {
+            throw new CustomResourceNotFoundException("Không có khách hàng với tài khoản này");
+        }
+        return modelMapper.map(khachHang, KhachHangResponse.class);
+    }
 
     @Override
     public KhachHangResponse add(KhachHangRequest khachHangRequest) {

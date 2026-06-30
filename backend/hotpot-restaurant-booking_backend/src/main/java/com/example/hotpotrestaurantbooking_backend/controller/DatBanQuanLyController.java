@@ -2,7 +2,6 @@ package com.example.hotpotrestaurantbooking_backend.controller;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyResponse;
-import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,10 +42,5 @@ public class DatBanQuanLyController {
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         datBanQuanLyService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/trang-thai/{trangThai}")
-    public ResponseEntity<List<DTODatBanQuanLyResponse>> findByTrangThai(@PathVariable TrangThaiDatBan trangThai) {
-        return ResponseEntity.ok(datBanQuanLyService.findByTrangThai(trangThai));
     }
 }

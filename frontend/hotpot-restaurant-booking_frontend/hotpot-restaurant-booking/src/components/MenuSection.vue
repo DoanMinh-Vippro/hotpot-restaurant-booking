@@ -114,7 +114,7 @@ onMounted(fetchThucDonTongHop)
           <div class="menu-grid">
             <div v-for="mon in monItems" :key="mon.idMon" class="menu-card animate-fade">
               <div class="menu-img">
-                <img :src="anhMacDinhMonLe" :alt="mon.tenMon" />
+                <img :src="mon.hinhAnh ? `http://localhost:8080/uploads/${mon.hinhAnh}` : anhMacDinhMonLe" :alt="mon.tenMon" />
               </div>
               <div class="menu-info">
                 <div class="header">
@@ -141,7 +141,7 @@ onMounted(fetchThucDonTongHop)
                   </div>
                 </div>
                 <p class="desc">
-                  Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.
+                  {{ mon.moTa || 'Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.' }}
                 </p>
               </div>
             </div>
@@ -188,9 +188,7 @@ onMounted(fetchThucDonTongHop)
             <div v-for="cb in comboItems" :key="cb.idCombo" class="menu-card animate-fade">
               <div class="menu-img">
                 <img
-                  :src="
-                    cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe
-                  "
+                  :src="cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe"
                   :alt="cb.tenCombo"
                 />
               </div>
@@ -200,9 +198,7 @@ onMounted(fetchThucDonTongHop)
                   <div class="dots"></div>
                   <span class="price">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ</span>
                 </div>
-                <p class="desc">
-                  Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.
-                </p>
+                <p class="desc">{{ cb.moTa || 'Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.' }}</p>
               </div>
             </div>
           </div>

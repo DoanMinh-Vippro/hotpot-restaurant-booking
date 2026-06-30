@@ -2,7 +2,6 @@ package com.example.hotpotrestaurantbooking_backend.service;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyResponse;
-import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 
 import java.util.List;
 
@@ -12,5 +11,4 @@ public interface DatBanQuanLyService {
     DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d);
     DTODatBanQuanLyResponse update(Integer id,DTODatBanQuanLyRequest d);
     void delete(Integer id);
-    List<DTODatBanQuanLyResponse> findByTrangThai(TrangThaiDatBan trangThai);
 }

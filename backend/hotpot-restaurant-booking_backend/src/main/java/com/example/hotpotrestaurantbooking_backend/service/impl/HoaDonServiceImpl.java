@@ -1,11 +1,9 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.Validation.HoaDonValidator;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.*;
-import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonService;
@@ -25,7 +23,6 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final KhachHangRepository khachHangRepository;
     private final NhanVienRepository nhanVienRepository;
     private final HoaDonValidator hoaDonValidator;
-    private final HoaDonChiTietRepository hoaDonChiTietRepository;
 
     @Override
     public List<DTOHoaDonResponse> getAll() {
@@ -47,10 +44,6 @@ public class HoaDonServiceImpl implements HoaDonService {
         hoaDonValidator.validateAdd(request);
         HoaDon hd = new HoaDon();
         updateEntityFromRequest(hd, request);
-
-        // Chuyển trạng thái bàn khi tạo hóa đơn lần đầu
-        hd.getBan().setTrangThai(TrangThaiBan.DANG_SU_DUNG);
-
         hoaDonRepository.save(hd);
         return convertToResponse(hd);
     }
@@ -61,12 +54,6 @@ public class HoaDonServiceImpl implements HoaDonService {
         HoaDon hd = hoaDonRepository.findById(id)
                 .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay hoa don voi id: " + id));
         updateEntityFromRequest(hd, request);
-
-        // Chỉ trả bàn khi đã thanh toán
-        if (hd.getTrangThaiThanhToan() == 1) {
-            hd.getBan().setTrangThai(TrangThaiBan.TRONG);
-        }
-
         hoaDonRepository.save(hd);
         return convertToResponse(hd);
     }
@@ -101,15 +88,6 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .filter(hoaDon -> hoaDon.getKhachHang() != null && hoaDon.getKhachHang().getIdKhachHang().equals(khachHangId))
                 .map(this::convertToResponse)
                 .toList();
-    }
-
-    @Override
-    public DTOHoaDonResponse findByBanAndStatus(Integer idBan, Integer trangThaiHoaDon) {
-
-        return hoaDonRepository
-                .findByBan_IdBanAndTrangThaiHoaDon(idBan, trangThaiHoaDon)
-                .map(this::convertToResponse)
-                .orElse(null);
     }
 
     private void updateEntityFromRequest(HoaDon hd, DTOHoaDonRequest request) {
@@ -224,25 +202,6 @@ public class HoaDonServiceImpl implements HoaDonService {
             response.setIdNhanVien(hoaDon.getNhanVien().getId());
             response.setTenNhanVien(hoaDon.getNhanVien().getTenNhanVien());
         }
-
-        response.setChiTiet(
-                hoaDonChiTietRepository.findByHoaDon_IdHoaDon(hoaDon.getIdHoaDon())
-                        .stream()
-                        .map(ct -> {
-                            DTOHoaDonChiTietResponse dto = new DTOHoaDonChiTietResponse();
-                            dto.setIdHoaDonChiTiet(ct.getIdHoaDonChiTiet());
-                            dto.setIdMon(ct.getMon() != null ? ct.getMon().getIdMon() : null);
-                            dto.setIdCombo(ct.getCombo() != null ? ct.getCombo().getIdCombo() : null);
-                            dto.setTenMon(ct.getMon() != null ? ct.getMon().getTenMon() : null);
-                            dto.setTenCombo(ct.getCombo() != null ? ct.getCombo().getTenCombo() : null);
-                            dto.setSoLuong(ct.getSoLuong());
-                            dto.setGiaBanTaiThoiDiem(ct.getGiaBanTaiThoiDien());
-                            dto.setThanhTien(ct.getThanhTien());
-                            return dto;
-                        })
-                        .toList()
-        );
-
         return response;
     }
 }

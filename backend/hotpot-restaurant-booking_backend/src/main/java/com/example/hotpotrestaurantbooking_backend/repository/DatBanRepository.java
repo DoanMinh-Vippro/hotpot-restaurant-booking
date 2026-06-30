@@ -1,7 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.repository;
 
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
-import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -23,5 +22,4 @@ public interface DatBanRepository extends JpaRepository<DatBan,Integer> {
     BigDecimal sumTongTienCocDaThu();
     List<DatBan> findByKhachHang_IdKhachHang(Integer id);
 
-    List<DatBan> findByTrangThai(TrangThaiDatBan trangThai);
 }

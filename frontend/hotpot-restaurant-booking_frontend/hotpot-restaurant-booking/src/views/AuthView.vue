@@ -4,56 +4,66 @@ import { useRouter } from 'vue-router'
 // Đã import các thành phần cần thiết để gọi API
 import AuthApi from '@/api/AuthApi'
 import { useAuthStore } from '@/stores/AuthStore'
-
 const router = useRouter()
 const authStore = useAuthStore() // Khởi tạo store để lưu token sau khi login
-
 // [SỬA]: Thay đổi các biến lưu dữ liệu form cho khớp với database
 const username = ref('')     // Thay cho email
 const password = ref('')
 // [XÓA]: Đã xóa fullName vì database bạn không dùng
-
 const handleSubmit = async () => {
   try {
     console.log('Đang xử lý đăng nhập...')
-    const res = await AuthApi.login({ 
-      tenDangNhap: username.value, 
-      matKhau: password.value 
+    const res = await AuthApi.login({
+      tenDangNhap: username.value,
+      matKhau: password.value
     })
-    
-    authStore.login(res.data.token, {
-      khachHangId: res.data.khachHangId,
-      tenKhachHang: res.data.tenKhachHang,
-      soDienThoai: res.data.soDienThoai,
-      email: res.data.email,
-      diaChi: res.data.diaChi,
-      gioiTinh: res.data.gioiTinh,
-      maKhachHang: res.data.maKhachHang
-    })
+
+    authStore.login(
+      res.data.token,
+      res.data.role === 'USER'
+        ? {
+            khachHangId: res.data.khachHangId,
+            tenKhachHang: res.data.tenKhachHang,
+            soDienThoai: res.data.soDienThoai,
+            email: res.data.email,
+            diaChi: res.data.diaChi,
+            gioiTinh: res.data.gioiTinh,
+            maKhachHang: res.data.maKhachHang,
+          }
+        : undefined,
+    )
     alert('Đăng nhập thành công!')
     router.push('/')
-  } catch (error) {
-    console.error()
-    alert('Đăng nhập thất bại, vui lòng kiểm tra lại tài khoản!')
+  } catch (error: any) {
+    console.error(error)
+    const errMsg = error?.response?.data?.message || 'Đăng nhập thất bại, vui lòng kiểm tra lại tài khoản!'
+    alert(errMsg)
   }
 }
-
 const toggleMode = () => {
   // Redirect to register view instead of toggling mode
   router.push('/register')
 }
 </script>
-
 <template>
   <div class="auth-wrapper">
     <div class="back-home" @click="router.push('/')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <line x1="19" y1="12" x2="5" y2="12"></line>
         <polyline points="12 19 5 12 12 5"></polyline>
       </svg>
       QUAY LẠI TRANG CHỦ
     </div>
-
     <div class="auth-container">
       <div class="auth-image-side">
         <div class="overlay"></div>
@@ -62,46 +72,35 @@ const toggleMode = () => {
           <p class="brand-slogan">Nơi tinh hoa ẩm thực giao thoa cùng không gian đẳng cấp.</p>
         </div>
       </div>
-
       <div class="auth-form-side">
         <div class="form-box">
           <div class="form-header">
             <h2>ĐĂNG NHẬP</h2>
             <p>Chào mừng bạn trở lại với chúng tôi!</p>
           </div>
-
           <form @submit.prevent="handleSubmit" class="main-form">
             <div class="input-group">
               <label>TÊN ĐĂNG NHẬP</label>
               <input v-model="username" type="text" placeholder="Nhập tên đăng nhập" required />
             </div>
-
             <div class="input-group">
               <label>MẬT KHẨU</label>
               <input v-model="password" type="password" placeholder="••••••••" required />
             </div>
-
             <div class="forgot-password">
               <a href="#forgot">Quên mật khẩu?</a>
             </div>
-
-            <button type="submit" class="btn-auth-submit">
-              ĐĂNG NHẬP NGAY
-            </button>
+            <button type="submit" class="btn-auth-submit">ĐĂNG NHẬP NGAY</button>
           </form>
-
           <div class="form-toggle-footer">
             <span>Bạn chưa có tài khoản?</span>
-            <button @click="toggleMode" class="btn-toggle">
-              Đăng ký ngay
-            </button>
+            <button @click="toggleMode" class="btn-toggle">Đăng ký ngay</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
-
 <style scoped>
 /* Reset và bao bọc toàn màn hình */
 .auth-wrapper {
@@ -114,7 +113,6 @@ const toggleMode = () => {
   position: relative;
   font-family: 'Montserrat', sans-serif;
 }
-
 /* Nút quay lại góc trên */
 .back-home {
   position: absolute;
@@ -135,7 +133,6 @@ const toggleMode = () => {
   opacity: 1;
   color: #c5a059;
 }
-
 /* Khung Container chính chia đôi */
 .auth-container {
   width: 100%;
@@ -147,7 +144,6 @@ const toggleMode = () => {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
-
 /* 1. Thiết kế bên phía Ảnh thương hiệu */
 .auth-image-side {
   flex: 1;
@@ -188,7 +184,6 @@ const toggleMode = () => {
   letter-spacing: 1px;
   line-height: 1.6;
 }
-
 /* 2. Thiết kế bên phía Form */
 .auth-form-side {
   flex: 1;
@@ -215,7 +210,6 @@ const toggleMode = () => {
   line-height: 1.5;
   margin-bottom: 30px;
 }
-
 /* Input Styling tương thích tone tối */
 .main-form {
   display: flex;
@@ -247,7 +241,6 @@ const toggleMode = () => {
   background: rgba(255, 255, 255, 0.05);
   box-shadow: 0 0 8px rgba(197, 160, 89, 0.2);
 }
-
 /* Quên mật khẩu */
 .forgot-password {
   text-align: right;
@@ -261,7 +254,6 @@ const toggleMode = () => {
 .forgot-password a:hover {
   color: #c5a059;
 }
-
 /* Nút submit chính */
 .btn-auth-submit {
   background: #c5a059;
@@ -279,7 +271,6 @@ const toggleMode = () => {
   background: #e2be7a;
   box-shadow: 0 5px 15px rgba(197, 160, 89, 0.3);
 }
-
 /* Footer chuyển đổi */
 .form-toggle-footer {
   margin-top: 30px;
@@ -299,7 +290,6 @@ const toggleMode = () => {
 .btn-toggle:hover {
   color: #e2be7a;
 }
-
 /* Responsive cho Mobile & Tablet nhỏ */
 @media (max-width: 868px) {
   .auth-image-side {

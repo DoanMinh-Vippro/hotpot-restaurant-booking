@@ -6,6 +6,9 @@ const NhanVienApi= {
     findById(id: number){
         return ApiClient.get(`/api/nhan-vien/detail/${id}`)
     },
+    getByTaiKhoanId(idTaiKhoan: number){
+        return ApiClient.get(`/api/nhan-vien/tai-khoan/${idTaiKhoan}`)
+    },
     add(data: any){
         return ApiClient.post("/api/nhan-vien/add", data)
     },

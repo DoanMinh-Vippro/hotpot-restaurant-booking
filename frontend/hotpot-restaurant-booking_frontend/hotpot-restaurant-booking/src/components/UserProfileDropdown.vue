@@ -20,7 +20,7 @@ const loadUserData = async () => {
       // Lấy thông tin khách hàng
       const customersRes = await getAllKhachHang()
       const allCustomers = customersRes.data || []
-      customerInfo.value = allCustomers.find(kh => kh.idKhachHang === authStore.customerInfo.khachHangId)
+      customerInfo.value = allCustomers.find((kh: any) => kh.idKhachHang === authStore.customerInfo.khachHangId)
 
       // Lấy lịch sử hoá đơn
       const invoicesRes = await HoaDonApi.getByKhachHangId(authStore.customerInfo.khachHangId)
