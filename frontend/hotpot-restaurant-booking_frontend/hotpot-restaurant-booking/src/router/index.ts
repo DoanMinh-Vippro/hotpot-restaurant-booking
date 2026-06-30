@@ -66,7 +66,7 @@ const router = createRouter({
       name: 'CTGGM',
       component: () => import('../views/ChiTietGiamGiaMonView.vue'),
     },
-        {
+    {
       path: '/GGM',
       name: 'GGM',
       component: () => import('../views/DotGiamGiaView.vue'),
@@ -126,9 +126,12 @@ const router = createRouter({
       name: 'thong-ke',
       component: () => import('@/views/ThongKeView.vue'),
     },
+    {
+      path: '/ban-hang',
+      name: 'ban-hang',
+      component: () => import('@/views/BanHang.vue'),
+    },
   ],
 })
-
-
 
 export default router

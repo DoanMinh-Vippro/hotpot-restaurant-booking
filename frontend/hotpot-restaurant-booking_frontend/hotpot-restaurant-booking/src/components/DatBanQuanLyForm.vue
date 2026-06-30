@@ -6,12 +6,19 @@ import router from '@/router'
 const props = defineProps(['datBanQuanLy', 'listBan'])
 const emit = defineEmits(['refresh'])
 
-const errors = ref<Record<string, string>>({}) //biến chứa lỗi
+const errors = ref<Record<string, string>>({})
 
-// 1. Khởi tạo form
+// =============================
+// INIT FORM
+// =============================
 const initForm = () => ({
   idDatBan: 0,
+
+  // =============================
+  // BAN - TẠM THỜI KHÔNG DÙNG
+  // =============================
   idBan: null as number | null,
+
   idkhachHang: null as number | null,
   sdtKhachHang: '',
   soNguoi: 0,
@@ -25,10 +32,11 @@ const initForm = () => ({
 
 const formData = ref(initForm())
 
-// 2. Công tắc kiểm tra: Nếu idDatBan > 0 là Đang Sửa, ngược lại là Thêm mới
 const isEditing = computed(() => formData.value.idDatBan > 0)
 
-// 3. Watch: Tự động reset khi props thay đổi
+// =============================
+// WATCH DATA FROM PARENT
+// =============================
 watch(
   () => props.datBanQuanLy,
   (newData) => {
@@ -41,6 +49,9 @@ watch(
   { immediate: true },
 )
 
+// =============================
+// SAVE
+// =============================
 const save = async () => {
   errors.value = {}
 
@@ -51,17 +62,14 @@ const save = async () => {
     } else {
       await DatBanQuanLyApi.add(formData.value)
       alert('Thêm thành công')
-      console.log('--- DEBUG SAVE ---')
-      console.log('ID hiện tại là:', formData.value.idDatBan)
-      console.log('isEditing là:', isEditing.value)
     }
+
     emit('refresh')
   } catch (error) {
     console.error('Lỗi thực hiện:', error)
   }
 }
 
-// Thêm hàm này vào script setup
 const resetForm = () => {
   formData.value = initForm()
 }
@@ -83,9 +91,11 @@ const resetForm = () => {
       <div class="input-field">
         <label>ID Khách Hàng</label>
         <input v-model.number="formData.idkhachHang" type="number" />
-        <span v-if="errors.idkhachHang" class="error-msg">{{ errors.idkhachHang }}</span>
       </div>
 
+      <!-- =============================
+           BAN - TẠM THỜI DISABLE UI
+           =============================
       <div class="input-field">
         <label>Loại Bàn</label>
         <select v-model="formData.idBan">
@@ -94,27 +104,22 @@ const resetForm = () => {
             {{ b.loaiBan }}
           </option>
         </select>
-        <span v-if="errors.idBan" class="error-msg">{{ errors.idBan }}</span>
       </div>
+      -->
 
       <div class="input-field">
         <label>Số Người</label>
         <input v-model.number="formData.soNguoi" type="number" />
-        <span v-if="errors.soNguoi" class="error-msg">{{ errors.soNguoi }}</span>
       </div>
 
       <div class="input-field">
         <label>Tiền Cọc</label>
         <input v-model.number="formData.soTienCoc" type="number" class="highlight-gold" />
-        <span v-if="errors.soTienCoc" class="error-msg">{{ errors.soTienCoc }}</span>
       </div>
 
       <div class="input-field">
         <label>Thời Gian Đến</label>
         <input v-model="formData.thoiGianDenDuKien" type="datetime-local" />
-        <span v-if="errors.thoiGianDenDuKien" class="error-msg">{{
-          errors.thoiGianDenDuKien
-        }}</span>
       </div>
 
       <div class="input-field">
@@ -124,9 +129,6 @@ const resetForm = () => {
           <option value="VNPAY">VNPAY</option>
           <option value="TIEN_MAT">Tiền mặt</option>
         </select>
-        <span v-if="errors.phuongThucThanhToan" class="error-msg">{{
-          errors.phuongThucThanhToan
-        }}</span>
       </div>
 
       <div class="input-field">
@@ -138,14 +140,12 @@ const resetForm = () => {
           <option value="DA_HUY">Đã hủy</option>
           <option value="HOAN_THANH">Hoàn thành</option>
         </select>
-        <span v-if="errors.trangThai" class="error-msg">{{ errors.trangThai }}</span>
       </div>
     </div>
 
     <div class="input-field full-width">
       <label>Ghi Chú</label>
       <textarea v-model="formData.ghiChu" rows="2"></textarea>
-      <span v-if="errors.ghiChu" class="error-msg">{{ errors.ghiChu }}</span>
     </div>
 
     <div class="button-bar">

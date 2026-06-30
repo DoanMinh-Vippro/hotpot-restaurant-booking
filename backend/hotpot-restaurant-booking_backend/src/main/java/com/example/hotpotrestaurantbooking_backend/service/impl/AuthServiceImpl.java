@@ -151,6 +151,7 @@ public class AuthServiceImpl implements AuthService {
                 .subject(tk.getTenDangNhap())
                 // Nhúng quyền vào claim "scope" để Controller sử dụng
                 .claim("scope", "ROLE_" + chucVu.toUpperCase())
+                .claim("idTaiKhoan", tk.getIdTaiKhoan())
                 .build();
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }

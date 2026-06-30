@@ -21,6 +21,9 @@ import java.time.LocalTime;
 public class DTODatBanQuanLyResponse {
     private Integer idDatBan;
     private Integer idBan;
+    private Integer idCombo;
+    private String tenCombo;
+    private BigDecimal giaCombo;
     private LoaiBan loaiBan;
     private Integer idKhachHang;
     private String tenKhachHang;

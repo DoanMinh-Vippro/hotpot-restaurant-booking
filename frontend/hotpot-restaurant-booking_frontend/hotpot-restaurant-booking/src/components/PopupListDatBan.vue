@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import { onMounted, ref } from 'vue'
+
 /**
  * =====================================================
  * POPUP DANH SÁCH ĐƠN ĐẶT BÀN ĐÃ XÁC NHẬN
@@ -7,6 +10,7 @@
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'chonDatBan', datBan: any): void
 }>()
 
 /**
@@ -15,32 +19,28 @@ const emit = defineEmits<{
  * Sau này:
  * DatBanApi.getByTrangThai('DA_XAC_NHAN')
  */
-const danhSachDatBan = [
-  {
-    idDatBan: 1,
-    tenKhachHang: 'Nguyễn Văn A',
-    sdtKhachHang: '0901111111',
-    soNguoi: 4,
-  },
+const danhSachDatBan = ref<any[]>([])
 
-  {
-    idDatBan: 2,
-    tenKhachHang: 'Trần Văn B',
-    sdtKhachHang: '0902222222',
-    soNguoi: 6,
-  },
-
-  {
-    idDatBan: 3,
-    tenKhachHang: 'Lê Văn C',
-    sdtKhachHang: '0903333333',
-    soNguoi: 8,
-  },
-]
+const loadDanhSachDatBan = async () => {
+  try {
+    const res = await DatBanQuanLyApi.findByTrangThai('DA_XAC_NHAN')
+    danhSachDatBan.value = res.data
+  } catch (e) {
+    console.error('Lỗi load danh sách đặt bàn', e)
+  }
+}
 
 const dongPopup = () => {
   emit('close')
 }
+
+const chonDatBan = (datBan: any) => {
+  emit('chonDatBan', datBan)
+  emit('close')
+}
+onMounted(() => {
+  loadDanhSachDatBan()
+})
 </script>
 
 <template>
@@ -50,27 +50,19 @@ const dongPopup = () => {
 
       <div class="popup-body">
         <div v-for="datBan in danhSachDatBan" :key="datBan.idDatBan" class="dat-ban-card">
-          <div>
-            <strong>Mã đơn:</strong>
-            #{{ datBan.idDatBan }}
+          <div class="info">
+            <div><strong>Mã đơn:</strong> #{{ datBan.idDatBan }}</div>
+
+            <div><strong>Khách:</strong> {{ datBan.tenKhachHang }}</div>
+
+            <div><strong>Ngày đặt:</strong> {{ datBan.ngayDat }}</div>
+
+            <div><strong>SĐT:</strong> {{ datBan.sdtKhachHang }}</div>
+
+            <div><strong>Trạng thái:</strong> {{ datBan.trangThai }}</div>
           </div>
 
-          <div>
-            <strong>Khách:</strong>
-            {{ datBan.tenKhachHang }}
-          </div>
-
-          <div>
-            <strong>SĐT:</strong>
-            {{ datBan.sdtKhachHang }}
-          </div>
-
-          <div>
-            <strong>Số người:</strong>
-            {{ datBan.soNguoi }}
-          </div>
-
-          <button class="btn-chon">Chọn</button>
+          <button class="btn-chon" @click="chonDatBan(datBan)">Chọn</button>
         </div>
       </div>
     </div>
