@@ -35,15 +35,17 @@ public interface DotGiamGiaRepository extends JpaRepository<DotGiamGia,Integer> 
     Page<DotGiamGiaResponse> phanTrangDGG(Pageable pageable);
 
     @Query("""
-select new com.example.hotpotrestaurantbooking_backend.dto.DotGiamGiaResponse(dgg.idDotGiamGia, dgg.tenChuongTrinh, dgg.ngayBatDau, dgg.ngayKetThuc)
-    from DotGiamGia dgg
-    where
-        (:tenChuongTrinh is null or lower(dgg.tenChuongTrinh) like lower(concat('%', :tenChuongTrinh, '%')))
-    and
-        (:tuNgay is null or dgg.ngayBatDau >= :tuNgay)
-    and
-        (:denNgay is null or dgg.ngayKetThuc <= :denNgay)
-""")
+        select new com.example.hotpotrestaurantbooking_backend.dto.DotGiamGiaResponse(
+            dgg.idDotGiamGia, dgg.tenChuongTrinh, dgg.ngayBatDau, dgg.ngayKetThuc
+        )
+        from DotGiamGia dgg
+        where
+            (:tenChuongTrinh is null or dgg.tenChuongTrinh like :tenChuongTrinh)
+        and
+            (:tuNgay is null or dgg.ngayBatDau >= :tuNgay)
+        and
+            (:denNgay is null or dgg.ngayKetThuc <= :denNgay)
+    """)
     Page<DotGiamGiaResponse> timKiemDGG(
             @Param("tenChuongTrinh") String tenChuongTrinh,
             @Param("tuNgay") LocalDate tuNgay,

@@ -25,6 +25,7 @@ public interface ChiTietGiamGiaMonService {
             String tenMon,
             BigDecimal mucMin,
             BigDecimal mucMax,
+            String loaiGiam,
             Integer pageNo,
             Integer pageSize
     );

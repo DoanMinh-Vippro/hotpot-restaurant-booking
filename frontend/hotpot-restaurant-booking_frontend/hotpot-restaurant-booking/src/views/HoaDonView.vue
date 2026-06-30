@@ -21,14 +21,32 @@ const so_da_thanh_toan = computed(
   () => danh_sach_hoa_don.value.filter((item) => item.trangThaiThanhToan === 1).length,
 )
 
+const getTimestamp = (value: string | number[] | null | undefined): number => {
+  if (!value) return 0
+  if (Array.isArray(value)) {
+    const [year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0] = value
+    return new Date(year, month - 1, day, hour, minute, second).getTime()
+  }
+  const parsed = new Date(value).getTime()
+  return isNaN(parsed) ? 0 : parsed
+}
+
 const tai_hoa_don = async () => {
   dang_tai_hoa_don.value = true
   thong_bao_loi.value = ''
 
   try {
     const response = await HoaDonApi.getDanhSach()
-    danh_sach_hoa_don.value = response.data
-    id_da_chon.value = danh_sach_hoa_don.value[0]?.idHoaDon ?? null
+    
+    // Sort descending by date (newest first)
+    const sortedData = [...response.data].sort((a, b) => {
+      const timeA = getTimestamp(a.thoiGianXuat)
+      const timeB = getTimestamp(b.thoiGianXuat)
+      return timeB - timeA || b.idHoaDon - a.idHoaDon
+    })
+
+    danh_sach_hoa_don.value = sortedData
+    id_da_chon.value = sortedData[0]?.idHoaDon ?? null
 
     if (id_da_chon.value) {
       await tai_chi_tiet(id_da_chon.value)

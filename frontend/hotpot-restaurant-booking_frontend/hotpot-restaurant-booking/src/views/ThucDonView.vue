@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router' // Import useRouter để thực hiện điều hướng
+import { ref } from 'vue' // Bổ sung ref để quản lý trạng thái Tab
+import { useRouter } from 'vue-router'
+
 // Import 3 view hiện tại vào như các component
 import MonView from './MonView.vue'
 import ComBoView from './ComBoView.vue'
 
 const router = useRouter()
+
+// Trạng thái Tab hiện tại ('mon' hoặc 'combo')
+const activeTab = ref<'mon' | 'combo'>('mon')
 
 // Hàm xử lý quay về trang chủ (Khớp name: 'home' trong router/index.ts)
 const quayVeTrangChu = () => {
@@ -14,21 +19,40 @@ const quayVeTrangChu = () => {
 
 <template>
   <div class="thuc-don-tong">
-    <div class="thanh-dieu-huong-top">
+    <div class="thanh-top-wrapper">
       <button class="nut-trang-chu" @click="quayVeTrangChu">
         🏠 Quay về Trang chủ
       </button>
+
+      <div class="quan-ly-tabs">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'mon' }"
+          @click="activeTab = 'mon'"
+        >
+          🍔 Quản lý Món ăn
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'combo' }"
+          @click="activeTab = 'combo'"
+        >
+          🍱 Quản lý Gói Combo
+        </button>
+      </div>
     </div>
 
-    <section class="menu-section">
-      <h2 class="section-title">QUẢN LÝ MÓN</h2>
-      <MonView />
-    </section>
+    <div class="tab-content-container">
+      <transition name="fade" mode="out-in">
+        <section v-if="activeTab === 'mon'" key="mon" class="menu-section animate-fade">
+          <MonView />
+        </section>
 
-    <section class="menu-section">
-      <h2 class="section-title">QUẢN LÝ COMBO</h2>
-      <ComBoView />
-    </section>
+        <section v-else-if="activeTab === 'combo'" key="combo" class="menu-section animate-fade">
+          <ComBoView />
+        </section>
+      </transition>
+    </div>
   </div>
 </template>
 
@@ -40,11 +64,15 @@ const quayVeTrangChu = () => {
   padding-bottom: 50px;
 }
 
-/* Khu vực bao bọc nút trang chủ */
-.thanh-dieu-huong-top {
-  max-width: 1400px; /* Hoặc để tương đương với kích thước các bảng của bạn */
-  margin: 0 auto 20px;
+/* Khu vực bao bọc nút trang chủ và thanh Tab */
+.thanh-top-wrapper {
+  max-width: 1400px;
+  margin: 0 auto 30px;
   padding: 0 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
 }
 
 /* Thiết kế nút trang chủ mượt mà theo tông Dark Mode */
@@ -57,6 +85,7 @@ const quayVeTrangChu = () => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .nut-trang-chu:hover {
@@ -65,24 +94,75 @@ const quayVeTrangChu = () => {
   color: #c5a059;
 }
 
-.menu-section {
-  margin-bottom: 60px;
-  border-bottom: 1px solid rgba(197, 160, 89, 0.2);
-  padding-bottom: 40px;
+/* Cụm Tabs quản lý chỉnh chu */
+.quan-ly-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px;
+  border-radius: 16px;
 }
 
-.menu-section:last-child {
-  border-bottom: none;
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
-.section-title {
+.tab-btn:hover {
   color: #c5a059;
-  text-align: center;
-  font-family: 'Playfair Display', serif;
-  font-size: 2rem;
-  letter-spacing: 2px;
-  margin-bottom: -60px; /* Kéo component con xích lên một chút */
-  z-index: 10;
-  position: relative;
+}
+
+.tab-btn.active {
+  background: #c5a059;
+  color: #101010;
+  box-shadow: 0 4px 12px rgba(197, 160, 89, 0.2);
+}
+
+.tab-content-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.menu-section {
+  padding: 0 10px;
+}
+
+/* Hiệu ứng chuyển động mượt mà khi đổi Tab */
+.animate-fade {
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive tối ưu trên màn hình nhỏ */
+@media (max-width: 768px) {
+  .thanh-top-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 16px;
+  }
+  .quan-ly-tabs {
+    flex-direction: column;
+  }
+  .nut-trang-chu {
+    text-align: center;
+  }
 }
 </style>

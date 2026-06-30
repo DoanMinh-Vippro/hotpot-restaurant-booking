@@ -63,6 +63,7 @@ const formRef = ref()
 
 const bieuThucTenChuongTrinh = ref('')
 const bieuThucTenMon = ref('')
+const bieuThucLoaiGiam = ref('')
 const trangHienTai = ref(0)
 const kichThuocTrang = ref(5) 
 const tongSoTrang = ref(0)
@@ -73,7 +74,8 @@ const fetchDuLieu = async () => {
       bieuThucTenChuongTrinh.value,
       bieuThucTenMon.value,
       undefined, 
-      undefined, 
+      undefined,
+      bieuThucLoaiGiam.value, 
       trangHienTai.value,
       kichThuocTrang.value
     )
@@ -97,9 +99,10 @@ const quayLaiDotGiamGia = () => {
   router.push({ name: 'giam-gia', query: { tab: 'dot-giam-gia' } })
 }
 
-const nhanSuKienTimKiem = async (boLoc: { tenChuongTrinh: string, tenMon: string }) => {
+const nhanSuKienTimKiem = async (boLoc: { tenChuongTrinh: string, tenMon: string, loaiGiam: string }) => {
   bieuThucTenChuongTrinh.value = boLoc.tenChuongTrinh
   bieuThucTenMon.value = boLoc.tenMon
+  bieuThucLoaiGiam.value = boLoc.loaiGiam
   trangHienTai.value = 0
   await fetchDuLieu()
 }
@@ -112,6 +115,7 @@ const chuyenTrang = async (trangMucTieu: number) => {
 const lamMoiTimKiem = async () => {
   bieuThucTenChuongTrinh.value = ''
   bieuThucTenMon.value = ''
+  bieuThucLoaiGiam.value = ''
   trangHienTai.value = 0
   await fetchDuLieu()
 }

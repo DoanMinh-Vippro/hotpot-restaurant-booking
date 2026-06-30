@@ -33,18 +33,24 @@ public interface MonRepository extends JpaRepository<Mon,Integer> {
     Page<MonResponse> phanTrangMon(Pageable pageable);
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc, m.danhMuc.loaiDanhMuc, m.trangThai)
-    from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
-    where
-        (:tenMon is null or lower(m.tenMon) like lower(concat('%', :tenMon, '%')))
-    and
-        (:giaMin is null or m.donGiaHienTai >= :giaMin)
-    and
-        (:giaMax is null or m.donGiaHienTai <= :giaMax)
-    and
-        (:loaiDanhMuc is null or lower(m.danhMuc.loaiDanhMuc)
-                 like lower(concat('%', :loaiDanhMuc, '%')))
-""")
+        select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(
+            m.idMon, 
+            m.tenMon, 
+            m.donGiaHienTai, 
+            m.danhMuc.idDanhMuc, 
+            m.danhMuc.loaiDanhMuc, 
+            m.trangThai
+        )
+        from Mon m
+        where
+            (:tenMon is null or m.tenMon like :tenMon)
+        and
+            (:giaMin is null or m.donGiaHienTai >= :giaMin)
+        and
+            (:giaMax is null or m.donGiaHienTai <= :giaMax)
+        and
+            (:loaiDanhMuc is null or m.danhMuc.loaiDanhMuc like :loaiDanhMuc)
+    """)
     Page<MonResponse> timKiemMon(
             @Param("tenMon") String tenMon,
             @Param("giaMin") BigDecimal giaMin,

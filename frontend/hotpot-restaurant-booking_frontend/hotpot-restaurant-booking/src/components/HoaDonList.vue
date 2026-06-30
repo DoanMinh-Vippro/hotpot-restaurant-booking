@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { HoaDon } from '../api/HoaDonApi'
 
 const props = defineProps<{
@@ -13,21 +13,96 @@ const emit = defineEmits<{
 }>()
 
 const searchQuery = ref('')
+const filterPaymentStatus = ref<string>('all')
+const filterPaymentMethod = ref<string>('all')
+const filterTableType = ref<string>('all')
+const sortBy = ref<string>('newest')
+
+const getTimestamp = (value: string | number[] | null | undefined): number => {
+  if (!value) return 0
+  if (Array.isArray(value)) {
+    const [year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0] = value
+    return new Date(year, month - 1, day, hour, minute, second).getTime()
+  }
+  const parsed = new Date(value).getTime()
+  return isNaN(parsed) ? 0 : parsed
+}
 
 const filteredHoaDons = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return props.hoaDons
+  // 1. Filter
+  let result = props.hoaDons.filter((item) => {
+    // Search Query filter
+    const q = searchQuery.value.trim().toLowerCase()
+    if (q) {
+      const matchSearch = [
+        item.maHoaDon,
+        item.tenKhachHang,
+        item.sdtKhachHang,
+        item.maGiaoDich,
+        item.tenNhanVien
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(q))
+      if (!matchSearch) return false
+    }
 
-  return props.hoaDons.filter((item) => {
-    return [
-      item.maHoaDon,
-      item.tenKhachHang,
-      item.sdtKhachHang,
-      item.maGiaoDich,
-    ]
-      .filter(Boolean)
-      .some((field) => String(field).toLowerCase().includes(q))
+    // Payment Status filter
+    if (filterPaymentStatus.value !== 'all') {
+      const statusNum = Number(filterPaymentStatus.value)
+      if (item.trangThaiThanhToan !== statusNum) return false
+    }
+
+    // Payment Method filter
+    if (filterPaymentMethod.value !== 'all') {
+      const methodNum = Number(filterPaymentMethod.value)
+      if (item.phuongThucThanhToan !== methodNum) return false
+    }
+
+    // Table Type (loaiBan) filter
+    if (filterTableType.value !== 'all') {
+      if (filterTableType.value === 'MANG_VE') {
+        if (item.loaiBan !== null && item.loaiBan !== '') return false
+      } else {
+        if (item.loaiBan !== filterTableType.value) return false
+      }
+    }
+
+    return true
   })
+
+  // 2. Sort
+  result.sort((a, b) => {
+    if (sortBy.value === 'newest') {
+      const timeA = getTimestamp(a.thoiGianXuat)
+      const timeB = getTimestamp(b.thoiGianXuat)
+      return timeB - timeA || b.idHoaDon - a.idHoaDon
+    } else if (sortBy.value === 'oldest') {
+      const timeA = getTimestamp(a.thoiGianXuat)
+      const timeB = getTimestamp(b.thoiGianXuat)
+      return timeA - timeB || a.idHoaDon - b.idHoaDon
+    } else if (sortBy.value === 'total_desc') {
+      const totalA = Number(a.tongTien ?? 0)
+      const totalB = Number(b.tongTien ?? 0)
+      return totalB - totalA
+    } else if (sortBy.value === 'total_asc') {
+      const totalA = Number(a.tongTien ?? 0)
+      const totalB = Number(b.tongTien ?? 0)
+      return totalA - totalB
+    }
+    return 0
+  })
+
+  return result
+})
+
+// Auto-select the first filtered invoice if the currently selected is no longer in the list
+watch(filteredHoaDons, (newList) => {
+  if (newList.length > 0) {
+    const exists = newList.some((item) => item.idHoaDon === props.selectedId)
+    if (!exists) {
+      emit('select', newList[0].idHoaDon)
+    }
+  }
 })
 
 const formatCurrency = (value: number | string | null) =>
@@ -60,6 +135,49 @@ const handleSelect = (id: number) => {
       v-model="searchQuery"
       placeholder="Nhập mã hóa đơn, tên khách, số điện thoại..."
     />
+
+    <div class="bo-loc-hoa-don">
+      <div class="row-bo-loc">
+        <div class="nhom-loc">
+          <label for="filter-payment-status">Thanh toán</label>
+          <select id="filter-payment-status" v-model="filterPaymentStatus">
+            <option value="all">Tất cả</option>
+            <option value="1">Đã thanh toán</option>
+            <option value="0">Chưa thanh toán</option>
+          </select>
+        </div>
+        <div class="nhom-loc">
+          <label for="filter-table-type">Phân loại bàn</label>
+          <select id="filter-table-type" v-model="filterTableType">
+            <option value="all">Tất cả</option>
+            <option value="HAI_NGUOI">Bàn 2 người</option>
+            <option value="BON_NGUOI">Bàn 4 người</option>
+            <option value="SAU_NGUOI">Bàn 6 người</option>
+            <option value="MANG_VE">Mang về/Khác</option>
+          </select>
+        </div>
+      </div>
+      <div class="row-bo-loc">
+        <div class="nhom-loc">
+          <label for="filter-payment-method">Phương thức</label>
+          <select id="filter-payment-method" v-model="filterPaymentMethod">
+            <option value="all">Tất cả</option>
+            <option value="1">Tiền mặt</option>
+            <option value="2">Chuyển khoản</option>
+            <option value="3">Thẻ</option>
+          </select>
+        </div>
+        <div class="nhom-loc">
+          <label for="sort-by">Sắp xếp</label>
+          <select id="sort-by" v-model="sortBy">
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="total_desc">Tổng tiền (Cao → Thấp)</option>
+            <option value="total_asc">Tổng tiền (Thấp → Cao)</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
     <button
       v-for="hoaDon in filteredHoaDons"
@@ -169,6 +287,53 @@ const handleSelect = (id: number) => {
 .trang-trong {
   color: #cfc3ae;
   margin: 14px 0;
+}
+
+.bo-loc-hoa-don {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row-bo-loc {
+  display: flex;
+  gap: 10px;
+}
+
+.nhom-loc {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nhom-loc label {
+  font-size: 0.72rem;
+  color: #b7ad9c;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.nhom-loc select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f7f2e9;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.nhom-loc select option {
+  background: #16110a;
+  color: #f7f2e9;
+}
+
+.nhom-loc select:focus {
+  border-color: #d7b46a;
 }
 
 @media (max-width: 900px) {

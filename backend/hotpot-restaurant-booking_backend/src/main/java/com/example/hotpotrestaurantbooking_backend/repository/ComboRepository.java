@@ -32,15 +32,17 @@ public interface ComboRepository extends JpaRepository<Combo,Integer> {
     Page<ComboResponse> phanTrangComBo(Pageable pageable);
 
     @Query("""
-select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai)
+        select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(
+            cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai
+        )
         from Combo cb
-    where
-        (:tenCombo is null or lower(cb.tenCombo) like lower(concat('%', :tenCombo, '%')))
-    and
-        (:giaMin is null or cb.giaCombo >= :giaMin)
-    and
-        (:giaMax is null or cb.giaCombo <= :giaMax)
-""")
+        where
+            (:tenCombo is null or cb.tenCombo like :tenCombo)
+        and
+            (:giaMin is null or cb.giaCombo >= :giaMin)
+        and
+            (:giaMax is null or cb.giaCombo <= :giaMax)
+    """)
     Page<ComboResponse> timKiemComBo(
             @Param("tenCombo") String tenCombo,
             @Param("giaMin") BigDecimal giaMin,

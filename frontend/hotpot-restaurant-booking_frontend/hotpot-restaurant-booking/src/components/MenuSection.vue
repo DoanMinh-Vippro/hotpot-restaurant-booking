@@ -33,11 +33,11 @@ const fetchMonByPage = async (pageMucTieu: number) => {
     const responseData = resMon.data as any
 
     if (responseData && responseData.content) {
-      monItems.value = responseData.content.filter((m: Mon) => m.trangThai === 0)
+      monItems.value = responseData.content.filter((m: Mon) => m.trangThai !== 1)
       totalPagesMon.value = responseData.totalPages || 0
     } else {
       const dsMon = Array.isArray(responseData) ? responseData : []
-      monItems.value = dsMon.filter((m: Mon) => m.trangThai === 0)
+      monItems.value = dsMon.filter((m: Mon) => m.trangThai !== 1)
       totalPagesMon.value = 1
     }
   } catch (error) {
@@ -56,11 +56,11 @@ const fetchComboByPage = async (pageMucTieu: number) => {
     const responseData = resCombo.data as any
 
     if (responseData && responseData.content) {
-      comboItems.value = responseData.content.filter((cb: Combo) => cb.trangThai === 1)
+      comboItems.value = responseData.content.filter((cb: Combo) => cb.trangThai !== 0)
       totalPagesCombo.value = responseData.totalPages || 0
     } else {
       const dsCombo = Array.isArray(responseData) ? responseData : []
-      comboItems.value = dsCombo.filter((cb: Combo) => cb.trangThai === 1)
+      comboItems.value = dsCombo.filter((cb: Combo) => cb.trangThai !== 0)
       totalPagesCombo.value = 1
     }
   } catch (error) {

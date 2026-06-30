@@ -51,25 +51,28 @@ public interface ChiTietGiamGiaMonRepository extends JpaRepository<ChiTietGiamGi
     @Query("""
         select new com.example.hotpotrestaurantbooking_backend.dto.ChiTietGiamGiaMonResponse(
             ctggm.idChiTietGiamGiaMon, ctggm.dotGiamGia.idDotGiamGia, ctggm.dotGiamGia.tenChuongTrinh,
-    ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam, ctggm.loaiGiam, ctggm.trangThai
+            ctggm.mon.idMon, ctggm.mon.tenMon, ctggm.mucGiam, ctggm.loaiGiam, ctggm.trangThai
         )
         from ChiTietGiamGiaMon ctggm 
         join ctggm.dotGiamGia dgg 
         join ctggm.mon m 
         where
-            (:tenChuongTrinh is null or :tenChuongTrinh = '' or lower(dgg.tenChuongTrinh) like lower(concat('%', :tenChuongTrinh, '%')))
+            (:tenChuongTrinh is null or dgg.tenChuongTrinh like :tenChuongTrinh)
         and
-            (:tenMon is null or :tenMon = '' or lower(m.tenMon) like lower(concat('%', :tenMon, '%')))
+            (:tenMon is null or m.tenMon like :tenMon)
         and
             (:mucMin is null or ctggm.mucGiam >= :mucMin)
         and
             (:mucMax is null or ctggm.mucGiam <= :mucMax)
+            and
+                        (:loaiGiam is null or ctggm.loaiGiam = :loaiGiam)
     """)
     Page<ChiTietGiamGiaMonResponse> timKiemCTGGM(
             @Param("tenChuongTrinh") String tenChuongTrinh,
             @Param("tenMon") String tenMon, // Đã map tham số tìm kiếm theo tên món ăn vào JPQL
             @Param("mucMin") BigDecimal mucMin,
             @Param("mucMax") BigDecimal mucMax,
+            @Param("loaiGiam") String loaiGiam,
             Pageable pageable
     );
 

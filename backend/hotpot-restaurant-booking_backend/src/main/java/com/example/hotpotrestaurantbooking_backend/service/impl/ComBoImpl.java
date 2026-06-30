@@ -39,7 +39,11 @@ public class ComBoImpl implements ComBoService {
     @Override
     public Page<ComboResponse>timKiemComBo(String tenCombo, BigDecimal giaMin, BigDecimal giaMax, Integer pageNo, Integer pageSize){
         Pageable pageable= PageRequest.of(pageNo,pageSize);
-        return repo.timKiemComBo(tenCombo, giaMin, giaMax, pageable);
+        String tenComboSearch = (tenCombo != null && !tenCombo.trim().isEmpty())
+                ? "%" + tenCombo.trim() + "%"
+                : null;
+
+        return repo.timKiemComBo(tenComboSearch, giaMin, giaMax, pageable);
     }
     @Override
     public void addComBo(ComboRequest req){

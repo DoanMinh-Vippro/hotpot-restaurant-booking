@@ -30,13 +30,14 @@ class ChiTietGiamGiaMonApi {
     })
   }
 
-  search(tenChuongTrinh?: string, tenMon?: string, mucMin?: number, mucMax?: number, pageNo = 0, pageSize = 5) {
+  search(tenChuongTrinh?: string, tenMon?: string, mucMin?: number, mucMax?: number, loaiGiam?: string, pageNo = 0, pageSize = 5) {
     return ApiClient.get<any>('/timKiemCTGGM', {
       params: {
         tenChuongTrinh: tenChuongTrinh?.trim() || undefined,
         tenMon: tenMon?.trim() || undefined,
         mucMin: mucMin ?? undefined,
         mucMax: mucMax ?? undefined,
+        loaiGiam: loaiGiam || undefined,
         pageNo,
         pageSize
       }
