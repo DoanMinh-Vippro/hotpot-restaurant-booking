@@ -1,4 +1,4 @@
-import ApiClient from "./ApiClient"
+import ApiClient from './ApiClient'
 
 export interface HoaDon {
   idHoaDon: number
@@ -23,6 +23,8 @@ export interface HoaDon {
   tenNhanVien: string | null
   trangThaiThanhToan: number | null
   phuongThucThanhToan: number | null
+
+  chiTiet?: HoaDonChiTiet[] | null
 }
 
 export interface HoaDonChiTiet {
@@ -94,6 +96,13 @@ class HoaDonApi {
    */
   getByKhachHangId(khachHangId: number) {
     return ApiClient.get<HoaDon[]>(`/api/hoa-don/khach-hang/${khachHangId}`)
+  }
+
+  /**
+   * Tìm hóa đơn theo bàn + trạng thái
+   */
+  findByBanAndStatus(idBan: number, trangThaiHoaDon: number) {
+    return ApiClient.get<HoaDon>(`/api/hoa-don/ban/${idBan}/trang-thai/${trangThaiHoaDon}`)
   }
 }
 

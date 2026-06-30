@@ -1,25 +1,26 @@
-import ApiClient from "./ApiClient"
-    const DatBanQuanLyApi = {
-        getAll(){
-            return ApiClient.get("/api/dat-ban-quan-ly")
-        },
+import ApiClient from './ApiClient'
+const DatBanQuanLyApi = {
+  getAll() {
+    return ApiClient.get('/api/dat-ban-quan-ly')
+  },
 
-        findById(id: number){
-            return ApiClient.get(`/api/dat-ban-quan-ly/${id}`)
-        },
+  findById(id: number) {
+    return ApiClient.get(`/api/dat-ban-quan-ly/${id}`)
+  },
+  findByTrangThai(trangThai: string) {
+    return ApiClient.get(`/api/dat-ban-quan-ly/trang-thai/${trangThai}`)
+  },
+  add(data: any) {
+    return ApiClient.post('/api/dat-ban-quan-ly', data)
+  },
 
-        add(data: any){
-            return ApiClient.post("/api/dat-ban-quan-ly",data)
-        },
+  update(id: number, data: any) {
+    return ApiClient.put(`/api/dat-ban-quan-ly/${id}`, data)
+  },
 
-        update(id: number, data: any){
-            return ApiClient.put(`/api/dat-ban-quan-ly/${id}`,data)
-        },
+  delete(id: number) {
+    return ApiClient.delete(`/api/dat-ban-quan-ly/${id}`)
+  },
+}
 
-        delete(id: number){
-            return ApiClient.delete(`/api/dat-ban-quan-ly/${id}`)
-        }
-
-    }
-
-        export default DatBanQuanLyApi;
+export default DatBanQuanLyApi

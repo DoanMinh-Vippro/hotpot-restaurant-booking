@@ -132,6 +132,12 @@ const router = createRouter({
       name: 'thong-ke',
       component: () => import('@/views/ThongKeView.vue'),
     },
+    {
+      path: '/ban-hang',
+      name: 'ban-hang',
+      component: () => import('@/views/BanHang.vue'),
+    },
   ],
 })
+
 export default router
