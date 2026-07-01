@@ -1,9 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.service;
 
-import com.example.hotpotrestaurantbooking_backend.dto.DTODashboard;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeDoanhThu;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeNhanVien;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeTheoMon;
+import com.example.hotpotrestaurantbooking_backend.dto.*;
 
 
 import java.util.List;
@@ -20,4 +17,7 @@ public interface ThongKeService {
     List<DTOThongKeTheoMon> topMon(int page, int size);
 
     DTODashboard dashboard();
+    List<DTOThongKeDoanhThu> tienCocTheoNgay();
+
+    List<DTOTrangThaiCoc> trangThaiCoc();
 }
