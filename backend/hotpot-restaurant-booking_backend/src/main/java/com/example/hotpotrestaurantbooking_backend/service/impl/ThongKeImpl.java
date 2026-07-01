@@ -2,10 +2,7 @@ package com.example.hotpotrestaurantbooking_backend.service;
 
 
 
-import com.example.hotpotrestaurantbooking_backend.dto.DTODashboard;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeDoanhThu;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeNhanVien;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeTheoMon;
+import com.example.hotpotrestaurantbooking_backend.dto.*;
 import com.example.hotpotrestaurantbooking_backend.repository.ThongKeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -75,16 +72,37 @@ public class ThongKeImpl implements ThongKeService {
                 ))
                 .toList();
     }
-
+    @Override
+    public List<DTOThongKeDoanhThu> tienCocTheoNgay() {
+        return repo.tienCocTheoNgay().stream()
+                .map(o -> new DTOThongKeDoanhThu(
+                        o[0].toString(),
+                        Double.valueOf(o[1].toString())
+                ))
+                .toList();
+    }
+    @Override
+    public List<DTOTrangThaiCoc> trangThaiCoc() {
+        return repo.trangThaiCoc().stream()
+                .map(o -> new DTOTrangThaiCoc(
+                        Integer.valueOf(o[0].toString()),
+                        Long.valueOf(o[1].toString())
+                ))
+                .toList();
+    }
     // ===== 6. Dashboard tổng =====
     @Override
     public DTODashboard dashboard() {
         Object[] o = (Object[]) repo.dashboard();
 
         return new DTODashboard(
-                o[0] != null ? Double.valueOf(o[0].toString()) : 0,
-                o[1] != null ? Long.valueOf(o[1].toString()) : 0,
-                o[2] != null ? Long.valueOf(o[2].toString()) : 0
+                o[0] != null ? Double.valueOf(o[0].toString()) : 0.0,
+                o[1] != null ? Long.valueOf(o[1].toString()) : 0L,
+                o[2] != null ? Long.valueOf(o[2].toString()) : 0L,
+                o[3] != null ? Double.valueOf(o[3].toString()) : 0.0,
+                o[4] != null ? Long.valueOf(o[4].toString()) : 0L,
+                o[5] != null ? Long.valueOf(o[5].toString()) : 0L,
+                o[6] != null ? Long.valueOf(o[6].toString()) : 0L
         );
     }
 }
