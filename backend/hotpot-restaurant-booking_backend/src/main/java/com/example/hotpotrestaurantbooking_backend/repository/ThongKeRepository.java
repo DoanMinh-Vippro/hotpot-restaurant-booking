@@ -79,12 +79,50 @@ public interface ThongKeRepository extends JpaRepository<HoaDon, Integer> {
 
     // ===== 6. Dashboard =====
     @Query(value = """
-        SELECT 
-            SUM(tong_tien),
-            COUNT(*),
-            (SELECT COUNT(*) FROM KhachHang)
-        FROM HoaDon
-        WHERE trang_thai_thanh_toan = 1
-    """, nativeQuery = true)
+SELECT
+    ISNULL(SUM(hd.tong_tien),0) AS tongDoanhThu,
+    COUNT(hd.id_hoa_don) AS tongHoaDon,
+    (SELECT COUNT(*) FROM KhachHang) AS tongKhachHang,
+
+    (SELECT ISNULL(SUM(so_tien_coc),0)
+        FROM DatBan
+        WHERE trang_thai_coc = 1) AS tongTienCoc,
+
+    (SELECT COUNT(*)
+        FROM DatBan
+        WHERE trang_thai_coc = 1) AS soDonDaCoc,
+
+    (SELECT COUNT(*)
+        FROM DatBan
+        WHERE trang_thai_coc = 0) AS soDonChuaCoc,
+
+    (SELECT COUNT(*)
+        FROM DatBan
+        WHERE trang_thai_coc = 2) AS soDonHoanCoc
+
+FROM HoaDon hd
+WHERE hd.trang_thai_thanh_toan = 1
+""", nativeQuery = true)
     Object dashboard();
+
+    @Query(value="""
+SELECT
+CONVERT(varchar,thoi_gian_den_du_kien,23),
+SUM(so_tien_coc)
+FROM DatBan
+WHERE trang_thai_coc=1
+GROUP BY CONVERT(varchar,thoi_gian_den_du_kien,23)
+ORDER BY 1
+""",nativeQuery = true)
+    List<Object[]> tienCocTheoNgay();
+
+    @Query(value="""
+SELECT
+trang_thai_coc,
+COUNT(*)
+FROM DatBan
+GROUP BY trang_thai_coc
+ORDER BY trang_thai_coc
+""",nativeQuery = true)
+    List<Object[]> trangThaiCoc();
 }
