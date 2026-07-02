@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.example.hotpotrestaurantbooking_backend.HotpotRestaurantBookingBackendApplicationTests" time="5.733" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.example.hotpotrestaurantbooking_backend.service.impl.DatBanQuanLyServiceImplTest" time="0.053" tests="2" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="17"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -62,90 +62,6 @@
     <property name="java.class.version" value="61.0"/>
     <property name="LOGGED_APPLICATION_NAME" value="[hotpot-restaurant-booking_backend] "/>
   </properties>
-  <testcase name="contextLoads" classname="com.example.hotpotrestaurantbooking_backend.HotpotRestaurantBookingBackendApplicationTests" time="0.462">
-    <system-out><![CDATA[09:15:26.957 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.example.hotpotrestaurantbooking_backend.HotpotRestaurantBookingBackendApplicationTests]: HotpotRestaurantBookingBackendApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-09:15:27.038 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.example.hotpotrestaurantbooking_backend.HotpotRestaurantBookingBackendApplication for test class com.example.hotpotrestaurantbooking_backend.HotpotRestaurantBookingBackendApplicationTests
-09:15:27.125 [main] INFO org.springframework.boot.devtools.restart.RestartApplicationListener -- Restart disabled due to context in which it is running
-
-  .   ____          _            __ _ _
- /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
-( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
- \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
-  '  |____| .__|_| |_|_| |_\__, | / / / /
- =========|_|==============|___/=/_/_/_/
-
- :: Spring Boot ::                (v3.3.5)
-
-2026-07-02T09:15:27.305+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] RestaurantBookingBackendApplicationTests : Starting HotpotRestaurantBookingBackendApplicationTests using Java 17.0.12 with PID 48448 (started by nguyenmanhdung in /Users/nguyenmanhdung/Documents/hotpot-restaurant-booking/backend/hotpot-restaurant-booking_backend)
-2026-07-02T09:15:27.306+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] RestaurantBookingBackendApplicationTests : No active profile set, falling back to 1 default profile: "default"
-2026-07-02T09:15:28.155+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-07-02T09:15:28.239+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 78 ms. Found 18 JPA repository interfaces.
-2026-07-02T09:15:28.663+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-07-02T09:15:28.702+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
-2026-07-02T09:15:28.717+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-07-02T09:15:28.856+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-07-02T09:15:28.872+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-07-02T09:15:29.043+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection ConnectionID:1 ClientConnectionId: 9c87ff42-6ea9-4c01-8264-2f579dd92d26
-2026-07-02T09:15:29.050+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-07-02T09:15:29.774+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-07-02T09:15:29.776+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-07-02T09:15:29.946+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-07-02T09:15:31.333+07:00  WARN 48448 --- [hotpot-restaurant-booking_backend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-07-02T09:15:31.354+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
-2026-07-02T09:15:31.855+07:00  INFO 48448 --- [hotpot-restaurant-booking_backend] [           main] RestaurantBookingBackendApplicationTests : Started HotpotRestaurantBookingBackendApplicationTests in 4.737 seconds (process running for 5.55)
-Hibernate: 
-    select
-        tk1_0.id_tai_khoan,
-        tk1_0.id_chuc_vu,
-        tk1_0.ma_tai_khoan,
-        tk1_0.mat_khau,
-        tk1_0.ten_dang_nhap,
-        tk1_0.trang_thai 
-    from
-        TaiKhoan tk1_0 
-    where
-        tk1_0.ten_dang_nhap=?
-Hibernate: 
-    select
-        cv1_0.id_chuc_vu,
-        cv1_0.ma_chuc_vu,
-        cv1_0.ten_chuc_vu 
-    from
-        ChucVu cv1_0 
-    where
-        cv1_0.id_chuc_vu=?
-Hibernate: 
-    select
-        tk1_0.id_tai_khoan,
-        cv1_0.id_chuc_vu,
-        cv1_0.ma_chuc_vu,
-        cv1_0.ten_chuc_vu,
-        tk1_0.ma_tai_khoan,
-        tk1_0.mat_khau,
-        tk1_0.ten_dang_nhap,
-        tk1_0.trang_thai 
-    from
-        TaiKhoan tk1_0 
-    left join
-        ChucVu cv1_0 
-            on cv1_0.id_chuc_vu=tk1_0.id_chuc_vu 
-    where
-        tk1_0.id_tai_khoan=?
-Hibernate: 
-    update
-        TaiKhoan 
-    set
-        id_chuc_vu=?,
-        ma_tai_khoan=?,
-        mat_khau=?,
-        ten_dang_nhap=?,
-        trang_thai=? 
-    where
-        id_tai_khoan=?
-==========================================
-ĐÃ CẬP NHẬT MẬT KHẨU MỚI CHO ADMIN
-Mật khẩu mã hóa: $2a$10$NI/r9PHPad3Aj23aKtgdsOQmbYwikZUpEAuYV8stN.ZrAfC7U.nIG
-==========================================
-]]></system-out>
-  </testcase>
+  <testcase name="addShouldDefaultDepositToZeroWhenNotProvided" classname="com.example.hotpotrestaurantbooking_backend.service.impl.DatBanQuanLyServiceImplTest" time="0.049"/>
+  <testcase name="updateShouldPersistTrangThaiCocAndCustomerInfo" classname="com.example.hotpotrestaurantbooking_backend.service.impl.DatBanQuanLyServiceImplTest" time="0.003"/>
 </testsuite>

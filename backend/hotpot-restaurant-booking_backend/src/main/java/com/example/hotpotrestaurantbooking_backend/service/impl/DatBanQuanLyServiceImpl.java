@@ -5,15 +5,18 @@ import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.Ban;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -21,117 +24,172 @@ import java.util.List;
 @RequiredArgsConstructor
 @Service
 public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
+
     private final ModelMapper mapper;
     private final DatBanRepository datBanRepository;
     private final BanRepository banRepository;
     private final KhachHangRepository khachHangRepository;
-    private KhachHang kh;
-    private Ban b;
+    private final HoaDonRepository hoaDonRepository;
 
+    // =========================
+    // MAP RESPONSE (SAFE NULL BAN)
+    // =========================
     private DTODatBanQuanLyResponse mapToResponse(DatBan d) {
         DTODatBanQuanLyResponse response = mapper.map(d, DTODatBanQuanLyResponse.class);
-        // Xử lý Bàn (Bỏ qua lỗi nếu null)
+
         if (d.getBan() != null) {
-            response.setLoaiBan(d.getBan().getLoaiBan());
             response.setIdBan(d.getBan().getIdBan());
-        } else {
-            response.setLoaiBan(null);
         }
 
-        // Xử lý Khách hàng (Bỏ qua lỗi nếu null)
         if (d.getKhachHang() != null) {
             response.setTenKhachHang(d.getKhachHang().getTenKhachHang());
             response.setIdKhachHang(d.getKhachHang().getIdKhachHang());
+            response.setSdtKhachHang(d.getSdtKhachHang());
         } else {
             response.setTenKhachHang("Khách vãng lai");
         }
+
+        response.setSoTienCoc(d.getSoTienCoc());
+        response.setTrangThaiCoc(d.getTrangThaiCoc());
+        response.setPhuongThucThanhToan(d.getPhuongThucThanhToan());
+        response.setGhiChu(d.getGhiChu());
+        response.setNgayDat(d.getNgayDat());
+        response.setGioDat(d.getGioDat());
+        response.setThoiGianDenDuKien(d.getThoiGianDenDuKien());
+        response.setSoNguoi(d.getSoNguoi());
+        response.setTrangThai(d.getTrangThai());
+
+        if (d.getCombo() != null) {
+            response.setIdCombo(d.getCombo().getIdCombo());
+            response.setTenCombo(d.getCombo().getTenCombo());
+            response.setGiaCombo(d.getCombo().getGiaCombo());
+        }
+
         return response;
     }
 
     @Override
     public List<DTODatBanQuanLyResponse> getAll() {
-        return datBanRepository
-                .findAll()
+        return datBanRepository.findAll()
                 .stream()
+                .filter(this::isVisibleReservation)
                 .map(this::mapToResponse)
                 .toList();
     }
 
     @Override
     public DTODatBanQuanLyResponse findById(Integer id) {
-        return datBanRepository
-                .findById(id)
+        return datBanRepository.findById(id)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
     }
 
     @Override
     public DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d) {
-        // 1. Map cơ bản các trường dữ liệu thường
+
         DatBan db = mapper.map(d, DatBan.class);
 
-        // 2. TÌM KIẾM ĐỐI TƯỢNG LIÊN KẾT (CẦN THIẾT)
-        Ban ban = banRepository.findById(d.getIdBan())
-                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn"));
         KhachHang kh = khachHangRepository.findById(d.getIdkhachHang())
                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
 
-        // 3. GÁN ĐỐI TƯỢNG ĐÃ ĐƯỢC QUẢN LÝ BỞI HIBERNATE
-        db.setBan(ban);
         db.setKhachHang(kh);
+
+        // =========================
+        // BAN - TẠM THỜI KHÔNG DÙNG
+        // =========================
+        /*
+        if (d.getIdBan() != null) {
+            Ban ban = banRepository.findById(d.getIdBan())
+                    .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn"));
+            db.setBan(ban);
+        }
+        */
 
         db.setGioDat(LocalTime.now());
         db.setNgayDat(LocalDate.now());
+        if (db.getSoTienCoc() == null) {
+            db.setSoTienCoc(BigDecimal.ZERO);
+        }
 
-        // 4. Save
         datBanRepository.save(db);
 
-        // 5. Trả về response
         DTODatBanQuanLyResponse response = mapper.map(db, DTODatBanQuanLyResponse.class);
-        response.setLoaiBan(ban.getLoaiBan());
-        response.setTenKhachHang(kh.getTenKhachHang());
-        response.setIdBan(db.getBan().getIdBan());
-        response.setIdKhachHang(db.getKhachHang().getIdKhachHang());
+
+        // response.setLoaiBan(ban.getLoaiBan());
+        // response.setIdBan(db.getBan().getIdBan());
+
+        response.setTenKhachHang(kh != null ? kh.getTenKhachHang() : "Khách vãng lai");
+        response.setIdKhachHang(kh != null ? kh.getIdKhachHang() : null);
+        response.setSdtKhachHang(db.getSdtKhachHang());
+        response.setTrangThaiCoc(db.getTrangThaiCoc());
+        response.setSoTienCoc(db.getSoTienCoc());
+        response.setPhuongThucThanhToan(db.getPhuongThucThanhToan());
+
         return response;
     }
 
     @Override
     public DTODatBanQuanLyResponse update(Integer id, DTODatBanQuanLyRequest d) {
-        return datBanRepository
-                .findById(id)
+        return datBanRepository.findById(id)
                 .map(db -> {
-                    // 1. Cập nhật đối tượng Bàn (Phải tìm từ Repository)
+
+                    // =========================
+                    // BAN - TẠM THỜI KHÔNG DÙNG
+                    // =========================
+                    /*
                     if (d.getIdBan() != null) {
                         Ban ban = banRepository.findById(d.getIdBan())
                                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn"));
                         db.setBan(ban);
                     }
+                    */
 
-                    // 2. Cập nhật đối tượng Khách hàng
                     if (d.getIdkhachHang() != null) {
                         KhachHang kh = khachHangRepository.findById(d.getIdkhachHang())
                                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
                         db.setKhachHang(kh);
                     }
 
-                    // 3. Cập nhật các trường thông tin đơn giản
-                    if (d.getSdtKhachHang() != null && !d.getSdtKhachHang().isBlank()) db.setSdtKhachHang(d.getSdtKhachHang());
-                    if (d.getSoNguoi() > 0) db.setSoNguoi(d.getSoNguoi());
-                    if (d.getTrangThai() != null) db.setTrangThai(d.getTrangThai());
-                    if (d.getGhiChu() != null) db.setGhiChu(d.getGhiChu());
-                    if (d.getThoiGianDenDuKien() != null) db.setThoiGianDenDuKien(d.getThoiGianDenDuKien());
-                    if (d.getSoTienCoc() != null) db.setSoTienCoc(d.getSoTienCoc());
-                    if (d.getTrangThaiCoc() != null) db.setTrangThaiCoc(d.getTrangThaiCoc());
-                    if (d.getPhuongThucThanhToan() != null) db.setPhuongThucThanhToan(d.getPhuongThucThanhToan());
+                    if (d.getSdtKhachHang() != null && !d.getSdtKhachHang().isBlank())
+                        db.setSdtKhachHang(d.getSdtKhachHang());
 
-                    // 4. LƯU THAY ĐỔI VÀO DATABASE
+                    if (d.getSoNguoi() > 0)
+                        db.setSoNguoi(d.getSoNguoi());
+
+                    if (d.getTrangThai() != null)
+                        db.setTrangThai(d.getTrangThai());
+
+                    if (d.getGhiChu() != null)
+                        db.setGhiChu(d.getGhiChu());
+
+                    if (d.getThoiGianDenDuKien() != null)
+                        db.setThoiGianDenDuKien(d.getThoiGianDenDuKien());
+
+                    if (d.getSoTienCoc() != null)
+                        db.setSoTienCoc(d.getSoTienCoc());
+                    else if (db.getSoTienCoc() == null)
+                        db.setSoTienCoc(BigDecimal.ZERO);
+
+                    if (d.getTrangThaiCoc() != null)
+                        db.setTrangThaiCoc(d.getTrangThaiCoc());
+
+                    if (d.getPhuongThucThanhToan() != null)
+                        db.setPhuongThucThanhToan(d.getPhuongThucThanhToan());
+
                     datBanRepository.save(db);
 
-                    // 5. Trả về response
                     DTODatBanQuanLyResponse response = mapper.map(db, DTODatBanQuanLyResponse.class);
-                    response.setLoaiBan(db.getBan().getLoaiBan());
-                    response.setTenKhachHang(db.getKhachHang().getTenKhachHang());
-                    response.setIdKhachHang(db.getKhachHang().getIdKhachHang());
+
+                    // response.setLoaiBan(db.getBan().getLoaiBan());
+                    // response.setIdBan(db.getBan().getIdBan());
+
+                    response.setTenKhachHang(db.getKhachHang() != null ? db.getKhachHang().getTenKhachHang() : "Khách vãng lai");
+                    response.setIdKhachHang(db.getKhachHang() != null ? db.getKhachHang().getIdKhachHang() : null);
+                    response.setSdtKhachHang(db.getSdtKhachHang());
+                    response.setTrangThaiCoc(db.getTrangThaiCoc());
+                    response.setSoTienCoc(db.getSoTienCoc());
+                    response.setPhuongThucThanhToan(db.getPhuongThucThanhToan());
+
                     return response;
                 })
                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
@@ -140,5 +198,18 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     @Override
     public void delete(Integer id) {
         datBanRepository.deleteById(id);
+    }
+
+    @Override
+    public List<DTODatBanQuanLyResponse> findByTrangThai(TrangThaiDatBan trangThai) {
+        return datBanRepository.findByTrangThai(trangThai)
+                .stream()
+                .filter(this::isVisibleReservation)
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    private boolean isVisibleReservation(DatBan datBan) {
+        return !hoaDonRepository.existsByDatBan_IdDatBanAndTrangThaiThanhToan(datBan.getIdDatBan(), 1);
     }
 }

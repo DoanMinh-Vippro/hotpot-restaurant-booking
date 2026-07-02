@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import BanApi from '@/api/BanApi'
 import { getAllKhuVuc } from '@/api/khuvuc'
 import BanTab from '@/components/BanTab.vue'
 import BanList from '@/components/BanList.vue'
 import BanDetail from '@/components/BanDetail.vue'
+import AddBan from '@/components/AddBan.vue'
+
+const router = useRouter()
+
+const goHome = () => {
+  router.push('/')
+}
 
 /**
  * 1. DATA CHÍNH
  */
 const danhSachBan = ref<any[]>([])
-const danhSachKhuVuc = ref<any[]>([]) // nếu chưa có API thì mock cũng được
+const danhSachKhuVuc = ref<any[]>([])
+const showPopupAdd = ref(false)
 
 /**
  * 2. STATE UI
@@ -78,6 +87,20 @@ const closePopup = () => {
   showPopupCheck.value = false
 }
 
+//hàm mở popup AddBan
+const openPopupAdd = () => {
+  showPopupAdd.value = true
+}
+//hàm sau khi thêm thành công
+const handleAddSuccess = async () => {
+  showPopupAdd.value = false
+  await loadBan()
+}
+//hàm đóng AddBan
+const closePopupAdd = () => {
+  showPopupAdd.value = false
+}
+
 onMounted(() => {
   loadBan()
   loadKhuVuc()
@@ -86,8 +109,12 @@ onMounted(() => {
 
 <template>
   <div class="ban-view">
+    <div class="page-top">
+      <button class="back-home-btn" @click="goHome">🏠 Trang chủ</button>
+    </div>
+
     <!-- TAB KHU VỰC -->
-    <BanTab :listKhuVuc="danhSachKhuVuc" @change="handleChangeTab">
+    <BanTab :listKhuVuc="danhSachKhuVuc" @change="handleChangeTab" @add="openPopupAdd">
       <template #default="{ idKhuVuc }">
         <!-- LIST BÀN -->
         <BanList
@@ -107,6 +134,8 @@ onMounted(() => {
       @close="closePopup"
       @success="loadBan"
     />
+
+    <AddBan v-if="showPopupAdd" @close="closePopupAdd" @success="handleAddSuccess" />
   </div>
 </template>
 
@@ -115,5 +144,23 @@ onMounted(() => {
   background: #0b0b0d;
   min-height: 100vh;
   padding: 12px;
+}
+
+.page-top {
+  margin-bottom: 12px;
+}
+
+.back-home-btn {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffd86b;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.back-home-btn:hover {
+  background: rgba(212, 175, 55, 0.16);
 }
 </style>

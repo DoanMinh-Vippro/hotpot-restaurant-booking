@@ -4,18 +4,22 @@ import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.Combo;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
-import com.example.hotpotrestaurantbooking_backend.enums.PhuongThucThanhToan;
-import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
+import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -27,6 +31,7 @@ public class DatBanServiceImpl implements DatBanService {
     private final ModelMapper mapper;
     private final ComboRepository comboRepository;
     private static final String COMBO_NULL_MSG = "Đơn đặt bàn này không chọn combo đặt trước";
+    private final KhachHangRepository khachHangRepository;
 
     private void setComboInfo(DatBan db, DTODatBanResponse res) {
         // Kiểm tra null của cả đối tượng Combo trước
@@ -60,19 +65,42 @@ public class DatBanServiceImpl implements DatBanService {
     @Override
     public DTODatBanResponse add(DTODatBanRequest datBan) {
         DatBan d = mapper.map(datBan, DatBan.class);
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Jwt jwt = (Jwt) authentication.getPrincipal();
+
+        Integer idTaiKhoan = ((Long) jwt.getClaim("idTaiKhoan")).intValue();
+
+        KhachHang khachHang = khachHangRepository
+                .findByTaiKhoan_IdTaiKhoan(idTaiKhoan)
+                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
+
         d.setIdDatBan(null);
-        // PHẢI TÌM VÀ SET COMBO THỦ CÔNG
+        d.setBan(null); // tránh ModelMapper map nhầm Ban cũ gây lỗi FK id_ban khi insert
+        d.setKhachHang(khachHang);
+
+//        // PHẢI TÌM VÀ SET COMBO THỦ CÔNG
+//        if (datBan.getIdCombo() != null) {
+//            // CÁCH TỐI ƯU: Tạo một đối tượng Combo "rỗng" chỉ chứa ID
+//            // Cách này giúp Hibernate không bao giờ "nhìn" thấy các bản ghi cũ
+//            // Dùng Proxy Object thay vì comboRepository.findById()
+//            // Lý do: Khi dùng findById(), Hibernate sẽ quản lý đối tượng Combo trong Persistence Context,
+//            // điều này vô tình gây ra lỗi "dirty checking" hoặc cập nhật nhầm các bản ghi cũ liên quan.
+//            // Việc chỉ set ID (giả lập Proxy) giúp Hibernate coi đây là Foreign Key đơn thuần,
+//            // đảm bảo lệnh save() luôn thực hiện INSERT thay vì UPDATE nhầm.
+//            Combo proxyCombo = new Combo();
+//            proxyCombo.setIdCombo(datBan.getIdCombo());
+//            d.setCombo(proxyCombo);
+//        } else {
+//            d.setCombo(null);
+//        }
+
         if (datBan.getIdCombo() != null) {
-            // CÁCH TỐI ƯU: Tạo một đối tượng Combo "rỗng" chỉ chứa ID
-            // Cách này giúp Hibernate không bao giờ "nhìn" thấy các bản ghi cũ
-            // Dùng Proxy Object thay vì comboRepository.findById()
-            // Lý do: Khi dùng findById(), Hibernate sẽ quản lý đối tượng Combo trong Persistence Context,
-            // điều này vô tình gây ra lỗi "dirty checking" hoặc cập nhật nhầm các bản ghi cũ liên quan.
-            // Việc chỉ set ID (giả lập Proxy) giúp Hibernate coi đây là Foreign Key đơn thuần,
-            // đảm bảo lệnh save() luôn thực hiện INSERT thay vì UPDATE nhầm.
-            Combo proxyCombo = new Combo();
-            proxyCombo.setIdCombo(datBan.getIdCombo());
-            d.setCombo(proxyCombo);
+            Combo combo = comboRepository.findById(datBan.getIdCombo())
+                    .orElseThrow(() -> new CustomResourceNotFoundException("Combo không tồn tại"));
+
+            d.setCombo(combo);
         } else {
             d.setCombo(null);
         }
@@ -81,6 +109,12 @@ public class DatBanServiceImpl implements DatBanService {
         d.setNgayDat(LocalDate.now());
         d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
         d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
+        if (d.getSoTienCoc() == null) {
+            d.setSoTienCoc(BigDecimal.ZERO);
+        }
+        if (d.getCombo() == null && d.getSoTienCoc() != null) {
+            d.setSoTienCoc(BigDecimal.ZERO);
+        }
         datBanRepository.save(d);
 
         DTODatBanResponse res = mapper.map(d, DTODatBanResponse.class);
@@ -103,6 +137,11 @@ public class DatBanServiceImpl implements DatBanService {
                         .orElseThrow(() -> new CustomResourceNotFoundException("Combo này không tồn tại trong hệ thống!")));
             } else {
                 db.setCombo(null);
+                db.setSoTienCoc(BigDecimal.ZERO);
+            }
+
+            if (db.getCombo() == null && db.getSoTienCoc() == null) {
+                db.setSoTienCoc(BigDecimal.ZERO);
             }
 
             datBanRepository.save(db);

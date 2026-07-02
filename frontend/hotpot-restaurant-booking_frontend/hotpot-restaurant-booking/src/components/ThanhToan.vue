@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MonApi from '@/api/MonApi'
 import ComBoApi from '@/api/ComBoApi'
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import GiamGiaApi from '@/api/GiamGiaApi'
 import PopupThanhToan from './PopupThanhToan.vue'
 import PopupTienMat from './PopupTienMat.vue'
@@ -11,6 +11,7 @@ import HoaDonChiTietApi from '@/api/HoaDonChiTietApi'
 // ================= PROPS =================
 const props = defineProps<{
   ban: any
+  datBan: any | null
 }>()
 
 // ================= EMIT (BẮT BUỘC GIỮ) =================
@@ -19,7 +20,6 @@ const emit = defineEmits(['quayLai'])
 const quayLai = () => {
   emit('quayLai')
 }
-
 // ================= STATE =================
 const danhSachCombo = ref<any[]>([])
 const danhSachMonAn = ref<any[]>([])
@@ -163,7 +163,7 @@ const checkHoaDonTam = async () => {
       loai: item.idMon ? 'MON' : 'COMBO',
     }))
 
-    giamGiaDangChon.value = hd.idGiamGia
+    giamGiaDangChon.value = hd.idGiamGia ?? null
   } catch (e) {
     console.log('Không có hóa đơn tạm')
   }
@@ -229,6 +229,10 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
     thoiGianXuat: new Date().toISOString(),
     idBan: props.ban.idBan,
     idGiamGia: giamGiaDangChon.value,
+    idDatBan: props.datBan?.idDatBan ?? null,
+    idKhachHang: props.datBan?.idKhachHang ?? null,
+    sdtKhachHang: props.datBan?.sdtKhachHang ?? null,
+    tienCoc: props.datBan?.soTienCoc ?? null,
   }
 
   if (hoaDonHienTai.value) {
@@ -263,6 +267,34 @@ const taoHoaDon = async () => {
     alert('Thanh toán thất bại')
   }
 }
+//=========================================
+
+watch(
+  () => props.datBan,
+  (db) => {
+    if (!db) return
+
+    console.log('datBan:', db)
+
+    gioHang.value = []
+
+    // ✔ check đúng field idCombo
+    if (db.idCombo) {
+      gioHang.value.push({
+        idCombo: db.idCombo,
+        tenCombo: db.tenCombo, // nếu backend có trả
+        gia: db.giaCombo ?? 0,
+        soLuong: 1,
+        loai: 'COMBO',
+      })
+
+      console.log('✔ Fill combo:', db.idCombo)
+    } else {
+      console.log('❌ Không có combo trong datBan')
+    }
+  },
+  { immediate: true },
+)
 
 // ================= INIT =================
 onMounted(() => {
@@ -335,7 +367,7 @@ onMounted(() => {
 
     <!-- GIỎ HÀNG -->
     <div class="gio-hang">
-      <div class="title">Giỏ hàng</div>
+      <div class="title">Giỏ hàng: {{ props.ban.tenBan }}</div>
 
       <div class="gio-hang-list">
         <div
@@ -379,7 +411,7 @@ onMounted(() => {
             <option :value="null">Chọn mã giảm giá</option>
 
             <option v-for="g in danhSachGiamGia" :key="g.idGiamGia" :value="g.idGiamGia">
-              {{ g.maGiamGia }}
+              {{ g.maGiamGia }} - {{ g.giaTriGiam }}{{ g.loaiGiam === 'PHANTRAM' ? '%' : 'Đ' }}
             </option>
           </select>
         </div>

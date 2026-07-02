@@ -5,6 +5,7 @@ import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
@@ -20,5 +21,9 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     boolean existsBySoDienThoai(String soDienThoai);
     
     KhachHang findByTaiKhoan(TaiKhoan taiKhoan);
-    KhachHang findByTaiKhoan_IdTaiKhoan(Integer idTaiKhoan);
+
+
+
+    Optional<KhachHang> findByTaiKhoan_IdTaiKhoan(Integer idTaiKhoan);
+
 }

@@ -23,4 +23,4 @@ backend/.gradle/
 
 # Backend
 backend/target/
-backend/.idea/
+backend/.idea/target/

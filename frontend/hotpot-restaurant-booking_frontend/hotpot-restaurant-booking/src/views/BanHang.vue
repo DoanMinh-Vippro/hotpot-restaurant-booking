@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import BanApi from '@/api/BanApi'
 import { getAllKhuVuc } from '@/api/khuvuc'
@@ -9,6 +10,13 @@ import DatBanQLListBan from '@/components/DatBanQLListBan.vue'
 import DatBanPopupCheck from '@/components/DatBanPopupCheck.vue'
 import ThanhToan from '@/components/ThanhToan.vue'
 import HoaDonApi from '@/api/HoaDonApi'
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+
+const router = useRouter()
+
+const goHome = () => {
+  router.push('/')
+}
 
 // chuyển màn hình từ quản lý bàn sang màn thanh toán của bàn được chọn
 const manHinhHienTai = ref('danhSachBan')
@@ -45,6 +53,7 @@ const idKhuVucDangChon = ref<number | null>(null)
  */
 const banDangChon = ref<any | null>(null)
 
+const datBanDangChon = ref<any | null>(null)
 /**
  * HIỂN THỊ POPUP
  */
@@ -89,6 +98,26 @@ const handleSelectBan = (ban: any) => {
 const moPopupDatBan = async (ban: any) => {
   banDangChon.value = ban
 
+  if (ban?.trangThai === 'DANG_SU_DUNG') {
+    try {
+      const res = await DatBanQuanLyApi.getAll()
+      const datBanLienQuan = (res.data || []).find((item: any) => item.idBan === ban.idBan)
+
+      if (datBanLienQuan) {
+        datBanDangChon.value = datBanLienQuan
+        manHinhHienTai.value = 'thanhToan'
+        showPopup.value = false
+        return
+      }
+    } catch (error) {
+      console.error('Lỗi lấy đơn đặt bàn cho bàn đang sử dụng', error)
+    }
+
+    manHinhHienTai.value = 'thanhToan'
+    showPopup.value = false
+    return
+  }
+
   showPopup.value = true
 }
 
@@ -110,6 +139,15 @@ const moDanhSachDatBan = () => {
   showPopupDaXacNhan.value = true
 }
 
+/////////////
+const chonDatBan = (datBan: any) => {
+  datBanDangChon.value = datBan
+
+  showPopupDaXacNhan.value = false
+
+  manHinhHienTai.value = 'thanhToan'
+}
+
 ////
 const quayVeDanhSachBan = async () => {
   manHinhHienTai.value = 'danhSachBan'
@@ -125,6 +163,10 @@ onMounted(async () => {
 
 <template>
   <div class="ban-hang-view">
+    <div class="page-top">
+      <button class="back-home-btn" @click="goHome">🏠 Trang chủ</button>
+    </div>
+
     <template v-if="manHinhHienTai === 'danhSachBan'">
       <!-- TAB KHU VỰC -->
       <DatBanQLTab :listKhuVuc="danhSachKhuVuc" @change="handleChangeTab">
@@ -148,12 +190,17 @@ onMounted(async () => {
         @khongCoDonDatBan="moManHinhthanhToan"
       />
 
-      <PopupListDatBan v-if="showPopupDaXacNhan" @close="showPopupDaXacNhan = false" />
+      <PopupListDatBan
+        v-if="showPopupDaXacNhan"
+        @close="showPopupDaXacNhan = false"
+        @chonDatBan="chonDatBan"
+      />
     </template>
 
     <ThanhToan
       v-if="manHinhHienTai === 'thanhToan'"
       :ban="banDangChon"
+      :datBan="datBanDangChon"
       @quayLai="quayVeDanhSachBan"
     />
   </div>
@@ -170,5 +217,23 @@ onMounted(async () => {
   box-sizing: border-box;
 
   overflow: hidden;
+}
+
+.page-top {
+  margin-bottom: 12px;
+}
+
+.back-home-btn {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffd86b;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.back-home-btn:hover {
+  background: rgba(212, 175, 55, 0.16);
 }
 </style>

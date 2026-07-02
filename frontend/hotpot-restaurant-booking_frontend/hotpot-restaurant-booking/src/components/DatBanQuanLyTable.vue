@@ -12,7 +12,12 @@ const emit = defineEmits(['detail', 'delete'])
       <thead>
         <tr>
           <th>ID</th>
-          <th>LOẠI BÀN</th>
+
+          <!-- =========================
+               BAN - TẠM THỜI KHÔNG DÙNG
+               ========================= -->
+          <!-- <th>LOẠI BÀN</th> -->
+
           <th>KHÁCH HÀNG</th>
           <th>SĐT</th>
           <th>NGÀY ĐẶT</th>
@@ -27,10 +32,16 @@ const emit = defineEmits(['detail', 'delete'])
           <th>THAO TÁC</th>
         </tr>
       </thead>
+
       <tbody>
         <tr v-for="d in list" :key="d.idDatBan">
           <td>{{ d.idDatBan }}</td>
-          <td>{{ d.loaiBan }}</td>
+
+          <!-- =========================
+               BAN - TẠM THỜI KHÔNG DÙNG
+               ========================= -->
+          <!-- <td>{{ d.loaiBan }}</td> -->
+
           <td>{{ d.tenKhachHang }}</td>
           <td>{{ d.sdtKhachHang }}</td>
           <td>{{ d.ngayDat }}</td>
@@ -42,6 +53,7 @@ const emit = defineEmits(['detail', 'delete'])
           <td>{{ d.trangThaiCoc }}</td>
           <td>{{ d.phuongThucThanhToan }}</td>
           <td>{{ d.ghiChu }}</td>
+
           <td>
             <div class="vertical-actions">
               <button class="btn-action btn-detail" @click="emit('detail', d)">DETAIL</button>

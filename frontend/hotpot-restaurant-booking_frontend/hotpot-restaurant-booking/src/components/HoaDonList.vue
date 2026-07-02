@@ -87,8 +87,9 @@ const filteredHoaDons = computed(() => {
   watch(filteredHoaDons, (newList) => {
     if (newList.length > 0) {
       const exists = newList.some((item) => item.idHoaDon === props.selectedId)
-      if (!exists) {
-        emit('select', newList[0].idHoaDon)
+      const firstItem = newList[0]
+      if (!exists && firstItem?.idHoaDon != null) {
+        emit('select', firstItem.idHoaDon)
       }
     }
   })

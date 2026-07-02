@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
+import { useRouter } from "vue-router";
 import ThongKeApi from "@/api/ThongKeApi";
 import RevenueChart from "./RevenueChart.vue";
+
 import DepositStatusChart from "./DepositStatusChart.vue";
+
+
+const router = useRouter();
+
+const goHome = () => {
+  router.push('/');
+};
+
 const dashboard = ref<any>({});
 const topMon = ref<any[]>([]);
 const topNhanVien = ref<any[]>([]);
@@ -101,6 +111,9 @@ onMounted(load);
 </script>
 <template>
   <div class="dashboard">
+    <div class="page-top">
+      <button class="back-home-btn" @click="goHome">🏠 Trang chủ</button>
+    </div>
 
     <!-- HEADER -->
     <div class="header">
@@ -202,6 +215,24 @@ onMounted(load);
   </div>
 </template>
 <style scoped>
+.page-top {
+  margin-bottom: 16px;
+}
+
+.back-home-btn {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: white;
+  color: #0f172a;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.back-home-btn:hover {
+  background: #f8fafc;
+}
+
 .dashboard {
   padding: 24px;
   font-family: Inter;

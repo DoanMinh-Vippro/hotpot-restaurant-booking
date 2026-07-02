@@ -22,6 +22,7 @@ com/example/hotpotrestaurantbooking_backend/service/ThongKeImpl.class
 com/example/hotpotrestaurantbooking_backend/dto/DTORegisterRequest.class
 com/example/hotpotrestaurantbooking_backend/entity/ChiTietCombo.class
 com/example/hotpotrestaurantbooking_backend/enums/TrangThaiDatBanCoc.class
+com/example/hotpotrestaurantbooking_backend/dto/DTOTrangThaiCoc.class
 com/example/hotpotrestaurantbooking_backend/config/CorsConfig.class
 com/example/hotpotrestaurantbooking_backend/controller/MonController.class
 com/example/hotpotrestaurantbooking_backend/dto/KhuVucResponse.class
@@ -35,7 +36,6 @@ com/example/hotpotrestaurantbooking_backend/config/JwtKeyConfig.class
 com/example/hotpotrestaurantbooking_backend/Validation/DanhMucValidator.class
 com/example/hotpotrestaurantbooking_backend/dto/KhuVucDTO.class
 com/example/hotpotrestaurantbooking_backend/repository/ChucVuRepository.class
-com/example/hotpotrestaurantbooking_backend/dto/DTODeleteAccountRequest.class
 com/example/hotpotrestaurantbooking_backend/Validation/ChiTietComBoValidator.class
 com/example/hotpotrestaurantbooking_backend/dto/DTODatBanResponse.class
 com/example/hotpotrestaurantbooking_backend/entity/ChucVu$ChucVuBuilder.class
@@ -77,7 +77,6 @@ com/example/hotpotrestaurantbooking_backend/service/KhuVucService.class
 com/example/hotpotrestaurantbooking_backend/entity/GiamGia.class
 com/example/hotpotrestaurantbooking_backend/service/BanService.class
 com/example/hotpotrestaurantbooking_backend/controller/DotGiamGiaController.class
-com/example/hotpotrestaurantbooking_backend/dto/DTOChangeUsernameRequest.class
 com/example/hotpotrestaurantbooking_backend/controller/CocController.class
 com/example/hotpotrestaurantbooking_backend/dto/DTODatBanQuanLyRequest.class
 com/example/hotpotrestaurantbooking_backend/Validation/MonValidator.class
@@ -127,7 +126,6 @@ com/example/hotpotrestaurantbooking_backend/controller/KhuVucController.class
 com/example/hotpotrestaurantbooking_backend/service/impl/DotGiamGiaImpl.class
 com/example/hotpotrestaurantbooking_backend/enums/TrangThaiBan.class
 com/example/hotpotrestaurantbooking_backend/controller/ChiTietGiamGiaMonController.class
-com/example/hotpotrestaurantbooking_backend/dto/DTOChangePasswordRequest.class
 com/example/hotpotrestaurantbooking_backend/dto/DTOChucVuRequest.class
 com/example/hotpotrestaurantbooking_backend/dto/DTONhanVienResponse.class
 com/example/hotpotrestaurantbooking_backend/controller/DatBanQuanLyController.class

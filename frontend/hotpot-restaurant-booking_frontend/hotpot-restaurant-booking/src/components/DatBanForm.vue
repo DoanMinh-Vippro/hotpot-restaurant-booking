@@ -1,153 +1,208 @@
 <script setup lang="ts">
-import DatBanApi from '@/api/DatBanApi';
-import { ref, watch } from 'vue';
-import ComBoInDatBan from './ComBoInDatBan.vue';
-import router from '@/router/index.ts';
-
+import DatBanApi from '@/api/DatBanApi'
+import { ref, watch } from 'vue'
+import ComBoInDatBan from './ComBoInDatBan.vue'
 
 // tao object luu data vao form
 const formData = ref({
-    idDatBan: null as number | null,
-    sdtKhachHang: '',
-    soNguoi: 0,
-    ghiChu: '',
-    thoiGianDenDuKien: '',
-    soTienCoc: 0,
-    phuongThucThanhToan: 0,
-    idCombo: null as number | null
+  idDatBan: null as number | null,
+  sdtKhachHang: '',
+  soNguoi: 0,
+  ghiChu: '',
+  thoiGianDenDuKien: '',
+  soTienCoc: 0,
+  phuongThucThanhToan: '' as string,
+  idCombo: null as number | null,
 })
 //cong de nhanh du lieu tu DatBanView
 const props = defineProps(['datBanForm'])
 
 // 1. Thêm biến trạng thái để chặn watch
-const isAdding = ref(false);
+const isAdding = ref(false)
+const notice = ref<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
 
 //watch dung de lay du lieu ma datBanForm nhan doc dua vao object formData
-watch(() => props.datBanForm, (newData) => {
+watch(
+  () => props.datBanForm,
+  (newData) => {
     // Nếu đang thêm mới (isAdding = true) hoặc newData null thì KHÔNG làm gì cả
-    if (isAdding.value || !newData) return;
-    
+    if (isAdding.value || !newData) return
+
     if (newData.idDatBan !== formData.value.idDatBan) {
-        formData.value = { 
-            ...newData,
-            idCombo: newData.idCombo || null 
-        };
+      formData.value = {
+        ...newData,
+        idCombo: newData.idCombo || null,
+      }
     }
-}, { deep: true });
+  },
+  { deep: true },
+)
 
 // bien dung de bao cho table load lai bang
 const emit = defineEmits(['refresh'])
 
+//hàm xử lý tiền cọc khi chọn combo
+const TI_LE_COC = 0.3
 
+const chonCombo = (combo: any) => {
+  if (!combo) {
+    formData.value.soTienCoc = 0
+    return
+  }
+
+  formData.value.soTienCoc = Math.round(combo.giaCombo * TI_LE_COC)
+}
+
+const setNotice = (type: 'success' | 'error' | 'info', message: string) => {
+  notice.value = { type, message }
+}
+
+const validateForm = () => {
+  const sdt = `${formData.value.sdtKhachHang || ''}`.trim()
+  const soNguoi = Number(formData.value.soNguoi)
+  const thoiGianDen = formData.value.thoiGianDenDuKien?.toString().trim()
+  const phuongThucThanhToan = `${formData.value.phuongThucThanhToan || ''}`.trim()
+
+  if (!sdt) {
+    setNotice('error', 'Vui lòng nhập số điện thoại khách hàng.')
+    return false
+  }
+
+  if (!/^0\d{9,10}$/.test(sdt)) {
+    setNotice('error', 'Số điện thoại không hợp lệ. Ví dụ: 0912345678')
+    return false
+  }
+
+  if (!Number.isFinite(soNguoi) || soNguoi < 1) {
+    setNotice('error', 'Số người phải từ 1 trở lên.')
+    return false
+  }
+
+  if (!thoiGianDen) {
+    setNotice('error', 'Vui lòng chọn thời gian đến dự kiến.')
+    return false
+  }
+
+  if (!phuongThucThanhToan) {
+    setNotice('error', 'Vui lòng chọn phương thức thanh toán.')
+    return false
+  }
+
+  const thoiGianChon = new Date(thoiGianDen)
+  const hienTai = new Date()
+
+  if (Number.isNaN(thoiGianChon.getTime()) || thoiGianChon < hienTai) {
+    setNotice('error', 'Thời gian đến không được nhỏ hơn thời gian hiện tại.')
+    return false
+  }
+
+  return true
+}
 
 const add = async () => {
-    isAdding.value = true; // Bật khóa: chặn mọi sự thay đổi từ props
-    try {
-        await DatBanApi.add(formData.value);
-        alert('them thanh cong');
-        emit('refresh');
-        resetForm();
-    } catch (error) {
-        console.error('them that bai', error);
-    } finally {
-        isAdding.value = false; // Mở khóa sau khi đã xử lý xong
-    }
+  if (!validateForm()) return
+
+  isAdding.value = true
+  try {
+    await DatBanApi.add(formData.value)
+    setNotice('success', 'Đặt bàn thành công!')
+    emit('refresh')
+    resetForm()
+  } catch (error) {
+    console.error('them that bai', error)
+    setNotice('error', 'Thêm đặt bàn thất bại. Vui lòng thử lại.')
+  } finally {
+    isAdding.value = false
+  }
 }
 
 const update = async () => {
-  console.log("FORM DATA:", formData.value)
+  if (!validateForm()) return
+
   if (formData.value.idDatBan == null) {
-    console.error("Không có idDatBan để update")
+    setNotice('error', 'Không có thông tin đặt bàn để cập nhật.')
     return
   }
 
   try {
     await DatBanApi.update(formData.value.idDatBan, formData.value)
-    alert('sửa thành công')
+    setNotice('success', 'Cập nhật đặt bàn thành công!')
     emit('refresh')
     resetForm()
   } catch (error) {
     console.error('sửa thất bại', error)
+    setNotice('error', 'Cập nhật đặt bàn thất bại. Vui lòng thử lại.')
   }
 }
 
 const resetForm = () => {
-    formData.value = {
-        idDatBan: null,
-        sdtKhachHang: '',
-        soNguoi: 0,
-        ghiChu: '',
-        thoiGianDenDuKien: '',
-        soTienCoc: 0,
-        phuongThucThanhToan: 0,
-        idCombo: null
-    };
-}
-
-const quayLai  =()=>{
-  router.push("/")
+  formData.value = {
+    idDatBan: null,
+    sdtKhachHang: '',
+    soNguoi: 0,
+    ghiChu: '',
+    thoiGianDenDuKien: '',
+    soTienCoc: 0,
+    phuongThucThanhToan: '',
+    idCombo: null,
+  }
 }
 </script>
 
 <template>
   <div class="page-container">
-  <div class="form-container">
-    <h3>Thông Tin Đặt Bàn</h3>
-    
-    <div class="form-group">
-      <label>SĐT Khách Hàng</label>
-      <input v-model="formData.sdtKhachHang" type="text" placeholder="Nhập SĐT..." />
-    </div>
+    <div class="form-container">
+      <h3>Thông Tin Đặt Bàn</h3>
 
-    <div class="row">
+      <div v-if="notice" :class="['notice', notice.type]">{{ notice.message }}</div>
+
       <div class="form-group">
-        <label>Số Người</label>
-        <input v-model.number="formData.soNguoi" type="number" />
+        <label>SĐT Khách Hàng</label>
+        <input v-model="formData.sdtKhachHang" type="text" placeholder="Nhập SĐT..." />
       </div>
-      <div class="form-group">
-      <label>Thời Gian Đến Dự Kiến</label>
-      <input v-model="formData.thoiGianDenDuKien" type="datetime-local" />
-    </div>
-    </div>
 
-    
-
-    <div class="row">
-      <div class="form-group">
-        <label>Phương Thức Thanh Toán</label>
-        <select v-model="formData.phuongThucThanhToan">
-          <option value="CHUYEN_KHOAN">Chuyển khoản</option>
-          <option value="VNPAY">VNPAY</option>
-        </select>
+      <div class="row">
+        <div class="form-group">
+          <label>Số Người</label>
+          <input v-model.number="formData.soNguoi" type="number" min="1" step="1" />
+        </div>
+        <div class="form-group">
+          <label>Thời Gian Đến Dự Kiến</label>
+          <input v-model="formData.thoiGianDenDuKien" type="datetime-local" />
+        </div>
       </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label>Phương Thức Thanh Toán</label>
+          <select v-model="formData.phuongThucThanhToan">
+            <option value="">-- Chọn phương thức thanh toán --</option>
+            <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+            <option value="VNPAY">VNPAY</option>
+            <option value="TIEN_MAT">Tiền mặt</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tiền Cọc</label>
+          <input v-model.number="formData.soTienCoc" type="number" readonly />
+        </div>
+      </div>
+
       <div class="form-group">
-        <label>Tiền Cọc</label>
-        <input v-model.number="formData.soTienCoc" type="number" />
+        <label>Ghi Chú</label>
+        <textarea v-model="formData.ghiChu" rows="2"></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-add" @click.prevent="add()">Thêm Mới</button>
+        <button class="btn-update" @click.prevent="update()">Cập Nhật</button>
       </div>
     </div>
 
-    <div class="form-group">
-      <label>Ghi Chú</label>
-      <textarea v-model="formData.ghiChu" rows="2"></textarea>
+    <div class="combo-section">
+      <ComBoInDatBan v-model="formData.idCombo" @selectedCombo="chonCombo"></ComBoInDatBan>
+
     </div>
-
-
-    <div class="button-group">
-      <button class="btn-add" @click.prevent="add()">Thêm Mới</button>
-      <button class="btn-update" @click.prevent="update()">Cập Nhật</button>
-    </div>
-  </div>
-
-  <div class="combo-section">
-    <ComBoInDatBan
-    v-model="formData.idCombo"
-    ></ComBoInDatBan>
-  
-    <div class="go-home">
-      <button class="btn-back" @click.prevent="quayLai()">Trở về trang chủ</button>
-    </div>
-  </div>
-
   </div>
 </template>
 
@@ -159,7 +214,7 @@ const quayLai  =()=>{
   max-width: 500px;
   margin: 20px auto;
   border: 1px solid #3d3d3d;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 h3 {
@@ -172,9 +227,35 @@ h3 {
   font-weight: 300;
 }
 
+.notice {
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.notice.success {
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.notice.error {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.notice.info {
+  background: rgba(59, 130, 246, 0.16);
+  color: #bfdbfe;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
 /* Quan trọng: Tạo khoảng cách giữa các nhóm */
 .form-group {
-  margin-bottom: 25px; 
+  margin-bottom: 25px;
 }
 
 /* Xử lý hàng đôi */
@@ -195,7 +276,9 @@ label {
   display: block;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   width: 100%;
   padding: 8px 0;
   background: transparent;
@@ -206,7 +289,9 @@ input, select, textarea {
   transition: all 0.3s;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-bottom: 1px solid #d4af37;
   outline: none;
 }
@@ -237,33 +322,33 @@ button:hover {
 /* Ép màu cho danh sách xổ xuống */
 select option {
   background-color: #1a1a1a; /* Màu nền tối của form */
-  color: #fff;              /* Màu chữ trắng */
+  color: #fff; /* Màu chữ trắng */
   padding: 10px;
 }
 
 /* Loại bỏ cái border-bottom không cần thiết trong select */
 select {
-  appearance: none;         /* Loại bỏ mũi tên mặc định của trình duyệt */
+  appearance: none; /* Loại bỏ mũi tên mặc định của trình duyệt */
   -webkit-appearance: none;
   -moz-appearance: none;
   cursor: pointer;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23d4af37%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23d4af37%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
   background-repeat: no-repeat;
   background-position: right 0px top 50%;
   background-size: 10px auto;
 }
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(1); /* Đảo màu icon lịch để hợp với nền đen */
-    cursor: pointer;
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(1); /* Đảo màu icon lịch để hợp với nền đen */
+  cursor: pointer;
 }
 /* Container cha chứa cả Form và Combo */
 .page-container {
-  display: flex;       /* Chia làm 2 cột */
+  display: flex; /* Chia làm 2 cột */
   justify-content: center; /* Căn giữa */
   align-items: flex-start; /* Căn đều phía trên */
-  gap: 30px;           /* Khoảng cách giữa 2 cột */
+  gap: 30px; /* Khoảng cách giữa 2 cột */
   padding: 20px;
-  flex-wrap: wrap;     /* Cho phép tự xuống dòng nếu màn hình hẹp */
+  flex-wrap: wrap; /* Cho phép tự xuống dòng nếu màn hình hẹp */
 }
 
 /* Sửa lại form-container một chút */
@@ -272,72 +357,26 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   padding: 35px;
   border-radius: 4px;
   width: 100%;
-  max-width: 500px;    /* Giới hạn chiều rộng form */
+  max-width: 500px; /* Giới hạn chiều rộng form */
   border: 1px solid #3d3d3d;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-  margin: 0;           /* Bỏ margin auto để dùng Flex căn giữa */
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  margin: 0; /* Bỏ margin auto để dùng Flex căn giữa */
 }
 
 /* Định dạng cột bên phải */
 .combo-section {
   width: 100%;
-  max-width: 400px;    /* Tùy chỉnh độ rộng phần combo */
+  max-width: 400px; /* Tùy chỉnh độ rộng phần combo */
   min-width: 300px;
 }
 @media (max-width: 768px) {
   .page-container {
     flex-direction: column; /* Chuyển từ ngang sang dọc */
   }
-  
-  .form-container, .combo-section {
+
+  .form-container,
+  .combo-section {
     max-width: 100%; /* Chiếm hết chiều rộng màn hình */
   }
-}
-.go-home{
-  margin-top: 25px;
-}
-
-.btn-back{
-  width: 100%;
-  padding: 14px 20px;
-
-  background: linear-gradient(
-    135deg,
-    #1f1f1f,
-    #2a2a2a
-  );
-
-  border: 1px solid #d4af37;
-  border-radius: 4px;
-
-  color: #d4af37;
-
-  font-size: 0.9rem;
-  font-weight: 500;
-
-  letter-spacing: 2px;
-  text-transform: uppercase;
-
-  cursor: pointer;
-
-  transition: all 0.3s ease;
-
-  box-shadow:
-    0 0 0 rgba(212,175,55,0),
-    0 10px 20px rgba(0,0,0,0.3);
-}
-
-.btn-back:hover{
-  background: #d4af37;
-  color: #1a1a1a;
-
-  transform: translateY(-2px);
-
-  box-shadow:
-    0 8px 25px rgba(212,175,55,0.25);
-}
-
-.btn-back:active{
-  transform: translateY(0);
 }
 </style>
