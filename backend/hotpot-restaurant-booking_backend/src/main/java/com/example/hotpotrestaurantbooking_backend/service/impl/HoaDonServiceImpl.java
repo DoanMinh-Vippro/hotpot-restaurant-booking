@@ -10,6 +10,9 @@ import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFo
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -48,8 +51,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         HoaDon hd = new HoaDon();
         updateEntityFromRequest(hd, request);
 
-        // Chuyển trạng thái bàn khi tạo hóa đơn lần đầu
-        hd.getBan().setTrangThai(TrangThaiBan.DANG_SU_DUNG);
+        applyBanStatus(hd);
 
         hoaDonRepository.save(hd);
         return convertToResponse(hd);
@@ -62,10 +64,7 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay hoa don voi id: " + id));
         updateEntityFromRequest(hd, request);
 
-        // Chỉ trả bàn khi đã thanh toán
-        if (hd.getTrangThaiThanhToan() == 1) {
-            hd.getBan().setTrangThai(TrangThaiBan.TRONG);
-        }
+        applyBanStatus(hd);
 
         hoaDonRepository.save(hd);
         return convertToResponse(hd);
@@ -98,7 +97,7 @@ public class HoaDonServiceImpl implements HoaDonService {
     public List<DTOHoaDonResponse> findByKhachHangId(Integer khachHangId) {
         return hoaDonRepository.findAll()
                 .stream()
-                .filter(hoaDon -> hoaDon.getKhachHang() != null && hoaDon.getKhachHang().getIdKhachHang().equals(khachHangId))
+                .filter(hoaDon -> matchesKhachHang(hoaDon, khachHangId))
                 .map(this::convertToResponse)
                 .toList();
     }
@@ -135,6 +134,16 @@ public class HoaDonServiceImpl implements HoaDonService {
             DatBan datBan = datBanRepository.findById(request.getIdDatBan())
                     .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay thong tin dat ban"));
             hd.setDatBan(datBan);
+
+            if (hd.getKhachHang() == null && datBan.getKhachHang() != null) {
+                hd.setKhachHang(datBan.getKhachHang());
+            }
+            if (hd.getSdtKhachHang() == null && datBan.getSdtKhachHang() != null) {
+                hd.setSdtKhachHang(datBan.getSdtKhachHang());
+            }
+            if (hd.getTienCoc() == null && datBan.getSoTienCoc() != null) {
+                hd.setTienCoc(datBan.getSoTienCoc());
+            }
         }
 
         GiamGia selectedGiamGia = null;
@@ -150,6 +159,16 @@ public class HoaDonServiceImpl implements HoaDonService {
             hd.setKhachHang(khachHang);
         }
 
+        if (hd.getKhachHang() == null && request.getIdKhachHang() == null && hd.getDatBan() != null && hd.getDatBan().getKhachHang() != null) {
+            hd.setKhachHang(hd.getDatBan().getKhachHang());
+        }
+        if ((hd.getSdtKhachHang() == null || hd.getSdtKhachHang().isBlank()) && hd.getDatBan() != null && hd.getDatBan().getSdtKhachHang() != null) {
+            hd.setSdtKhachHang(hd.getDatBan().getSdtKhachHang());
+        }
+        if (hd.getTienCoc() == null && hd.getDatBan() != null && hd.getDatBan().getSoTienCoc() != null) {
+            hd.setTienCoc(hd.getDatBan().getSoTienCoc());
+        }
+
         if (request.getTienGiamGia() == null && selectedGiamGia != null && hd.getTienTruocGiam() != null) {
             hd.setTienGiamGia(applyGiamGiaDiscount(hd.getTienTruocGiam(), selectedGiamGia));
         }
@@ -163,6 +182,47 @@ public class HoaDonServiceImpl implements HoaDonService {
                     .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay nhan vien"));
             hd.setNhanVien(nhanVien);
         }
+
+        attachCurrentNhanVienIfAbsent(hd);
+    }
+
+    private void attachCurrentNhanVienIfAbsent(HoaDon hd) {
+        if (hd.getNhanVien() != null) {
+            return;
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
+            return;
+        }
+
+        Object idTaiKhoanObj = jwt.getClaim("idTaiKhoan");
+        if (idTaiKhoanObj instanceof Number number) {
+            NhanVien nhanVien = nhanVienRepository.findByTaiKhoan_IdTaiKhoan(number.intValue());
+            if (nhanVien != null) {
+                hd.setNhanVien(nhanVien);
+            }
+        }
+    }
+
+    private boolean matchesKhachHang(HoaDon hoaDon, Integer khachHangId) {
+        if (hoaDon.getKhachHang() != null && hoaDon.getKhachHang().getIdKhachHang() != null
+                && hoaDon.getKhachHang().getIdKhachHang().equals(khachHangId)) {
+            return true;
+        }
+
+        return hoaDon.getDatBan() != null
+                && hoaDon.getDatBan().getKhachHang() != null
+                && hoaDon.getDatBan().getKhachHang().getIdKhachHang() != null
+                && hoaDon.getDatBan().getKhachHang().getIdKhachHang().equals(khachHangId);
+    }
+
+    private void applyBanStatus(HoaDon hd) {
+        if (hd.getBan() == null) {
+            return;
+        }
+
+        hd.getBan().setTrangThai(hd.getTrangThaiThanhToan() == 1 ? TrangThaiBan.TRONG : TrangThaiBan.DANG_SU_DUNG);
     }
 
     private BigDecimal applyGiamGiaDiscount(BigDecimal tienTruocGiam, GiamGia giamGia) {
@@ -197,8 +257,14 @@ public class HoaDonServiceImpl implements HoaDonService {
         response.setMaGiaoDich(hoaDon.getMaGiaoDich());
         response.setTrangThaiHoaDon(hoaDon.getTrangThaiHoaDon());
         response.setSdtKhachHang(hoaDon.getSdtKhachHang());
+        if (response.getSdtKhachHang() == null && hoaDon.getDatBan() != null && hoaDon.getDatBan().getSdtKhachHang() != null) {
+            response.setSdtKhachHang(hoaDon.getDatBan().getSdtKhachHang());
+        }
         response.setTienTruocGiam(hoaDon.getTienTruocGiam());
         response.setTienCoc(hoaDon.getTienCoc());
+        if (response.getTienCoc() == null && hoaDon.getDatBan() != null && hoaDon.getDatBan().getSoTienCoc() != null) {
+            response.setTienCoc(hoaDon.getDatBan().getSoTienCoc());
+        }
         response.setTienGiamGia(hoaDon.getTienGiamGia());
         response.setTongTien(hoaDon.getTongTien());
         response.setThoiGianXuat(hoaDon.getThoiGianXuat());
@@ -219,6 +285,15 @@ public class HoaDonServiceImpl implements HoaDonService {
         if (hoaDon.getKhachHang() != null) {
             response.setIdKhachHang(hoaDon.getKhachHang().getIdKhachHang());
             response.setTenKhachHang(hoaDon.getKhachHang().getTenKhachHang());
+        } else if (hoaDon.getDatBan() != null && hoaDon.getDatBan().getKhachHang() != null) {
+            response.setIdKhachHang(hoaDon.getDatBan().getKhachHang().getIdKhachHang());
+            response.setTenKhachHang(hoaDon.getDatBan().getKhachHang().getTenKhachHang());
+        }
+        if (response.getIdKhachHang() == null && hoaDon.getDatBan() != null && hoaDon.getDatBan().getKhachHang() != null) {
+            response.setIdKhachHang(hoaDon.getDatBan().getKhachHang().getIdKhachHang());
+        }
+        if (response.getTenKhachHang() == null && hoaDon.getDatBan() != null && hoaDon.getDatBan().getKhachHang() != null) {
+            response.setTenKhachHang(hoaDon.getDatBan().getKhachHang().getTenKhachHang());
         }
         if (hoaDon.getNhanVien() != null) {
             response.setIdNhanVien(hoaDon.getNhanVien().getId());

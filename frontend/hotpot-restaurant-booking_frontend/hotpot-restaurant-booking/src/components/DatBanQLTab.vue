@@ -45,9 +45,11 @@ watch(
   () => props.listKhuVuc,
   (danhSachKhuVucMoi) => {
     if (danhSachKhuVucMoi?.length > 0 && tabDangChon.value === null) {
-      tabDangChon.value = danhSachKhuVucMoi[0].idKhuVuc
-
-      emit('change', tabDangChon.value)
+      const firstKhuVuc = danhSachKhuVucMoi[0]
+      if (firstKhuVuc?.idKhuVuc != null) {
+        tabDangChon.value = firstKhuVuc.idKhuVuc
+        emit('change', tabDangChon.value)
+      }
     }
   },
   {

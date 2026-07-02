@@ -150,7 +150,7 @@ public class KhachHangServiceImpl implements KhachHangService {
 
     @Override
     public KhachHangResponse findByTaiKhoanId(Integer idTaiKhoan) {
-        KhachHang khachHang = khachHangRepository.findByTaiKhoan_IdTaiKhoan(idTaiKhoan);
+        KhachHang khachHang = khachHangRepository.findByTaiKhoan_IdTaiKhoan(idTaiKhoan).orElse(null);
         if (khachHang == null) {
             throw new CustomResourceNotFoundException("Không có khách hàng với tài khoản này");
         }

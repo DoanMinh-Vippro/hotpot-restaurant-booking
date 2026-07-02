@@ -2,7 +2,6 @@
 import DatBanApi from '@/api/DatBanApi'
 import { ref, watch } from 'vue'
 import ComBoInDatBan from './ComBoInDatBan.vue'
-import router from '@/router/index.ts'
 
 // tao object luu data vao form
 const formData = ref({
@@ -11,8 +10,8 @@ const formData = ref({
   soNguoi: 0,
   ghiChu: '',
   thoiGianDenDuKien: '',
-  soTienCoc: 100000,
-  phuongThucThanhToan: 0,
+  soTienCoc: 0,
+  phuongThucThanhToan: '' as string,
   idCombo: null as number | null,
 })
 //cong de nhanh du lieu tu DatBanView
@@ -20,6 +19,7 @@ const props = defineProps(['datBanForm'])
 
 // 1. Thêm biến trạng thái để chặn watch
 const isAdding = ref(false)
+const notice = ref<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
 
 //watch dung de lay du lieu ma datBanForm nhan doc dua vao object formData
 watch(
@@ -46,41 +46,92 @@ const TI_LE_COC = 0.3
 
 const chonCombo = (combo: any) => {
   if (!combo) {
-    formData.value.soTienCoc = 100000
+    formData.value.soTienCoc = 0
     return
   }
 
   formData.value.soTienCoc = Math.round(combo.giaCombo * TI_LE_COC)
 }
 
+const setNotice = (type: 'success' | 'error' | 'info', message: string) => {
+  notice.value = { type, message }
+}
+
+const validateForm = () => {
+  const sdt = `${formData.value.sdtKhachHang || ''}`.trim()
+  const soNguoi = Number(formData.value.soNguoi)
+  const thoiGianDen = formData.value.thoiGianDenDuKien?.toString().trim()
+  const phuongThucThanhToan = `${formData.value.phuongThucThanhToan || ''}`.trim()
+
+  if (!sdt) {
+    setNotice('error', 'Vui lòng nhập số điện thoại khách hàng.')
+    return false
+  }
+
+  if (!/^0\d{9,10}$/.test(sdt)) {
+    setNotice('error', 'Số điện thoại không hợp lệ. Ví dụ: 0912345678')
+    return false
+  }
+
+  if (!Number.isFinite(soNguoi) || soNguoi < 1) {
+    setNotice('error', 'Số người phải từ 1 trở lên.')
+    return false
+  }
+
+  if (!thoiGianDen) {
+    setNotice('error', 'Vui lòng chọn thời gian đến dự kiến.')
+    return false
+  }
+
+  if (!phuongThucThanhToan) {
+    setNotice('error', 'Vui lòng chọn phương thức thanh toán.')
+    return false
+  }
+
+  const thoiGianChon = new Date(thoiGianDen)
+  const hienTai = new Date()
+
+  if (Number.isNaN(thoiGianChon.getTime()) || thoiGianChon < hienTai) {
+    setNotice('error', 'Thời gian đến không được nhỏ hơn thời gian hiện tại.')
+    return false
+  }
+
+  return true
+}
+
 const add = async () => {
-  isAdding.value = true // Bật khóa: chặn mọi sự thay đổi từ props
+  if (!validateForm()) return
+
+  isAdding.value = true
   try {
     await DatBanApi.add(formData.value)
-    alert('them thanh cong')
+    setNotice('success', 'Đặt bàn thành công!')
     emit('refresh')
     resetForm()
   } catch (error) {
     console.error('them that bai', error)
+    setNotice('error', 'Thêm đặt bàn thất bại. Vui lòng thử lại.')
   } finally {
-    isAdding.value = false // Mở khóa sau khi đã xử lý xong
+    isAdding.value = false
   }
 }
 
 const update = async () => {
-  console.log('FORM DATA:', formData.value)
+  if (!validateForm()) return
+
   if (formData.value.idDatBan == null) {
-    console.error('Không có idDatBan để update')
+    setNotice('error', 'Không có thông tin đặt bàn để cập nhật.')
     return
   }
 
   try {
     await DatBanApi.update(formData.value.idDatBan, formData.value)
-    alert('sửa thành công')
+    setNotice('success', 'Cập nhật đặt bàn thành công!')
     emit('refresh')
     resetForm()
   } catch (error) {
     console.error('sửa thất bại', error)
+    setNotice('error', 'Cập nhật đặt bàn thất bại. Vui lòng thử lại.')
   }
 }
 
@@ -91,14 +142,10 @@ const resetForm = () => {
     soNguoi: 0,
     ghiChu: '',
     thoiGianDenDuKien: '',
-    soTienCoc: 100000,
-    phuongThucThanhToan: 0,
+    soTienCoc: 0,
+    phuongThucThanhToan: '',
     idCombo: null,
   }
-}
-
-const quayLai = () => {
-  router.push('/')
 }
 </script>
 
@@ -106,6 +153,8 @@ const quayLai = () => {
   <div class="page-container">
     <div class="form-container">
       <h3>Thông Tin Đặt Bàn</h3>
+
+      <div v-if="notice" :class="['notice', notice.type]">{{ notice.message }}</div>
 
       <div class="form-group">
         <label>SĐT Khách Hàng</label>
@@ -115,7 +164,7 @@ const quayLai = () => {
       <div class="row">
         <div class="form-group">
           <label>Số Người</label>
-          <input v-model.number="formData.soNguoi" type="number" />
+          <input v-model.number="formData.soNguoi" type="number" min="1" step="1" />
         </div>
         <div class="form-group">
           <label>Thời Gian Đến Dự Kiến</label>
@@ -127,8 +176,10 @@ const quayLai = () => {
         <div class="form-group">
           <label>Phương Thức Thanh Toán</label>
           <select v-model="formData.phuongThucThanhToan">
+            <option value="">-- Chọn phương thức thanh toán --</option>
             <option value="CHUYEN_KHOAN">Chuyển khoản</option>
             <option value="VNPAY">VNPAY</option>
+            <option value="TIEN_MAT">Tiền mặt</option>
           </select>
         </div>
         <div class="form-group">
@@ -151,9 +202,6 @@ const quayLai = () => {
     <div class="combo-section">
       <ComBoInDatBan v-model="formData.idCombo" @selectedCombo="chonCombo"></ComBoInDatBan>
 
-      <div class="go-home">
-        <button class="btn-back" @click.prevent="quayLai()">Trở về trang chủ</button>
-      </div>
     </div>
   </div>
 </template>
@@ -177,6 +225,32 @@ h3 {
   margin-bottom: 35px;
   text-transform: uppercase;
   font-weight: 300;
+}
+
+.notice {
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.notice.success {
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.notice.error {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.notice.info {
+  background: rgba(59, 130, 246, 0.16);
+  color: #bfdbfe;
+  border: 1px solid rgba(59, 130, 246, 0.35);
 }
 
 /* Quan trọng: Tạo khoảng cách giữa các nhóm */
@@ -304,47 +378,5 @@ input[type='datetime-local']::-webkit-calendar-picker-indicator {
   .combo-section {
     max-width: 100%; /* Chiếm hết chiều rộng màn hình */
   }
-}
-.go-home {
-  margin-top: 25px;
-}
-
-.btn-back {
-  width: 100%;
-  padding: 14px 20px;
-
-  background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
-
-  border: 1px solid #d4af37;
-  border-radius: 4px;
-
-  color: #d4af37;
-
-  font-size: 0.9rem;
-  font-weight: 500;
-
-  letter-spacing: 2px;
-  text-transform: uppercase;
-
-  cursor: pointer;
-
-  transition: all 0.3s ease;
-
-  box-shadow:
-    0 0 0 rgba(212, 175, 55, 0),
-    0 10px 20px rgba(0, 0, 0, 0.3);
-}
-
-.btn-back:hover {
-  background: #d4af37;
-  color: #1a1a1a;
-
-  transform: translateY(-2px);
-
-  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.25);
-}
-
-.btn-back:active {
-  transform: translateY(0);
 }
 </style>

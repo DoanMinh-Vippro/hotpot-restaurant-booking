@@ -9,6 +9,7 @@ import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private final DatBanRepository datBanRepository;
     private final BanRepository banRepository;
     private final KhachHangRepository khachHangRepository;
+    private final HoaDonRepository hoaDonRepository;
 
     // =========================
     // MAP RESPONSE (SAFE NULL BAN)
@@ -34,25 +36,27 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private DTODatBanQuanLyResponse mapToResponse(DatBan d) {
         DTODatBanQuanLyResponse response = mapper.map(d, DTODatBanQuanLyResponse.class);
 
-        // =========================
-        // BAN - TẠM THỜI KHÔNG DÙNG
-        // =========================
-        /*
         if (d.getBan() != null) {
-            response.setLoaiBan(d.getBan().getLoaiBan());
             response.setIdBan(d.getBan().getIdBan());
-        } else {
-            response.setLoaiBan(null);
         }
-        */
 
-        // Khách hàng vẫn giữ
         if (d.getKhachHang() != null) {
             response.setTenKhachHang(d.getKhachHang().getTenKhachHang());
             response.setIdKhachHang(d.getKhachHang().getIdKhachHang());
+            response.setSdtKhachHang(d.getSdtKhachHang());
         } else {
             response.setTenKhachHang("Khách vãng lai");
         }
+
+        response.setSoTienCoc(d.getSoTienCoc());
+        response.setTrangThaiCoc(d.getTrangThaiCoc());
+        response.setPhuongThucThanhToan(d.getPhuongThucThanhToan());
+        response.setGhiChu(d.getGhiChu());
+        response.setNgayDat(d.getNgayDat());
+        response.setGioDat(d.getGioDat());
+        response.setThoiGianDenDuKien(d.getThoiGianDenDuKien());
+        response.setSoNguoi(d.getSoNguoi());
+        response.setTrangThai(d.getTrangThai());
 
         if (d.getCombo() != null) {
             response.setIdCombo(d.getCombo().getIdCombo());
@@ -67,6 +71,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     public List<DTODatBanQuanLyResponse> getAll() {
         return datBanRepository.findAll()
                 .stream()
+                .filter(this::isVisibleReservation)
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -109,8 +114,12 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         // response.setLoaiBan(ban.getLoaiBan());
         // response.setIdBan(db.getBan().getIdBan());
 
-        response.setTenKhachHang(kh.getTenKhachHang());
-        response.setIdKhachHang(kh.getIdKhachHang());
+        response.setTenKhachHang(kh != null ? kh.getTenKhachHang() : "Khách vãng lai");
+        response.setIdKhachHang(kh != null ? kh.getIdKhachHang() : null);
+        response.setSdtKhachHang(db.getSdtKhachHang());
+        response.setTrangThaiCoc(db.getTrangThaiCoc());
+        response.setSoTienCoc(db.getSoTienCoc());
+        response.setPhuongThucThanhToan(db.getPhuongThucThanhToan());
 
         return response;
     }
@@ -155,6 +164,9 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                     if (d.getSoTienCoc() != null)
                         db.setSoTienCoc(d.getSoTienCoc());
 
+                    if (d.getTrangThaiCoc() != null)
+                        db.setTrangThaiCoc(d.getTrangThaiCoc());
+
                     if (d.getPhuongThucThanhToan() != null)
                         db.setPhuongThucThanhToan(d.getPhuongThucThanhToan());
 
@@ -165,8 +177,12 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                     // response.setLoaiBan(db.getBan().getLoaiBan());
                     // response.setIdBan(db.getBan().getIdBan());
 
-                    response.setTenKhachHang(db.getKhachHang().getTenKhachHang());
-                    response.setIdKhachHang(db.getKhachHang().getIdKhachHang());
+                    response.setTenKhachHang(db.getKhachHang() != null ? db.getKhachHang().getTenKhachHang() : "Khách vãng lai");
+                    response.setIdKhachHang(db.getKhachHang() != null ? db.getKhachHang().getIdKhachHang() : null);
+                    response.setSdtKhachHang(db.getSdtKhachHang());
+                    response.setTrangThaiCoc(db.getTrangThaiCoc());
+                    response.setSoTienCoc(db.getSoTienCoc());
+                    response.setPhuongThucThanhToan(db.getPhuongThucThanhToan());
 
                     return response;
                 })
@@ -182,7 +198,12 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     public List<DTODatBanQuanLyResponse> findByTrangThai(TrangThaiDatBan trangThai) {
         return datBanRepository.findByTrangThai(trangThai)
                 .stream()
+                .filter(this::isVisibleReservation)
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    private boolean isVisibleReservation(DatBan datBan) {
+        return !hoaDonRepository.existsByDatBan_IdDatBanAndTrangThaiThanhToan(datBan.getIdDatBan(), 1);
     }
 }

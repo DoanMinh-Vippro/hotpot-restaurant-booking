@@ -5,9 +5,12 @@ import MonApi from '../api/MonApi'
 import type { Combo } from '../api/ComBoApi'
 import type { Mon } from '../api/MonApi'
 
+type MenuMon = Mon & { hinhAnh?: string | null; moTa?: string | null; loaiDanhMuc?: string | null }
+type MenuCombo = Combo & { hinhAnh?: string | null; moTa?: string | null }
+
 // Khai báo trạng thái danh sách và Tab điều hướng
-const monItems = ref<Mon[]>([])
-const comboItems = ref<Combo[]>([])
+const monItems = ref<MenuMon[]>([])
+const comboItems = ref<MenuCombo[]>([])
 const activeTab = ref<'mon-le' | 'combo'>('mon-le')
 const loading = ref(false)
 
@@ -33,11 +36,11 @@ const fetchMonByPage = async (pageMucTieu: number) => {
     const responseData = resMon.data as any
 
     if (responseData && responseData.content) {
-      monItems.value = responseData.content.filter((m: Mon) => m.trangThai !== 1)
+      monItems.value = responseData.content.filter((m: MenuMon) => m.trangThai !== 1)
       totalPagesMon.value = responseData.totalPages || 0
     } else {
       const dsMon = Array.isArray(responseData) ? responseData : []
-      monItems.value = dsMon.filter((m: Mon) => m.trangThai !== 1)
+      monItems.value = dsMon.filter((m: MenuMon) => m.trangThai !== 1)
       totalPagesMon.value = 1
     }
   } catch (error) {
@@ -56,11 +59,11 @@ const fetchComboByPage = async (pageMucTieu: number) => {
     const responseData = resCombo.data as any
 
     if (responseData && responseData.content) {
-      comboItems.value = responseData.content.filter((cb: Combo) => cb.trangThai !== 0)
+      comboItems.value = responseData.content.filter((cb: MenuCombo) => cb.trangThai !== 0)
       totalPagesCombo.value = responseData.totalPages || 0
     } else {
       const dsCombo = Array.isArray(responseData) ? responseData : []
-      comboItems.value = dsCombo.filter((cb: Combo) => cb.trangThai !== 0)
+      comboItems.value = dsCombo.filter((cb: MenuCombo) => cb.trangThai !== 0)
       totalPagesCombo.value = 1
     }
   } catch (error) {

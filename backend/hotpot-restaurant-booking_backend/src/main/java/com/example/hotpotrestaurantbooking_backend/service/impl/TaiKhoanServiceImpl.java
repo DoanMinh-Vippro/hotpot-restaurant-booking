@@ -130,7 +130,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
             return;
         }
 
-        KhachHang khachHang = khachHangRepository.findByTaiKhoan_IdTaiKhoan(taiKhoan.getIdTaiKhoan());
+        KhachHang khachHang = khachHangRepository.findByTaiKhoan_IdTaiKhoan(taiKhoan.getIdTaiKhoan()).orElse(null);
         if (khachHang != null) {
             if (newRoleId != null && newRoleId != 3) {
                 khachHang.setTrangThai(false);

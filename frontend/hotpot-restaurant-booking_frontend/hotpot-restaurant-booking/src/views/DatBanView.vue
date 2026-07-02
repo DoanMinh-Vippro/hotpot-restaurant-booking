@@ -3,9 +3,15 @@ import DatBanApi from '@/api/DatBanApi';
 import DatBanForm from '@/components/DatBanForm.vue';
 import DatBanTable from '@/components/DatBanTable.vue';
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const list = ref([]) // Truyền data xuống DatBanTable
 const datBanForm = ref(null) // Biến dùng với form
+
+const goHome = () => {
+  router.push('/');
+}
 
 const loadData = async () =>{
     const response = await DatBanApi.getAll();

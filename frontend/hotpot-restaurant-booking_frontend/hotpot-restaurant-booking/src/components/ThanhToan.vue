@@ -229,6 +229,10 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
     thoiGianXuat: new Date().toISOString(),
     idBan: props.ban.idBan,
     idGiamGia: giamGiaDangChon.value,
+    idDatBan: props.datBan?.idDatBan ?? null,
+    idKhachHang: props.datBan?.idKhachHang ?? null,
+    sdtKhachHang: props.datBan?.sdtKhachHang ?? null,
+    tienCoc: props.datBan?.soTienCoc ?? null,
   }
 
   if (hoaDonHienTai.value) {
