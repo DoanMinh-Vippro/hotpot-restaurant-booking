@@ -8,6 +8,7 @@ import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,9 @@ class DatBanQuanLyServiceImplTest {
 
     @Mock
     private KhachHangRepository khachHangRepository;
+
+    @Mock
+    private HoaDonRepository hoaDonRepository;
 
     @InjectMocks
     private DatBanQuanLyServiceImpl service;
@@ -73,5 +77,36 @@ class DatBanQuanLyServiceImplTest {
         assertEquals(TrangThaiDatBanCoc.DA_COC, datBan.getTrangThaiCoc());
         assertEquals("0987654321", datBan.getSdtKhachHang());
         assertEquals(10, datBan.getKhachHang().getIdKhachHang());
+    }
+
+    @Test
+    void addShouldDefaultDepositToZeroWhenNotProvided() {
+        DatBan datBan = new DatBan();
+        datBan.setIdDatBan(2);
+        datBan.setSoTienCoc(null);
+
+        DTODatBanQuanLyRequest request = new DTODatBanQuanLyRequest();
+        request.setIdkhachHang(10);
+        request.setSdtKhachHang("0987654321");
+        request.setSoNguoi(4);
+        request.setSoTienCoc(null);
+
+        KhachHang khachHang = new KhachHang();
+        khachHang.setIdKhachHang(10);
+        khachHang.setTenKhachHang("Nguyễn Văn A");
+
+        when(mapper.map(any(DTODatBanQuanLyRequest.class), eq(DatBan.class))).thenReturn(datBan);
+        when(khachHangRepository.findById(10)).thenReturn(Optional.of(khachHang));
+        when(datBanRepository.save(any(DatBan.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(mapper.map(any(DatBan.class), eq(DTODatBanQuanLyResponse.class))).thenAnswer(invocation -> {
+            DTODatBanQuanLyResponse response = new DTODatBanQuanLyResponse();
+            response.setIdDatBan(((DatBan) invocation.getArgument(0)).getIdDatBan());
+            return response;
+        });
+
+        DTODatBanQuanLyResponse response = service.add(request);
+
+        assertEquals(BigDecimal.ZERO, datBan.getSoTienCoc());
+        assertEquals(BigDecimal.ZERO, response.getSoTienCoc());
     }
 }

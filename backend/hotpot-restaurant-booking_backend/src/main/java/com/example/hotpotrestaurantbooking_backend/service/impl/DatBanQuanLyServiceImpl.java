@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -106,6 +107,9 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
         db.setGioDat(LocalTime.now());
         db.setNgayDat(LocalDate.now());
+        if (db.getSoTienCoc() == null) {
+            db.setSoTienCoc(BigDecimal.ZERO);
+        }
 
         datBanRepository.save(db);
 
@@ -163,6 +167,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
                     if (d.getSoTienCoc() != null)
                         db.setSoTienCoc(d.getSoTienCoc());
+                    else if (db.getSoTienCoc() == null)
+                        db.setSoTienCoc(BigDecimal.ZERO);
 
                     if (d.getTrangThaiCoc() != null)
                         db.setTrangThaiCoc(d.getTrangThaiCoc());

@@ -168,9 +168,8 @@ public class HoaDonServiceImpl implements HoaDonService {
         if (hd.getTienCoc() == null && hd.getDatBan() != null && hd.getDatBan().getSoTienCoc() != null) {
             hd.setTienCoc(hd.getDatBan().getSoTienCoc());
         }
-
-        if (request.getTienGiamGia() == null && selectedGiamGia != null && hd.getTienTruocGiam() != null) {
-            hd.setTienGiamGia(applyGiamGiaDiscount(hd.getTienTruocGiam(), selectedGiamGia));
+        if (hd.getTienCoc() == null) {
+            hd.setTienCoc(BigDecimal.ZERO);
         }
 
         if (hd.getTienTruocGiam() != null && hd.getTienGiamGia() != null && request.getTongTien() == null) {
@@ -264,6 +263,9 @@ public class HoaDonServiceImpl implements HoaDonService {
         response.setTienCoc(hoaDon.getTienCoc());
         if (response.getTienCoc() == null && hoaDon.getDatBan() != null && hoaDon.getDatBan().getSoTienCoc() != null) {
             response.setTienCoc(hoaDon.getDatBan().getSoTienCoc());
+        }
+        if (response.getTienCoc() == null) {
+            response.setTienCoc(BigDecimal.ZERO);
         }
         response.setTienGiamGia(hoaDon.getTienGiamGia());
         response.setTongTien(hoaDon.getTongTien());

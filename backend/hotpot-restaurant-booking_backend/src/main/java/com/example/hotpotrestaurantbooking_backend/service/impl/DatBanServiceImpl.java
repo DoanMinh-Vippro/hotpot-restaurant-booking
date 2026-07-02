@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -108,6 +109,12 @@ public class DatBanServiceImpl implements DatBanService {
         d.setNgayDat(LocalDate.now());
         d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
         d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
+        if (d.getSoTienCoc() == null) {
+            d.setSoTienCoc(BigDecimal.ZERO);
+        }
+        if (d.getCombo() == null && d.getSoTienCoc() != null) {
+            d.setSoTienCoc(BigDecimal.ZERO);
+        }
         datBanRepository.save(d);
 
         DTODatBanResponse res = mapper.map(d, DTODatBanResponse.class);
@@ -130,6 +137,11 @@ public class DatBanServiceImpl implements DatBanService {
                         .orElseThrow(() -> new CustomResourceNotFoundException("Combo này không tồn tại trong hệ thống!")));
             } else {
                 db.setCombo(null);
+                db.setSoTienCoc(BigDecimal.ZERO);
+            }
+
+            if (db.getCombo() == null && db.getSoTienCoc() == null) {
+                db.setSoTienCoc(BigDecimal.ZERO);
             }
 
             datBanRepository.save(db);
