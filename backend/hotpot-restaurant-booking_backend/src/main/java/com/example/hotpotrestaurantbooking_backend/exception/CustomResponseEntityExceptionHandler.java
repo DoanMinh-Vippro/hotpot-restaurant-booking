@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class CustomResponseEntityExceptionHandler extends ResponseEntityExceptionHandler{
+
     @ExceptionHandler(Exception.class)
     public final ResponseEntity<CustomErrorDetails> handlerException(Exception ex, WebRequest request){
         CustomErrorDetails errorDetails = new CustomErrorDetails(LocalDateTime.now(), ex.getMessage(), request.getDescription(false));

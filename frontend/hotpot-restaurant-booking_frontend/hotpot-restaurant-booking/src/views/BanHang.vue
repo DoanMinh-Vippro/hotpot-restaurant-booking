@@ -90,6 +90,19 @@ const handleSelectBan = (ban: any) => {
 const moPopupDatBan = async (ban: any) => {
   banDangChon.value = ban
 
+  try {
+    // 0 là hóa đơn đang hoạt động
+    const res = await HoaDonApi.findByBanAndStatus(ban.idBan, 0)
+
+    if (res.data) {
+      datBanDangChon.value = null
+      manHinhHienTai.value = 'thanhToan'
+      return
+    }
+  } catch (error) {
+    // Không có hóa đơn -> hiện popup kiểm tra đặt bàn
+  }
+
   showPopup.value = true
 }
 

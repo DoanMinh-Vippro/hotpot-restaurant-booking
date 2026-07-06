@@ -153,4 +153,36 @@ public class DatBanServiceImpl implements DatBanService {
             return res;
         }).toList();
     }
+
+    @Override
+    public DatBan createBookingAfterPayment(Integer idKhachHang, DTODatBanRequest datBan) {
+        DatBan d = mapper.map(datBan, DatBan.class);
+
+        KhachHang khachHang = khachHangRepository
+                .findById(idKhachHang)
+                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
+
+        d.setIdDatBan(null);
+        d.setBan(null);
+        d.setKhachHang(khachHang);
+
+        if (datBan.getIdCombo() != null) {
+            Combo combo = comboRepository.findById(datBan.getIdCombo())
+                    .orElseThrow(() -> new CustomResourceNotFoundException("Combo không tồn tại"));
+
+            d.setCombo(combo);
+        } else {
+            d.setCombo(null);
+        }
+
+        d.setGioDat(LocalTime.now());
+        d.setNgayDat(LocalDate.now());
+
+        d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
+        d.setTrangThaiCoc(TrangThaiDatBanCoc.DA_COC);
+
+        datBanRepository.save(d);
+
+        return d;
+    }
 }

@@ -58,6 +58,20 @@ const chonBan = (ban: any) => {
 const moBanDetail = (ban: any) => {
   emit('openDetail', ban)
 }
+
+//map loại bàn
+const formatLoaiBan = (loai: string) => {
+  switch (loai) {
+    case 'HAI_NGUOI':
+      return '2 người'
+    case 'BON_NGUOI':
+      return '4 người'
+    case 'SAU_NGUOI':
+      return '6 người'
+    default:
+      return loai
+  }
+}
 </script>
 
 <template>
@@ -74,7 +88,7 @@ const moBanDetail = (ban: any) => {
         <!-- INFO -->
         <div class="ban-info">
           <div class="ban-name">{{ ban.tenBan }}</div>
-          <div class="ban-type">{{ ban.loaiBan }}</div>
+          <div class="ban-type">{{ formatLoaiBan(ban.loaiBan) }}</div>
           <div class="ban-status">{{ ban.trangThai }}</div>
         </div>
 
@@ -127,8 +141,9 @@ const moBanDetail = (ban: any) => {
 /* 3. Style text bên trong ô */
 .ban-info {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 .ban-name {
@@ -136,10 +151,17 @@ const moBanDetail = (ban: any) => {
   font-weight: 600;
 }
 
-.ban-type,
+.ban-type {
+  color: #aaa;
+  font-size: 17px;
+  padding: 2px 6px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 6px;
+}
+
 .ban-status {
   color: #aaa;
-  font-size: 12px;
+  font-size: 15px;
 }
 
 /* 4. Nút xóa nhỏ gọn */

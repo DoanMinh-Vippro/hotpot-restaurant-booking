@@ -102,11 +102,6 @@ const router = createRouter({
       component: () => import('@/views/TienCocList.vue'), // Sửa coc/TienCocList
     },
     {
-      path: '/dat-ban',
-      name: 'dat-ban',
-      component: () => import('@/views/DatBanView.vue'),
-    },
-    {
       path: '/nhan-vien',
       name: 'nhan-vien',
       component: () => import('@/views/NhanVienView.vue'),
@@ -130,6 +125,16 @@ const router = createRouter({
       path: '/ban-hang',
       name: 'ban-hang',
       component: () => import('@/views/BanHang.vue'),
+    },
+    {
+      path: '/payment-success',
+      name: 'payment-success',
+      component: () => import('@/views/PaymentSuccess.vue'),
+    },
+    {
+      path: '/payment-failed',
+      name: 'payment-failed',
+      component: () => import('@/views/PaymentFailed.vue'),
     },
   ],
 })

@@ -49,7 +49,11 @@ public class HoaDonServiceImpl implements HoaDonService {
         updateEntityFromRequest(hd, request);
 
         // Chuyển trạng thái bàn khi tạo hóa đơn lần đầu
-        hd.getBan().setTrangThai(TrangThaiBan.DANG_SU_DUNG);
+        if (hd.getTrangThaiThanhToan() == 1) {
+            hd.getBan().setTrangThai(TrangThaiBan.TRONG);
+        } else {
+            hd.getBan().setTrangThai(TrangThaiBan.DANG_SU_DUNG);
+        }
 
         hoaDonRepository.save(hd);
         return convertToResponse(hd);

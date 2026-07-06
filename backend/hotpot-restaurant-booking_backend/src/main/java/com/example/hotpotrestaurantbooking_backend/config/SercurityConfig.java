@@ -35,6 +35,10 @@ public class SercurityConfig {
 
                         // 3. Cho phép xem ảnh tĩnh công khai từ thư mục WebConfig (không cần Token)
                         .requestMatchers("/uploads/**").permitAll()
+                        // 4 thanh toán
+                        .requestMatchers("/sepay/webhook").permitAll()
+                        .requestMatchers("/api/payment/vnpay/create").permitAll()
+                        .requestMatchers("/api/payment/vnpay-return").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Spring Boot sẽ tự động tìm Bean JwtDecoder trong Context (đã được tạo ở JwtKeyConfig)

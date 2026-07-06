@@ -5,6 +5,7 @@ package com.example.hotpotrestaurantbooking_backend.service;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 
 import java.util.List;
 
@@ -15,4 +16,5 @@ public interface DatBanService {
     DTODatBanResponse update(Integer id,DTODatBanRequest datBan);
     void delete(Integer id);
     List<DTODatBanResponse> getDatBanByKhachHang(Integer id);
+    DatBan createBookingAfterPayment(Integer idKhachHang, DTODatBanRequest datBan);
 }

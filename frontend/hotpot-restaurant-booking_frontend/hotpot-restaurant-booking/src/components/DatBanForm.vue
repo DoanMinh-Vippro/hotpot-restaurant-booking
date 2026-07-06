@@ -3,6 +3,20 @@ import DatBanApi from '@/api/DatBanApi'
 import { ref, watch } from 'vue'
 import ComBoInDatBan from './ComBoInDatBan.vue'
 import router from '@/router/index.ts'
+import { paymentApi } from '@/api/PaymentApi.ts'
+import PaymentDialog from './PaymentDialog.vue'
+
+type PaymentMethod = 'CHUYEN_KHOAN' | 'VNPAY'
+
+const showPayment = ref(false)
+
+const paymentData = ref({
+  qrUrl: '',
+  amount: 0,
+  content: '',
+})
+
+let paymentTimer: ReturnType<typeof setInterval> | null = null
 
 // tao object luu data vao form
 const formData = ref({
@@ -12,9 +26,10 @@ const formData = ref({
   ghiChu: '',
   thoiGianDenDuKien: '',
   soTienCoc: 100000,
-  phuongThucThanhToan: 0,
+  phuongThucThanhToan: 'CHUYEN_KHOAN' as PaymentMethod,
   idCombo: null as number | null,
 })
+
 //cong de nhanh du lieu tu DatBanView
 const props = defineProps(['datBanForm'])
 
@@ -25,13 +40,13 @@ const isAdding = ref(false)
 watch(
   () => props.datBanForm,
   (newData) => {
-    // Nếu đang thêm mới (isAdding = true) hoặc newData null thì KHÔNG làm gì cả
     if (isAdding.value || !newData) return
 
     if (newData.idDatBan !== formData.value.idDatBan) {
       formData.value = {
         ...newData,
         idCombo: newData.idCombo || null,
+        phuongThucThanhToan: newData.phuongThucThanhToan as PaymentMethod,
       }
     }
   },
@@ -54,21 +69,73 @@ const chonCombo = (combo: any) => {
 }
 
 const add = async () => {
-  isAdding.value = true // Bật khóa: chặn mọi sự thay đổi từ props
+  isAdding.value = true
+
   try {
-    await DatBanApi.add(formData.value)
-    alert('them thanh cong')
-    emit('refresh')
-    resetForm()
+    if (formData.value.phuongThucThanhToan === 'CHUYEN_KHOAN') {
+      const paymentRes = await paymentApi.createPayment(formData.value)
+
+      paymentData.value = {
+        qrUrl: paymentRes.data.qrUrl,
+        amount: paymentRes.data.amount,
+        content: paymentRes.data.content,
+      }
+
+      showPayment.value = true
+
+      // Nếu còn timer cũ thì dừng
+      if (paymentTimer) {
+        clearInterval(paymentTimer)
+      }
+
+      paymentTimer = setInterval(async () => {
+        try {
+          const res = await paymentApi.checkPaymentStatus(paymentData.value.content)
+
+          if (res.data) {
+            if (paymentTimer) {
+              clearInterval(paymentTimer)
+              paymentTimer = null
+            }
+
+            showPayment.value = false
+
+            paymentData.value = {
+              qrUrl: '',
+              amount: 0,
+              content: '',
+            }
+
+            resetForm()
+
+            emit('refresh')
+
+            alert('Đặt bàn thành công!')
+          }
+        } catch (e) {
+          console.error(e)
+
+          if (paymentTimer) {
+            clearInterval(paymentTimer)
+            paymentTimer = null
+          }
+        }
+      }, 2000)
+    } else if (formData.value.phuongThucThanhToan === 'VNPAY') {
+      const res = await paymentApi.createVNPayPayment(formData.value)
+
+      window.location.href = res.data.paymentUrl
+    }
   } catch (error) {
-    console.error('them that bai', error)
+    console.error('Lỗi:', error)
   } finally {
-    isAdding.value = false // Mở khóa sau khi đã xử lý xong
+    isAdding.value = false
   }
 }
 
 const update = async () => {
   console.log('FORM DATA:', formData.value)
+
   if (formData.value.idDatBan == null) {
     console.error('Không có idDatBan để update')
     return
@@ -92,8 +159,23 @@ const resetForm = () => {
     ghiChu: '',
     thoiGianDenDuKien: '',
     soTienCoc: 100000,
-    phuongThucThanhToan: 0,
+    phuongThucThanhToan: 'CHUYEN_KHOAN',
     idCombo: null,
+  }
+}
+
+const closePaymentDialog = () => {
+  showPayment.value = false
+
+  paymentData.value = {
+    qrUrl: '',
+    amount: 0,
+    content: '',
+  }
+
+  if (paymentTimer) {
+    clearInterval(paymentTimer)
+    paymentTimer = null
   }
 }
 
@@ -156,6 +238,13 @@ const quayLai = () => {
       </div>
     </div>
   </div>
+  <PaymentDialog
+    :show="showPayment"
+    :qr-url="paymentData.qrUrl"
+    :amount="paymentData.amount"
+    :content="paymentData.content"
+    @close="closePaymentDialog"
+  />
 </template>
 
 <style scoped>
