@@ -65,7 +65,7 @@ const themVaoGio = (item: any, loai: string) => {
       tenMon: item.tenMon ?? null,
       tenCombo: item.tenCombo ?? null,
 
-      gia: loai === 'MON' ? item.donGiaHienTai : (item.giaCombo ?? 0),
+      gia: loai === 'MON' ? item.giaSauGiam : (item.giaCombo ?? 0),
 
       soLuong: 1,
       loai,
