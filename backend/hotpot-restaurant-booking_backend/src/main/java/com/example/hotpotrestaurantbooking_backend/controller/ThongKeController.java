@@ -5,6 +5,7 @@ import com.example.hotpotrestaurantbooking_backend.dto.DTODashboard;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeDoanhThu;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeNhanVien;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOThongKeTheoMon;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOTrangThaiCoc;
 import com.example.hotpotrestaurantbooking_backend.service.ThongKeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -51,5 +52,15 @@ public class ThongKeController {
     @GetMapping("/dashboard")
     public DTODashboard dashboard() {
         return service.dashboard();
+    }
+
+    @GetMapping("/tien-coc-theo-ngay")
+    public List<DTOThongKeDoanhThu> tienCocTheoNgay() {
+        return service.tienCocTheoNgay();
+    }
+
+    @GetMapping("/trang-thai-coc")
+    public List<DTOTrangThaiCoc> trangThaiCoc() {
+        return service.trangThaiCoc();
     }
 }

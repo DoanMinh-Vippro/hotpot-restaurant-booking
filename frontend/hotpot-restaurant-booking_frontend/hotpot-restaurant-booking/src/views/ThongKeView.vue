@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
+import { useRouter } from "vue-router";
 import ThongKeApi from "@/api/ThongKeApi";
 import RevenueChart from "./RevenueChart.vue";
+
+import DepositStatusChart from "./DepositStatusChart.vue";
+
+
+const router = useRouter();
+
+const goHome = () => {
+  router.push('/');
+};
 
 const dashboard = ref<any>({});
 const topMon = ref<any[]>([]);
 const topNhanVien = ref<any[]>([]);
-
+const tienCoc = ref<any[]>([]);
+const trangThaiCoc = ref<any[]>([]);
 const ngay = ref<any[]>([]);
 const thang = ref<any[]>([]);
 const nam = ref<any[]>([]);
@@ -18,24 +29,35 @@ const modes = ["ngay", "thang", "nam"] as const;
 
 const load = async () => {
   try {
-    const [db, mon, nv, dNgay, dThang, dNam] = await Promise.all([
-      ThongKeApi.dashboard(),
-      ThongKeApi.topMon(),
-      ThongKeApi.topNhanVien(),
-      ThongKeApi.theoNgay("2026-01-01", "2026-12-31"),
-      ThongKeApi.theoThang(),
-      ThongKeApi.theoNam()
-    ]);
+    const [db, mon, nv, dNgay, dThang, dNam, coc, ttCoc] =
+      await Promise.all([
+        ThongKeApi.dashboard(),
+        ThongKeApi.topMon(),
+        ThongKeApi.topNhanVien(),
+        ThongKeApi.theoNgay("2026-01-01", "2026-12-31"),
+        ThongKeApi.theoThang(),
+        ThongKeApi.theoNam(),
+        ThongKeApi.tienCocTheoNgay(),
+        ThongKeApi.trangThaiCoc()
+      ]);
 
-    // ✅ GÁN DATA AN TOÀN
+    // Dashboard
     dashboard.value = db?.data || {};
+
+    // Top
     topMon.value = mon?.data || [];
     topNhanVien.value = nv?.data || [];
+
+    // Biểu đồ doanh thu
     ngay.value = dNgay?.data || [];
     thang.value = dThang?.data || [];
     nam.value = dNam?.data || [];
 
-    // 🔥 DEBUG (CỰC QUAN TRỌNG)
+    // Tiền cọc
+    tienCoc.value = coc?.data || [];
+    trangThaiCoc.value = ttCoc?.data || [];
+
+    // DEBUG
     console.log("===== API DATA =====");
     console.log("Dashboard:", dashboard.value);
     console.log("Top món:", topMon.value);
@@ -43,6 +65,8 @@ const load = async () => {
     console.log("Ngày:", ngay.value);
     console.log("Tháng:", thang.value);
     console.log("Năm:", nam.value);
+    console.log("Tiền cọc:", tienCoc.value);
+    console.log("Trạng thái cọc:", trangThaiCoc.value);
 
   } catch (err) {
     console.error("LOAD ERROR:", err);
@@ -62,11 +86,11 @@ const chartData = computed(() => {
     if (mode.value === "ngay") {
       // 👉 2026-05-18 → 05-18
       thoiGian = i?.thoiGian ? i.thoiGian.slice(5) : "";
-    } 
+    }
     else if (mode.value === "thang") {
       // 🔥 GIỮ NGUYÊN yyyy-MM
       thoiGian = i?.thoiGian || "";
-    } 
+    }
     else if (mode.value === "nam") {
       // 👉 chỉ lấy năm
       thoiGian = i?.thoiGian ? i.thoiGian.toString().slice(0, 4) : "";
@@ -87,6 +111,9 @@ onMounted(load);
 </script>
 <template>
   <div class="dashboard">
+    <div class="page-top">
+      <button class="back-home-btn" @click="goHome">🏠 Trang chủ</button>
+    </div>
 
     <!-- HEADER -->
     <div class="header">
@@ -98,7 +125,7 @@ onMounted(load);
     <div class="kpi-grid">
       <div class="kpi card-green">
         <h4>💰 Doanh thu</h4>
-        <p>{{ dashboard.tongDoanhThu || 0 }}</p>
+        <p>{{ Number(dashboard.tongDoanhThu || 0).toLocaleString() }} đ</p>
       </div>
 
       <div class="kpi card-blue">
@@ -110,12 +137,26 @@ onMounted(load);
         <h4>👥 Khách hàng</h4>
         <p>{{ dashboard.tongKhachHang || 0 }}</p>
       </div>
+      <div class="kpi card-purple">
+    <h4>💵 Tiền cọc</h4>
+    <p>{{ Number(dashboard.tongTienCoc || 0).toLocaleString() }} đ</p>
+  </div>
+
+  <div class="kpi card-green">
+    <h4>✅ Đã cọc</h4>
+    <p>{{ dashboard.soDonDaCoc }}</p>
+  </div>
+
+  <div class="kpi card-red">
+    <h4>❌ Chưa cọc</h4>
+    <p>{{ dashboard.soDonChuaCoc }}</p>
+  </div>
     </div>
 
     <!-- FILTER -->
     <div class="filter">
-      <button 
-        v-for="m in modes" 
+      <button
+        v-for="m in modes"
         :key="m"
         @click="mode = m"
         :class="{active: mode === m}"
@@ -126,8 +167,8 @@ onMounted(load);
 
     <!-- CHART -->
     <div class="chart-box">
-     <RevenueChart 
-  :key="mode + chartData.length" 
+     <RevenueChart
+  :key="mode + chartData.length"
   :data="chartData"
   :mode="mode"
 />
@@ -148,15 +189,50 @@ onMounted(load);
         <h3>👨‍🍳 Top nhân viên</h3>
         <div v-for="nv in topNhanVien" :key="nv.tenNhanVien" class="row">
           <span>{{ nv.tenNhanVien }}</span>
-          <b>{{ nv.tongDoanhThu }}</b>
+          <b>{{ Number(nv.tongDoanhThu).toLocaleString() }} đ</b>
         </div>
       </div>
 
     </div>
+<div class="box" style="margin-top:20px">
+    <h3>💵 Tiền cọc theo ngày</h3>
 
+    <RevenueChart
+        :data="tienCoc.map(i => ({
+            thoiGian: i.thoiGian,
+            tongDoanhThu: i.doanhThu
+        }))"
+        mode="ngay"
+    />
+</div>
+<div class="box" style="margin-top:20px">
+    <h3>📌 Trạng thái cọc</h3>
+
+    <DepositStatusChart
+        :data="trangThaiCoc"
+    />
+</div>
   </div>
 </template>
 <style scoped>
+.page-top {
+  margin-bottom: 16px;
+}
+
+.back-home-btn {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: white;
+  color: #0f172a;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.back-home-btn:hover {
+  background: #f8fafc;
+}
+
 .dashboard {
   padding: 24px;
   font-family: Inter;
@@ -174,11 +250,11 @@ onMounted(load);
 }
 
 /* KPI */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* FIX */
-  gap: 16px;
-  margin: 20px 0;
+.kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;
+    margin:20px 0;
 }
 
 .kpi {
@@ -248,5 +324,11 @@ onMounted(load);
   padding: 8px 0;
   border-bottom: 1px solid #f1f5f9;
 }
+.card-purple{
+    border-left:4px solid #8b5cf6;
+}
 
+.card-red{
+    border-left:4px solid #ef4444;
+}
 </style>

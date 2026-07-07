@@ -1,9 +1,16 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import BanApi from '@/api/BanApi'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import DatBanQuanLyForm from '@/components/DatBanQuanLyForm.vue'
 import DatBanQuanLyTable from '@/components/DatBanQuanLyTable.vue'
 import { onMounted, ref } from 'vue'
+
+const router = useRouter()
+
+const goHome = () => {
+  router.push('/')
+}
 
 const list = ref([]) //bien truyen xuong table
 const form = ref<any>({}) // Khai báo là ref chứa object
@@ -45,6 +52,30 @@ onMounted(loadData)
 </script>
 
 <template>
+  <div class="page-top">
+    <button class="back-home-btn" @click="goHome">🏠 Trang chủ</button>
+  </div>
+
   <DatBanQuanLyForm :datBanQuanLy="form" :listBan="listBan" @refresh="loadData"></DatBanQuanLyForm>
   <DatBanQuanLyTable :list="list" @detail="detail" @delete="deleteById"></DatBanQuanLyTable>
 </template>
+
+<style scoped>
+.page-top {
+  margin: 12px 0 16px;
+}
+
+.back-home-btn {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffd86b;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.back-home-btn:hover {
+  background: rgba(212, 175, 55, 0.16);
+}
+</style>

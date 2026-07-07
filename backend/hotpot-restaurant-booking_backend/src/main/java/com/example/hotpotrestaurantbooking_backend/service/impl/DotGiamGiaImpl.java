@@ -38,7 +38,11 @@ public class DotGiamGiaImpl implements DotGiamGiaService {
     @Override
     public Page<DotGiamGiaResponse> timKiemDGG(String tenChuongTrinh, LocalDate tuNgay, LocalDate denNgay, Integer pageNo, Integer pageSize){
         Pageable pageable= PageRequest.of(pageNo,pageSize);
-        return repo.timKiemDGG(tenChuongTrinh, tuNgay, denNgay, pageable);
+        String tenChuongTrinhSearch = (tenChuongTrinh != null && !tenChuongTrinh.trim().isEmpty())
+                ? "%" + tenChuongTrinh.trim() + "%"
+                : null;
+
+        return repo.timKiemDGG(tenChuongTrinhSearch, tuNgay, denNgay, pageable);
     }
 
     @Override

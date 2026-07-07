@@ -80,6 +80,15 @@ public class NhanVienServiceImpl implements NhanVienService {
     }
 
     @Override
+    public DTONhanVienResponse findByTaiKhoanId(Integer idTaiKhoan) {
+        NhanVien nv = repository.findByTaiKhoan_IdTaiKhoan(idTaiKhoan);
+        if (nv == null) {
+            throw new RuntimeException("Không tìm thấy nhân viên theo tài khoản này");
+        }
+        return toResponse(nv);
+    }
+
+    @Override
     public DTONhanVienResponse update(Integer id, DTONhanVienRequest request) {
         NhanVien old = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));

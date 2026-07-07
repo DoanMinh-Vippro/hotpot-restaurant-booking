@@ -65,7 +65,7 @@ const themVaoGio = (item: any, loai: string) => {
       tenMon: item.tenMon ?? null,
       tenCombo: item.tenCombo ?? null,
 
-      gia: loai === 'MON' ? item.donGiaHienTai : (item.giaCombo ?? 0),
+      gia: loai === 'MON' ? item.giaSauGiam : (item.giaCombo ?? 0),
 
       soLuong: 1,
       loai,
@@ -229,6 +229,10 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
     thoiGianXuat: new Date().toISOString(),
     idBan: props.ban.idBan,
     idGiamGia: giamGiaDangChon.value,
+    idDatBan: props.datBan?.idDatBan ?? null,
+    idKhachHang: props.datBan?.idKhachHang ?? null,
+    sdtKhachHang: props.datBan?.sdtKhachHang ?? null,
+    tienCoc: props.datBan?.soTienCoc ?? null,
   }
 
   if (hoaDonHienTai.value) {

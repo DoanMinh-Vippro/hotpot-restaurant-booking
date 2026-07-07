@@ -27,6 +27,11 @@ public class NhanVienController {
         return service.findById(id);
     }
 
+    @GetMapping("/tai-khoan/{id}")
+    public DTONhanVienResponse findByTaiKhoanId(@PathVariable Integer id){
+        return service.findByTaiKhoanId(id);
+    }
+
     @PostMapping("/add")
     public DTONhanVienResponse add(@RequestBody DTONhanVienRequest request){
         return service.add(request);

@@ -22,12 +22,12 @@ const initForm = () => ({
   idkhachHang: null as number | null,
   sdtKhachHang: '',
   soNguoi: 0,
-  trangThai: null as number | null,
+  trangThai: null as string | null,
+  trangThaiCoc: null as string | null,
   ghiChu: '',
   thoiGianDenDuKien: '',
   soTienCoc: 0,
-  trangThaiCoc: null as number | null,
-  phuongThucThanhToan: null as number | null,
+  phuongThucThanhToan: null as string | null,
 })
 
 const formData = ref(initForm())
@@ -54,6 +54,11 @@ watch(
 // =============================
 const save = async () => {
   errors.value = {}
+
+  if (!formData.value.phuongThucThanhToan) {
+    errors.value.phuongThucThanhToan = 'Vui lòng chọn phương thức thanh toán'
+    return
+  }
 
   try {
     if (isEditing.value) {
@@ -115,6 +120,17 @@ const resetForm = () => {
       <div class="input-field">
         <label>Tiền Cọc</label>
         <input v-model.number="formData.soTienCoc" type="number" class="highlight-gold" />
+      </div>
+
+      <div class="input-field">
+        <label>Trạng Thái Cọc</label>
+        <select v-model="formData.trangThaiCoc">
+          <option :value="null">-- Chọn trạng thái cọc --</option>
+          <option value="CHUA_COC">Chưa cọc</option>
+          <option value="DA_COC">Đã cọc</option>
+          <option value="DA_HOAN_COC">Đã hoàn cọc</option>
+          <option value="KHONG_HOAN_COC">Không hoàn cọc</option>
+        </select>
       </div>
 
       <div class="input-field">

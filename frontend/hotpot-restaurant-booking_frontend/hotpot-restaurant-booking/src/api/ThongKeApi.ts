@@ -23,6 +23,14 @@ const ThongKeApi = {
 
   topNhanVien() {
     return ApiClient.get("/api/thong-ke/top-nhan-vien");
+  },
+
+  tienCocTheoNgay() {
+    return ApiClient.get("/api/thong-ke/tien-coc-theo-ngay");
+  },
+
+  trangThaiCoc() {
+    return ApiClient.get("/api/thong-ke/trang-thai-coc");
   }
 };
 

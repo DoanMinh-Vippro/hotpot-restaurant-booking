@@ -5,9 +5,12 @@ import MonApi from '../api/MonApi'
 import type { Combo } from '../api/ComBoApi'
 import type { Mon } from '../api/MonApi'
 
+type MenuMon = Mon & { hinhAnh?: string | null; moTa?: string | null; loaiDanhMuc?: string | null }
+type MenuCombo = Combo & { hinhAnh?: string | null; moTa?: string | null }
+
 // Khai báo trạng thái danh sách và Tab điều hướng
-const monItems = ref<Mon[]>([])
-const comboItems = ref<Combo[]>([])
+const monItems = ref<MenuMon[]>([])
+const comboItems = ref<MenuCombo[]>([])
 const activeTab = ref<'mon-le' | 'combo'>('mon-le')
 const loading = ref(false)
 
@@ -33,11 +36,11 @@ const fetchMonByPage = async (pageMucTieu: number) => {
     const responseData = resMon.data as any
 
     if (responseData && responseData.content) {
-      monItems.value = responseData.content.filter((m: Mon) => m.trangThai === 0)
+      monItems.value = responseData.content.filter((m: MenuMon) => m.trangThai !== 1)
       totalPagesMon.value = responseData.totalPages || 0
     } else {
       const dsMon = Array.isArray(responseData) ? responseData : []
-      monItems.value = dsMon.filter((m: Mon) => m.trangThai === 0)
+      monItems.value = dsMon.filter((m: MenuMon) => m.trangThai !== 1)
       totalPagesMon.value = 1
     }
   } catch (error) {
@@ -56,11 +59,11 @@ const fetchComboByPage = async (pageMucTieu: number) => {
     const responseData = resCombo.data as any
 
     if (responseData && responseData.content) {
-      comboItems.value = responseData.content.filter((cb: Combo) => cb.trangThai === 1)
+      comboItems.value = responseData.content.filter((cb: MenuCombo) => cb.trangThai !== 0)
       totalPagesCombo.value = responseData.totalPages || 0
     } else {
       const dsCombo = Array.isArray(responseData) ? responseData : []
-      comboItems.value = dsCombo.filter((cb: Combo) => cb.trangThai === 1)
+      comboItems.value = dsCombo.filter((cb: MenuCombo) => cb.trangThai !== 0)
       totalPagesCombo.value = 1
     }
   } catch (error) {
@@ -114,7 +117,7 @@ onMounted(fetchThucDonTongHop)
           <div class="menu-grid">
             <div v-for="mon in monItems" :key="mon.idMon" class="menu-card animate-fade">
               <div class="menu-img">
-                <img :src="anhMacDinhMonLe" :alt="mon.tenMon" />
+                <img :src="mon.hinhAnh ? `http://localhost:8080/uploads/${mon.hinhAnh}` : anhMacDinhMonLe" :alt="mon.tenMon" />
               </div>
               <div class="menu-info">
                 <div class="header">
@@ -141,7 +144,7 @@ onMounted(fetchThucDonTongHop)
                   </div>
                 </div>
                 <p class="desc">
-                  Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.
+                  {{ mon.moTa || 'Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.' }}
                 </p>
               </div>
             </div>
@@ -188,9 +191,7 @@ onMounted(fetchThucDonTongHop)
             <div v-for="cb in comboItems" :key="cb.idCombo" class="menu-card animate-fade">
               <div class="menu-img">
                 <img
-                  :src="
-                    cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe
-                  "
+                  :src="cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe"
                   :alt="cb.tenCombo"
                 />
               </div>
@@ -200,9 +201,7 @@ onMounted(fetchThucDonTongHop)
                   <div class="dots"></div>
                   <span class="price">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ</span>
                 </div>
-                <p class="desc">
-                  Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.
-                </p>
+                <p class="desc">{{ cb.moTa || 'Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.' }}</p>
               </div>
             </div>
           </div>

@@ -11,4 +11,8 @@ public class DTODashboard {
     private Double tongDoanhThu;
     private Long tongHoaDon;
     private Long tongKhachHang;
+    private Double tongTienCoc;
+    private Long soDonDaCoc;
+    private Long soDonChuaCoc;
+    private Long soDonDaThanhToan;
 }

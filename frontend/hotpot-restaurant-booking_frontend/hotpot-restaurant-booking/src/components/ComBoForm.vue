@@ -220,6 +220,7 @@ defineExpose({
         <select v-model.number="form.trangThai">
           <option :value="1">Còn bán</option>
           <option :value="0">Ngưng bán</option>
+          <option :value="2">Tạm hết món</option>
         </select>
       </div>
     </div>

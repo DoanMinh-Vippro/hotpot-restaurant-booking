@@ -27,6 +27,12 @@ public class KhachHangController {
     public ResponseEntity<KhachHangResponse> findById(@PathVariable Integer id){
         return ResponseEntity.status(HttpStatus.OK).body(khachHangService.findById(id));
     }
+
+    @GetMapping("/tai-khoan/{id}")
+    public ResponseEntity<KhachHangResponse> findByTaiKhoanId(@PathVariable Integer id){
+        return ResponseEntity.status(HttpStatus.OK).body(khachHangService.findByTaiKhoanId(id));
+    }
+
     @PostMapping
     public ResponseEntity<KhachHangResponse> add(@Valid @RequestBody KhachHangRequest khachHangRequest){
         return ResponseEntity.status(HttpStatus.CREATED).body(khachHangService.add(khachHangRequest));

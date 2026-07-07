@@ -34,8 +34,12 @@ export const getAllKhachHang = () => {
 }
 
 // 2. Xem chi tiết khách hàng theo ID
-export const getKhuVucById = (id: number) => {
+export const getKhachHangById = (id: number) => {
   return ApiClient.get(`${API_URL}/${id}`)
+}
+
+export const getKhachHangByTaiKhoanId = (idTaiKhoan: number) => {
+  return ApiClient.get(`${API_URL}/tai-khoan/${idTaiKhoan}`)
 }
 
 // 3. Thêm mới khách hàng

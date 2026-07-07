@@ -111,8 +111,16 @@ const xoa = (id: number) => {
             <td>{{ mon.loaiDanhMuc }}</td>
 
             <td>
-              <span :class="mon.trangThai === 0 ? 'trang-thai-con' : 'trang-thai-ngung'">
-                {{ mon.trangThai === 0 ? 'Còn bán' : 'Ngưng bán' }}
+              <span
+                :class="{
+                  'trang-thai-con': mon.trangThai === 0,
+                  'trang-thai-ngung': mon.trangThai === 1,
+                  'trang-thai-het': mon.trangThai === 2,
+                }"
+              >
+                {{
+                  mon.trangThai === 0 ? 'Còn bán' : mon.trangThai === 1 ? 'Ngưng bán' : 'Tạm hết món'
+                }}
               </span>
             </td>
 
@@ -292,6 +300,9 @@ tr.active {
 
 .trang-thai-ngung {
   color: #ff4d4f; /* Màu đỏ */
+}
+.trang-thai-het {
+  color: #fa8c16; /* Màu cam hổ phách */
 }
 .gia-goc {
   text-decoration: line-through;

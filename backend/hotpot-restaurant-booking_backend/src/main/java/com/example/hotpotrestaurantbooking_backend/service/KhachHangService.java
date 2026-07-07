@@ -14,6 +14,7 @@ public interface KhachHangService {
     void delete(Integer id);
     List<KhachHangResponse> findAll();
     KhachHangResponse findById(Integer id);
+    KhachHangResponse findByTaiKhoanId(Integer idTaiKhoan);
     KhachHangResponse add(KhachHangRequest khachHangRequest);
     KhachHangResponse update(KhachHangRequest khachHangRequest, Integer id);
     List<KhachHang> search(String keyword);

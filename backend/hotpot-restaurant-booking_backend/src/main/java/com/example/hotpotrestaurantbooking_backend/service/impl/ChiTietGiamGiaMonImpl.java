@@ -44,10 +44,18 @@ public class ChiTietGiamGiaMonImpl implements ChiTietGiamGiaMonService {
         return repo.phanTrangCTGGM(pageable);
     }
 
-    public Page<ChiTietGiamGiaMonResponse> timKiemCTGGM(String tenChuongTrinh, String tenMon,BigDecimal mucMin, BigDecimal mucMax,
+    public Page<ChiTietGiamGiaMonResponse> timKiemCTGGM(String tenChuongTrinh, String tenMon,BigDecimal mucMin, BigDecimal mucMax, String loaiGiam,
                                                         Integer pageNo, Integer pageSize){
         Pageable pageable= PageRequest.of(pageNo, pageSize);
-        return repo.timKiemCTGGM(tenChuongTrinh, tenMon,mucMin, mucMax, pageable);
+        String tenChuongTrinhSearch = (tenChuongTrinh != null && !tenChuongTrinh.trim().isEmpty())
+                ? "%" + tenChuongTrinh.trim() + "%"
+                : null;
+
+        String tenMonSearch = (tenMon != null && !tenMon.trim().isEmpty())
+                ? "%" + tenMon.trim() + "%"
+                : null;
+        String loaiGiamSearch = (loaiGiam != null) ? loaiGiam.trim() : null;
+        return repo.timKiemCTGGM(tenChuongTrinhSearch, tenMonSearch, mucMin, mucMax, loaiGiamSearch, pageable);
     }
 
     public void addCTGGM(ChiTietGiamGiaMonRequest req){

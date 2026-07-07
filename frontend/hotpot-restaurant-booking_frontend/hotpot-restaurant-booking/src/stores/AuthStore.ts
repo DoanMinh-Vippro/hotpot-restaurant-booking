@@ -3,6 +3,27 @@ import { jwtDecode } from 'jwt-decode'
 
 interface JwtPayload {
   scope: string
+  exp?: number
+}
+
+const isTokenExpired = (decoded: JwtPayload): boolean => {
+  if (!decoded.exp) return false
+  return Date.now() >= decoded.exp * 1000
+}
+
+const decodeUserRoleFromToken = (token: string | null): string | null => {
+  if (!token) return null
+  try {
+    const decoded = jwtDecode<JwtPayload>(token)
+    if (isTokenExpired(decoded)) {
+      localStorage.removeItem('token')
+      return null
+    }
+    return decoded.scope || null
+  } catch {
+    localStorage.removeItem('token')
+    return null
+  }
 }
 
 interface CustomerInfo {
@@ -21,31 +42,63 @@ interface AuthState {
   customerInfo: CustomerInfo
 }
 
+const initialCustomerInfo: CustomerInfo = {
+  khachHangId: null,
+  tenKhachHang: null,
+  soDienThoai: null,
+  email: null,
+  diaChi: null,
+  gioiTinh: null,
+  maKhachHang: null,
+}
+
+const clearStoredCustomerInfo = () => {
+  localStorage.removeItem('khachHangId')
+  localStorage.removeItem('tenKhachHang')
+  localStorage.removeItem('soDienThoai')
+  localStorage.removeItem('email')
+  localStorage.removeItem('diaChi')
+  localStorage.removeItem('gioiTinh')
+  localStorage.removeItem('maKhachHang')
+}
+
+const hasCustomerInfo = (info?: Partial<CustomerInfo>): info is Partial<CustomerInfo> => {
+  if (!info) return false
+  return Object.values(info).some((value) => value !== undefined && value !== null && value !== '')
+}
+
 export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    token: localStorage.getItem('token'),
-    userRole: null,
-    customerInfo: {
-      khachHangId: localStorage.getItem('khachHangId') ? parseInt(localStorage.getItem('khachHangId')!) : null,
-      tenKhachHang: localStorage.getItem('tenKhachHang'),
-      soDienThoai: localStorage.getItem('soDienThoai'),
-      email: localStorage.getItem('email'),
-      diaChi: localStorage.getItem('diaChi'),
-      gioiTinh: localStorage.getItem('gioiTinh') ? JSON.parse(localStorage.getItem('gioiTinh')!) : null,
-      maKhachHang: localStorage.getItem('maKhachHang')
-    },
-  }),
+  state: (): AuthState => {
+    const savedToken = localStorage.getItem('token')
+    const savedRole = decodeUserRoleFromToken(savedToken)
+
+    return {
+      token: savedRole ? savedToken : null,
+      userRole: savedRole,
+      customerInfo: {
+        khachHangId: localStorage.getItem('khachHangId') ? parseInt(localStorage.getItem('khachHangId')!) : null,
+        tenKhachHang: localStorage.getItem('tenKhachHang'),
+        soDienThoai: localStorage.getItem('soDienThoai'),
+        email: localStorage.getItem('email'),
+        diaChi: localStorage.getItem('diaChi'),
+        gioiTinh: localStorage.getItem('gioiTinh') ? JSON.parse(localStorage.getItem('gioiTinh')!) : null,
+        maKhachHang: localStorage.getItem('maKhachHang')
+      },
+    }
+  },
 
   actions: {
     login(token: string, customerInfo?: Partial<CustomerInfo>) {
       this.token = token
       localStorage.setItem('token', token)
-      
-      if (customerInfo) {
-        this.setCustomerInfo(customerInfo)
-      }
-      
       this.decodeToken(token)
+
+      if (hasCustomerInfo(customerInfo)) {
+        this.setCustomerInfo(customerInfo)
+      } else {
+        this.customerInfo = { ...initialCustomerInfo }
+        clearStoredCustomerInfo()
+      }
     },
 
     setCustomerInfo(info: Partial<CustomerInfo>) {

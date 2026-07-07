@@ -4,16 +4,23 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOTaiKhoanResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.ChucVu;
+import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
+import com.example.hotpotrestaurantbooking_backend.entity.NhanVien;
 import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
+import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.NhanVienRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.TaiKhoanRepository;
 import com.example.hotpotrestaurantbooking_backend.service.TaiKhoanService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.stream.Collectors;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 
 @Service
@@ -21,6 +28,8 @@ import java.util.stream.Collectors;
 public class TaiKhoanServiceImpl implements TaiKhoanService {
   private final ModelMapper mapper;
     private final TaiKhoanRepository taiKhoanRepository;
+    private final KhachHangRepository khachHangRepository;
+    private final NhanVienRepository nhanVienRepository;
     private DTOTaiKhoanResponse toDTO(TaiKhoan t) {
         DTOTaiKhoanResponse dto = new DTOTaiKhoanResponse();
 
@@ -87,9 +96,11 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
     }
 
     @Override
+   @Transactional
    public DTOTaiKhoanResponse update(Integer id, DTOTaiKhoanRequest tk) {
         return taiKhoanRepository.findById(id)
                 .map(t -> {
+                    Integer oldRoleId = t.getChucVu() != null ? t.getChucVu().getIdChucVu() : null;
 
                     if (tk.getTenDangNhap() != null)
                         t.setTenDangNhap(tk.getTenDangNhap());
@@ -106,10 +117,60 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
                         t.setChucVu(cv);
                     }
 
-                    return toDTO(taiKhoanRepository.save(t));
+                    TaiKhoan saved = taiKhoanRepository.save(t);
+                    syncLinkedProfiles(saved, oldRoleId, tk.getIdChucVu());
+                    return toDTO(saved);
                 })
                 .orElseThrow(() ->
                         new CustomResourceNotFoundException("khong tim thay tai khoan nay de sua"));
+    }
+
+    private void syncLinkedProfiles(TaiKhoan taiKhoan, Integer oldRoleId, Integer newRoleId) {
+        if (newRoleId != null && Objects.equals(oldRoleId, newRoleId)) {
+            return;
+        }
+
+        KhachHang khachHang = khachHangRepository.findByTaiKhoan_IdTaiKhoan(taiKhoan.getIdTaiKhoan()).orElse(null);
+        if (khachHang != null) {
+            if (newRoleId != null && newRoleId != 3) {
+                khachHang.setTrangThai(false);
+            } else {
+                khachHang.setTrangThai(true);
+            }
+            khachHangRepository.save(khachHang);
+        }
+
+        NhanVien nhanVien = nhanVienRepository.findByTaiKhoan_IdTaiKhoan(taiKhoan.getIdTaiKhoan());
+        if (newRoleId != null && newRoleId == 2) {
+            if (nhanVien == null) {
+                nhanVien = new NhanVien();
+                nhanVien.setMaNhanVien(String.format("NV%03d", taiKhoan.getIdTaiKhoan()));
+            }
+
+            nhanVien.setTaiKhoan(taiKhoan);
+            nhanVien.setChucVu(taiKhoan.getChucVu());
+            nhanVien.setTrangThai(true);
+
+            if (khachHang != null) {
+                nhanVien.setTenNhanVien(khachHang.getTenKhachHang());
+                nhanVien.setGioiTinh(khachHang.getGioiTinh());
+                nhanVien.setSoDienThoai(khachHang.getSoDienThoai());
+                nhanVien.setEmail(khachHang.getEmail());
+                nhanVien.setDiaChi(khachHang.getDiaChi());
+            } else {
+                if (nhanVien.getTenNhanVien() == null) {
+                    nhanVien.setTenNhanVien(taiKhoan.getTenDangNhap());
+                }
+            }
+
+            nhanVienRepository.save(nhanVien);
+            return;
+        }
+
+        if (nhanVien != null) {
+            nhanVien.setTrangThai(false);
+            nhanVienRepository.save(nhanVien);
+        }
     }
 
     @Override

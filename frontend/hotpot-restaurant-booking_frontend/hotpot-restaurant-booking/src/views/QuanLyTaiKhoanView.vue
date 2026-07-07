@@ -1,0 +1,1755 @@
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import TaiKhoanApi from '@/api/TaiKhoanApi'
+import NhanVienApi from '@/api/NhanVienApi'
+import ChucVuApi from '@/api/ChucVuApi'
+import { getAllKhachHang, getKhachHangByTaiKhoanId } from '@/api/khachhang'
+import HoaDonApi from '@/api/HoaDonApi'
+import type { HoaDonChiTiet } from '@/api/HoaDonApi'
+const router = useRouter()
+// Tab state (1: ADMIN, 2: NHÂN VIÊN, 3: KHÁCH HÀNG, 4: CHỨC VỤ)
+const activeTab = ref(1)
+const loading = ref(true)
+// Data states
+const accounts = ref<any[]>([])
+const employees = ref<any[]>([])
+const customers = ref<any[]>([])
+const roles = ref<any[]>([])
+// Search & Sort states for each tab
+const searchAdmin = ref('')
+const sortAdmin = ref('id_desc')
+const searchStaff = ref('')
+const sortStaff = ref('id_desc')
+const searchCustomer = ref('')
+const sortCustomer = ref('id_desc')
+const searchRole = ref('')
+const sortRole = ref('id_desc')
+// Modal states
+const showDetailModal = ref(false)
+const modalType = ref<'admin' | 'staff' | 'customer' | null>(null)
+const selectedDetail = ref<any>(null)
+const customerInvoices = ref<any[]>([])
+const customerInvoiceDetails = ref<Record<number, HoaDonChiTiet[]>>({})
+const invoiceLoading = ref(false)
+const customerModalTab = ref<'info' | 'invoices'>('info')
+const goToHome = () => {
+  router.push('/')
+}
+// Convert helper
+const toBoolean = (val: any) => {
+  if (val === true || val === 1 || val === '1') return true
+  if (val === false || val === 0 || val === '0') return false
+  if (typeof val === 'string') {
+    return val.toLowerCase() === 'true'
+  }
+  return false
+}
+// Load data
+const loadData = async () => {
+  loading.value = true
+  try {
+    const [resAccounts, resEmployees, resCustomers, resRoles] = await Promise.all([
+      TaiKhoanApi.getAll(),
+      NhanVienApi.getAll(),
+      getAllKhachHang(),
+      ChucVuApi.getAll(),
+    ])
+    accounts.value = resAccounts.data || []
+    employees.value = (resEmployees.data || []).map((nv: any) => ({
+      ...nv,
+      gioiTinh: toBoolean(nv.gioiTinh),
+      trangThai: toBoolean(nv.trangThai),
+    }))
+    customers.value = (resCustomers.data || []).map((kh: any) => ({
+      ...kh,
+      gioiTinh: toBoolean(kh.gioiTinh),
+      trangThai: toBoolean(kh.trangThai),
+    }))
+    roles.value = resRoles.data || []
+  } catch (error) {
+    console.error('Lỗi khi tải dữ liệu:', error)
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(() => {
+  loadData()
+})
+// Correlate Employee profiles to accounts
+const getEmployeeForAccount = (accId: number) => {
+  return employees.value.find((e: any) => String(e.idTaiKhoan) === String(accId))
+}
+// Correlate Customer profiles to accounts
+const getCustomerForAccount = (accId: number) => {
+  return customers.value.find(
+    (c: any) =>
+      String(c.taiKhoan?.idTaiKhoan) === String(accId) ||
+      String(c.taiKhoan?.id) === String(accId),
+  )
+}
+
+const getAccountById = async (accId: number) => {
+  try {
+    const res = await TaiKhoanApi.findById(accId)
+    return res.data || null
+  } catch (err) {
+    console.warn('Không lấy được tài khoản chi tiết:', err)
+    return null
+  }
+}
+
+const refreshEmployeeForAccount = async (accId: number) => {
+  try {
+    const res = await NhanVienApi.getByTaiKhoanId(accId)
+    if (!res?.data) return null
+    const emp = {
+      ...res.data,
+      gioiTinh: toBoolean(res.data.gioiTinh),
+      trangThai: toBoolean(res.data.trangThai),
+    }
+    const idx = employees.value.findIndex((e: any) => String(e.idTaiKhoan) === String(accId))
+    if (idx >= 0) {
+      employees.value[idx] = emp
+    } else {
+      employees.value.push(emp)
+    }
+    return emp
+  } catch (err) {
+    console.warn('Không lấy được hồ sơ nhân viên theo tài khoản khi refresh:', err)
+    return null
+  }
+}
+// Helper formatting functions
+const formatCurrency = (value: any) => {
+  if (value === undefined || value === null || value === '') return '0 đ'
+  return Number(value).toLocaleString('vi-VN') + ' đ'
+}
+const formatDateTime = (dateTimeValue: string | number[] | null) => {
+  if (!dateTimeValue) return '---'
+
+  let date: Date
+  if (Array.isArray(dateTimeValue)) {
+    const [year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0] = dateTimeValue
+    date = new Date(year, month - 1, day, hour, minute, second)
+  } else {
+    date = new Date(dateTimeValue)
+  }
+
+  if (isNaN(date.getTime())) return String(dateTimeValue)
+  return `${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ngày ${date.toLocaleDateString('vi-VN')}`
+}
+const invoiceStatusLabel = (status: number | null | undefined) => {
+  if (status === 1) return 'Đã xuất'
+  if (status === 0) return 'Nháp'
+  return 'Không rõ'
+}
+const paymentStatusLabel = (status: number | null | undefined) => {
+  if (status === 1) return 'Đã thanh toán'
+  if (status === 0) return 'Chưa thanh toán'
+  return 'Không rõ'
+}
+const paymentMethodLabel = (method: number | null | undefined) => {
+  if (method === 1) return 'Tiền mặt'
+  if (method === 2) return 'Chuyển khoản'
+  if (method === 3) return 'Thẻ'
+  return 'Chưa có'
+}
+const invoiceItemName = (item: HoaDonChiTiet) => {
+  return item.tenMon ?? item.tenCombo ?? 'Món chưa đặt tên'
+}
+// --- Tab 1: ADMIN COMPUTED ---
+const filteredAdmins = computed(() => {
+  let list = accounts.value.filter(
+    (acc: any) => String(acc.idChucVu) === '1' || String(acc.tenChucVu).toUpperCase() === 'ADMIN',
+  )
+
+  if (searchAdmin.value.trim()) {
+    const q = searchAdmin.value.toLowerCase()
+    list = list.filter(
+      (acc: any) =>
+        (acc.tenDangNhap || '').toLowerCase().includes(q) ||
+        (acc.maTaiKhoan || '').toLowerCase().includes(q),
+    )
+  }
+  // Sort
+  list = [...list].sort((a: any, b: any) => {
+    if (sortAdmin.value === 'id_desc') return b.id - a.id
+    if (sortAdmin.value === 'id_asc') return a.id - b.id
+    if (sortAdmin.value === 'username_asc')
+      return (a.tenDangNhap || '').localeCompare(b.tenDangNhap || '')
+    if (sortAdmin.value === 'username_desc')
+      return (b.tenDangNhap || '').localeCompare(a.tenDangNhap || '')
+    return 0
+  })
+  return list
+})
+// --- Tab 2: NHÂN VIÊN COMPUTED ---
+const filteredStaff = computed(() => {
+  let list = accounts.value.filter(
+    (acc: any) => String(acc.idChucVu) === '2' || String(acc.tenChucVu).toUpperCase() === 'STAFF',
+  )
+
+  // Map account properties with corresponding employee profile
+  let mappedList = list.map((acc: any) => {
+    const emp = getEmployeeForAccount(acc.id)
+    return {
+      account: acc,
+      employee: emp,
+    }
+  })
+  if (searchStaff.value.trim()) {
+    const q = searchStaff.value.toLowerCase()
+    mappedList = mappedList.filter((item: any) => {
+      const accMatch =
+        (item.account.tenDangNhap || '').toLowerCase().includes(q) ||
+        (item.account.maTaiKhoan || '').toLowerCase().includes(q)
+      const empMatch = item.employee
+        ? (item.employee.tenNhanVien || '').toLowerCase().includes(q) ||
+          (item.employee.maNhanVien || '').toLowerCase().includes(q) ||
+          (item.employee.soDienThoai || '').includes(q) ||
+          (item.employee.email || '').toLowerCase().includes(q)
+        : false
+      return accMatch || empMatch
+    })
+  }
+  // Sort
+  mappedList = [...mappedList].sort((a: any, b: any) => {
+    if (sortStaff.value === 'id_desc') return b.account.id - a.account.id
+    if (sortStaff.value === 'id_asc') return a.account.id - b.account.id
+    if (sortStaff.value === 'username_asc')
+      return (a.account.tenDangNhap || '').localeCompare(b.account.tenDangNhap || '')
+    if (sortStaff.value === 'username_desc')
+      return (b.account.tenDangNhap || '').localeCompare(a.account.tenDangNhap || '')
+    if (sortStaff.value === 'name_asc') {
+      const nameA = a.employee?.tenNhanVien || ''
+      const nameB = b.employee?.tenNhanVien || ''
+      return nameA.localeCompare(nameB)
+    }
+    if (sortStaff.value === 'name_desc') {
+      const nameA = a.employee?.tenNhanVien || ''
+      const nameB = b.employee?.tenNhanVien || ''
+      return nameB.localeCompare(nameA)
+    }
+    return 0
+  })
+  return mappedList
+})
+// --- Tab 3: KHÁCH HÀNG COMPUTED ---
+const filteredCustomers = computed(() => {
+  let list = accounts.value.filter(
+    (acc: any) => String(acc.idChucVu) === '3' || String(acc.tenChucVu).toUpperCase() === 'USER',
+  )
+
+  // Map account properties with corresponding customer profile
+  let mappedList = list.map((acc: any) => {
+    const cust = getCustomerForAccount(acc.id)
+    return {
+      account: acc,
+      customer: cust,
+    }
+  })
+  if (searchCustomer.value.trim()) {
+    const q = searchCustomer.value.toLowerCase()
+    mappedList = mappedList.filter((item: any) => {
+      const accMatch =
+        (item.account.tenDangNhap || '').toLowerCase().includes(q) ||
+        (item.account.maTaiKhoan || '').toLowerCase().includes(q)
+      const custMatch = item.customer
+        ? (item.customer.tenKhachHang || '').toLowerCase().includes(q) ||
+          (item.customer.maKhachHang || '').toLowerCase().includes(q) ||
+          (item.customer.soDienThoai || '').includes(q) ||
+          (item.customer.email || '').toLowerCase().includes(q)
+        : false
+      return accMatch || custMatch
+    })
+  }
+  // Sort
+  mappedList = [...mappedList].sort((a: any, b: any) => {
+    if (sortCustomer.value === 'id_desc') return b.account.id - a.account.id
+    if (sortCustomer.value === 'id_asc') return a.account.id - b.account.id
+    if (sortCustomer.value === 'username_asc')
+      return (a.account.tenDangNhap || '').localeCompare(b.account.tenDangNhap || '')
+    if (sortCustomer.value === 'username_desc')
+      return (b.account.tenDangNhap || '').localeCompare(a.account.tenDangNhap || '')
+    if (sortCustomer.value === 'name_asc') {
+      const nameA = a.customer?.tenKhachHang || ''
+      const nameB = b.customer?.tenKhachHang || ''
+      return nameA.localeCompare(nameB)
+    }
+    if (sortCustomer.value === 'name_desc') {
+      const nameA = a.customer?.tenKhachHang || ''
+      const nameB = b.customer?.tenKhachHang || ''
+      return nameB.localeCompare(nameA)
+    }
+    return 0
+  })
+  return mappedList
+})
+// --- Tab 4: CHỨC VỤ COMPUTED ---
+const filteredRoles = computed(() => {
+  let list = [...accounts.value]
+  if (searchRole.value.trim()) {
+    const q = searchRole.value.toLowerCase()
+    list = list.filter(
+      (acc: any) =>
+        (acc.tenDangNhap || '').toLowerCase().includes(q) ||
+        (acc.maTaiKhoan || '').toLowerCase().includes(q) ||
+        (acc.tenChucVu || '').toLowerCase().includes(q),
+    )
+  }
+  // Sort
+  list = [...list].sort((a: any, b: any) => {
+    if (sortRole.value === 'id_desc') return b.id - a.id
+    if (sortRole.value === 'id_asc') return a.id - b.id
+    if (sortRole.value === 'username_asc')
+      return (a.tenDangNhap || '').localeCompare(b.tenDangNhap || '')
+    if (sortRole.value === 'username_desc')
+      return (b.tenDangNhap || '').localeCompare(a.tenDangNhap || '')
+    return 0
+  })
+  return list
+})
+// Detail viewers
+const viewAdminDetail = (acc: any) => {
+  const emp = getEmployeeForAccount(acc.id)
+  selectedDetail.value = { account: acc, employee: emp }
+  modalType.value = 'admin'
+  showDetailModal.value = true
+}
+const viewStaffDetail = async (item: any) => {
+  selectedDetail.value = item
+  modalType.value = 'staff'
+  showDetailModal.value = true
+
+  const accId = selectedDetail.value?.account?.id
+  if (!accId) {
+    return
+  }
+
+  const freshAccount = await getAccountById(accId)
+  if (freshAccount) {
+    selectedDetail.value.account = {
+      ...selectedDetail.value.account,
+      ...freshAccount,
+    }
+  }
+
+  selectedDetail.value.employee = await refreshEmployeeForAccount(accId)
+}
+const viewCustomerDetail = async (item: any) => {
+  // Set initial selection and open modal
+  selectedDetail.value = item
+  modalType.value = 'customer'
+  customerModalTab.value = 'info'
+  showDetailModal.value = true
+
+  // Ensure we have the customer profile object available. If not, fetch account detail
+  const normalizeCustomer = (c: any) => {
+    if (!c) return null
+    const id = c.idKhachHang ?? c.id ?? c.khachHangId ?? c.customerId ?? c.id_khach_hang
+    const ten = c.tenKhachHang ?? c.hoTen ?? c.name ?? c.fullName ?? c.ten
+    const ma = c.maKhachHang ?? c.ma ?? c.customerCode ?? c.ma_khach_hang
+    const sdt = c.soDienThoai ?? c.phone ?? c.sdt
+    const email = c.email ?? c.mail
+    const diaChi = c.diaChi ?? c.address ?? c.dia_chi
+    let gioiTinh = c.gioiTinh ?? c.gender
+    if (typeof gioiTinh === 'string') {
+      if (['m', 'male'].includes(String(gioiTinh).toLowerCase())) gioiTinh = true
+      else if (['f', 'female'].includes(String(gioiTinh).toLowerCase())) gioiTinh = false
+    }
+    if (gioiTinh === '1' || gioiTinh === 1) gioiTinh = true
+    if (gioiTinh === '0' || gioiTinh === 0) gioiTinh = false
+    return {
+      idKhachHang: id,
+      tenKhachHang: ten ?? '',
+      maKhachHang: ma ?? '',
+      soDienThoai: sdt ?? '',
+      email: email ?? '',
+      diaChi: diaChi ?? '',
+      gioiTinh: typeof gioiTinh === 'boolean' ? gioiTinh : null,
+      trangThai: c.trangThai ?? null,
+      _raw: c,
+    }
+  }
+
+  if (!selectedDetail.value?.customer) {
+    const accId = selectedDetail.value?.account?.id || selectedDetail.value?.id
+    if (accId) {
+      try {
+        const accRes = await TaiKhoanApi.findById(accId)
+        const accData = accRes.data || {}
+        let foundCustomer = accData.khachHang || accData.customer || accData.khach_hang || null
+        if (!foundCustomer) {
+          const found = customers.value.find(
+            (c: any) =>
+              c.taiKhoan?.idTaiKhoan === accId ||
+              c.taiKhoan?.id === accId,
+          )
+          if (found) {
+            foundCustomer = found
+          } else {
+            try {
+              const res = await getAllKhachHang()
+              const all = res.data || []
+              const f2 = all.find(
+                (c: any) =>
+                  c.taiKhoan?.idTaiKhoan === accId ||
+                  c.taiKhoan?.id === accId,
+              )
+              if (f2) {
+                foundCustomer = f2
+              }
+            } catch (err) {
+              console.error('Không thể tải lại danh sách khách hàng để tìm hồ sơ:', err)
+            }
+          }
+        }
+        if (!foundCustomer) {
+          try {
+            const res = await getKhachHangByTaiKhoanId(accId)
+            foundCustomer = res.data || null
+          } catch (err) {
+            console.warn('Không tìm thấy khách hàng qua tài khoản ID:', err)
+          }
+        }
+        selectedDetail.value.customer = normalizeCustomer(foundCustomer)
+      } catch (err) {
+        console.error('Không thể lấy chi tiết tài khoản từ backend:', err)
+      }
+    }
+  } else {
+    // If already present, normalize for consistent template fields
+    selectedDetail.value.customer = normalizeCustomer(selectedDetail.value.customer)
+  }
+
+  // Resolve customer id robustly (handle different backend field names)
+  const cust = selectedDetail.value?.customer
+  const khachHangId =
+    cust?.idKhachHang ?? cust?.id ?? cust?.khachHangId ?? cust?.customerId ?? null
+
+  if (khachHangId) {
+    invoiceLoading.value = true
+    customerInvoices.value = []
+    customerInvoiceDetails.value = {}
+    try {
+      const res = await HoaDonApi.getByKhachHangId(Number(khachHangId))
+      const invoices = res.data || []
+      customerInvoices.value = invoices
+
+      const detailEntries = await Promise.all(
+        invoices.map(async (invoice: any) => {
+          try {
+            const detailRes = await HoaDonApi.getChiTiet(invoice.idHoaDon)
+            return [invoice.idHoaDon, detailRes.data || []] as const
+          } catch (error) {
+            console.warn('Không lấy được chi tiết hóa đơn:', invoice.idHoaDon, error)
+            return [invoice.idHoaDon, []] as const
+          }
+        }),
+      )
+      customerInvoiceDetails.value = Object.fromEntries(detailEntries)
+    } catch (error) {
+      console.error('Không lấy được lịch sử hoá đơn:', error)
+      customerInvoices.value = []
+      customerInvoiceDetails.value = {}
+    } finally {
+      invoiceLoading.value = false
+    }
+  } else {
+    customerInvoices.value = []
+    customerInvoiceDetails.value = {}
+  }
+}
+const closeDetailModal = () => {
+  showDetailModal.value = false
+  selectedDetail.value = null
+  modalType.value = null
+}
+// Lock/Unlock Account function (Tab 3)
+const handleToggleLock = async (item: any) => {
+  const currentStatus = item.account.trangThai
+  const actionText = currentStatus ? 'KHÓA' : 'MỞ KHÓA'
+
+  if (
+    confirm(
+      `Bạn có chắc chắn muốn ${actionText} tài khoản của khách hàng "${item.customer?.tenKhachHang || item.account.tenDangNhap}"?`,
+    )
+  ) {
+    try {
+      await TaiKhoanApi.update(item.account.id, {
+        trangThai: !currentStatus,
+      })
+      alert(`${actionText} tài khoản thành công!`)
+      await loadData()
+    } catch (error) {
+      console.error('Lỗi khi thay đổi trạng thái tài khoản:', error)
+      alert('Thao tác thất bại!')
+    }
+  }
+}
+// Role change update & auto-jump tab logic (Tab 4)
+const handleRoleChange = async (acc: any, newRoleId: number) => {
+  if (acc.idChucVu === newRoleId) return
+
+  const roleName = newRoleId === 1 ? 'ADMIN' : newRoleId === 2 ? 'STAFF' : 'USER'
+
+  if (
+    confirm(
+      `Bạn có chắc chắn muốn chuyển chức vụ của tài khoản "${acc.tenDangNhap}" sang "${roleName}"?`,
+    )
+  ) {
+    try {
+      await TaiKhoanApi.update(acc.id, {
+        idChucVu: newRoleId,
+      })
+
+      alert(`Phân chức vụ cho tài khoản "${acc.tenDangNhap}" thành công!`)
+
+      // Refresh data after role change so staff profile is available immediately
+      await loadData()
+      if (newRoleId === 2) {
+        await refreshEmployeeForAccount(acc.id)
+      }
+
+      // Auto-jump to the target tab
+      if (newRoleId === 1) {
+        activeTab.value = 1 // Switch to ADMIN Tab
+      } else if (newRoleId === 2) {
+        activeTab.value = 2 // Switch to Staff Tab
+      } else if (newRoleId === 3) {
+        activeTab.value = 3 // Switch to Customer Tab
+      }
+
+      await loadData()
+    } catch (error) {
+      console.error('Lỗi khi phân chức vụ:', error)
+      alert('Không thể cập nhật chức vụ!')
+    }
+  } else {
+    // Reset the select element to current value by reloading data or trigger local reset
+    await loadData()
+  }
+}
+const handleDeleteAccount = async (id: number) => {
+  if (confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) {
+    try {
+      await TaiKhoanApi.delete(id)
+      alert('Xóa tài khoản thành công!')
+      await loadData()
+    } catch (error) {
+      console.error('Xóa thất bại:', error)
+      alert('Không thể xóa tài khoản này!')
+    }
+  }
+}
+</script>
+<template>
+  <div class="account-mgmt-page">
+    <!-- Page Header -->
+    <div class="page-header-wrapper">
+      <h2>👤 QUẢN LÝ TÀI KHOẢN HỆ THỐNG</h2>
+      <button class="btn-back-home" @click="goToHome">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        Quay về trang chủ
+      </button>
+    </div>
+
+    <hr class="line-break" />
+    <!-- Navigation Tabs -->
+    <div class="tabs-navigation">
+      <button :class="['tab-btn', { active: activeTab === 1 }]" @click="activeTab = 1">
+        👑 ADMIN
+      </button>
+      <button :class="['tab-btn', { active: activeTab === 2 }]" @click="activeTab = 2">
+        💼 NHÂN VIÊN
+      </button>
+      <button :class="['tab-btn', { active: activeTab === 3 }]" @click="activeTab = 3">
+        👥 KHÁCH HÀNG
+      </button>
+      <button :class="['tab-btn', { active: activeTab === 4 }]" @click="activeTab = 4">
+        ⚙️ CHỨC VỤ
+      </button>
+    </div>
+    <!-- Spinner Loading -->
+    <div v-if="loading" class="text-loading">
+      🔄 Đang tải và cấu trúc lại thông tin từ hệ thống...
+    </div>
+    <div v-else class="tab-content-wrapper">
+      <!-- ================= TAB 1: ADMIN ================= -->
+      <div v-if="activeTab === 1" class="tab-pane">
+        <div class="filters-row">
+          <div class="search-box">
+            <input
+              v-model="searchAdmin"
+              type="text"
+              placeholder="Tìm tên đăng nhập hoặc mã tài khoản..."
+            />
+          </div>
+          <div class="sort-box">
+            <label>Sắp xếp:</label>
+            <select v-model="sortAdmin" class="select-classic">
+              <option value="id_desc">Mới nhất (Default)</option>
+              <option value="id_asc">Cũ nhất</option>
+              <option value="username_asc">Tên đăng nhập (A-Z)</option>
+              <option value="username_desc">Tên đăng nhập (Z-A)</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="table-classic">
+            <thead>
+              <tr>
+                <th style="width: 80px; text-align: center">ID</th>
+                <th style="width: 150px">Mã Tài Khoản</th>
+                <th>Tên Đăng Nhập</th>
+                <th style="width: 180px; text-align: center">Trạng Thái</th>
+                <th style="width: 250px; text-align: center">Hành Động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="acc in filteredAdmins" :key="acc.id">
+                <td style="text-align: center; color: #888">{{ acc.id }}</td>
+                <td style="font-weight: bold; color: #aaa">{{ acc.maTaiKhoan }}</td>
+                <td class="highlight-text">{{ acc.tenDangNhap }}</td>
+                <td style="text-align: center; font-weight: bold">
+                  <span :class="acc.trangThai ? 'status-green' : 'status-red'">
+                    {{ acc.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
+                  </span>
+                </td>
+                <td style="text-align: center">
+                  <button class="btn-action view" @click="viewAdminDetail(acc)">
+                    Xem chi tiết
+                  </button>
+                  <button class="btn-action delete" @click="handleDeleteAccount(acc.id)">
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="filteredAdmins.length === 0">
+                <td colspan="5" style="text-align: center; color: #999; padding: 30px 0">
+                  📭 Không tìm thấy tài khoản Admin nào trùng khớp.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- ================= TAB 2: NHÂN VIÊN ================= -->
+      <div v-if="activeTab === 2" class="tab-pane">
+        <div class="filters-row">
+          <div class="search-box">
+            <input
+              v-model="searchStaff"
+              type="text"
+              placeholder="Tìm tài khoản, tên nhân viên, SĐT, email..."
+            />
+          </div>
+          <div class="sort-box">
+            <label>Sắp xếp:</label>
+            <select v-model="sortStaff" class="select-classic">
+              <option value="id_desc">Mới nhất (Default)</option>
+              <option value="id_asc">Cũ nhất</option>
+              <option value="username_asc">Tên đăng nhập (A-Z)</option>
+              <option value="username_desc">Tên đăng nhập (Z-A)</option>
+              <option value="name_asc">Tên nhân viên (A-Z)</option>
+              <option value="name_desc">Tên nhân viên (Z-A)</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="table-classic">
+            <thead>
+              <tr>
+                <th style="width: 80px; text-align: center">ID</th>
+                <th>Tên Đăng Nhập</th>
+                <th>Họ Tên Nhân Viên</th>
+                <th style="width: 140px">Số Điện Thoại</th>
+                <th>Chức Vụ</th>
+                <th style="width: 150px; text-align: center">Trạng Thái TK</th>
+                <th style="width: 250px; text-align: center">Hành Động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredStaff" :key="item.account.id">
+                <td style="text-align: center; color: #888">{{ item.account.id }}</td>
+                <td class="highlight-text">{{ item.account.tenDangNhap }}</td>
+                <td style="color: #fff; font-weight: 500">
+                  {{ item.employee?.tenNhanVien || '---' }}
+                </td>
+                <td style="color: #c5a059">{{ item.employee?.soDienThoai || '---' }}</td>
+                <td style="font-style: italic; color: #999">{{ item.account.tenChucVu }}</td>
+                <td style="text-align: center; font-weight: bold">
+                  <span :class="item.account.trangThai ? 'status-green' : 'status-red'">
+                    {{ item.account.trangThai ? 'Hoạt động' : 'Bị khóa' }}
+                  </span>
+                </td>
+                <td style="text-align: center">
+                  <button class="btn-action view" @click="viewStaffDetail(item)">
+                    Xem chi tiết
+                  </button>
+                  <button class="btn-action delete" @click="handleDeleteAccount(item.account.id)">
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="filteredStaff.length === 0">
+                <td colspan="7" style="text-align: center; color: #999; padding: 30px 0">
+                  📭 Không tìm thấy tài khoản nhân viên nào.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- ================= TAB 3: KHÁCH HÀNG ================= -->
+      <div v-if="activeTab === 3" class="tab-pane">
+        <div class="filters-row">
+          <div class="search-box">
+            <input
+              v-model="searchCustomer"
+              type="text"
+              placeholder="Tìm tài khoản, tên khách hàng, SĐT, email..."
+            />
+          </div>
+          <div class="sort-box">
+            <label>Sắp xếp:</label>
+            <select v-model="sortCustomer" class="select-classic">
+              <option value="id_desc">Mới nhất (Default)</option>
+              <option value="id_asc">Cũ nhất</option>
+              <option value="username_asc">Tên đăng nhập (A-Z)</option>
+              <option value="username_desc">Tên đăng nhập (Z-A)</option>
+              <option value="name_asc">Tên khách hàng (A-Z)</option>
+              <option value="name_desc">Tên khách hàng (Z-A)</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="table-classic">
+            <thead>
+              <tr>
+                <th style="width: 80px; text-align: center">ID</th>
+                <th>Tên Đăng Nhập</th>
+                <th>Mã Khách Hàng</th>
+                <th>Tên Khách Hàng</th>
+                <th style="width: 150px">Số Điện Thoại</th>
+                <th>Email</th>
+                <th style="width: 140px; text-align: center">Trạng Thái TK</th>
+                <th style="width: 250px; text-align: center">Hành Động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredCustomers" :key="item.account.id">
+                <td style="text-align: center; color: #888">{{ item.account.id }}</td>
+                <td class="highlight-text">{{ item.account.tenDangNhap }}</td>
+                <td style="color: #aaa; font-weight: 500">{{ item.customer?.maKhachHang || '---' }}</td>
+                <td style="color: #fff; font-weight: 500">{{ item.customer?.tenKhachHang || '---' }}</td>
+                <td style="color: #c5a059">{{ item.customer?.soDienThoai || '---' }}</td>
+                <td style="color: #599fff; font-size: 13px">{{ item.customer?.email || '---' }}</td>
+                <td style="text-align: center; font-weight: bold">
+                  <span :class="item.account.trangThai ? 'status-green' : 'status-red'">
+                    {{ item.account.trangThai ? 'Hoạt động' : 'Bị Khóa' }}
+                  </span>
+                </td>
+                <td style="text-align: center">
+                  <button class="btn-action view" @click="viewCustomerDetail(item)">
+                    Chi tiết
+                  </button>
+                  <button
+                    :class="['btn-action', item.account.trangThai ? 'lock' : 'unlock']"
+                    @click="handleToggleLock(item)"
+                  >
+                    {{ item.account.trangThai ? 'Khóa TK' : 'Mở Khóa' }}
+                  </button>
+                  <button class="btn-action delete" @click="handleDeleteAccount(item.account.id)">
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="filteredCustomers.length === 0">
+                <td colspan="7" style="text-align: center; color: #999; padding: 30px 0">
+                  📭 Không tìm thấy tài khoản khách hàng nào.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- ================= TAB 4: CHỨC VỤ ================= -->
+      <div v-if="activeTab === 4" class="tab-pane">
+        <div class="filters-row">
+          <div class="search-box">
+            <input
+              v-model="searchRole"
+              type="text"
+              placeholder="Tìm tên đăng nhập hoặc chức vụ..."
+            />
+          </div>
+          <div class="sort-box">
+            <label>Sắp xếp:</label>
+            <select v-model="sortRole" class="select-classic">
+              <option value="id_desc">Mới nhất (Default)</option>
+              <option value="id_asc">Cũ nhất</option>
+              <option value="username_asc">Tên đăng nhập (A-Z)</option>
+              <option value="username_desc">Tên đăng nhập (Z-A)</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="table-classic">
+            <thead>
+              <tr>
+                <th style="width: 80px; text-align: center">ID</th>
+                <th style="width: 150px">Mã Tài Khoản</th>
+                <th>Tên Đăng Nhập</th>
+                <th>Chức Vụ Hiện Tại</th>
+                <th style="width: 250px; text-align: center">Phân / Nâng Cấp Chức Vụ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="acc in filteredRoles" :key="acc.id">
+                <td style="text-align: center; color: #888">{{ acc.id }}</td>
+                <td style="font-weight: bold; color: #aaa">{{ acc.maTaiKhoan }}</td>
+                <td class="highlight-text">{{ acc.tenDangNhap }}</td>
+                <td>
+                  <span class="role-badge" :class="acc.tenChucVu?.toLowerCase()">
+                    {{ acc.tenChucVu || 'Chưa phân quyền' }}
+                  </span>
+                </td>
+                <td style="text-align: center">
+                  <select
+                    :value="acc.idChucVu || 3"
+                    class="role-select"
+                    @change="
+                      handleRoleChange(acc, Number(($event.target as HTMLSelectElement).value))
+                    "
+                  >
+                    <option :value="1">👑 ADMIN</option>
+                    <option :value="2">💼 STAFF (Nhân viên)</option>
+                    <option :value="3">👥 USER (Khách hàng)</option>
+                  </select>
+                </td>
+              </tr>
+              <tr v-if="filteredRoles.length === 0">
+                <td colspan="5" style="text-align: center; color: #999; padding: 30px 0">
+                  📭 Không tìm thấy tài khoản nào.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- ================= DETAIL MODAL POPUP ================= -->
+    <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            🔍 CHI TIẾT TÀI KHOẢN (#{{
+              selectedDetail?.account?.maTaiKhoan || selectedDetail?.maTaiKhoan
+            }})
+          </h3>
+          <span class="close-btn" @click="closeDetailModal">&times;</span>
+        </div>
+
+        <div class="modal-body" v-if="selectedDetail">
+          <!-- ADMIN Account Details -->
+          <template v-if="modalType === 'admin'">
+            <div class="detail-section-title">🔑 Thông Tin Tài Khoản</div>
+            <table class="detail-table">
+              <tbody>
+                <tr>
+                  <td class="lbl">Tên Đăng Nhập:</td>
+                  <td class="val highlight-text">{{ selectedDetail.account.tenDangNhap }}</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Chức Vụ Hệ Thống:</td>
+                  <td class="val"><span class="badge-role-admin">ADMIN</span></td>
+                </tr>
+                <tr>
+                  <td class="lbl">Trạng Thái Tài Khoản:</td>
+                  <td class="val">
+                    <span
+                      :class="selectedDetail.account.trangThai ? 'status-green' : 'status-red'"
+                      style="font-weight: bold"
+                    >
+                      {{ selectedDetail.account.trangThai ? 'Đang hoạt động' : 'Đang khóa' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-if="selectedDetail.employee">
+              <div class="detail-section-title">👤 Thông Tin Cá Nhân Người Sở Hữu (Nhân Viên)</div>
+              <table class="detail-table">
+                <tbody>
+                  <tr>
+                    <td class="lbl">Họ và Tên:</td>
+                    <td class="val text-gold">{{ selectedDetail.employee.tenNhanVien }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Số Điện Thoại:</td>
+                    <td class="val">{{ selectedDetail.employee.soDienThoai }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Email:</td>
+                    <td class="val text-blue">{{ selectedDetail.employee.email }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Địa Chỉ:</td>
+                    <td class="val">{{ selectedDetail.employee.diaChi }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Giới Tính:</td>
+                    <td class="val">{{ selectedDetail.employee.gioiTinh ? 'Nam' : 'Nữ' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-else class="no-profile-text">
+              ℹ️ Tài khoản admin này không liên kết hồ sơ nhân viên cụ thể.
+            </div>
+          </template>
+          <!-- STAFF Account Details -->
+          <template v-if="modalType === 'staff'">
+            <div class="detail-section-title">💼 Hồ Sơ Nhân Viên & Chức Vụ</div>
+            <table class="detail-table" v-if="selectedDetail.employee">
+              <tbody>
+                <tr>
+                  <td class="lbl">Họ Tên Nhân Viên:</td>
+                  <td class="val text-gold">{{ selectedDetail.employee.tenNhanVien }}</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Mã Nhân Viên:</td>
+                  <td class="val highlight-gray">{{ selectedDetail.employee.maNhanVien }}</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Số Điện Thoại:</td>
+                  <td class="val">{{ selectedDetail.employee.soDienThoai }}</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Email:</td>
+                  <td class="val text-blue">{{ selectedDetail.employee.email }}</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Địa Chỉ:</td>
+                  <td class="val">{{ selectedDetail.employee.diaChi }}</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Giới Tính:</td>
+                  <td class="val">{{ selectedDetail.employee.gioiTinh ? 'Nam' : 'Nữ' }}</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Trạng Thái Làm Việc:</td>
+                  <td class="val">
+                    <span :class="selectedDetail.employee.trangThai ? 'status-green' : 'status-red'">
+                      {{ selectedDetail.employee.trangThai ? 'Đang làm việc' : 'Đã nghỉ việc' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-else class="no-profile-text">
+              ⚠️ Không tìm thấy hồ sơ nhân viên cho tài khoản này.
+            </div>
+            <div class="detail-section-title">🔑 Thông Tin Tài Khoản</div>
+            <table class="detail-table">
+              <tbody>
+                <tr>
+                  <td class="lbl">Tên Đăng Nhập:</td>
+                  <td class="val highlight-text">{{ selectedDetail.account.tenDangNhap }}</td>
+                </tr>
+                <tr>
+                  <td class="lbl">Quyền (Chức vụ):</td>
+                  <td class="val">
+                    <span class="badge-role-staff">{{ selectedDetail.account.tenChucVu }}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="lbl">Trạng Thái Tài Khoản:</td>
+                  <td class="val">
+                    <span
+                      :class="selectedDetail.account.trangThai ? 'status-green' : 'status-red'"
+                      style="font-weight: bold"
+                    >
+                      {{ selectedDetail.account.trangThai ? 'Đang hoạt động' : 'Đang khóa' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
+          <!-- CUSTOMER Account Details (separated tabs: info / invoices) -->
+          <template v-if="modalType === 'customer'">
+            <div class="customer-detail-tabs">
+              <button
+                :class="['tab-small', { active: customerModalTab === 'info' }]"
+                @click="customerModalTab = 'info'"
+              >
+                👤 Thông tin
+              </button>
+              <button
+                :class="['tab-small', { active: customerModalTab === 'invoices' }]"
+                @click="customerModalTab = 'invoices'"
+              >
+                🧾 Lịch sử hoá đơn
+              </button>
+            </div>
+
+            <div v-if="customerModalTab === 'info'">
+              <div class="detail-section-title">👤 Hồ Sơ Khách Hàng</div>
+              <table class="detail-table" v-if="selectedDetail.customer">
+                <tbody>
+                  <tr>
+                    <td class="lbl">Mã Khách Hàng:</td>
+                    <td class="val highlight-gray">{{ selectedDetail.customer.maKhachHang || '---' }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Họ Tên Khách Hàng:</td>
+                    <td class="val text-gold">{{ selectedDetail.customer.tenKhachHang || '---' }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Số Điện Thoại:</td>
+                    <td class="val">{{ selectedDetail.customer.soDienThoai || '---' }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Email:</td>
+                    <td class="val text-blue">{{ selectedDetail.customer.email || 'Chưa đăng ký' }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Địa Chỉ:</td>
+                    <td class="val">{{ selectedDetail.customer.diaChi || '---' }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Giới Tính:</td>
+                    <td class="val">
+                      {{ selectedDetail.customer.gioiTinh === null || selectedDetail.customer.gioiTinh === undefined ? 'Chưa xác định' : selectedDetail.customer.gioiTinh ? 'Nam' : 'Nữ' }}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Trạng Thái Khách Hàng:</td>
+                    <td class="val">
+                      <span :class="selectedDetail.customer.trangThai ? 'status-green' : 'status-red'">
+                        {{ selectedDetail.customer.trangThai ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div v-else class="no-profile-text">
+                ⚠️ Không tìm thấy hồ sơ thông tin cá nhân khách hàng cho tài khoản này.
+              </div>
+
+              <div class="detail-section-title">🔑 Thông Tin Tài Khoản</div>
+              <table class="detail-table">
+                <tbody>
+                  <tr>
+                    <td class="lbl">Tên Đăng Nhập:</td>
+                    <td class="val highlight-text">{{ selectedDetail.account.tenDangNhap }}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Trạng Thái Tài Khoản:</td>
+                    <td class="val">
+                      <span
+                        :class="selectedDetail.account.trangThai ? 'status-green' : 'status-red'"
+                        style="font-weight: bold"
+                      >
+                        {{
+                          selectedDetail.account.trangThai
+                            ? 'Đang hoạt động (Active)'
+                            : 'Bị Khóa (Disabled)'
+                        }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div v-if="customerModalTab === 'invoices'">
+              <div class="detail-section-title">🧾 Lịch Sử Hoá Đơn</div>
+              <div v-if="invoiceLoading" class="text-loading">Đang tải lịch sử hoá đơn...</div>
+              <div v-else-if="customerInvoices.length === 0" class="no-profile-text">
+                📭 Khách hàng này chưa có hoá đơn nào.
+              </div>
+              <div v-else class="invoices-list">
+                <div v-for="inv in customerInvoices" :key="inv.idHoaDon" class="invoice-card-mini">
+                  <div class="invoice-card-header">
+                    <div>
+                      <span class="invoice-status">{{ invoiceStatusLabel(inv.trangThaiHoaDon) }}</span>
+                      <strong class="invoice-code">{{ inv.maHoaDon }}</strong>
+                      <span class="invoice-date">{{ formatDateTime(inv.thoiGianXuat || inv.thoiGian) }}</span>
+                    </div>
+                    <div class="invoice-total-box">
+                      <span>Tổng tiền</span>
+                      <strong>{{ formatCurrency(inv.tongTien) }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="invoice-info-grid">
+                    <div>
+                      <span>Khách hàng</span>
+                      <strong>{{ inv.tenKhachHang || selectedDetail.customer?.tenKhachHang || 'Khách lẻ' }}</strong>
+                    </div>
+                    <div>
+                      <span>Số điện thoại</span>
+                      <strong>{{ inv.sdtKhachHang || selectedDetail.customer?.soDienThoai || 'Chưa có' }}</strong>
+                    </div>
+                    <div>
+                      <span>Bàn</span>
+                      <strong>{{ inv.loaiBan || `Bàn ${inv.idBan || '-'}` }}</strong>
+                    </div>
+                    <div>
+                      <span>Nhân viên</span>
+                      <strong>{{ inv.tenNhanVien || 'Chưa có' }}</strong>
+                    </div>
+                    <div>
+                      <span>Thanh toán</span>
+                      <strong :class="inv.trangThaiThanhToan === 1 ? 'status-green' : 'status-red'">
+                        {{ paymentStatusLabel(inv.trangThaiThanhToan) }}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Phương thức</span>
+                      <strong>{{ paymentMethodLabel(inv.phuongThucThanhToan) }}</strong>
+                    </div>
+                    <div>
+                      <span>Mã giao dịch</span>
+                      <strong>{{ inv.maGiaoDich || 'Không có' }}</strong>
+                    </div>
+                    <div>
+                      <span>Mã giảm giá</span>
+                      <strong>{{ inv.maGiamGia || 'Không có' }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="invoice-money-grid">
+                    <div>
+                      <span>Trước giảm</span>
+                      <strong>{{ formatCurrency(inv.tienTruocGiam) }}</strong>
+                    </div>
+                    <div>
+                      <span>Tiền cọc</span>
+                      <strong>{{ formatCurrency(inv.tienCoc) }}</strong>
+                    </div>
+                    <div>
+                      <span>Giảm giá</span>
+                      <strong>{{ formatCurrency(inv.tienGiamGia) }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="invoice-detail-table-wrap">
+                    <div class="invoice-detail-title">Chi tiết món</div>
+                    <table class="invoice-detail-table">
+                      <thead>
+                        <tr>
+                          <th>Mã</th>
+                          <th>Món / combo</th>
+                          <th>SL</th>
+                          <th>Đơn giá</th>
+                          <th>Giảm</th>
+                          <th>Thành tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="item in customerInvoiceDetails[inv.idHoaDon] || []"
+                          :key="item.idHoaDonChiTiet"
+                        >
+                          <td>{{ item.maHoaDonChiTiet }}</td>
+                          <td>
+                            <div>{{ invoiceItemName(item) }}</div>
+                            <div v-if="item.comboItems?.length" class="combo-items">
+                              Gồm: {{ item.comboItems.join(', ') }}
+                            </div>
+                          </td>
+                          <td>{{ item.soLuong || 0 }}</td>
+                          <td>{{ formatCurrency(item.giaBanTaiThoiDiem) }}</td>
+                          <td>{{ formatCurrency(item.tienGiamGiaMon) }}</td>
+                          <td>{{ formatCurrency(item.thanhTien) }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div
+                      v-if="(customerInvoiceDetails[inv.idHoaDon] || []).length === 0"
+                      class="invoice-empty-detail"
+                    >
+                      Hóa đơn này chưa có chi tiết món.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-gray" @click="closeDetailModal">Đóng lại</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<style scoped>
+.account-mgmt-page {
+  padding: 20px;
+  background-color: #121212;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  color: #ffffff;
+}
+.page-header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.btn-back-home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border: 1px solid #444;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-back-home:hover {
+  background-color: #2a2a2a;
+  border-color: #ffc107;
+  color: #ffc107;
+}
+.btn-back-home svg {
+  transition: transform 0.2s ease;
+}
+.btn-back-home:hover svg {
+  transform: scale(1.1);
+}
+h2 {
+  color: #ffc107;
+  margin: 0;
+}
+.line-break {
+  border: 0;
+  border-top: 1px solid #333;
+  margin-bottom: 20px;
+}
+/* Tabs Navigation Styling */
+.tabs-navigation {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+}
+.tab-btn {
+  background-color: #1e1e1e;
+  color: #aaa;
+  border: 1px solid #333;
+  padding: 10px 20px;
+  font-weight: bold;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+.tab-btn:hover {
+  color: #fff;
+  background-color: #2a2a2a;
+}
+.tab-btn.active {
+  background-color: #ffc107;
+  color: #000;
+  border-color: #ffc107;
+  transform: translateY(-2px);
+  box-shadow: 0 -4px 10px rgba(255, 193, 7, 0.25);
+}
+/* Filters row */
+.filters-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: #1a1a1a;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+.search-box input {
+  background-color: #222;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 8px 14px;
+  border-radius: 6px;
+  width: 320px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-box input:focus {
+  border-color: #ffc107;
+}
+.sort-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sort-box label {
+  font-size: 13px;
+  color: #ccc;
+}
+.select-classic {
+  background-color: #222;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+}
+.select-classic:focus {
+  border-color: #ffc107;
+}
+/* Table styling */
+.table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+.table-classic {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #1a1a1a;
+}
+.table-classic th {
+  background-color: #2a2a2a;
+  color: #ffc107;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 2px solid #333;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+.table-classic td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 14px;
+}
+.table-classic tr:hover {
+  background-color: #222;
+}
+.highlight-text {
+  font-weight: bold;
+  color: #ffc107;
+}
+.status-green {
+  color: #28a745;
+}
+.status-red {
+  color: #dc3545;
+}
+/* Buttons */
+.btn-action {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid;
+  margin-right: 5px;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+.view {
+  border-color: #0d6efd;
+  color: #0d6efd;
+}
+.view:hover {
+  background-color: #0d6efd;
+  color: #fff;
+}
+.delete {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+.delete:hover {
+  background-color: #dc3545;
+  color: #fff;
+}
+.lock {
+  border-color: #fd7e14;
+  color: #fd7e14;
+}
+.lock:hover {
+  background-color: #fd7e14;
+  color: #fff;
+}
+.unlock {
+  border-color: #28a745;
+  color: #28a745;
+}
+.unlock:hover {
+  background-color: #28a745;
+  color: #000;
+}
+.text-loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 15px;
+  color: #aaa;
+  font-style: italic;
+}
+/* Tab 4 Roles specific styling */
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+.role-badge.admin {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #ff5b5b;
+  border: 1px solid rgba(220, 53, 69, 0.4);
+}
+.role-badge.staff {
+  background-color: rgba(13, 110, 253, 0.2);
+  color: #599fff;
+  border: 1px solid rgba(13, 110, 253, 0.4);
+}
+.role-badge.user {
+  background-color: rgba(40, 167, 69, 0.2);
+  color: #2cd657;
+  border: 1px solid rgba(40, 167, 69, 0.4);
+}
+.role-select {
+  background-color: #222;
+  color: #ffc107;
+  border: 1px solid #ffc107;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  outline: none;
+}
+.role-select:focus {
+  box-shadow: 0 0 5px rgba(255, 193, 7, 0.5);
+}
+/* Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+.modal-content {
+  background-color: #1a1a1a;
+  border: 1px solid #c5a059;
+  border-radius: 8px;
+  width: 600px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+.modal-header {
+  background-color: #2a2a2a;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #333;
+}
+.modal-header h3 {
+  margin: 0;
+  color: #ffc107;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+.close-btn {
+  color: #aaa;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+}
+.close-btn:hover {
+  color: #fff;
+}
+.modal-body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.detail-section-title {
+  color: #ffc107;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed #333;
+}
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+.detail-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 13.5px;
+}
+.detail-table .lbl {
+  width: 180px;
+  color: #aaa;
+}
+.detail-table .val {
+  color: #fff;
+}
+.text-gold {
+  color: #ffc107;
+  font-weight: bold;
+}
+.text-blue {
+  color: #599fff;
+}
+.highlight-gray {
+  font-family: monospace;
+  color: #aaa;
+}
+.no-profile-text {
+  color: #888;
+  font-style: italic;
+  padding: 10px 0;
+  font-size: 13px;
+}
+/* Badges for roles in Modal */
+.badge-role-admin {
+  background-color: #dc3545;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+}
+.badge-role-staff {
+  background-color: #0d6efd;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+}
+/* Customer Booking History Styling in Modal */
+.booking-history-container {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* Customer modal tabs and invoice mini-cards */
+.customer-detail-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.tab-small {
+  background: transparent;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.tab-small.active {
+  background: #ffc107;
+  color: #000;
+  border-color: #ffc107;
+}
+.invoice-card-mini {
+  background-color: #222;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.invoice-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+.invoice-code {
+  display: block;
+  color: #ffc107;
+  font-size: 16px;
+}
+.invoice-date {
+  display: block;
+  color: #999;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.invoice-status {
+  display: inline-block;
+  color: #111;
+  background-color: #ffc107;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.invoice-total-box {
+  min-width: 150px;
+  text-align: right;
+}
+.invoice-total-box span,
+.invoice-info-grid span,
+.invoice-money-grid span {
+  display: block;
+  color: #999;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.invoice-total-box strong {
+  color: #28a745;
+  font-size: 16px;
+}
+.invoice-info-grid,
+.invoice-money-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+.invoice-info-grid strong,
+.invoice-money-grid strong {
+  color: #f5f5f5;
+  font-size: 13px;
+  word-break: break-word;
+}
+.invoice-money-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 10px;
+}
+.invoice-detail-table-wrap {
+  overflow-x: auto;
+}
+.invoice-detail-title {
+  color: #ffc107;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.invoice-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.invoice-detail-table th,
+.invoice-detail-table td {
+  border-bottom: 1px solid #333;
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.invoice-detail-table th {
+  color: #ffc107;
+  background-color: #2a2a2a;
+}
+.combo-items {
+  color: #999;
+  font-size: 11px;
+  margin-top: 3px;
+}
+.invoice-empty-detail {
+  color: #aaa;
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
+}
+.booking-item-card {
+  background-color: #222;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.booking-item-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  color: #ffc107;
+  font-size: 12.5px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+.style-compact td {
+  padding: 4px 6px !important;
+  border-bottom: none !important;
+}
+.style-compact .lbl {
+  width: 150px !important;
+}
+.badge-count {
+  background-color: #ffc107;
+  color: #000;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+}
+.gold-text {
+  color: #ffc107;
+  font-weight: bold;
+}
+.modal-footer {
+  padding: 15px 20px;
+  background-color: #2a2a2a;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #333;
+}
+.btn-gray {
+  background-color: #555;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+}
+.btn-gray:hover {
+  background-color: #666;
+}
+</style>

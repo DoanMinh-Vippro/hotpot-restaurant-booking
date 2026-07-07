@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import HoaDonApi from '@/api/HoaDonApi'
 import { onMounted, ref } from 'vue'
 
 /**
@@ -23,8 +24,24 @@ const danhSachDatBan = ref<any[]>([])
 
 const loadDanhSachDatBan = async () => {
   try {
-    const res = await DatBanQuanLyApi.findByTrangThai('DA_XAC_NHAN')
-    danhSachDatBan.value = res.data
+    const [choRes, daRes, hoaDonRes] = await Promise.all([
+      DatBanQuanLyApi.findByTrangThai('CHO_XAC_NHAN'),
+      DatBanQuanLyApi.findByTrangThai('DA_XAC_NHAN'),
+      HoaDonApi.getDanhSach(),
+    ])
+
+    const merged = [...(choRes?.data ?? []), ...(daRes?.data ?? [])]
+    const unique = merged.filter(
+      (item, index, arr) => arr.findIndex((entry) => entry.idDatBan === item.idDatBan) === index,
+    )
+
+    const paidInvoiceDatBanIds = new Set(
+      (hoaDonRes?.data ?? [])
+        .filter((invoice: any) => invoice?.idDatBan != null && invoice?.trangThaiThanhToan === 1)
+        .map((invoice: any) => invoice.idDatBan),
+    )
+
+    danhSachDatBan.value = unique.filter((item: any) => !paidInvoiceDatBanIds.has(item.idDatBan))
   } catch (e) {
     console.error('Lỗi load danh sách đặt bàn', e)
   }
@@ -49,6 +66,10 @@ onMounted(() => {
       <div class="popup-header">Danh sách đơn đã xác nhận</div>
 
       <div class="popup-body">
+        <div v-if="danhSachDatBan.length === 0" class="empty-state">
+          Không có đơn đặt bàn phù hợp để chọn.
+        </div>
+
         <div v-for="datBan in danhSachDatBan" :key="datBan.idDatBan" class="dat-ban-card">
           <div class="info">
             <div><strong>Mã đơn:</strong> #{{ datBan.idDatBan }}</div>

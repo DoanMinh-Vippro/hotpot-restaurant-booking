@@ -23,5 +23,7 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     KhachHang findByTaiKhoan(TaiKhoan taiKhoan);
 
 
+
     Optional<KhachHang> findByTaiKhoan_IdTaiKhoan(Integer idTaiKhoan);
+
 }

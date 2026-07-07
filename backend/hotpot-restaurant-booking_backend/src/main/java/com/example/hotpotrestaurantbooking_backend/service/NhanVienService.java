@@ -9,6 +9,8 @@ public interface NhanVienService {
 
     DTONhanVienResponse findById(Integer id);
 
+    DTONhanVienResponse findByTaiKhoanId(Integer idTaiKhoan);
+
     DTONhanVienResponse add(DTONhanVienRequest request);
 
     DTONhanVienResponse update(Integer id, DTONhanVienRequest request);
