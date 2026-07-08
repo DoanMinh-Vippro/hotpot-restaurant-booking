@@ -7,7 +7,7 @@ frontend/node_modules/
 frontend/dist/
 
 # Vue/Vite nested frontend
-fontend/hotpot-restaurant-booking_fontend/hotpot-restaurant-booking/node_modules/
+frontend/hotpot-restaurant-booking_frontend/hotpot-restaurant-booking/node_modules/
 
 # IDE
 .vscode/
@@ -20,7 +20,3 @@ Thumbs.db
 # Gradle
 .gradle/
 backend/.gradle/
-
-# Backend
-backend/target/
-backend/.idea/
