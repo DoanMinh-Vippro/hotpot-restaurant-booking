@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -36,7 +37,8 @@ public class DatBan {
     @JoinColumn(name = "id_combo")
     private Combo combo;
     private LocalDate ngayDat;
-    private LocalTime gioDat;
+    // sửa phàn này đang lỗi sql
+    private Time gioDat;
     private String sdtKhachHang;
     private int soNguoi;
     @Enumerated(EnumType.ORDINAL)

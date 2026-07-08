@@ -91,7 +91,7 @@ public class KhachHangServiceImpl implements KhachHangService {
                     }
 
                     dbDto.setNgayDat(datBan.getNgayDat());
-                    dbDto.setGioDat(datBan.getGioDat());
+                    dbDto.setGioDat(datBan.getGioDat().toLocalTime());
                     dbDto.setSoNguoi(datBan.getSoNguoi());
                     dbDto.setSoTienCoc(datBan.getSoTienCoc());
                     dbDto.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());

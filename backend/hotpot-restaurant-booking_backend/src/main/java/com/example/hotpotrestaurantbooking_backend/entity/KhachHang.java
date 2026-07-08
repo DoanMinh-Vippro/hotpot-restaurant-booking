@@ -46,7 +46,7 @@ public class KhachHang {
     @ManyToOne
     @JoinColumn(name = "id_tai_khoan")
     private TaiKhoan taiKhoan;
-    @OneToMany(mappedBy = "khachHang", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "khachHang", fetch = FetchType.EAGER)
     @JsonManagedReference
     private List<DatBan> datBanList;
 }

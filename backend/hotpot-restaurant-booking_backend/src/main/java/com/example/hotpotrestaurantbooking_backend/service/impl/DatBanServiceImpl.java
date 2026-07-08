@@ -20,6 +20,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -105,7 +106,7 @@ public class DatBanServiceImpl implements DatBanService {
             d.setCombo(null);
         }
 
-        d.setGioDat(LocalTime.now());
+        d.setGioDat(Time.valueOf(LocalTime.now()));
         d.setNgayDat(LocalDate.now());
         d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
         d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
@@ -166,7 +167,7 @@ public class DatBanServiceImpl implements DatBanService {
         }).toList();
     }
 
-    @Override
+
     public DatBan createBookingAfterPayment(Integer idKhachHang, DTODatBanRequest datBan) {
         DatBan d = mapper.map(datBan, DatBan.class);
 
@@ -187,7 +188,7 @@ public class DatBanServiceImpl implements DatBanService {
             d.setCombo(null);
         }
 
-        d.setGioDat(LocalTime.now());
+        d.setGioDat(Time.valueOf(LocalTime.now()));
         d.setNgayDat(LocalDate.now());
 
         d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
@@ -197,4 +198,6 @@ public class DatBanServiceImpl implements DatBanService {
 
         return d;
     }
+
+
 }

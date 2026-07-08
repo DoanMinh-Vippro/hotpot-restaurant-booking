@@ -10,7 +10,7 @@ import lombok.Setter;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class DTOTaiKhoanResponse {
+public class    DTOTaiKhoanResponse {
     private Integer id;   // nên thêm luôn id
     private String maTaiKhoan;
     private String tenDangNhap;

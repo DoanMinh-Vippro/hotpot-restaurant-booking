@@ -17,6 +17,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -54,7 +55,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         response.setPhuongThucThanhToan(d.getPhuongThucThanhToan());
         response.setGhiChu(d.getGhiChu());
         response.setNgayDat(d.getNgayDat());
-        response.setGioDat(d.getGioDat());
+        response.setGioDat(d.getGioDat().toLocalTime());
         response.setThoiGianDenDuKien(d.getThoiGianDenDuKien());
         response.setSoNguoi(d.getSoNguoi());
         response.setTrangThai(d.getTrangThai());
@@ -105,7 +106,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         }
         */
 
-        db.setGioDat(LocalTime.now());
+        db.setGioDat(Time.valueOf(LocalTime.now()));
         db.setNgayDat(LocalDate.now());
         if (db.getSoTienCoc() == null) {
             db.setSoTienCoc(BigDecimal.ZERO);
