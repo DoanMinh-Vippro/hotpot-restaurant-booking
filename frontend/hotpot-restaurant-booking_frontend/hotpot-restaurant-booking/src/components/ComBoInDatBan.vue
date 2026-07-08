@@ -10,13 +10,30 @@ const emit = defineEmits(['update:modelValue', 'selectedCombo'])
 const danhSachCombo = ref<Combo[]>([])
 const loading = ref(false)
 
+const isComboAvailable = (combo: Combo | any) => {
+  const status = combo?.trangThai
+
+  if (status === null || status === undefined || status === '') return true
+
+  if (typeof status === 'number') return status !== 0
+
+  if (typeof status === 'boolean') return status
+
+  if (typeof status === 'string') {
+    const normalized = status.trim().toLowerCase()
+    return !['0', 'false', 'inactive', 'khong-hoat-dong', 'da-xoa', 'disabled'].includes(normalized)
+  }
+
+  return true
+}
+
 // load data
 const loadComboGoiY = async () => {
   loading.value = true
   try {
     const res = await ComBoApi.hienThiComBo()
 
-    danhSachCombo.value = (res.data || []).filter((cb: Combo) => cb.trangThai === 1)
+    danhSachCombo.value = (res.data || []).filter(isComboAvailable)
   } catch (error) {
     console.error('Không thể tải danh sách combo gợi ý:', error)
   } finally {

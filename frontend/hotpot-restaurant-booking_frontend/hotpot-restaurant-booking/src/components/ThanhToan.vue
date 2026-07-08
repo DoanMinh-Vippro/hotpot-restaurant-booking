@@ -7,6 +7,8 @@ import PopupThanhToan from './PopupThanhToan.vue'
 import PopupTienMat from './PopupTienMat.vue'
 import HoaDonApi from '@/api/HoaDonApi.ts'
 import HoaDonChiTietApi from '@/api/HoaDonChiTietApi'
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import BanApi from '@/api/BanApi'
 
 // ================= PROPS =================
 const props = defineProps<{
@@ -217,6 +219,44 @@ const updateHoaDon = async (idHoaDon: number, payload: any) => {
   }
 }
 
+const normalizeReservationStatus = (value: any) => {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && 'name' in value) return String(value.name)
+  return String(value)
+}
+
+const syncReservationToSeated = async () => {
+  if (!props.datBan?.idDatBan) return
+
+  const currentStatus = normalizeReservationStatus(props.datBan?.trangThai)
+  if (currentStatus !== 'DA_XAC_NHAN' && currentStatus !== 'DA_NHAN_BAN') return
+
+  try {
+    if (props.ban?.idBan) {
+      await BanApi.update(props.ban.idBan, {
+        trangThai: currentStatus === 'DA_NHAN_BAN' ? 'DANG_SU_DUNG' : 'DA_DAT',
+      })
+    }
+  } catch (error) {
+    console.error('Không thể cập nhật trạng thái bàn cho đơn đặt bàn', error)
+  }
+}
+
+const markReservationCompleted = async () => {
+  if (!props.datBan?.idDatBan) return
+
+  try {
+    await DatBanQuanLyApi.update(props.datBan.idDatBan, { ...props.datBan, trangThai: 'HOAN_THANH' })
+
+    if (props.ban?.idBan) {
+      await BanApi.update(props.ban.idBan, { trangThai: 'TRONG' })
+    }
+  } catch (error) {
+    console.error('Không thể cập nhật trạng thái đặt bàn sang hoàn thành', error)
+  }
+}
+
 const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) => {
   const payload = {
     maHoaDon: hoaDonHienTai.value?.maHoaDon || `HD${Date.now()}`,
@@ -256,6 +296,7 @@ const luuTam = async () => {
 const taoHoaDon = async () => {
   try {
     await xuLyHoaDon(1, 1)
+    await markReservationCompleted()
 
     alert('Thanh toán thành công')
 
@@ -271,27 +312,24 @@ const taoHoaDon = async () => {
 
 watch(
   () => props.datBan,
-  (db) => {
+  async (db) => {
     if (!db) return
 
     console.log('datBan:', db)
 
     gioHang.value = []
 
-    // ✔ check đúng field idCombo
     if (db.idCombo) {
       gioHang.value.push({
         idCombo: db.idCombo,
-        tenCombo: db.tenCombo, // nếu backend có trả
+        tenCombo: db.tenCombo,
         gia: db.giaCombo ?? 0,
         soLuong: 1,
         loai: 'COMBO',
       })
-
-      console.log('✔ Fill combo:', db.idCombo)
-    } else {
-      console.log('❌ Không có combo trong datBan')
     }
+
+    await syncReservationToSeated()
   },
   { immediate: true },
 )
@@ -368,6 +406,9 @@ onMounted(() => {
     <!-- GIỎ HÀNG -->
     <div class="gio-hang">
       <div class="title">Giỏ hàng: {{ props.ban.tenBan }}</div>
+      <div v-if="props.datBan" class="reservation-status-pill">
+        {{ normalizeReservationStatus(props.datBan?.trangThai) === 'DA_XAC_NHAN' ? 'Đã cọc' : 'Đã nhận bàn' }}
+      </div>
 
       <div class="gio-hang-list">
         <div
