@@ -25,9 +25,11 @@ const formData = ref({
   soNguoi: 0,
   ghiChu: '',
   thoiGianDenDuKien: '',
-  soTienCoc: 100000,
+  soTienCoc: 0,
   phuongThucThanhToan: 'CHUYEN_KHOAN' as PaymentMethod,
-  idCombo: null as number | null,
+
+  // Danh sách combo khách hàng đã chọn
+  dsCombo: [] as any[],
 })
 
 //cong de nhanh du lieu tu DatBanView
@@ -45,7 +47,7 @@ watch(
     if (newData.idDatBan !== formData.value.idDatBan) {
       formData.value = {
         ...newData,
-        idCombo: newData.idCombo || null,
+        dsCombo: newData.dsCombo || [],
         phuongThucThanhToan: newData.phuongThucThanhToan as PaymentMethod,
       }
     }
@@ -59,72 +61,90 @@ const emit = defineEmits(['refresh'])
 //hàm xử lý tiền cọc khi chọn combo
 const TI_LE_COC = 0.3
 
-const chonCombo = (combo: any) => {
-  if (!combo) {
-    formData.value.soTienCoc = 100000
+const chonCombo = (dsCombo: any[]) => {
+  formData.value.dsCombo = dsCombo
+
+  if (dsCombo.length === 0) {
+    formData.value.soTienCoc = 0
     return
   }
 
-  formData.value.soTienCoc = Math.round(combo.giaCombo * TI_LE_COC)
+  const tongTienCombo = dsCombo.reduce((tong, item) => {
+    return tong + item.giaCombo * item.soLuong
+  }, 0)
+
+  formData.value.soTienCoc = Math.round(tongTienCombo * TI_LE_COC)
 }
 
 const add = async () => {
-  isAdding.value = true
+  isAdding.value = true // dùng để báo chặn watch không đè dữ liệu khi lỡ ở cha có emit watch sẽ đẩy data cũ làm hỏng luồng
 
   try {
-    if (formData.value.phuongThucThanhToan === 'CHUYEN_KHOAN') {
-      const paymentRes = await paymentApi.createPayment(formData.value)
+    // Có combo => phải thanh toán tiền cọc
+    if (formData.value.dsCombo.length > 0) {
+      if (formData.value.phuongThucThanhToan === 'CHUYEN_KHOAN') {
+        const paymentRes = await paymentApi.createPayment(formData.value)
 
-      paymentData.value = {
-        qrUrl: paymentRes.data.qrUrl,
-        amount: paymentRes.data.amount,
-        content: paymentRes.data.content,
-      }
+        paymentData.value = {
+          qrUrl: paymentRes.data.qrUrl,
+          amount: paymentRes.data.amount,
+          content: paymentRes.data.content,
+        }
 
-      showPayment.value = true
+        showPayment.value = true
 
-      // Nếu còn timer cũ thì dừng
-      if (paymentTimer) {
-        clearInterval(paymentTimer)
-      }
+        if (paymentTimer) {
+          clearInterval(paymentTimer)
+        }
 
-      paymentTimer = setInterval(async () => {
-        try {
-          const res = await paymentApi.checkPaymentStatus(paymentData.value.content)
+        paymentTimer = setInterval(async () => {
+          try {
+            const res = await paymentApi.checkPaymentStatus(paymentData.value.content)
 
-          if (res.data) {
+            if (res.data) {
+              if (paymentTimer) {
+                clearInterval(paymentTimer)
+                paymentTimer = null
+              }
+
+              showPayment.value = false
+
+              paymentData.value = {
+                qrUrl: '',
+                amount: 0,
+                content: '',
+              }
+
+              resetForm()
+              emit('refresh')
+
+              alert('Đặt bàn thành công!')
+            }
+          } catch (e) {
+            console.error(e)
+
             if (paymentTimer) {
               clearInterval(paymentTimer)
               paymentTimer = null
             }
-
-            showPayment.value = false
-
-            paymentData.value = {
-              qrUrl: '',
-              amount: 0,
-              content: '',
-            }
-
-            resetForm()
-
-            emit('refresh')
-
-            alert('Đặt bàn thành công!')
           }
-        } catch (e) {
-          console.error(e)
+        }, 2000)
+      } else if (formData.value.phuongThucThanhToan === 'VNPAY') {
+        const res = await paymentApi.createVNPayPayment(formData.value)
 
-          if (paymentTimer) {
-            clearInterval(paymentTimer)
-            paymentTimer = null
-          }
-        }
-      }, 2000)
-    } else if (formData.value.phuongThucThanhToan === 'VNPAY') {
-      const res = await paymentApi.createVNPayPayment(formData.value)
+        window.location.href = res.data.paymentUrl
+      }
+    }
+    // Không có combo => không cần cọc
+    else {
+      formData.value.soTienCoc = 0
 
-      window.location.href = res.data.paymentUrl
+      await DatBanApi.add(formData.value)
+
+      resetForm()
+      emit('refresh')
+
+      alert('Đặt bàn thành công!')
     }
   } catch (error) {
     console.error('Lỗi:', error)
@@ -158,9 +178,9 @@ const resetForm = () => {
     soNguoi: 0,
     ghiChu: '',
     thoiGianDenDuKien: '',
-    soTienCoc: 100000,
+    soTienCoc: 0,
     phuongThucThanhToan: 'CHUYEN_KHOAN',
-    idCombo: null,
+    dsCombo: [],
   }
 }
 
@@ -231,7 +251,7 @@ const quayLai = () => {
     </div>
 
     <div class="combo-section">
-      <ComBoInDatBan v-model="formData.idCombo" @selectedCombo="chonCombo"></ComBoInDatBan>
+      <ComBoInDatBan v-model="formData.dsCombo" @selectedCombo="chonCombo" />
 
       <div class="go-home">
         <button class="btn-back" @click.prevent="quayLai()">Trở về trang chủ</button>

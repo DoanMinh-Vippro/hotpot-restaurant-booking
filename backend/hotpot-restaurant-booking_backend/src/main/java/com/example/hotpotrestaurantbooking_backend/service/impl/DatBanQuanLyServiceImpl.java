@@ -3,11 +3,13 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.Ban;
+import com.example.hotpotrestaurantbooking_backend.entity.Combo;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
@@ -17,6 +19,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -28,6 +31,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private final ModelMapper mapper;
     private final DatBanRepository datBanRepository;
     private final BanRepository banRepository;
+    private final ComboRepository comboRepository;
     private final KhachHangRepository khachHangRepository;
     private final HoaDonRepository hoaDonRepository;
 
@@ -54,7 +58,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         response.setPhuongThucThanhToan(d.getPhuongThucThanhToan());
         response.setGhiChu(d.getGhiChu());
         response.setNgayDat(d.getNgayDat());
-        response.setGioDat(d.getGioDat());
+        response.setGioDat(d.getGioDat().toLocalTime());
         response.setThoiGianDenDuKien(d.getThoiGianDenDuKien());
         response.setSoNguoi(d.getSoNguoi());
         response.setTrangThai(d.getTrangThai());
@@ -89,23 +93,35 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
         DatBan db = mapper.map(d, DatBan.class);
 
-        KhachHang kh = khachHangRepository.findById(d.getIdkhachHang())
-                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
-
-        db.setKhachHang(kh);
-
-        // =========================
-        // BAN - TẠM THỜI KHÔNG DÙNG
-        // =========================
-        /*
-        if (d.getIdBan() != null) {
-            Ban ban = banRepository.findById(d.getIdBan())
-                    .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn"));
-            db.setBan(ban);
+        if (d.getIdkhachHang() != null) {
+            KhachHang kh = khachHangRepository.findById(d.getIdkhachHang())
+                    .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
+            db.setKhachHang(kh);
+        } else {
+            db.setKhachHang(null);
         }
-        */
 
-        db.setGioDat(LocalTime.now());
+        // Tạm thời không gán bàn cho đơn đặt bàn walk-in.
+        // Nếu client gửi một bàn không hợp lệ hoặc bàn chưa được persist, hãy bỏ tham chiếu để tránh lỗi Hibernate.
+        if (d.getIdBan() != null) {
+            Ban existingBan = banRepository.findById(d.getIdBan()).orElse(null);
+            if (existingBan != null) {
+                db.setBan(existingBan);
+            } else {
+                db.setBan(null);
+            }
+        } else {
+            db.setBan(null);
+        }
+
+        if (d.getIdCombo() != null) {
+            Combo existingCombo = comboRepository.findById(d.getIdCombo()).orElse(null);
+            db.setCombo(existingCombo);
+        } else {
+            db.setCombo(null);
+        }
+
+        db.setGioDat(Time.valueOf(LocalTime.now()));
         db.setNgayDat(LocalDate.now());
         if (db.getSoTienCoc() == null) {
             db.setSoTienCoc(BigDecimal.ZERO);
@@ -118,8 +134,9 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         // response.setLoaiBan(ban.getLoaiBan());
         // response.setIdBan(db.getBan().getIdBan());
 
-        response.setTenKhachHang(kh != null ? kh.getTenKhachHang() : "Khách vãng lai");
-        response.setIdKhachHang(kh != null ? kh.getIdKhachHang() : null);
+        KhachHang linkedCustomer = db.getKhachHang();
+        response.setTenKhachHang(linkedCustomer != null ? linkedCustomer.getTenKhachHang() : "Khách vãng lai");
+        response.setIdKhachHang(linkedCustomer != null ? linkedCustomer.getIdKhachHang() : null);
         response.setSdtKhachHang(db.getSdtKhachHang());
         response.setTrangThaiCoc(db.getTrangThaiCoc());
         response.setSoTienCoc(db.getSoTienCoc());
@@ -133,21 +150,32 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         return datBanRepository.findById(id)
                 .map(db -> {
 
-                    // =========================
-                    // BAN - TẠM THỜI KHÔNG DÙNG
-                    // =========================
-                    /*
+                    // Tạm thời không gán bàn cho đơn đặt bàn walk-in.
+                    // Nếu client gửi một bàn không hợp lệ hoặc bàn chưa được persist, hãy bỏ tham chiếu để tránh lỗi Hibernate.
                     if (d.getIdBan() != null) {
-                        Ban ban = banRepository.findById(d.getIdBan())
-                                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn"));
-                        db.setBan(ban);
+                        Ban existingBan = banRepository.findById(d.getIdBan()).orElse(null);
+                        if (existingBan != null) {
+                            db.setBan(existingBan);
+                        } else {
+                            db.setBan(null);
+                        }
+                    } else {
+                        db.setBan(null);
                     }
-                    */
+
+                    if (d.getIdCombo() != null) {
+                        Combo existingCombo = comboRepository.findById(d.getIdCombo()).orElse(null);
+                        db.setCombo(existingCombo);
+                    } else {
+                        db.setCombo(null);
+                    }
 
                     if (d.getIdkhachHang() != null) {
                         KhachHang kh = khachHangRepository.findById(d.getIdkhachHang())
                                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
                         db.setKhachHang(kh);
+                    } else {
+                        db.setKhachHang(null);
                     }
 
                     if (d.getSdtKhachHang() != null && !d.getSdtKhachHang().isBlank())

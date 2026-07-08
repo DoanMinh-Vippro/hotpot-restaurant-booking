@@ -109,7 +109,7 @@ const router = createRouter({
     {
       path: '/tai-khoan',
       name: 'tai-khoan',
-      component: () => import('@/views/TaiKhoanView.vue'),
+      component: () => import('@/views/QuanLyTaiKhoanView.vue'),
     },
     {
       path: '/chuc-vu',

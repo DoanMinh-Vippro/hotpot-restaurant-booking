@@ -51,7 +51,7 @@ public class CocServiceImpl implements CocService {
         CocResponse response = new CocResponse();
         response.setId(datBan.getIdDatBan());
         response.setNgayDat(datBan.getNgayDat());
-        response.setGioDat(datBan.getGioDat());
+        response.setGioDat(datBan.getGioDat().toLocalTime());
         response.setSoNguoi(datBan.getSoNguoi());
         response.setSoTienCoc(datBan.getSoTienCoc());
         response.setGhiChu(datBan.getGhiChu());

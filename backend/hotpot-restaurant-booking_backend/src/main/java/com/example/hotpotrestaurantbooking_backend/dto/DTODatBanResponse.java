@@ -11,21 +11,33 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class DTODatBanResponse {
+
     private Integer idDatBan;
+
     private LocalDate ngayDat;
+
     private LocalTime gioDat;
+
     private String sdtKhachHang;
-    private Integer idCombo;
-    private String tenCombo;
+
+    private List<DTOChiTietDatBanComboResponse> dsCombo;
+
     private TrangThaiDatBan trangThai;
+
     private int soNguoi;
+
     private String ghiChu;
+
     private LocalDateTime thoiGianDenDuKien;
+
     private BigDecimal soTienCoc;
+
     private PhuongThucThanhToan phuongThucThanhToan;
 }
