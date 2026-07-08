@@ -1,5 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChiTietDatBanComboResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.Ban;
@@ -7,10 +8,7 @@ import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
-import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -31,6 +29,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private final BanRepository banRepository;
     private final KhachHangRepository khachHangRepository;
     private final HoaDonRepository hoaDonRepository;
+    private final ChiTietDatBanComboRepository chiTietDatBanComboRepository;
 
     // =========================
     // MAP RESPONSE (SAFE NULL BAN)
@@ -60,11 +59,18 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         response.setSoNguoi(d.getSoNguoi());
         response.setTrangThai(d.getTrangThai());
 
-        if (d.getCombo() != null) {
-            response.setIdCombo(d.getCombo().getIdCombo());
-            response.setTenCombo(d.getCombo().getTenCombo());
-            response.setGiaCombo(d.getCombo().getGiaCombo());
-        }
+        List<DTOChiTietDatBanComboResponse> dsCombo =
+                chiTietDatBanComboRepository.findByDatBan_IdDatBan(d.getIdDatBan())
+                        .stream()
+                        .map(ct -> new DTOChiTietDatBanComboResponse(
+                                ct.getCombo().getIdCombo(),
+                                ct.getCombo().getTenCombo(),
+                                ct.getCombo().getGiaCombo(),
+                                ct.getSoLuong()
+                        ))
+                        .toList();
+
+//        response.setDsCombo(dsCombo);
 
         return response;
     }

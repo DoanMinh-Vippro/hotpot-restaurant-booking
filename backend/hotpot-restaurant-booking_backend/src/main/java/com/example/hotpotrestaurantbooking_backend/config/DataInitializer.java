@@ -13,7 +13,7 @@ import java.util.Optional;
 @Configuration
 @RequiredArgsConstructor
 public class DataInitializer {
-
+//
 //
 //    private final TaiKhoanRepository taiKhoanRepository;
 //    private final PasswordEncoder passwordEncoder;
@@ -22,7 +22,7 @@ public class DataInitializer {
 //    public CommandLineRunner initData() {
 //        return args -> {
 //            // Tìm user 'admin'
-//            Optional<TaiKhoan> adminOpt = taiKhoanRepository.findByTenDangNhap("khachhang01");
+//            Optional<TaiKhoan> adminOpt = taiKhoanRepository.findByTenDangNhap("admin");
 //
 //            if (adminOpt.isPresent()) {
 //                TaiKhoan admin = adminOpt.get();

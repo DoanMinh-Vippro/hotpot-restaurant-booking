@@ -1,13 +1,17 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChiTietDatBanComboRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChiTietDatBanComboResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.ChiTietDatBanCombo;
 import com.example.hotpotrestaurantbooking_backend.entity.Combo;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
+import com.example.hotpotrestaurantbooking_backend.repository.ChiTietDatBanComboRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
@@ -31,18 +35,25 @@ public class DatBanServiceImpl implements DatBanService {
     private final DatBanRepository datBanRepository;
     private final ModelMapper mapper;
     private final ComboRepository comboRepository;
-    private static final String COMBO_NULL_MSG = "Đơn đặt bàn này không chọn combo đặt trước";
+    private final ChiTietDatBanComboRepository chiTietDatBanComboRepository;
     private final KhachHangRepository khachHangRepository;
 
+    private static final String COMBO_NULL_MSG = "Đơn đặt bàn này không chọn combo đặt trước";
+
     private void setComboInfo(DatBan db, DTODatBanResponse res) {
-        // Kiểm tra null của cả đối tượng Combo trước
-        if (db.getCombo() != null && db.getCombo().getIdCombo() != null) {
-            res.setIdCombo(db.getCombo().getIdCombo());
-            res.setTenCombo(db.getCombo().getTenCombo());
-        } else {
-            res.setTenCombo(COMBO_NULL_MSG);
-            res.setIdCombo(null); // Đảm bảo trả về null cho FE dễ nhận diện
-        }
+
+        List<DTOChiTietDatBanComboResponse> danhSachCombo =
+                chiTietDatBanComboRepository.findByDatBan_IdDatBan(db.getIdDatBan())
+                        .stream()
+                        .map(ct -> new DTOChiTietDatBanComboResponse(
+                                ct.getCombo().getIdCombo(),
+                                ct.getCombo().getTenCombo(),
+                                ct.getCombo().getGiaCombo(),
+                                ct.getSoLuong()
+                        ))
+                        .toList();
+
+        res.setDsCombo(danhSachCombo);
     }
 
     @Override
@@ -65,6 +76,7 @@ public class DatBanServiceImpl implements DatBanService {
 
     @Override
     public DTODatBanResponse add(DTODatBanRequest datBan) {
+
         DatBan d = mapper.map(datBan, DatBan.class);
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -78,79 +90,141 @@ public class DatBanServiceImpl implements DatBanService {
                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
 
         d.setIdDatBan(null);
-        d.setBan(null); // tránh ModelMapper map nhầm Ban cũ gây lỗi FK id_ban khi insert
+
+        // Tránh ModelMapper map nhầm Ban cũ gây lỗi FK id_ban khi insert
+        d.setBan(null);
+
         d.setKhachHang(khachHang);
-
-//        // PHẢI TÌM VÀ SET COMBO THỦ CÔNG
-//        if (datBan.getIdCombo() != null) {
-//            // CÁCH TỐI ƯU: Tạo một đối tượng Combo "rỗng" chỉ chứa ID
-//            // Cách này giúp Hibernate không bao giờ "nhìn" thấy các bản ghi cũ
-//            // Dùng Proxy Object thay vì comboRepository.findById()
-//            // Lý do: Khi dùng findById(), Hibernate sẽ quản lý đối tượng Combo trong Persistence Context,
-//            // điều này vô tình gây ra lỗi "dirty checking" hoặc cập nhật nhầm các bản ghi cũ liên quan.
-//            // Việc chỉ set ID (giả lập Proxy) giúp Hibernate coi đây là Foreign Key đơn thuần,
-//            // đảm bảo lệnh save() luôn thực hiện INSERT thay vì UPDATE nhầm.
-//            Combo proxyCombo = new Combo();
-//            proxyCombo.setIdCombo(datBan.getIdCombo());
-//            d.setCombo(proxyCombo);
-//        } else {
-//            d.setCombo(null);
-//        }
-
-        if (datBan.getIdCombo() != null) {
-            Combo combo = comboRepository.findById(datBan.getIdCombo())
-                    .orElseThrow(() -> new CustomResourceNotFoundException("Combo không tồn tại"));
-
-            d.setCombo(combo);
-        } else {
-            d.setCombo(null);
-        }
 
         d.setGioDat(Time.valueOf(LocalTime.now()));
         d.setNgayDat(LocalDate.now());
+
         d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
         d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
+
         if (d.getSoTienCoc() == null) {
             d.setSoTienCoc(BigDecimal.ZERO);
         }
-        if (d.getCombo() == null && d.getSoTienCoc() != null) {
-            d.setSoTienCoc(BigDecimal.ZERO);
-        }
+
+        // ============================================================
+        // LƯU ĐẶT BÀN TRƯỚC
+        //
+        // Phải save DatBan trước để sinh id_dat_ban.
+        // Sau đó mới có thể lưu danh sách combo vào bảng trung gian
+        // ChiTietDatBanCombo.
+        //
+        // Thiết kế mới:
+        //
+        // DatBan
+        //      |
+        //      | 1 - N
+        //      |
+        // ChiTietDatBanCombo
+        //      |
+        //      | N - 1
+        //      |
+        // Combo
+        //
+        // Mục tiêu:
+        // - Một đơn đặt bàn chọn nhiều combo.
+        // - Mỗi combo có số lượng riêng.
+        // - Đồng nhất mô hình với HoaDon - HoaDonChiTiet.
+        // ============================================================
+
         datBanRepository.save(d);
 
+        // ============================================================
+        // Lưu danh sách combo khách đã chọn.
+        //
+        // Không dùng ModelMapper vì dsCombo chỉ là DTO.
+        // Chủ động lấy Combo từ DB để:
+        // - Kiểm tra combo tồn tại.
+        // - Lưu đúng số lượng.
+        // - Tránh các lỗi mapping ngoài ý muốn.
+        // ============================================================
+
+        if (datBan.getDsCombo() != null && !datBan.getDsCombo().isEmpty()) {
+
+            for (DTOChiTietDatBanComboRequest item: datBan.getDsCombo()) {
+
+                Combo combo = comboRepository.findById(item.getIdCombo())
+                        .orElseThrow(() ->
+                                new CustomResourceNotFoundException("Combo không tồn tại"));
+
+                ChiTietDatBanCombo chiTiet = new ChiTietDatBanCombo();
+
+                chiTiet.setDatBan(d);
+                chiTiet.setCombo(combo);
+                chiTiet.setSoLuong(item.getSoLuong());
+
+                chiTietDatBanComboRepository.save(chiTiet);
+            }
+
+        } else {
+            // Không chọn combo thì không cần tiền cọc
+            d.setSoTienCoc(BigDecimal.ZERO);
+            datBanRepository.save(d);
+        }
+
         DTODatBanResponse res = mapper.map(d, DTODatBanResponse.class);
+
         setComboInfo(d, res);
+
         return res;
     }
 
     @Override
     public DTODatBanResponse update(Integer id, DTODatBanRequest datBan) {
         return datBanRepository.findById(id).map(db -> {
-            if(datBan.getSdtKhachHang() != null && !datBan.getSdtKhachHang().isBlank()) db.setSdtKhachHang(datBan.getSdtKhachHang());
-            if(datBan.getSoNguoi() != null) db.setSoNguoi(datBan.getSoNguoi());
-            if(datBan.getThoiGianDenDuKien() != null) db.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());
-            if(datBan.getSoTienCoc() != null) db.setSoTienCoc(datBan.getSoTienCoc());
-            if(datBan.getPhuongThucThanhToan() != null) db.setPhuongThucThanhToan(datBan.getPhuongThucThanhToan());
-            if(datBan.getGhiChu() != null) db.setGhiChu(datBan.getGhiChu());
-// PHẢI TÌM VÀ SET COMBO THỦ CÔNG
-            if (datBan.getIdCombo() != null) {
-                db.setCombo(comboRepository.findById(datBan.getIdCombo())
-                        .orElseThrow(() -> new CustomResourceNotFoundException("Combo này không tồn tại trong hệ thống!")));
-            } else {
-                db.setCombo(null);
-                db.setSoTienCoc(BigDecimal.ZERO);
-            }
 
-            if (db.getCombo() == null && db.getSoTienCoc() == null) {
-                db.setSoTienCoc(BigDecimal.ZERO);
-            }
+            if (datBan.getSdtKhachHang() != null && !datBan.getSdtKhachHang().isBlank())
+                db.setSdtKhachHang(datBan.getSdtKhachHang());
+
+            if (datBan.getSoNguoi() != null)
+                db.setSoNguoi(datBan.getSoNguoi());
+
+            if (datBan.getThoiGianDenDuKien() != null)
+                db.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());
+
+            if (datBan.getSoTienCoc() != null)
+                db.setSoTienCoc(datBan.getSoTienCoc());
+
+            if (datBan.getPhuongThucThanhToan() != null)
+                db.setPhuongThucThanhToan(datBan.getPhuongThucThanhToan());
+
+            if (datBan.getGhiChu() != null)
+                db.setGhiChu(datBan.getGhiChu());
 
             datBanRepository.save(db);
+
+            // Xóa toàn bộ combo cũ của đơn đặt bàn
+            chiTietDatBanComboRepository.deleteByDatBan_IdDatBan(db.getIdDatBan());
+
+            // Thêm lại danh sách combo mới
+            if (datBan.getDsCombo() != null && !datBan.getDsCombo().isEmpty()) {
+
+                // Duyệt toàn bộ danh sách combo FE gửi lên để lưu lại bảng ChiTietDatBanCombo
+                for (DTOChiTietDatBanComboRequest item : datBan.getDsCombo()) {
+
+                    Combo combo = comboRepository.findById(item.getIdCombo())
+                            .orElseThrow(() ->
+                                    new CustomResourceNotFoundException("Combo không tồn tại"));
+
+                    ChiTietDatBanCombo ct = new ChiTietDatBanCombo();
+                    ct.setDatBan(db);
+                    ct.setCombo(combo);
+                    ct.setSoLuong(item.getSoLuong());
+
+                    chiTietDatBanComboRepository.save(ct);
+                }
+            }
 
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
             return res;
-        }).orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay don dat ban"));
+
+        }).orElseThrow(() ->
+                new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
     }
 
     @Override
@@ -168,7 +242,9 @@ public class DatBanServiceImpl implements DatBanService {
     }
 
 
+    @Override
     public DatBan createBookingAfterPayment(Integer idKhachHang, DTODatBanRequest datBan) {
+
         DatBan d = mapper.map(datBan, DatBan.class);
 
         KhachHang khachHang = khachHangRepository
@@ -179,22 +255,37 @@ public class DatBanServiceImpl implements DatBanService {
         d.setBan(null);
         d.setKhachHang(khachHang);
 
-        if (datBan.getIdCombo() != null) {
-            Combo combo = comboRepository.findById(datBan.getIdCombo())
-                    .orElseThrow(() -> new CustomResourceNotFoundException("Combo không tồn tại"));
-
-            d.setCombo(combo);
-        } else {
-            d.setCombo(null);
-        }
-
         d.setGioDat(Time.valueOf(LocalTime.now()));
         d.setNgayDat(LocalDate.now());
 
         d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
         d.setTrangThaiCoc(TrangThaiDatBanCoc.DA_COC);
 
+        if (d.getSoTienCoc() == null) {
+            d.setSoTienCoc(BigDecimal.ZERO);
+        }
+
+        // Lưu đơn đặt bàn trước để có id_dat_ban
         datBanRepository.save(d);
+
+        // Sau khi DatBan đã được lưu mới có thể lưu các combo vào bảng trung gian
+        if (datBan.getDsCombo() != null && !datBan.getDsCombo().isEmpty()) {
+
+            // Duyệt toàn bộ danh sách combo khách hàng gửi lên để lưu từng combo vào bảng ChiTietDatBanCombo
+            for (DTOChiTietDatBanComboRequest item : datBan.getDsCombo()) {
+
+                Combo combo = comboRepository.findById(item.getIdCombo())
+                        .orElseThrow(() ->
+                                new CustomResourceNotFoundException("Combo không tồn tại"));
+
+                ChiTietDatBanCombo ct = new ChiTietDatBanCombo();
+                ct.setDatBan(d);
+                ct.setCombo(combo);
+                ct.setSoLuong(item.getSoLuong());
+
+                chiTietDatBanComboRepository.save(ct);
+            }
+        }
 
         return d;
     }
