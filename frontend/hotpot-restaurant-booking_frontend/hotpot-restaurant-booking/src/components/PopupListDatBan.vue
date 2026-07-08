@@ -24,16 +24,12 @@ const danhSachDatBan = ref<any[]>([])
 
 const loadDanhSachDatBan = async () => {
   try {
-    const [choRes, daRes, hoaDonRes] = await Promise.all([
-      DatBanQuanLyApi.findByTrangThai('CHO_XAC_NHAN'),
+    const [daRes, hoaDonRes] = await Promise.all([
       DatBanQuanLyApi.findByTrangThai('DA_XAC_NHAN'),
       HoaDonApi.getDanhSach(),
     ])
 
-    const merged = [...(choRes?.data ?? []), ...(daRes?.data ?? [])]
-    const unique = merged.filter(
-      (item, index, arr) => arr.findIndex((entry) => entry.idDatBan === item.idDatBan) === index,
-    )
+    const confirmedReservations = Array.isArray(daRes?.data) ? daRes.data : []
 
     const paidInvoiceDatBanIds = new Set(
       (hoaDonRes?.data ?? [])
@@ -41,7 +37,7 @@ const loadDanhSachDatBan = async () => {
         .map((invoice: any) => invoice.idDatBan),
     )
 
-    danhSachDatBan.value = unique.filter((item: any) => !paidInvoiceDatBanIds.has(item.idDatBan))
+    danhSachDatBan.value = confirmedReservations.filter((item: any) => !paidInvoiceDatBanIds.has(item.idDatBan))
   } catch (e) {
     console.error('Lỗi load danh sách đặt bàn', e)
   }
@@ -80,7 +76,7 @@ onMounted(() => {
 
             <div><strong>SĐT:</strong> {{ datBan.sdtKhachHang }}</div>
 
-            <div><strong>Trạng thái:</strong> {{ datBan.trangThai }}</div>
+            <div><strong>Trạng thái:</strong> <span class="status-pill">Đã cọc</span></div>
           </div>
 
           <button class="btn-chon" @click="chonDatBan(datBan)">Chọn</button>
@@ -153,6 +149,16 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 216, 107, 0.16);
+  color: #ffd86b;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .btn-chon {

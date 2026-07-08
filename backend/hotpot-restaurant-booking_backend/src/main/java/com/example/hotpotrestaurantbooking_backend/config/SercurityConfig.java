@@ -30,6 +30,7 @@ public class SercurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/dat-ban-quan-ly/**").permitAll()
 
                         // 2. Cho phép xem danh sách phân trang (không cần Token)
                         .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()

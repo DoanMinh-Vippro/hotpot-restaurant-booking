@@ -2,11 +2,14 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.Ban;
+import com.example.hotpotrestaurantbooking_backend.entity.Combo;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
@@ -36,6 +39,9 @@ class DatBanQuanLyServiceImplTest {
 
     @Mock
     private BanRepository banRepository;
+
+    @Mock
+    private ComboRepository comboRepository;
 
     @Mock
     private KhachHangRepository khachHangRepository;
@@ -108,5 +114,59 @@ class DatBanQuanLyServiceImplTest {
 
         assertEquals(BigDecimal.ZERO, datBan.getSoTienCoc());
         assertEquals(BigDecimal.ZERO, response.getSoTienCoc());
+    }
+
+    @Test
+    void addShouldClearTransientBanBeforeSaving() {
+        DatBan datBan = new DatBan();
+        datBan.setIdDatBan(3);
+        Ban transientBan = new Ban();
+        transientBan.setIdBan(99);
+        datBan.setBan(transientBan);
+
+        DTODatBanQuanLyRequest request = new DTODatBanQuanLyRequest();
+        request.setIdkhachHang(null);
+        request.setSoNguoi(2);
+        request.setSoTienCoc(BigDecimal.ZERO);
+
+        when(mapper.map(any(DTODatBanQuanLyRequest.class), eq(DatBan.class))).thenReturn(datBan);
+        when(datBanRepository.save(any(DatBan.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(mapper.map(any(DatBan.class), eq(DTODatBanQuanLyResponse.class))).thenAnswer(invocation -> {
+            DTODatBanQuanLyResponse response = new DTODatBanQuanLyResponse();
+            response.setIdDatBan(((DatBan) invocation.getArgument(0)).getIdDatBan());
+            return response;
+        });
+
+        service.add(request);
+
+        assertEquals(null, datBan.getBan());
+    }
+
+    @Test
+    void addShouldAttachExistingComboWhenProvided() {
+        DatBan datBan = new DatBan();
+        datBan.setIdDatBan(4);
+
+        Combo combo = new Combo();
+        combo.setIdCombo(7);
+        combo.setTenCombo("Combo gia đình");
+
+        DTODatBanQuanLyRequest request = new DTODatBanQuanLyRequest();
+        request.setIdCombo(7);
+        request.setSoNguoi(4);
+        request.setSoTienCoc(BigDecimal.ZERO);
+
+        when(mapper.map(any(DTODatBanQuanLyRequest.class), eq(DatBan.class))).thenReturn(datBan);
+        when(comboRepository.findById(7)).thenReturn(Optional.of(combo));
+        when(datBanRepository.save(any(DatBan.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(mapper.map(any(DatBan.class), eq(DTODatBanQuanLyResponse.class))).thenAnswer(invocation -> {
+            DTODatBanQuanLyResponse response = new DTODatBanQuanLyResponse();
+            response.setIdDatBan(((DatBan) invocation.getArgument(0)).getIdDatBan());
+            return response;
+        });
+
+        service.add(request);
+
+        assertEquals(7, datBan.getCombo().getIdCombo());
     }
 }
