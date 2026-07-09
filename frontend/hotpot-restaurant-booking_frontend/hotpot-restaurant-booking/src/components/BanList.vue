@@ -104,22 +104,20 @@ const formatLoaiBan = (loai: string) => {
 <style scoped>
 .ban-wrapper {
   padding: 12px;
-  background: #0b0b0d;
+  background: #fffdf8;
   border-radius: 12px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid #e6d2aa;
 }
 
-/* 1. Chia 4 cột ở đây */
 .ban-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 
-/* 2. Style cho mỗi ô bàn */
 .ban-card {
-  background: #0f0f11;
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: #fff8ea;
+  border: 1px solid #e6d2aa;
   border-radius: 10px;
   padding: 12px;
   display: flex;
@@ -130,15 +128,14 @@ const formatLoaiBan = (loai: string) => {
 }
 
 .ban-card:hover {
-  border-color: rgba(212, 175, 55, 0.5);
+  border-color: #d8a85c;
 }
 
 .ban-card.active {
-  border-color: #ffd86b;
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+  border-color: #d8a85c;
+  box-shadow: 0 0 8px rgba(216, 168, 92, 0.2);
 }
 
-/* 3. Style text bên trong ô */
 .ban-info {
   display: flex;
   flex-direction: row;
@@ -147,28 +144,27 @@ const formatLoaiBan = (loai: string) => {
 }
 
 .ban-name {
-  color: #ffd86b;
+  color: #8b5e34;
   font-weight: 600;
 }
 
 .ban-type {
-  color: #aaa;
+  color: #8f6b46;
   font-size: 17px;
   padding: 2px 6px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid #e6d2aa;
   border-radius: 6px;
 }
 
 .ban-status {
-  color: #aaa;
+  color: #8f6b46;
   font-size: 15px;
 }
 
-/* 4. Nút xóa nhỏ gọn */
 .btn-delete {
-  background: transparent;
-  border: 1px solid rgba(255, 80, 80, 0.3);
-  color: #ff6b6b;
+  background: #fff0eb;
+  border: 1px solid #f2b4a3;
+  color: #b84f3f;
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 11px;
@@ -176,7 +172,7 @@ const formatLoaiBan = (loai: string) => {
 }
 
 .btn-delete:hover {
-  background: #ff6b6b;
-  color: white;
+  background: #ffd8cd;
+  color: #a53b2f;
 }
 </style>

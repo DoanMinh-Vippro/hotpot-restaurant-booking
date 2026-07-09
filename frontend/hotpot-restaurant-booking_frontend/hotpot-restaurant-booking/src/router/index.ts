@@ -89,7 +89,7 @@ const router = createRouter({
     {
       path: '/khach-hang',
       name: 'khach-hang',
-      component: () => import('@/views/KhachHangView.vue'), // Sửa khachhang/KhachHangView
+      redirect: { name: 'thucDon' },
     },
     {
       path: '/khu-vuc',
@@ -104,7 +104,7 @@ const router = createRouter({
     {
       path: '/nhan-vien',
       name: 'nhan-vien',
-      component: () => import('@/views/NhanVienView.vue'),
+      redirect: { name: 'thucDon' },
     },
     {
       path: '/tai-khoan',
@@ -114,7 +114,7 @@ const router = createRouter({
     {
       path: '/chuc-vu',
       name: 'chuc-vu',
-      component: () => import('@/views/ChucVuView.vue'),
+      redirect: { name: 'thucDon' },
     },
     {
       path: '/thong-ke',

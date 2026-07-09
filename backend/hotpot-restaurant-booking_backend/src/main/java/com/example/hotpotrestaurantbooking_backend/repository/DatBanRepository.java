@@ -24,4 +24,6 @@ public interface DatBanRepository extends JpaRepository<DatBan,Integer> {
     List<DatBan> findByKhachHang_IdKhachHang(Integer id);
 
     List<DatBan> findByTrangThai(TrangThaiDatBan trangThai);
+
+    List<DatBan> findByTrangThaiIn(List<TrangThaiDatBan> trangThais);
 }

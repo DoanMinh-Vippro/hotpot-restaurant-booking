@@ -270,7 +270,6 @@ onMounted(() => {
         <h1>Giảm Giá & Đợt Giảm Giá</h1>
       </div>
       <div class="header-buttons">
-        <button class="nut-chinh" type="button" @click="router.push('/')">Trang chủ</button>
         <button class="nut-chinh" type="button" @click="activeTab === 'giam-gia' ? tai_danh_sach_giam_gia() : fetchDuLieu()">Tải lại</button>
       </div>
     </header>
@@ -361,11 +360,119 @@ onMounted(() => {
 
 <style scoped>
 .trang-giam-gia {
+  min-height: 100vh;
+  padding: 24px clamp(16px, 3vw, 40px) 32px;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
+  color: #5f3d22;
+}
+
+.tieu-de-trang {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.tieu-de-trang h1 {
+  margin: 6px 0 0;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  color: #8b5e34;
+}
+
+.tieu-le {
+  margin: 0;
+  color: #8f6b46;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.nut-chinh {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #d8a85c;
+  color: #3d2814;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-navigation {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(255, 248, 234, 0.9);
+  border: 1px solid #e6d2aa;
+  border-radius: 999px;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #8f6b46;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  background: #d8a85c;
+  color: #3d2814;
+}
+
+.giam-gia-grid,
+.dot-giam-gia-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 0.9fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.dot-giam-gia-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cot-trai,
+.cot-phai {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.thong-bao-loi {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 107, 107, 0.12);
+  color: #b84f3f;
+  border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+@media (max-width: 1100px) {
+  .giam-gia-grid,
+  .dot-giam-gia-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<style scoped>
+.trang-giam-gia {
   padding: 120px 60px 40px;
   min-height: calc(100vh - 120px);
-  color: #f1f1f1;
-  background: radial-gradient(circle at top, rgba(197, 160, 89, 0.12), transparent 35%),
-              linear-gradient(180deg, #070707 0%, #0f0f0f 100%);
+  color: #5f3d22;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
 }
 
 .tieu-de-trang {
@@ -390,15 +497,15 @@ onMounted(() => {
 .tieu-le {
   text-transform: uppercase;
   letter-spacing: 2px;
-  color: #f8d46a;
+  color: #8b5e34;
   margin-bottom: 8px;
   font-size: 0.8rem;
 }
 
 .nut-chinh {
-  border: 1px solid rgba(248, 212, 106, 0.45);
-  background: #f8d46a;
-  color: #16110a;
+  border: 1px solid #e6d2aa;
+  background: #d8a85c;
+  color: #3d2814;
   min-height: 42px;
   border-radius: 6px;
   padding: 0 16px;
@@ -408,8 +515,8 @@ onMounted(() => {
 }
 
 .nut-chinh:hover {
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(248, 212, 106, 0.4);
+  background: #ffe3a3;
+  box-shadow: 0 4px 12px rgba(103, 72, 32, 0.12);
 }
 
 /* Tab Navigation */
@@ -417,7 +524,7 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   margin-bottom: 28px;
-  border-bottom: 2px solid #333;
+  border-bottom: 2px solid #e7d6b5;
   padding-bottom: 0;
 }
 
@@ -425,7 +532,7 @@ onMounted(() => {
   padding: 12px 20px;
   background: transparent;
   border: none;
-  color: #999;
+  color: #8b5e34;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -436,12 +543,12 @@ onMounted(() => {
 }
 
 .tab-button:hover {
-  color: #c5a059;
+  color: #d8a85c;
 }
 
 .tab-button.active {
-  color: #f8d46a;
-  border-bottom-color: #f8d46a;
+  color: #8b5e34;
+  border-bottom-color: #d8a85c;
 }
 
 /* Grids */

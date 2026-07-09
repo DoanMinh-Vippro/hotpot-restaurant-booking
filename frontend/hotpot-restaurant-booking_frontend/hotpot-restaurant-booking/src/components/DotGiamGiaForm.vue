@@ -191,20 +191,21 @@ defineExpose({
 
 <style scoped>
 .bieu-mau-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 28px;
-  padding: 26px;
-  color: white;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  border-radius: 24px;
+  padding: 24px;
+  color: #5f3d22;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin-bottom: 10px;
 }
 
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
   font-size: 14px;
 }
 
@@ -220,33 +221,32 @@ defineExpose({
 }
 
 label {
-  color: #d8d8d8;
+  color: #6b4728;
   margin-bottom: 6px;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .bat-buoc {
-  color: #ff6b6b;
+  color: #c94f3a;
 }
 
 input {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f5f5f5;
-  border-radius: 16px;
-  padding: 14px 16px;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
+  border-radius: 14px;
+  padding: 12px 14px;
   width: 100%;
   box-sizing: border-box;
   outline: none;
 }
 
 input:focus {
-  border-color: #f8d46a;
+  border-color: #d8a85c;
 }
 
-/* Định phom giao diện cho lịch Date Picker trên Dark Mode */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
   cursor: pointer;
 }
 
@@ -257,28 +257,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .nut-chinh {
   width: 100%;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 12px;
-  background: #f8d46a;
-  color: #1a1410;
-  font-weight: 600;
+  background: #d8a85c;
+  color: #3d2814;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .nut-chinh:hover {
-  background: #e5c158;
+  background: #c99646;
 }
 
 .error-text {
-  color: #ff6b6b;
+  color: #c94f3a;
   font-size: 13px;
   margin-top: 6px;
   margin-left: 8px;
 }
 
 .is-invalid {
-  border: 1px solid #ff6b6b !important;
+  border: 1px solid #c94f3a !important;
   background: rgba(255, 107, 107, 0.05) !important;
 }
 </style>

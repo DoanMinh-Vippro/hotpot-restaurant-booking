@@ -99,134 +99,78 @@ const chuaCoDonDatBan = () => {
 </template>
 
 <style scoped>
-/* =====================================================
-   OVERLAY
-===================================================== */
-
 .overlay {
   position: fixed;
   inset: 0;
-
-  background: rgba(0, 0, 0, 0.6);
-
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   justify-content: center;
   align-items: center;
-
   z-index: 999;
 }
 
-/* =====================================================
-   POPUP
-===================================================== */
-
 .popup {
   width: 400px;
-
-  background: #151515;
-
-  border-radius: 12px;
-
+  background: #fffaf1;
+  border-radius: 14px;
   overflow: hidden;
-
-  border: 1px solid rgba(212, 175, 55, 0.3);
-
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+  border: 1px solid #e6d2aa;
+  box-shadow: 0 16px 40px rgba(103, 72, 32, 0.16);
 }
-
-/* =====================================================
-   HEADER
-===================================================== */
 
 .popup-header {
   padding: 16px;
-
   text-align: center;
-
   font-size: 20px;
-  font-weight: 600;
-
-  color: #ffd86b;
-
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+  color: #8b5e34;
+  border-bottom: 1px solid #e6d2aa;
 }
-
-/* =====================================================
-   BODY
-===================================================== */
 
 .popup-body {
   padding: 32px;
-
   text-align: center;
 }
 
 .question {
-  color: white;
-
+  color: #5f3d22;
   font-size: 16px;
-
   margin: 0;
 }
 
-/* =====================================================
-   FOOTER
-===================================================== */
-
 .popup-footer {
   padding: 20px;
-
   display: flex;
   justify-content: center;
-
   gap: 16px;
 }
 
-/* =====================================================
-   BUTTON CHUNG
-===================================================== */
-
 .btn {
   min-width: 120px;
-
   padding: 10px 20px;
-
   border: none;
-
-  border-radius: 8px;
-
+  border-radius: 10px;
   cursor: pointer;
-
   font-weight: 600;
-
   transition: 0.3s;
 }
 
-/* =====================================================
-   BUTTON CÓ
-===================================================== */
-
 .btn-yes {
-  background: #ffd86b;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .btn-yes:hover {
   transform: translateY(-2px);
 }
 
-/* =====================================================
-   BUTTON KHÔNG
-===================================================== */
-
 .btn-no {
-  background: #444;
-
-  color: white;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .btn-no:hover {
-  background: #555;
-
   transform: translateY(-2px);
 }
 </style>

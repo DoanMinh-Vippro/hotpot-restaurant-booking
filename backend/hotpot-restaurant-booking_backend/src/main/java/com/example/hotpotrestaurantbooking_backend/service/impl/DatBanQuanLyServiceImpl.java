@@ -12,12 +12,15 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.dao.DataAccessException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,17 +69,21 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         response.setTrangThai(d.getTrangThai());
 
         if (d.getChiTietDatBanCombos() != null) {
-            response.setDsCombo(
-                    d.getChiTietDatBanCombos()
-                            .stream()
-                            .map(ct -> new DTOChiTietDatBanComboResponse(
-                                    ct.getCombo().getIdCombo(),
-                                    ct.getCombo().getTenCombo(),
-                                    ct.getCombo().getGiaCombo(),
-                                    ct.getSoLuong()
-                            ))
-                            .toList()
-            );
+            try {
+                response.setDsCombo(
+                        d.getChiTietDatBanCombos()
+                                .stream()
+                                .map(ct -> new DTOChiTietDatBanComboResponse(
+                                        ct != null && ct.getCombo() != null ? ct.getCombo().getIdCombo() : null,
+                                        ct != null && ct.getCombo() != null ? ct.getCombo().getTenCombo() : null,
+                                        ct != null && ct.getCombo() != null ? ct.getCombo().getGiaCombo() : null,
+                                        ct != null ? ct.getSoLuong() : null
+                                ))
+                                .toList()
+                );
+            } catch (RuntimeException ex) {
+                response.setDsCombo(new ArrayList<>());
+            }
         }
 
         return response;
@@ -189,23 +196,19 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                     }
 
                     if (d.getDsCombo() != null) {
-
-                        // Xóa toàn bộ combo cũ trong DB
-                        chiTietDatBanComboRepository.deleteByDatBan_IdDatBan(db.getIdDatBan());
-
-                        entityManager.flush(); // ép DELETE chạy xuống DB ngay
-
-                        db.setChiTietDatBanCombos(new ArrayList<>());
+                        if (db.getChiTietDatBanCombos() == null) {
+                            db.setChiTietDatBanCombos(new ArrayList<>());
+                        } else {
+                            db.getChiTietDatBanCombos().clear();
+                        }
 
                         List<ChiTietDatBanCombo> chiTietDatBanCombos = new ArrayList<>();
 
                         d.getDsCombo().forEach(item -> {
-
                             Combo combo = comboRepository.findById(item.getIdCombo())
                                     .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy combo"));
 
                             ChiTietDatBanCombo chiTiet = new ChiTietDatBanCombo();
-
                             chiTiet.setDatBan(db);
                             chiTiet.setCombo(combo);
                             chiTiet.setSoLuong(item.getSoLuong());
@@ -281,6 +284,37 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 .filter(this::isVisibleReservation)
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Scheduled(fixedDelay = 60000)
+    public void autoCancelOverdueReservations() {
+        LocalDateTime now = LocalDateTime.now();
+        List<DatBan> pendingReservations = datBanRepository.findByTrangThaiIn(List.of(
+                TrangThaiDatBan.CHO_XAC_NHAN,
+                TrangThaiDatBan.DA_XAC_NHAN
+        ));
+
+        List<DatBan> overdueReservations = pendingReservations.stream()
+                .filter(datBan -> shouldAutoCancel(datBan, now))
+                .toList();
+
+        for (DatBan overdueReservation : overdueReservations) {
+            overdueReservation.setTrangThai(TrangThaiDatBan.DA_HUY);
+            datBanRepository.save(overdueReservation);
+        }
+    }
+
+    private boolean shouldAutoCancel(DatBan datBan, LocalDateTime now) {
+        LocalDateTime referenceTime = datBan.getThoiGianDenDuKien();
+        if (referenceTime == null && datBan.getNgayDat() != null && datBan.getGioDat() != null) {
+            referenceTime = LocalDateTime.of(datBan.getNgayDat(), datBan.getGioDat().toLocalTime());
+        }
+
+        if (referenceTime == null) {
+            return false;
+        }
+
+        return !now.isBefore(referenceTime.plusHours(1));
     }
 
     private boolean isVisibleReservation(DatBan datBan) {

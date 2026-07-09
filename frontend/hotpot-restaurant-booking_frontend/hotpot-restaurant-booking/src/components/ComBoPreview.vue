@@ -19,14 +19,15 @@ defineProps<{
 <style scoped>
 .hop-xem-truoc {
   margin-top: 18px;
-  padding: 14px;
-  border-radius: 12px;
-  background: rgba(248,212,106,.08);
-  border: 1px solid rgba(248,212,106,.15);
-  color: white;
+  padding: 16px;
+  border-radius: 14px;
+  background: #fff8ea;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
 }
 
 h3 {
-  color: #f8d46a;
+  color: #8b5e34;
+  margin-top: 0;
 }
 </style>

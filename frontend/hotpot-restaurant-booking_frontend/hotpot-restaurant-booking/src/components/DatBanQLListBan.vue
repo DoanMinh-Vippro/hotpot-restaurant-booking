@@ -87,6 +87,7 @@ const moBanDetail = (ban: any) => {
         :class="{
           active: ban.idBan === banDangChon?.idBan,
           'ban-dang-dung': ban.trangThai === 'DANG_SU_DUNG',
+          'ban-da-dat': ban.trangThai === 'DA_DAT',
           'ban-trong': ban.trangThai === 'TRONG',
         }"
         @click="chonBan(ban)"
@@ -105,7 +106,7 @@ const moBanDetail = (ban: any) => {
 
           <!-- TRẠNG THÁI -->
           <div class="ban-status">
-            {{ ban.trangThai }}
+            {{ ban.trangThai === 'DA_DAT' ? 'ĐÃ ĐẶT BÀN' : ban.trangThai === 'DANG_SU_DUNG' ? 'ĐANG SỬ DỤNG' : 'TRỐNG' }}
           </div>
         </div>
       </div>
@@ -114,20 +115,12 @@ const moBanDetail = (ban: any) => {
 </template>
 
 <style scoped>
-/* =====================================================
-   WRAPPER
-===================================================== */
-
 .ban-wrapper {
   padding: 12px;
-  background: #0b0b0d;
+  background: #fffdf8;
   border-radius: 12px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid #e6d2aa;
 }
-
-/* =====================================================
-   GRID
-===================================================== */
 
 .ban-grid {
   display: grid;
@@ -135,60 +128,37 @@ const moBanDetail = (ban: any) => {
   gap: 12px;
 }
 
-/* =====================================================
-   CARD BASE
-===================================================== */
-
 .ban-card {
-  background: #0f0f11;
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: #fff8ea;
+  border: 1px solid #e6d2aa;
   border-radius: 10px;
   padding: 12px;
-
   display: flex;
   flex-direction: column;
-
   gap: 6px;
-
   cursor: pointer;
-
   transition: all 0.25s ease;
 }
 
-/* hover thường */
 .ban-card:hover {
-  border-color: rgba(212, 175, 55, 0.5);
+  border-color: #d8a85c;
   transform: translateY(-2px);
 }
 
-/* =====================================================
-   ACTIVE (đang click chọn)
-===================================================== */
-
 .ban-card.active {
-  border-color: #ffd86b;
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
-  transform: scale(1.03);
+  border-color: #d8a85c;
+  box-shadow: 0 0 10px rgba(216, 168, 92, 0.25);
+  transform: scale(1.02);
 }
-
-/* =====================================================
-   🟡 BÀN ĐANG DÙNG (GOLD)
-===================================================== */
 
 .ban-card.ban-dang-dung {
   background: linear-gradient(135deg, #facc15, #eab308);
   border: 1px solid #f59e0b;
-
   color: #1f2937;
-
-  box-shadow:
-    0 10px 25px rgba(234, 179, 8, 0.35),
-    0 0 18px rgba(234, 179, 8, 0.25);
-
+  box-shadow: 0 10px 25px rgba(234, 179, 8, 0.2);
   transform: scale(1.02);
 }
 
-/* text trong bàn vàng */
 .ban-card.ban-dang-dung .ban-name,
 .ban-card.ban-dang-dung .ban-type,
 .ban-card.ban-dang-dung .ban-status {
@@ -196,42 +166,34 @@ const moBanDetail = (ban: any) => {
   font-weight: 600;
 }
 
-/* hover vàng */
-.ban-card.ban-dang-dung:hover {
-  transform: scale(1.06);
-  box-shadow: 0 15px 35px rgba(234, 179, 8, 0.5);
+.ban-card.ban-da-dat {
+  background: linear-gradient(135deg, #f7b7a9, #e88b74);
+  border: 1px solid #dd7f69;
+  color: #5f3d22;
+  box-shadow: 0 10px 25px rgba(232, 139, 116, 0.2);
+  transform: scale(1.02);
 }
 
-/* =====================================================
-   🟢 BÀN TRỐNG
-===================================================== */
+.ban-card.ban-da-dat .ban-name,
+.ban-card.ban-da-dat .ban-type,
+.ban-card.ban-da-dat .ban-status {
+  color: #5f3d22;
+  font-weight: 600;
+}
 
 .ban-card.ban-trong {
-  background: #0f0f11;
-  border: 1px solid rgba(212, 175, 55, 0.12);
+  background: #fff8ea;
+  border: 1px solid #e6d2aa;
 }
-
-/* text bàn trống */
-.ban-card.ban-trong .ban-name {
-  color: #9ca3af;
-}
-
-.ban-card.ban-trong .ban-status {
-  color: #6b7280;
-}
-
-/* =====================================================
-   TEXT BASE
-===================================================== */
 
 .ban-name {
   font-weight: 600;
-  color: #ffd86b;
+  color: #8b5e34;
 }
 
 .ban-type,
 .ban-status {
   font-size: 12px;
-  color: #aaa;
+  color: #8f6b46;
 }
 </style>

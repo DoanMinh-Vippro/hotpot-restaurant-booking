@@ -99,99 +99,52 @@ const chonTab = (idKhuVuc: number) => {
 </template>
 
 <style scoped>
-/* =====================================================
-   WRAPPER
-===================================================== */
-
 .tab-wrapper {
-  background: #0b0b0d;
-
+  background: rgba(255, 248, 234, 0.96);
   padding: 12px;
-
-  border-radius: 12px;
-
-  border: 1px solid rgba(212, 175, 55, 0.25);
-
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.08);
-
+  border-radius: 16px;
+  border: 1px solid #e6d2aa;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
   backdrop-filter: blur(10px);
 }
 
-/* =====================================================
-   HEADER TAB
-===================================================== */
-
 .tab-header {
   display: flex;
-
   gap: 10px;
-
-  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
-
+  border-bottom: 1px solid #e6d2aa;
   padding-bottom: 10px;
-
   margin-bottom: 12px;
 }
 
-/* =====================================================
-   TAB ITEM
-===================================================== */
-
 .tab-item {
   padding: 10px 16px;
-
   cursor: pointer;
-
-  border-radius: 8px;
-
-  background: linear-gradient(145deg, #141416, #0e0e10);
-
-  color: #c9c9c9;
-
-  font-weight: 500;
-
-  letter-spacing: 0.5px;
-
+  border-radius: 10px;
+  background: #fff8ea;
+  color: #8b5e34;
+  font-weight: 600;
+  letter-spacing: 0.3px;
   transition: all 0.25s ease;
-
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  border: 1px solid #e6d2aa;
 }
 
-/* Hover */
-
 .tab-item:hover {
-  color: #ffd86b;
-
-  border-color: rgba(212, 175, 55, 0.4);
-
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
-
+  color: #3d2814;
+  border-color: #d8a85c;
   transform: translateY(-1px);
 }
 
-/* Active */
-
 .tab-item.active {
-  background: linear-gradient(145deg, #1a1a1d, #0f0f11);
-
-  color: #ffd86b;
-
-  border: 1px solid rgba(212, 175, 55, 0.7);
-
-  box-shadow: 0 0 14px rgba(212, 175, 55, 0.25);
+  background: #d8a85c;
+  color: #3d2814;
+  border: 1px solid #d8a85c;
+  box-shadow: 0 6px 14px rgba(103, 72, 32, 0.12);
 }
 
-/* =====================================================
-   NỘI DUNG TAB
-===================================================== */
-
 .tab-content {
-  background: #0f0f11;
-
-  border-radius: 10px;
-
+  background: #fffdf8;
+  border-radius: 12px;
   padding: 14px;
-
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  border: 1px solid #e6d2aa;
 }
 </style>

@@ -209,12 +209,13 @@ defineExpose({
 
 <style scoped>
 .bieu-mau-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  border-radius: 28px;
-  padding: 26px;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  box-shadow: 0 16px 40px rgba(103, 72, 32, 0.08);
+  border-radius: 24px;
+  padding: 24px;
   grid-column: 2;
+  color: #5f3d22;
 }
 
 .tieu-de-panel {
@@ -226,13 +227,14 @@ defineExpose({
 }
 
 .tieu-de-panel h2 {
-  margin: 0 0 10px;
-  font-size: 1.15rem;
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  color: #8b5e34;
 }
 
 .tieu-de-panel p {
   margin: 0;
-  color: #c7c7c7;
+  color: #8f6b46;
   max-width: 420px;
 }
 
@@ -247,8 +249,8 @@ label {
   display: flex;
   flex-direction: column;
   font-size: 0.9rem;
-  color: #d8d8d8;
-  font-weight: 500;
+  color: #6b4728;
+  font-weight: 600;
 }
 
 label > :not(.loi-truong) {
@@ -259,15 +261,15 @@ input[type='text'],
 input[type='date'],
 input[type='number'],
 select {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f5f5f5;
-  border-radius: 16px;
-  padding: 14px 16px;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
+  border-radius: 14px;
+  padding: 12px 14px;
 }
 
 input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: #b18c62;
 }
 
 select {
@@ -276,7 +278,7 @@ select {
 
 .loi-truong {
   margin-top: 4px;
-  color: #ff6b6b;
+  color: #c94f3a;
   font-size: 0.8rem;
 }
 
@@ -290,21 +292,21 @@ select {
 .nut-phu {
   flex: 1;
   border: none;
-  border-radius: 16px;
-  padding: 12px 24px;
+  border-radius: 14px;
+  padding: 12px 20px;
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .nut-chinh {
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .nut-chinh:hover:not(:disabled) {
-  background: #f5cd4a;
+  background: #c99646;
 }
 
 .nut-chinh:disabled {
@@ -313,12 +315,13 @@ select {
 }
 
 .nut-phu {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e8e8e8;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .nut-phu:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+  background: #f2dfb0;
 }
 
 .nut-phu:disabled {
@@ -329,8 +332,8 @@ select {
 .thong_bao-thanh-cong {
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(76, 175, 80, 0.15);
-  color: #81c784;
+  background: rgba(76, 175, 80, 0.13);
+  color: #2f7a3c;
   margin: 12px 0 0;
   font-size: 0.9rem;
 }
@@ -338,8 +341,8 @@ select {
 .thong_bao-loi {
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.13);
+  color: #b84f3f;
   margin: 12px 0 0;
   font-size: 0.9rem;
 }

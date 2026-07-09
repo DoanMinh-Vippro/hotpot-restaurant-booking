@@ -158,23 +158,6 @@ const resetFilter = () => {
   <div class="khu-vuc-page">
     <div class="page-header-wrapper">
       <h2>👑 QUẢN LÝ KHU VỰC NHÀ HÀNG</h2>
-      <button class="btn-back-home" @click="goToHome">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-        Quay về trang chủ
-      </button>
     </div>
 
     <hr class="line-break" />
@@ -321,9 +304,9 @@ const resetFilter = () => {
 /* Giữ nguyên CSS cũ của bạn */
 .khu-vuc-page {
   padding: 25px;
-  background-color: #121212;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   min-height: 100vh;
-  color: #ffffff;
+  color: #5f3d22;
   font-family: Arial, sans-serif;
 }
 .page-header-wrapper {
@@ -336,9 +319,9 @@ const resetFilter = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #1e1e1e;
+  background: linear-gradient(135deg, #4b7c45, #6d9b5d);
   color: #ffffff;
-  border: 1px solid #444;
+  border: 1px solid #4b7c45;
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 13px;
@@ -346,11 +329,11 @@ const resetFilter = () => {
   cursor: pointer;
 }
 h2 {
-  color: #ffc107;
+  color: #8b5e34;
 }
 .line-break {
   border: 0;
-  border-top: 1px solid #333;
+  border-top: 1px solid #e6d2aa;
   margin-bottom: 25px;
 }
 .search-section {
@@ -360,9 +343,9 @@ h2 {
   gap: 10px;
 }
 .search-section input {
-  background-color: #222;
-  color: #fff;
-  border: 1px solid #555;
+  background-color: #fffaf1;
+  color: #5f3d22;
+  border: 1px solid #e6d2aa;
   padding: 8px;
   border-radius: 4px;
 }
@@ -374,10 +357,11 @@ h2 {
 .form-container {
   flex: 1;
   min-width: 350px;
-  background-color: #1a1a1a;
+  background: rgba(255, 248, 234, 0.95);
   padding: 20px;
-  border: 1px solid #333;
-  border-radius: 6px;
+  border: 1px solid #e6d2aa;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(103, 72, 32, 0.06);
 }
 .table-container {
   flex: 2;
@@ -386,29 +370,32 @@ h2 {
 .table-classic {
   width: 100%;
   border-collapse: collapse;
-  background-color: #1a1a1a;
+  background: rgba(255, 248, 234, 0.95);
 }
 .table-classic th {
-  background-color: #2a2a2a;
-  color: #ffc107;
+  background: #f3dfb4;
+  color: #8b5e34;
   padding: 12px;
   text-align: left;
 }
 .table-classic td {
   padding: 12px;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid #efe0c1;
+  color: #5f3d22;
 }
 .btn-status {
   padding: 4px 12px;
   cursor: pointer;
+  border-radius: 999px;
+  border: none;
 }
 .active {
-  background-color: #28a745;
+  background: linear-gradient(135deg, #4b7c45, #6d9b5d);
   color: white;
 }
 .locked {
-  background-color: #6c757d;
-  color: white;
+  background: linear-gradient(135deg, #c98b3e, #d8a85c);
+  color: #3d2814;
 }
 .modal-overlay {
   position: fixed;
@@ -416,20 +403,21 @@ h2 {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: rgba(0, 0, 0, 0.72);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
 }
 .modal-content {
-  background-color: #1a1a1a;
-  border: 1px solid #c5a059;
+  background: rgba(255, 248, 234, 0.98);
+  border: 1px solid #e6d2aa;
   border-radius: 8px;
   width: 550px;
+  box-shadow: 0 5px 15px rgba(103, 72, 32, 0.16);
 }
 .modal-header {
-  background-color: #2a2a2a;
+  background: #f3dfb4;
   padding: 15px;
   display: flex;
   justify-content: space-between;
@@ -440,11 +428,11 @@ h2 {
 }
 .detail-table .lbl {
   width: 160px;
-  color: #aaa;
+  color: #8f6b46;
 }
 .badge-count {
-  background-color: #ffc107;
-  color: #000;
+  background: linear-gradient(135deg, #d8a85c, #f1cf87);
+  color: #3d2814;
   padding: 1px 5px;
   border-radius: 3px;
 }

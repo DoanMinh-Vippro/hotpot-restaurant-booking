@@ -1,29 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue' // Bổ sung ref để quản lý trạng thái Tab
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 
-// Import 3 view hiện tại vào như các component
 import MonView from './MonView.vue'
 import ComBoView from './ComBoView.vue'
 
-const router = useRouter()
-
-// Trạng thái Tab hiện tại ('mon' hoặc 'combo')
 const activeTab = ref<'mon' | 'combo'>('mon')
-
-// Hàm xử lý quay về trang chủ (Khớp name: 'home' trong router/index.ts)
-const quayVeTrangChu = () => {
-  router.push({ name: 'home' })
-}
 </script>
 
 <template>
   <div class="thuc-don-tong">
     <div class="thanh-top-wrapper">
-      <button class="nut-trang-chu" @click="quayVeTrangChu">
-        🏠 Quay về Trang chủ
-      </button>
-
       <div class="quan-ly-tabs">
         <button
           class="tab-btn"
@@ -58,10 +44,11 @@ const quayVeTrangChu = () => {
 
 <style scoped>
 .thuc-don-tong {
-  background: #0f0f0f;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   min-height: 100vh;
-  padding-top: 100px; /* Bù lại khoảng trống cho Navbar */
+  padding-top: 100px;
   padding-bottom: 50px;
+  color: #5f3d22;
 }
 
 /* Khu vực bao bọc nút trang chủ và thanh Tab */
@@ -75,38 +62,20 @@ const quayVeTrangChu = () => {
   gap: 20px;
 }
 
-/* Thiết kế nút trang chủ mượt mà theo tông Dark Mode */
-.nut-trang-chu {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #c7c7c7;
-  padding: 10px 20px;
-  border-radius: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.nut-trang-chu:hover {
-  background: rgba(197, 160, 89, 0.15); /* Đồng bộ tông vàng mờ #c5a059 của bạn */
-  border-color: #c5a059;
-  color: #c5a059;
-}
-
 /* Cụm Tabs quản lý chỉnh chu */
 .quan-ly-tabs {
   display: flex;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.95);
+  border: 1px solid #e6d2aa;
   padding: 6px;
   border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(103, 72, 32, 0.08);
 }
 
 .tab-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: #8b5e34;
   padding: 10px 24px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -117,13 +86,13 @@ const quayVeTrangChu = () => {
 }
 
 .tab-btn:hover {
-  color: #c5a059;
+  color: #d8a85c;
 }
 
 .tab-btn.active {
-  background: #c5a059;
-  color: #101010;
-  box-shadow: 0 4px 12px rgba(197, 160, 89, 0.2);
+  background: #d8a85c;
+  color: #3d2814;
+  box-shadow: 0 4px 12px rgba(103, 72, 32, 0.12);
 }
 
 .tab-content-container {
@@ -160,9 +129,6 @@ const quayVeTrangChu = () => {
   }
   .quan-ly-tabs {
     flex-direction: column;
-  }
-  .nut-trang-chu {
-    text-align: center;
   }
 }
 </style>

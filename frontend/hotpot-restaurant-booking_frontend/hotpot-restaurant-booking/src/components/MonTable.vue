@@ -148,20 +148,21 @@ const xoa = (id: number) => {
 }
 
 .bo-loc-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 20px;
   padding: 16px 20px;
   display: flex;
   gap: 12px;
   align-items: center;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .bo-loc-panel input,
 .bo-loc-panel select {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f5f5f5;
+  background: #fffdf8;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   padding: 10px 14px;
   border-radius: 12px;
   outline: none;
@@ -170,12 +171,12 @@ const xoa = (id: number) => {
 
 .bo-loc-panel input:focus,
 .bo-loc-panel select:focus {
-  border-color: #f8d46a;
+  border-color: #d8a85c;
 }
 
 .bo-loc-panel select option {
-  background: #151515;
-  color: #fff;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 
 .nut-tim,
@@ -191,30 +192,32 @@ const xoa = (id: number) => {
 }
 
 .nut-tim {
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .nut-lam-moi {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .nut-danh-muc {
-  background: rgba(100, 149, 237, 0.15);
-  color: #6495ed;
-  border: 1px solid rgba(100, 149, 237, 0.2);
+  background: #eef4ff;
+  color: #345fb0;
+  border: 1px solid #cddaf7;
 }
 
 .nut-danh-muc:hover {
-  background: rgba(100, 149, 237, 0.25);
+  background: #e1ebff;
 }
 
 .danh-sach-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 28px;
-  padding: 26px;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .tieu-de-panel {
@@ -224,40 +227,40 @@ const xoa = (id: number) => {
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin: 0;
 }
 
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
   margin: 4px 0 0;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  color: white;
+  color: #5f3d22;
 }
 
 th {
   text-align: left;
   padding: 12px;
-  color: #f8d46a;
+  color: #8b5e34;
 }
 
 td {
   padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #efe0c1;
 }
 
 tr.active {
-  background: rgba(248, 212, 106, 0.06);
+  background: rgba(216, 168, 92, 0.14);
 }
 
 .trang-thai-tai {
   text-align: center;
   padding: 30px;
-  color: #f8d46a;
+  color: #8b5e34;
 }
 
 .hanh-dong {
@@ -266,18 +269,18 @@ tr.active {
 }
 
 .nut-sua {
-  background: rgba(248, 212, 106, 0.15);
-  color: #f8d46a;
-  border: none;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .nut-xoa {
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
-  border: none;
+  background: #fff0eb;
+  color: #b84f3f;
+  border: 1px solid #f2b4a3;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -287,31 +290,30 @@ tr.active {
   border: none;
   padding: 10px 16px;
   border-radius: 12px;
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
   font-weight: 600;
   cursor: pointer;
 }
 
-/* CẬP NHẬT: Thêm CSS định dạng màu sắc trạng thái đồng bộ với Combo */
 .trang-thai-con {
-  color: #52c41a; /* Màu xanh lá cây */
+  color: #2e7d32;
 }
 
 .trang-thai-ngung {
-  color: #ff4d4f; /* Màu đỏ */
+  color: #c94f3a;
 }
 .trang-thai-het {
-  color: #fa8c16; /* Màu cam hổ phách */
+  color: #c77b1a;
 }
 .gia-goc {
   text-decoration: line-through;
-  color: #888;
+  color: #8f6b46;
   font-size: 13px;
 }
 
 .gia-giam {
-  color: #ff4d4f;
+  color: #c94f3a;
   font-weight: 700;
 }
 

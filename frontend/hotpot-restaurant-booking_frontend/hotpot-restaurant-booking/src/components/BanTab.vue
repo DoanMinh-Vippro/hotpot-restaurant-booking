@@ -77,108 +77,83 @@ const chonTab = (idKhuVuc: number) => {
 
 <style scoped>
 .tab-wrapper {
-  background: #0b0b0d;
+  background: rgba(255, 248, 234, 0.96);
   padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.08);
+  border-radius: 16px;
+  border: 1px solid #e6d2aa;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
   backdrop-filter: blur(10px);
 }
 
-/* Header */
 .tab-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-
-  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  border-bottom: 1px solid #e6d2aa;
   padding-bottom: 12px;
   margin-bottom: 14px;
 }
 
-/* Tab */
 .tab-item {
   padding: 10px 18px;
-
   cursor: pointer;
-
   border-radius: 10px;
-
-  background: linear-gradient(145deg, #141416, #0e0e10);
-
-  color: #c9c9c9;
+  background: #fff8ea;
+  color: #8b5e34;
   font-weight: 600;
   letter-spacing: 0.4px;
-
-  border: 1px solid rgba(212, 175, 55, 0.15);
-
+  border: 1px solid #e6d2aa;
   transition: all 0.25s ease;
 }
 
 .tab-item:hover {
-  color: #ffd86b;
-  border-color: rgba(212, 175, 55, 0.45);
+  color: #3d2814;
+  border-color: #d8a85c;
   transform: translateY(-1px);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.18);
 }
 
 .tab-item.active {
-  background: linear-gradient(145deg, #1b1b1f, #111214);
-  color: #ffd86b;
-
-  border-color: rgba(212, 175, 55, 0.75);
-
-  box-shadow: 0 0 14px rgba(212, 175, 55, 0.25);
+  background: #d8a85c;
+  color: #3d2814;
+  border-color: #d8a85c;
+  box-shadow: 0 6px 14px rgba(103, 72, 32, 0.12);
 }
 
-/* Nút thêm */
 .btn-add {
   flex-shrink: 0;
-
   display: flex;
   align-items: center;
   gap: 8px;
-
   padding: 11px 18px;
-
   border: none;
   border-radius: 10px;
-
-  background: linear-gradient(135deg, #d4af37, #f0cd63);
-  color: #111;
-
+  background: #d8a85c;
+  color: #3d2814;
   font-weight: 700;
-
   cursor: pointer;
-
   transition: 0.25s;
 }
 
 .btn-add:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 6px 18px rgba(103, 72, 32, 0.1);
 }
 
 .btn-add:active {
   transform: scale(0.98);
 }
 
-/* Nội dung */
 .tab-content {
-  background: #0f0f11;
-
-  border-radius: 10px;
-
+  background: #fffdf8;
+  border-radius: 12px;
   padding: 14px;
-
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  border: 1px solid #e6d2aa;
 }
 .tab-list {
   display: flex;
   gap: 10px;
   flex: 1;
-
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
@@ -189,7 +164,7 @@ const chonTab = (idKhuVuc: number) => {
 }
 
 .tab-list::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.35);
+  background: rgba(216, 168, 92, 0.35);
   border-radius: 20px;
 }
 </style>

@@ -9,11 +9,15 @@ import DatBanQLListBan from '@/components/DatBanQLListBan.vue'
 import DatBanPopupCheck from '@/components/DatBanPopupCheck.vue'
 import ThanhToan from '@/components/ThanhToan.vue'
 import HoaDonApi from '@/api/HoaDonApi'
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 
 // chuyển màn hình từ quản lý bàn sang màn thanh toán của bàn được chọn
 const manHinhHienTai = ref('danhSachBan')
-const moManHinhthanhToan = () => {
+const moManHinhthanhToan = async () => {
   showPopup.value = false
+  if (banDangChon.value) {
+    await markBanDangSuDung(banDangChon.value)
+  }
   manHinhHienTai.value = 'thanhToan'
 }
 
@@ -55,9 +59,36 @@ const showPopup = ref(false)
  * LOAD DANH SÁCH BÀN
  */
 const loadBan = async () => {
-  const res = await BanApi.getAll()
+  const [banRes, reservationRes] = await Promise.all([BanApi.getAll(), DatBanQuanLyApi.getAll()])
+  const rawBan = Array.isArray(banRes?.data) ? banRes.data : []
+  const reservations = Array.isArray(reservationRes?.data) ? reservationRes.data : []
 
-  danhSachBan.value = res.data
+  const reservationByBanId = new Map<number, any>()
+  reservations.forEach((reservation: any) => {
+    if (!reservation?.idBan) return
+    const banId = Number(reservation.idBan)
+    const existing = reservationByBanId.get(banId)
+    const currentTime = reservation?.thoiGianDenDuKien ? new Date(reservation.thoiGianDenDuKien).getTime() : (reservation?.ngayDat ? new Date(reservation.ngayDat).getTime() : 0)
+    const existingTime = existing?.thoiGianDenDuKien ? new Date(existing.thoiGianDenDuKien).getTime() : (existing?.ngayDat ? new Date(existing.ngayDat).getTime() : 0)
+    if (!existing || currentTime > existingTime) {
+      reservationByBanId.set(banId, reservation)
+    }
+  })
+
+  danhSachBan.value = rawBan.map((ban: any) => {
+    const reservation = reservationByBanId.get(Number(ban.idBan))
+    let nextStatus = ban.trangThai
+
+    if (reservation?.trangThai === 'DA_XAC_NHAN') {
+      nextStatus = 'DA_DAT'
+    } else if (reservation?.trangThai === 'DA_NHAN_BAN') {
+      nextStatus = 'DANG_SU_DUNG'
+    } else if (['HOAN_THANH', 'DA_HUY'].includes(reservation?.trangThai)) {
+      nextStatus = 'TRONG'
+    }
+
+    return { ...ban, trangThai: nextStatus }
+  })
 }
 
 /**
@@ -111,6 +142,23 @@ const moPopupDatBan = async (ban: any) => {
  */
 const dongPopup = () => {
   showPopup.value = false
+}
+
+const markBanDangSuDung = async (ban: any) => {
+  if (!ban?.idBan) return
+
+  try {
+    await BanApi.update(ban.idBan, { trangThai: 'DANG_SU_DUNG' })
+    const targetIndex = danhSachBan.value.findIndex((item: any) => Number(item.idBan) === Number(ban.idBan))
+    if (targetIndex >= 0) {
+      danhSachBan.value[targetIndex] = { ...danhSachBan.value[targetIndex], trangThai: 'DANG_SU_DUNG' }
+    }
+    banDangChon.value = { ...ban, trangThai: 'DANG_SU_DUNG' }
+    // Reload bàn after update to ensure UI reflects changes
+    await loadBan()
+  } catch (error) {
+    console.warn('Không thể cập nhật trạng thái bàn:', error)
+  }
 }
 
 //
@@ -190,13 +238,10 @@ onMounted(async () => {
 <style scoped>
 .ban-hang-view {
   height: 100vh;
-
-  background: #0b0b0d;
-
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   padding: 12px;
-
   box-sizing: border-box;
-
   overflow: hidden;
+  color: #5f3d22;
 }
 </style>

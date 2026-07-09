@@ -185,15 +185,16 @@ const filteredHoaDons = computed(() => {
 </template>
 <style scoped>
 .danh-sach-hoa-don {
-  border: 1px solid rgba(215, 180, 106, 0.2);
-  background: rgba(14, 14, 14, 0.88);
+  border: 1px solid #e6d2aa;
+  background: rgba(255, 248, 234, 0.96);
   backdrop-filter: blur(10px);
-  border-radius: 8px;
+  border-radius: 16px;
   padding: 18px;
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 220px);
   overflow: auto;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 .tieu-de-panel {
   display: flex;
@@ -206,22 +207,23 @@ const filteredHoaDons = computed(() => {
   margin: 0;
   font-size: 1rem;
   letter-spacing: 0;
+  color: #8b5e34;
 }
 .tieu-de-panel span {
-  color: #d7b46a;
+  color: #8f6b46;
   font-size: 0.82rem;
 }
 .o-tim-kiem {
   width: 100%;
   margin-bottom: 14px;
   padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.05);
-  color: #f7f2e9;
+  border-radius: 10px;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 .o-tim-kiem::placeholder {
-  color: rgba(247, 242, 233, 0.6);
+  color: #8f6b46;
 }
 .hang-hoa-don {
   display: grid;
@@ -229,18 +231,18 @@ const filteredHoaDons = computed(() => {
   gap: 12px;
   width: 100%;
   min-height: 76px;
-  border-radius: 6px;
+  border-radius: 10px;
   margin-bottom: 10px;
   padding: 14px;
   text-align: left;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(215, 180, 106, 0.45);
-  color: #f7f2e9;
+  background: #fff8ea;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   cursor: pointer;
 }
 .hang-hoa-don.active {
-  border-color: #d7b46a;
-  background: rgba(215, 180, 106, 0.14);
+  border-color: #d8a85c;
+  background: rgba(216, 168, 92, 0.16);
 }
 .hang-hoa-don strong,
 .hang-hoa-don b,
@@ -249,13 +251,13 @@ const filteredHoaDons = computed(() => {
 }
 .hang-hoa-don small {
   margin-top: 6px;
-  color: #b7ad9c;
+  color: #8f6b46;
 }
 .hang-phai {
   text-align: right;
 }
 .trang-trong {
-  color: #cfc3ae;
+  color: #8f6b46;
   margin: 14px 0;
 }
 .bo-loc-hoa-don {
@@ -276,27 +278,27 @@ const filteredHoaDons = computed(() => {
 }
 .nhom-loc label {
   font-size: 0.72rem;
-  color: #b7ad9c;
+  color: #8f6b46;
   font-weight: 600;
   text-transform: uppercase;
 }
 .nhom-loc select {
   width: 100%;
   padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.05);
-  color: #f7f2e9;
+  border-radius: 8px;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
   font-size: 0.85rem;
   outline: none;
   cursor: pointer;
 }
 .nhom-loc select option {
-  background: #16110a;
-  color: #f7f2e9;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 .nhom-loc select:focus {
-  border-color: #d7b46a;
+  border-color: #d8a85c;
 }
 @media (max-width: 900px) {
   .danh-sach-hoa-don {

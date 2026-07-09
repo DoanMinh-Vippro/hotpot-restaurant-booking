@@ -18,6 +18,7 @@ import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepositor
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -41,17 +42,21 @@ public class DatBanServiceImpl implements DatBanService {
     private static final String COMBO_NULL_MSG = "Đơn đặt bàn này không chọn combo đặt trước";
 
     private void setComboInfo(DatBan db, DTODatBanResponse res) {
+        List<DTOChiTietDatBanComboResponse> danhSachCombo = List.of();
 
-        List<DTOChiTietDatBanComboResponse> danhSachCombo =
-                chiTietDatBanComboRepository.findByDatBan_IdDatBan(db.getIdDatBan())
-                        .stream()
-                        .map(ct -> new DTOChiTietDatBanComboResponse(
-                                ct.getCombo().getIdCombo(),
-                                ct.getCombo().getTenCombo(),
-                                ct.getCombo().getGiaCombo(),
-                                ct.getSoLuong()
-                        ))
-                        .toList();
+        try {
+            danhSachCombo = chiTietDatBanComboRepository.findByDatBan_IdDatBan(db.getIdDatBan())
+                    .stream()
+                    .map(ct -> new DTOChiTietDatBanComboResponse(
+                            ct.getCombo() != null ? ct.getCombo().getIdCombo() : null,
+                            ct.getCombo() != null ? ct.getCombo().getTenCombo() : null,
+                            ct.getCombo() != null ? ct.getCombo().getGiaCombo() : null,
+                            ct.getSoLuong()
+                    ))
+                    .toList();
+        } catch (DataAccessException ex) {
+            danhSachCombo = List.of();
+        }
 
         res.setDsCombo(danhSachCombo);
     }
