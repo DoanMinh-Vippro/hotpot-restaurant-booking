@@ -14,7 +14,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DataInitializer {
 
-
     private final TaiKhoanRepository taiKhoanRepository;
     private final PasswordEncoder passwordEncoder;
 

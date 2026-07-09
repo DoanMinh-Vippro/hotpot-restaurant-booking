@@ -5,10 +5,14 @@ import ComBoInDatBan from './ComBoInDatBan.vue'
 import router from '@/router/index.ts'
 import { paymentApi } from '@/api/PaymentApi.ts'
 import PaymentDialog from './PaymentDialog.vue'
+import ConfirmBanDialog from './ConfirmBanDialog.vue'
 
 type PaymentMethod = 'CHUYEN_KHOAN' | 'VNPAY'
 
 const showPayment = ref(false)
+const showConfirmBan = ref(false) // xác nhận của check bàn
+const dsBanDeXuat = ref<any[]>([])
+const checkBanResult = ref<any>(null)
 
 const paymentData = ref({
   qrUrl: '',
@@ -21,12 +25,13 @@ let paymentTimer: ReturnType<typeof setInterval> | null = null
 // tao object luu data vao form
 const formData = ref({
   idDatBan: null as number | null,
+  dsBan: [] as number[],
   sdtKhachHang: '',
   soNguoi: 0,
   ghiChu: '',
   thoiGianDenDuKien: '',
   soTienCoc: 0,
-  phuongThucThanhToan: 'CHUYEN_KHOAN' as PaymentMethod,
+  phuongThucThanhToan: 'CHUA_THANH_TOAN' as PaymentMethod,
 
   // Danh sách combo khách hàng đã chọn
   dsCombo: [] as any[],
@@ -66,6 +71,7 @@ const chonCombo = (dsCombo: any[]) => {
 
   if (dsCombo.length === 0) {
     formData.value.soTienCoc = 0
+    formData.value.phuongThucThanhToan = 'CHUA_THANH_TOAN'
     return
   }
 
@@ -75,8 +81,41 @@ const chonCombo = (dsCombo: any[]) => {
 
   formData.value.soTienCoc = Math.round(tongTienCombo * TI_LE_COC)
 }
+//==========================================
+const checkBan = async () => {
+  try {
+    const res = await DatBanApi.checkBan({
+      soNguoi: formData.value.soNguoi,
+      thoiGianDenDuKien: formData.value.thoiGianDenDuKien,
+    })
 
-const add = async () => {
+    const result = res.data
+
+    if (result.trangThai === 'KHONG_CO_BAN') {
+      alert(result.message)
+      return
+    }
+    checkBanResult.value = result
+    dsBanDeXuat.value = result.dsBan
+    showConfirmBan.value = true
+  } catch (error) {
+    console.error('Lỗi kiểm tra bàn:', error)
+  }
+}
+
+const confirmBan = () => {
+  formData.value.dsBan = checkBanResult.value.dsBan.map((b: any) => b.idBan)
+  showConfirmBan.value = false
+  createBooking()
+}
+const cancelBan = () => {
+  showConfirmBan.value = false
+  checkBanResult.value = null
+  dsBanDeXuat.value = []
+  formData.value.dsBan = []
+}
+
+const createBooking = async () => {
   isAdding.value = true // dùng để báo chặn watch không đè dữ liệu khi lỡ ở cha có emit watch sẽ đẩy data cũ làm hỏng luồng
 
   try {
@@ -151,6 +190,7 @@ const add = async () => {
   } finally {
     isAdding.value = false
   }
+  resetForm()
 }
 
 const update = async () => {
@@ -174,6 +214,7 @@ const update = async () => {
 const resetForm = () => {
   formData.value = {
     idDatBan: null,
+    dsBan: [],
     sdtKhachHang: '',
     soNguoi: 0,
     ghiChu: '',
@@ -228,7 +269,7 @@ const quayLai = () => {
       <div class="row">
         <div class="form-group">
           <label>Phương Thức Thanh Toán</label>
-          <select v-model="formData.phuongThucThanhToan">
+          <select v-model="formData.phuongThucThanhToan" :disabled="formData.soTienCoc === 0">
             <option value="CHUYEN_KHOAN">Chuyển khoản</option>
             <option value="VNPAY">VNPAY</option>
           </select>
@@ -245,7 +286,7 @@ const quayLai = () => {
       </div>
 
       <div class="button-group">
-        <button class="btn-add" @click.prevent="add()">Thêm Mới</button>
+        <button class="btn-add" @click.prevent="checkBan()">Kiểm tra bàn</button>
         <button class="btn-update" @click.prevent="update()">Cập Nhật</button>
       </div>
     </div>
@@ -264,6 +305,12 @@ const quayLai = () => {
     :amount="paymentData.amount"
     :content="paymentData.content"
     @close="closePaymentDialog"
+  />
+  <ConfirmBanDialog
+    :show="showConfirmBan"
+    :result="checkBanResult"
+    @confirm="confirmBan"
+    @cancel="cancelBan"
   />
 </template>
 

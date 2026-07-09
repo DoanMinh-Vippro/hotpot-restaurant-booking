@@ -21,6 +21,7 @@ const filterTrangThai = ref('ALL')
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
 const formKhuVuc = ref({
+  maKhuVuc: '',
   tenKhuVuc: '',
   moTa: '',
 })
@@ -28,10 +29,6 @@ const formKhuVuc = ref({
 // Biến điều khiển Modal
 const showDetailModal = ref(false)
 const selectedKhuVuc = ref<any>(null)
-
-const goToHome = () => {
-  router.push('/')
-}
 
 // 1. Tải dữ liệu
 const loadData = async () => {
@@ -83,13 +80,14 @@ const closeDetailModal = () => {
 }
 
 const handleSave = async () => {
-  if (!formKhuVuc.value.tenKhuVuc) {
-    alert('Vui lòng nhập Tên Khu Vực!')
+  if (!formKhuVuc.value.maKhuVuc || !formKhuVuc.value.tenKhuVuc) {
+    alert('Vui lòng nhập đầy đủ Mã và Tên khu vực!')
     return
   }
 
   try {
     const payload = {
+      maKhuVuc: formKhuVuc.value.maKhuVuc,
       tenKhuVuc: formKhuVuc.value.tenKhuVuc,
       moTa: formKhuVuc.value.moTa || null,
       trangThai: 1,
@@ -113,6 +111,7 @@ const handleEdit = (item: any) => {
   isEditing.value = true
   currentId.value = item.id
   formKhuVuc.value = {
+    maKhuVuc: item.maKhuVuc || '',
     tenKhuVuc: item.tenKhuVuc || '',
     moTa: item.moTa || '',
   }
@@ -144,7 +143,11 @@ const handleXoa = async (id: number) => {
 const resetForm = () => {
   isEditing.value = false
   currentId.value = null
-  formKhuVuc.value = { tenKhuVuc: '', moTa: '' }
+  formKhuVuc.value = {
+    maKhuVuc: '',
+    tenKhuVuc: '',
+    moTa: '',
+  }
 }
 
 const resetFilter = () => {
@@ -182,6 +185,10 @@ const resetFilter = () => {
       <div class="form-container">
         <h3 class="form-title">{{ isEditing ? '📝 CẬP NHẬT KHU VỰC' : '➕ THÊM KHU VỰC MỚI' }}</h3>
         <div class="form-row">
+          <label class="form-label">Mã Khu Vực *</label>
+          <input v-model="formKhuVuc.maKhuVuc" type="text" placeholder="Ví dụ: A, B, C..." />
+        </div>
+        <div class="form-row">
           <label class="form-label">Tên Khu Vực *</label>
           <input
             v-model="formKhuVuc.tenKhuVuc"
@@ -189,6 +196,7 @@ const resetFilter = () => {
             placeholder="Ví dụ: Tầng 1, Sân vườn..."
           />
         </div>
+
         <div class="form-row" style="align-items: flex-start">
           <label class="form-label" style="padding-top: 5px">Mô Tả / Ghi Chú</label>
           <textarea
@@ -211,6 +219,7 @@ const resetFilter = () => {
           <thead>
             <tr>
               <th style="width: 60px; text-align: center">ID</th>
+              <th>Mã Khu Vực</th>
               <th>Tên Khu Vực</th>
               <th>Mô Tả / Ghi Chú</th>
               <th style="width: 140px; text-align: center">Trạng Thái</th>
@@ -220,6 +229,7 @@ const resetFilter = () => {
           <tbody>
             <tr v-for="item in danhSachKhuVuc" :key="item.id">
               <td style="text-align: center; color: #888">{{ item.id }}</td>
+              <td class="highlight-text">{{ item.maKhuVuc }}</td>
               <td class="highlight-text">{{ item.tenKhuVuc }}</td>
               <td>{{ item.moTa || '---' }}</td>
               <td style="text-align: center">
@@ -259,6 +269,10 @@ const resetFilter = () => {
                 <td class="val">#{{ selectedKhuVuc.id }}</td>
               </tr>
               <tr>
+                <td class="lbl">Mã khu vực:</td>
+                <td class="val">{{ selectedKhuVuc.maKhuVuc }}</td>
+              </tr>
+              <tr>
                 <td class="lbl">Tên Khu Vực:</td>
                 <td class="val highlight-text">{{ selectedKhuVuc.tenKhuVuc }}</td>
               </tr>
@@ -268,31 +282,8 @@ const resetFilter = () => {
               </tr>
             </tbody>
           </table>
-          <div class="detail-section-title">🪑 Sơ Đồ Loại Bàn</div>
-          <div class="booking-history-container">
-            <div
-              v-for="(ban, index) in selectedKhuVuc.banList"
-              :key="ban.id"
-              class="booking-item-card"
-            >
-              <table class="detail-table style-compact">
-                <tbody>
-                  <tr>
-                    <td class="lbl">Loại bàn:</td>
-                    <td class="val gold-text">{{ ban.loaiBan }}</td>
-                  </tr>
-                  <tr>
-                    <td class="lbl">Số lượng:</td>
-                    <td class="val">
-                      <span class="badge-count">{{ ban.soLuongBan }}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="padding: 15px; text-align: right">
           <button class="btn-gray" @click="closeDetailModal">Đóng lại</button>
         </div>
       </div>
@@ -301,7 +292,6 @@ const resetFilter = () => {
 </template>
 
 <style scoped>
-/* Giữ nguyên CSS cũ của bạn */
 .khu-vuc-page {
   padding: 25px;
   background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
@@ -309,49 +299,37 @@ const resetFilter = () => {
   color: #5f3d22;
   font-family: Arial, sans-serif;
 }
-.page-header-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 5px;
-}
-.btn-back-home {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #4b7c45, #6d9b5d);
-  color: #ffffff;
-  border: 1px solid #4b7c45;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: bold;
-  cursor: pointer;
-}
+
 h2 {
   color: #8b5e34;
+  font-size: 28px;
+  font-weight: bold;
 }
 .line-break {
-  border: 0;
+  border: none;
   border-top: 1px solid #e6d2aa;
-  margin-bottom: 25px;
+  margin: 20px 0 25px;
 }
+
 .search-section {
-  margin-bottom: 25px;
   display: flex;
-  align-items: center;
   gap: 10px;
+  margin-bottom: 25px;
 }
-.search-section input {
+.search-section input,
+.select-classic {
   background-color: #fffaf1;
   color: #5f3d22;
   border: 1px solid #e6d2aa;
-  padding: 8px;
-  border-radius: 4px;
+  padding: 10px;
+  border-radius: 6px;
+  min-width: 220px;
 }
+
 .main-layout {
   display: flex;
-  gap: 30px;
+  gap: 25px;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 .form-container {
@@ -361,16 +339,64 @@ h2 {
   padding: 20px;
   border: 1px solid #e6d2aa;
   border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(103, 72, 32, 0.06);
 }
 .table-container {
   flex: 2;
-  min-width: 500px;
+  overflow: hidden;
+  background: rgba(255, 248, 234, 0.95);
+  border-radius: 12px;
 }
+
+.form-title {
+  color: #8b5e34;
+  margin-bottom: 20px;
+}
+.form-row {
+  margin-bottom: 16px;
+}
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+.form-row input,
+.form-row textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #e6d2aa;
+  border-radius: 6px;
+}
+
+.btn-yellow {
+  background: #ffc107;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-submit {
+  background: #4b7c45;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-gray {
+  background: #888;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .table-classic {
   width: 100%;
   border-collapse: collapse;
-  background: rgba(255, 248, 234, 0.95);
 }
 .table-classic th {
   background: #f3dfb4;
@@ -381,59 +407,65 @@ h2 {
 .table-classic td {
   padding: 12px;
   border-bottom: 1px solid #efe0c1;
-  color: #5f3d22;
 }
+
 .btn-status {
-  padding: 4px 12px;
-  cursor: pointer;
-  border-radius: 999px;
   border: none;
+  border-radius: 30px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-weight: bold;
 }
 .active {
-  background: linear-gradient(135deg, #4b7c45, #6d9b5d);
+  background: #4b7c45;
   color: white;
 }
 .locked {
-  background: linear-gradient(135deg, #c98b3e, #d8a85c);
-  color: #3d2814;
+  background: #c98b3e;
+  color: white;
 }
+
+.btn-action {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  margin: 0 3px;
+  cursor: pointer;
+  color: white;
+}
+.view {
+  background: #17a2b8;
+}
+.edit {
+  background: #007bff;
+}
+.delete {
+  background: #dc3545;
+}
+
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.72);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
 }
 .modal-content {
-  background: rgba(255, 248, 234, 0.98);
-  border: 1px solid #e6d2aa;
+  background: #fffaf1;
+  padding: 20px;
   border-radius: 8px;
-  width: 550px;
-  box-shadow: 0 5px 15px rgba(103, 72, 32, 0.16);
+  width: 500px;
 }
 .modal-header {
-  background: #f3dfb4;
-  padding: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 15px;
 }
-.modal-body {
-  padding: 15px;
-}
-.detail-table .lbl {
-  width: 160px;
-  color: #8f6b46;
-}
-.badge-count {
-  background: linear-gradient(135deg, #d8a85c, #f1cf87);
-  color: #3d2814;
-  padding: 1px 5px;
-  border-radius: 3px;
+.text-loading {
+  text-align: center;
+  padding: 40px;
+  font-weight: bold;
 }
 </style>

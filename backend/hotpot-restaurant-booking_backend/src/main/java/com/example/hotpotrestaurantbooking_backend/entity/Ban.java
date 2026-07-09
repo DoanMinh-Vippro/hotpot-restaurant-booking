@@ -18,6 +18,7 @@ public class Ban {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idBan;
+    @Column(name = "ten_ban", unique = true, nullable = false)
     private String tenBan;
     @Enumerated(EnumType.ORDINAL)
     @Column(name = "loai_ban")

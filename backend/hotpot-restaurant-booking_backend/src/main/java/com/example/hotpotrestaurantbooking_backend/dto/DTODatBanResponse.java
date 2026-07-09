@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -23,7 +24,7 @@ public class DTODatBanResponse {
 
     private LocalDate ngayDat;
 
-    private LocalTime gioDat;
+    private Time gioDat;
 
     private String sdtKhachHang;
 
