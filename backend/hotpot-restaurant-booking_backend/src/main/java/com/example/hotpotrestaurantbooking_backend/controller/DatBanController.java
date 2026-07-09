@@ -10,7 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import com.example.hotpotrestaurantbooking_backend.dto.DTOCheckBanRequest;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOCheckBanResponse;
 
 import java.util.List;
 
@@ -33,10 +34,16 @@ public class DatBanController {
 //                .body(datBanService.getDatBanByKhachHang(khachHangId));
 //    }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER')")
     @GetMapping
     public ResponseEntity<List<DTODatBanResponse>> getAll(){
         return ResponseEntity.status(HttpStatus.OK).body(datBanService.getAll());
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @PostMapping("/check-ban")
+    public ResponseEntity<DTOCheckBanResponse> checkBan(@Valid @RequestBody DTOCheckBanRequest request){
+        return ResponseEntity.ok(datBanService.checkBan(request));
     }
 
     @GetMapping("{id}")

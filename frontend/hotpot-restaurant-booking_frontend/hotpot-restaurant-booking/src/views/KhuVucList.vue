@@ -21,6 +21,7 @@ const filterTrangThai = ref('ALL')
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
 const formKhuVuc = ref({
+  maKhuVuc: '',
   tenKhuVuc: '',
   moTa: '',
 })
@@ -83,13 +84,19 @@ const closeDetailModal = () => {
 }
 
 const handleSave = async () => {
+  if (!formKhuVuc.value.maKhuVuc) {
+    alert('Vui lòng nhập mã khu vực!')
+    return
+  }
+
   if (!formKhuVuc.value.tenKhuVuc) {
-    alert('Vui lòng nhập Tên Khu Vực!')
+    alert('Vui lòng nhập tên khu vực!')
     return
   }
 
   try {
     const payload = {
+      maKhuVuc: formKhuVuc.value.maKhuVuc,
       tenKhuVuc: formKhuVuc.value.tenKhuVuc,
       moTa: formKhuVuc.value.moTa || null,
       trangThai: 1,
@@ -113,6 +120,7 @@ const handleEdit = (item: any) => {
   isEditing.value = true
   currentId.value = item.id
   formKhuVuc.value = {
+    maKhuVuc: item.maKhuVuc || '',
     tenKhuVuc: item.tenKhuVuc || '',
     moTa: item.moTa || '',
   }
@@ -144,7 +152,11 @@ const handleXoa = async (id: number) => {
 const resetForm = () => {
   isEditing.value = false
   currentId.value = null
-  formKhuVuc.value = { tenKhuVuc: '', moTa: '' }
+  formKhuVuc.value = {
+    maKhuVuc: '',
+    tenKhuVuc: '',
+    moTa: '',
+  }
 }
 
 const resetFilter = () => {
@@ -199,6 +211,10 @@ const resetFilter = () => {
       <div class="form-container">
         <h3 class="form-title">{{ isEditing ? '📝 CẬP NHẬT KHU VỰC' : '➕ THÊM KHU VỰC MỚI' }}</h3>
         <div class="form-row">
+          <label class="form-label">Mã Khu Vực *</label>
+          <input v-model="formKhuVuc.maKhuVuc" type="text" placeholder="Ví dụ: A, B, C..." />
+        </div>
+        <div class="form-row">
           <label class="form-label">Tên Khu Vực *</label>
           <input
             v-model="formKhuVuc.tenKhuVuc"
@@ -206,6 +222,7 @@ const resetFilter = () => {
             placeholder="Ví dụ: Tầng 1, Sân vườn..."
           />
         </div>
+
         <div class="form-row" style="align-items: flex-start">
           <label class="form-label" style="padding-top: 5px">Mô Tả / Ghi Chú</label>
           <textarea
@@ -228,6 +245,7 @@ const resetFilter = () => {
           <thead>
             <tr>
               <th style="width: 60px; text-align: center">ID</th>
+              <th>Mã Khu Vực</th>
               <th>Tên Khu Vực</th>
               <th>Mô Tả / Ghi Chú</th>
               <th style="width: 140px; text-align: center">Trạng Thái</th>
@@ -237,6 +255,7 @@ const resetFilter = () => {
           <tbody>
             <tr v-for="item in danhSachKhuVuc" :key="item.id">
               <td style="text-align: center; color: #888">{{ item.id }}</td>
+              <td class="highlight-text">{{ item.maKhuVuc }}</td>
               <td class="highlight-text">{{ item.tenKhuVuc }}</td>
               <td>{{ item.moTa || '---' }}</td>
               <td style="text-align: center">
@@ -274,6 +293,10 @@ const resetFilter = () => {
               <tr>
                 <td class="lbl">Mã Hệ Thống (ID):</td>
                 <td class="val">#{{ selectedKhuVuc.id }}</td>
+              </tr>
+              <tr>
+                <td class="lbl">Mã khu vực:</td>
+                <td class="val">{{ selectedKhuVuc.maKhuVuc }}</td>
               </tr>
               <tr>
                 <td class="lbl">Tên Khu Vực:</td>
@@ -318,134 +341,372 @@ const resetFilter = () => {
 </template>
 
 <style scoped>
-/* Giữ nguyên CSS cũ của bạn */
 .khu-vuc-page {
   padding: 25px;
-  background-color: #121212;
+  background: #121212;
   min-height: 100vh;
-  color: #ffffff;
+  color: #fff;
   font-family: Arial, sans-serif;
 }
+
 .page-header-wrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
 }
+
+h2 {
+  color: #ffc107;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.line-break {
+  border: none;
+  border-top: 1px solid #333;
+  margin: 20px 0 25px;
+}
+
+/* =======================
+        BUTTON
+======================= */
+
+.btn-back-home,
+.btn-yellow,
+.btn-gray,
+.btn-submit,
+.btn-action {
+  transition: 0.2s;
+}
+
 .btn-back-home {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #1e1e1e;
-  color: #ffffff;
+  background: #1f1f1f;
+  color: white;
   border: 1px solid #444;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  cursor: pointer;
   font-weight: bold;
+}
+
+.btn-back-home:hover {
+  background: #333;
+}
+
+.btn-yellow {
+  background: #ffc107;
+  color: #000;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-yellow:hover {
+  opacity: 0.9;
+}
+
+.btn-gray {
+  background: #555;
+  color: white;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 6px;
   cursor: pointer;
 }
-h2 {
-  color: #ffc107;
+
+.btn-submit {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
 }
-.line-break {
-  border: 0;
-  border-top: 1px solid #333;
-  margin-bottom: 25px;
+
+.btn-submit:hover {
+  background: #218838;
 }
+
+/* =======================
+      SEARCH
+======================= */
+
 .search-section {
-  margin-bottom: 25px;
   display: flex;
-  align-items: center;
   gap: 10px;
-}
-.search-section input {
-  background-color: #222;
-  color: #fff;
-  border: 1px solid #555;
-  padding: 8px;
-  border-radius: 4px;
-}
-.main-layout {
-  display: flex;
-  gap: 30px;
+  margin-bottom: 25px;
   flex-wrap: wrap;
 }
+
+.search-section input,
+.select-classic {
+  background: #1f1f1f;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 10px;
+  min-width: 220px;
+}
+
+.search-section input:focus,
+.select-classic:focus {
+  outline: none;
+  border-color: #ffc107;
+}
+
+/* =======================
+      LAYOUT
+======================= */
+
+.main-layout {
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.form-container,
+.table-container {
+  background: #1a1a1a;
+  border: 1px solid #2f2f2f;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
+}
+
 .form-container {
   flex: 1;
-  min-width: 350px;
-  background-color: #1a1a1a;
-  padding: 20px;
-  border: 1px solid #333;
-  border-radius: 6px;
+  min-width: 330px;
+  padding: 22px;
 }
+
 .table-container {
   flex: 2;
-  min-width: 500px;
+  overflow: hidden;
 }
+
+.form-title {
+  color: #ffc107;
+  margin-bottom: 20px;
+}
+
+.form-row {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: #ddd;
+}
+
+.form-row input,
+.form-row textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #222;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: #ffc107;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* =======================
+      TABLE
+======================= */
+
 .table-classic {
   width: 100%;
   border-collapse: collapse;
-  background-color: #1a1a1a;
 }
+
+.table-classic thead {
+  background: #2b2b2b;
+}
+
 .table-classic th {
-  background-color: #2a2a2a;
   color: #ffc107;
-  padding: 12px;
-  text-align: left;
+  padding: 14px;
 }
+
 .table-classic td {
-  padding: 12px;
-  border-bottom: 1px solid #2a2a2a;
+  padding: 13px;
+  border-top: 1px solid #2f2f2f;
 }
-.btn-status {
-  padding: 4px 12px;
+
+.table-classic tbody tr {
+  transition: 0.2s;
+}
+
+.table-classic tbody tr:hover {
+  background: #232323;
+}
+
+.highlight-text {
+  color: #ffc107;
+  font-weight: bold;
+}
+
+/* =======================
+      BUTTON TABLE
+======================= */
+
+.btn-action {
+  border: none;
+  border-radius: 5px;
+  padding: 6px 12px;
+  margin: 0 3px;
   cursor: pointer;
+  color: white;
 }
+
+.view {
+  background: #17a2b8;
+}
+
+.edit {
+  background: #007bff;
+}
+
+.delete {
+  background: #dc3545;
+}
+
+.btn-action:hover {
+  filter: brightness(1.1);
+}
+
+/* =======================
+      STATUS
+======================= */
+
+.btn-status {
+  border: none;
+  border-radius: 30px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
 .active {
-  background-color: #28a745;
+  background: #28a745;
   color: white;
 }
+
 .locked {
-  background-color: #6c757d;
+  background: #6c757d;
   color: white;
 }
+
+/* =======================
+      MODAL
+======================= */
+
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.75);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
 }
+
 .modal-content {
-  background-color: #1a1a1a;
-  border: 1px solid #c5a059;
-  border-radius: 8px;
-  width: 550px;
+  width: 600px;
+  max-width: 95%;
+  background: #1c1c1c;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #444;
 }
+
 .modal-header {
-  background-color: #2a2a2a;
-  padding: 15px;
+  background: #2a2a2a;
+  color: #ffc107;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
+.close-btn {
+  font-size: 28px;
+  cursor: pointer;
+}
+
 .modal-body {
-  padding: 15px;
+  padding: 20px;
 }
-.detail-table .lbl {
-  width: 160px;
-  color: #aaa;
+
+.detail-section-title {
+  margin: 15px 0 10px;
+  color: #ffc107;
+  font-weight: bold;
 }
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.detail-table td {
+  padding: 8px 5px;
+}
+
+.lbl {
+  width: 180px;
+  color: #9c9c9c;
+}
+
+.val {
+  color: white;
+}
+
+.text-blue {
+  color: #4fc3f7;
+}
+
+.gold-text {
+  color: #ffc107;
+}
+
+.booking-item-card {
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #202020;
+}
+
 .badge-count {
-  background-color: #ffc107;
+  background: #ffc107;
   color: #000;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: bold;
+}
+
+.text-loading {
+  text-align: center;
+  padding: 40px;
 }
 </style>

@@ -16,6 +16,9 @@ public class KhuVucRequest {
     @Size(max = 30, message = "Tên khu vực không quá 30 ký tự")
     private String tenKhuVuc;
 
+    @NotBlank(message = "Mã khu vực không được để trống")
+    private String maKhuVuc;
+
     @Size(max = 100, message = "Mô tả không quá 100 ký tự")
     private String moTa;
 

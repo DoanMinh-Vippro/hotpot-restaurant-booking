@@ -20,6 +20,9 @@ public class KhuVuc {
     @Column(name = "id_khu_vuc")
     private Integer idKhuVuc;
 
+    @Column(name = "ma_khu_vuc", nullable = false, unique = true)
+    private String maKhuVuc;
+
     @Column(name = "ten_khu_vuc", length = 30)
     private String tenKhuVuc;
 

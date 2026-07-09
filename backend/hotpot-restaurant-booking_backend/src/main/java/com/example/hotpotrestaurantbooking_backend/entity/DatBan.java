@@ -30,20 +30,16 @@ public class DatBan {
     private Integer idDatBan;
 
     @ManyToOne
-    @JoinColumn(name = "id_ban")
-    private Ban ban;
-
-    @ManyToOne
     @JoinColumn(name = "id_khach_hang")
     private KhachHang khachHang;
 
-    @OneToMany(
-            mappedBy = "datBan",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "datBan", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<ChiTietDatBanCombo> chiTietDatBanCombos;
+
+    @OneToMany(mappedBy = "datBan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<ChiTietDatBanBan> chiTietDatBanBans;
 
     private LocalDate ngayDat;
 

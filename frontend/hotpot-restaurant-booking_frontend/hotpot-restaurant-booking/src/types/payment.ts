@@ -4,7 +4,7 @@ export interface PaymentRequest {
   soNguoi: number
   thoiGianDenDuKien: string
   soTienCoc: number
-  phuongThucThanhToan: 'CHUYEN_KHOAN' | 'VNPAY'
+  phuongThucThanhToan: 'CHUYEN_KHOAN' | 'VNPAY' | 'CHUA_THANH_TOAN'
   ghiChu: string
 }
 

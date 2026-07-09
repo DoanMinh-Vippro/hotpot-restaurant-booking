@@ -43,9 +43,9 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private DTODatBanQuanLyResponse mapToResponse(DatBan d) {
         DTODatBanQuanLyResponse response = mapper.map(d, DTODatBanQuanLyResponse.class);
 
-        if (d.getBan() != null) {
-            response.setIdBan(d.getBan().getIdBan());
-        }
+//        if (d.getBan() != null) {
+//            response.setIdBan(d.getBan().getIdBan());
+//        }
 
         if (d.getKhachHang() != null) {
             response.setTenKhachHang(d.getKhachHang().getTenKhachHang());
@@ -113,16 +113,16 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
         // Tạm thời không gán bàn cho đơn đặt bàn walk-in.
         // Nếu client gửi một bàn không hợp lệ hoặc bàn chưa được persist, hãy bỏ tham chiếu để tránh lỗi Hibernate.
-        if (d.getIdBan() != null) {
-            Ban existingBan = banRepository.findById(d.getIdBan()).orElse(null);
-            if (existingBan != null) {
-                db.setBan(existingBan);
-            } else {
-                db.setBan(null);
-            }
-        } else {
-            db.setBan(null);
-        }
+//        if (d.getIdBan() != null) {
+//            Ban existingBan = banRepository.findById(d.getIdBan()).orElse(null);
+//            if (existingBan != null) {
+//                db.setBan(existingBan);
+//            } else {
+//                db.setBan(null);
+//            }
+//        } else {
+//            db.setBan(null);
+//        }
 
 
         if (d.getDsCombo() != null && !d.getDsCombo().isEmpty()) {
@@ -177,16 +177,16 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
                     // Tạm thời không gán bàn cho đơn đặt bàn walk-in.
                     // Nếu client gửi một bàn không hợp lệ hoặc bàn chưa được persist, hãy bỏ tham chiếu để tránh lỗi Hibernate.
-                    if (d.getIdBan() != null) {
-                        Ban existingBan = banRepository.findById(d.getIdBan()).orElse(null);
-                        if (existingBan != null) {
-                            db.setBan(existingBan);
-                        } else {
-                            db.setBan(null);
-                        }
-                    } else {
-                        db.setBan(null);
-                    }
+//                    if (d.getIdBan() != null) {
+//                        Ban existingBan = banRepository.findById(d.getIdBan()).orElse(null);
+//                        if (existingBan != null) {
+//                            db.setBan(existingBan);
+//                        } else {
+//                            db.setBan(null);
+//                        }
+//                    } else {
+//                        db.setBan(null);
+//                    }
 
                     if (d.getDsCombo() != null) {
 

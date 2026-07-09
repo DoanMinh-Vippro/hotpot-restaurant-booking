@@ -13,8 +13,6 @@ import java.util.Optional;
 @Configuration
 @RequiredArgsConstructor
 public class DataInitializer {
-//
-//
 //    private final TaiKhoanRepository taiKhoanRepository;
 //    private final PasswordEncoder passwordEncoder;
 //
