@@ -15,20 +15,26 @@ import java.util.List;
 @Repository
 public interface MonRepository extends JpaRepository<Mon,Integer> {
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc,m.danhMuc.loaiDanhMuc, m.trangThai)
-    from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(
+        m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc, m.danhMuc.loaiDanhMuc, m.trangThai, m.trangThaiBan, m.hinhAnh
+    )
+    from Mon m join m.danhMuc dm
 """)
-    List<MonResponse>hienThiMon();
+    List<MonResponse> hienThiMon();
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc,m.danhMuc.loaiDanhMuc, m.trangThai)
-    from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc where m.tenMon=?1
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(
+        m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc, m.danhMuc.loaiDanhMuc, m.trangThai, m.trangThaiBan, m.hinhAnh
+    )
+    from Mon m join m.danhMuc dm where m.tenMon = ?1
 """)
     MonResponse detailMon(String tenMon);
 
     @Query("""
-    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc,m.danhMuc.loaiDanhMuc, m.trangThai)
-    from Mon m join DanhMuc dm on m.danhMuc.idDanhMuc=dm.idDanhMuc
+    select new com.example.hotpotrestaurantbooking_backend.dto.MonResponse(
+        m.idMon, m.tenMon, m.donGiaHienTai, m.danhMuc.idDanhMuc, m.danhMuc.loaiDanhMuc, m.trangThai, m.trangThaiBan, m.hinhAnh
+    )
+    from Mon m join m.danhMuc dm
 """)
     Page<MonResponse> phanTrangMon(Pageable pageable);
 
@@ -39,7 +45,9 @@ public interface MonRepository extends JpaRepository<Mon,Integer> {
             m.donGiaHienTai, 
             m.danhMuc.idDanhMuc, 
             m.danhMuc.loaiDanhMuc, 
-            m.trangThai
+            m.trangThai,
+            m.trangThaiBan,
+            m.hinhAnh
         )
         from Mon m
         where

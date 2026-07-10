@@ -21,6 +21,8 @@ public class MonResponse {
     private Integer idDanhMuc;
     private String loaiDanhMuc;
     private Integer trangThai;
+    private Integer trangThaiBan;
+    private String hinhAnh;
 
     // Constructor dùng cho các query hiện tại trong Repository
     public MonResponse(
@@ -29,20 +31,22 @@ public class MonResponse {
             BigDecimal donGiaHienTai,
             Integer idDanhMuc,
             String loaiDanhMuc,
-            Integer trangThai
+            Integer trangThai,
+            Integer trangThaiBan,
+            String hinhAnh
     ) {
         this.idMon = idMon;
         this.tenMon = tenMon;
         this.donGiaHienTai = donGiaHienTai;
-
         this.idDanhMuc = idDanhMuc;
         this.loaiDanhMuc = loaiDanhMuc;
         this.trangThai = trangThai;
+        this.trangThaiBan = trangThaiBan;
+        this.hinhAnh = hinhAnh;
 
-        // Giá trị mặc định khi chưa áp dụng giảm giá
+        // Giá trị mặc định khi chưa tính toán giảm giá
         this.giaSauGiam = donGiaHienTai;
         this.soTienDuocGiam = BigDecimal.ZERO;
-        this.tenChuongTrinhGiamGia =
-                (tenChuongTrinhGiamGia == null || tenChuongTrinhGiamGia.isBlank()) ? "Không trong chương trình giảm giá" : tenChuongTrinhGiamGia;
+        this.tenChuongTrinhGiamGia = "Không trong chương trình giảm giá";
     }
 }

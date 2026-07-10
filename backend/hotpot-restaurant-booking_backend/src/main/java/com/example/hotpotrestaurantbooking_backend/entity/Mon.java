@@ -25,6 +25,10 @@ public class Mon {
     private BigDecimal donGiaHienTai;
     @Column(name = "trang_thai")
     private Integer trangThai;
+    @Column(name = "trang_thai_ban_hang")
+    private Integer trangThaiBan;
+    @Column(name = "hinh_anh")
+    private String hinhAnh;
 
     @ManyToOne @JoinColumn(name = "id_danh_muc")
     private DanhMuc danhMuc;

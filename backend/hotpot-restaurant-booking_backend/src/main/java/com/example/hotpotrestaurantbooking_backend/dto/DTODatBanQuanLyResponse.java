@@ -13,28 +13,43 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class DTODatBanQuanLyResponse {
+
     private Integer idDatBan;
+
     private Integer idBan;
-    private Integer idCombo;
-    private String tenCombo;
-    private BigDecimal giaCombo;
+
     private LoaiBan loaiBan;
+
     private Integer idKhachHang;
+
     private String tenKhachHang;
+
     private LocalDate ngayDat;
+
     private LocalTime gioDat;
+
     private String sdtKhachHang;
+
+    private List<DTOChiTietDatBanComboResponse> dsCombo;
+
     private int soNguoi;
+
     private TrangThaiDatBan trangThai;
+
     private String ghiChu;
+
     private LocalDateTime thoiGianDenDuKien;
+
     private BigDecimal soTienCoc;
+
     private TrangThaiDatBanCoc trangThaiCoc;
+
     private PhuongThucThanhToan phuongThucThanhToan;
 }

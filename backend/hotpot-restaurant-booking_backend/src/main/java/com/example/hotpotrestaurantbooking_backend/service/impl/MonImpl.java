@@ -33,21 +33,21 @@ public class MonImpl implements MonService {
     private final TinhTienService tienService;
 
     @Override
-    public List<MonResponse> hienThiMon(){
+    public List<MonResponse> hienThiMon() {
         List<MonResponse> list = repo.hienThiMon();
         list.forEach(tienService::ganThongTinGiamGia);
         return list;
     }
 
     @Override
-    public MonResponse detailMon(String tenMon){
+    public MonResponse detailMon(String tenMon) {
         MonResponse response = repo.detailMon(tenMon);
         tienService.ganThongTinGiamGia(response);
         return response;
     }
 
     @Override
-    public Page<MonResponse> phanTrangMon(Integer pageNo, Integer pageSize){
+    public Page<MonResponse> phanTrangMon(Integer pageNo, Integer pageSize) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
         Page<MonResponse> page = repo.phanTrangMon(pageable);
         page.getContent().forEach(tienService::ganThongTinGiamGia);
@@ -55,7 +55,7 @@ public class MonImpl implements MonService {
     }
 
     @Override
-    public Page<MonResponse> timKiemMon(String tenMon, BigDecimal giaMin, BigDecimal giaMax, String loaiDanhMuc, Integer pageNo, Integer pageSize ) {
+    public Page<MonResponse> timKiemMon(String tenMon, BigDecimal giaMin, BigDecimal giaMax, String loaiDanhMuc, Integer pageNo, Integer pageSize) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
 
         // 🛠️ XỬ LÝ NỐI CHUỖI TÌM KIẾM Ở TẦNG JAVA ĐỂ GIỮ NGUYÊN VẸN ĐỊNH DẠNG NVARCHAR
@@ -80,17 +80,20 @@ public class MonImpl implements MonService {
     }
 
     @Override
-    public void addMon(MonRequest req){
+    public void addMon(MonRequest req) {
         monValidator.validateAdd(req);
         Mon m = new Mon();
         BeanUtils.copyProperties(req, m);
+        if (req.getTrangThai() == 1) {
+            m.setTrangThaiBan(0);
+        }
         DanhMuc dm = repo2.findByIdDanhMuc(req.getIdDanhMuc());
         m.setDanhMuc(dm);
         repo.save(m);
     }
 
     @Override
-    public void updateMon(Integer idMon, MonRequest req){
+    public void updateMon(Integer idMon, MonRequest req) {
         monValidator.validateUpdate(idMon, req);
         Mon m = repo.findById(idMon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy món"));
@@ -99,14 +102,22 @@ public class MonImpl implements MonService {
         DanhMuc dm = repo2.findByIdDanhMuc(req.getIdDanhMuc());
         m.setDanhMuc(dm);
         m.setTrangThai(req.getTrangThai());
+        m.setTrangThaiBan(req.getTrangThaiBan());
+        if (req.getTrangThai() == 1) {
+            m.setTrangThaiBan(0);
+        } else {
+            m.setTrangThaiBan(req.getTrangThaiBan());
+        }
+        m.setHinhAnh(req.getHinhAnh());
         repo.save(m);
     }
 
     @Override
-    public void deleteMon(Integer idMon){
+    public void deleteMon(Integer idMon) {
         Mon m = repo.findById(idMon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy món"));
         m.setTrangThai(1);
+        m.setTrangThaiBan(0);
         repo.save(m);
     }
 }

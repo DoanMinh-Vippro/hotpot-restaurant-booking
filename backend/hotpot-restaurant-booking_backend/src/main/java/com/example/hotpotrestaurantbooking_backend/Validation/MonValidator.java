@@ -22,18 +22,27 @@ public class MonValidator {
         if (ValidateUtil.hasMultipleSpaces(tenMon)) {
             throw new RuntimeException("Tên món không được chứa nhiều khoảng trắng liên tiếp");
         }
-        if (ValidateUtil.hasMultipleSpaces(tenMon)) {
-            throw new RuntimeException("Tên món không được chứa nhiều khoảng trắng liên tiếp");
-        }
 
         if (monRepository.existsByTenMonIgnoreCase(tenMon.trim())) {
             throw new RuntimeException("Tên món đã tồn tại");
+        }
+
+        if (request.getTrangThai() == 1 && request.getTrangThaiBan() == 1) {
+            throw new RuntimeException("Món ăn đang ngừng bán, trạng thái bán phải là 'Hết hàng'");
         }
     }
 
     public void validateUpdate(Integer idMon, MonRequest request) {
 
         String tenMon = request.getTenMon();
+
+        if (ValidateUtil.hasLeadingOrTrailingSpace(tenMon)) {
+            throw new RuntimeException("Tên món không được chứa khoảng trắng ở đầu hoặc cuối");
+        }
+
+        if (ValidateUtil.hasMultipleSpaces(tenMon)) {
+            throw new RuntimeException("Tên món không được chứa nhiều khoảng trắng liên tiếp");
+        }
 
         Mon monTrungTen = monRepository.findByTenMonIgnoreCase(tenMon.trim());
 
@@ -42,5 +51,10 @@ public class MonValidator {
 
             throw new RuntimeException("Tên món đã tồn tại");
         }
+
+        if (request.getTrangThai() == 1 && request.getTrangThaiBan() == 1) {
+            throw new RuntimeException("Món ăn đang ngừng bán, trạng thái bán phải là 'Hết hàng'");
+        }
+
     }
 }

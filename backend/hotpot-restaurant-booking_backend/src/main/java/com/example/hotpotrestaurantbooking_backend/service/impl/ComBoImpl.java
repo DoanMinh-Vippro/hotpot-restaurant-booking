@@ -50,6 +50,9 @@ public class ComBoImpl implements ComBoService {
         comboValidator.validateCreate(req);
         Combo cb=new Combo();
         BeanUtils.copyProperties(req, cb);
+        if (req.getTrangThai() == 0) {
+            cb.setTrangThaiBan(0);
+        }
         repo.save(cb);
     }
     @Override
@@ -62,6 +65,12 @@ public class ComBoImpl implements ComBoService {
         cb.setGiaCombo(req.getGiaCombo());
         cb.setHinhAnh(req.getHinhAnh());
         cb.setTrangThai(req.getTrangThai());
+        cb.setTrangThaiBan(req.getTrangThaiBan());
+        if (req.getTrangThai() == 0) {
+            cb.setTrangThaiBan(0);
+        } else {
+            cb.setTrangThaiBan(req.getTrangThaiBan());
+        }
         repo.save(cb);
     }
     @Override
@@ -69,6 +78,7 @@ public class ComBoImpl implements ComBoService {
         Combo cb= repo.findById(idCombo)
                 .orElseThrow(()-> new RuntimeException("Không tìm thấy ComBo"));
         cb.setTrangThai(0);
+        cb.setTrangThaiBan(0);
         repo.save(cb);
     }
 }

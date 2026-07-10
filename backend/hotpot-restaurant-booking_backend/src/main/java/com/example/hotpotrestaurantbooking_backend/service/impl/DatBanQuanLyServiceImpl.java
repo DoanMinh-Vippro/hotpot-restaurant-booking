@@ -1,31 +1,30 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
+import com.example.hotpotrestaurantbooking_backend.dto.DTOChiTietDatBanComboResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyResponse;
-import com.example.hotpotrestaurantbooking_backend.entity.Ban;
-import com.example.hotpotrestaurantbooking_backend.entity.Combo;
-import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
-import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
+import com.example.hotpotrestaurantbooking_backend.entity.*;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
-import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor
 @Service
+@Transactional
 public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
     private final ModelMapper mapper;
@@ -34,6 +33,9 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private final ComboRepository comboRepository;
     private final KhachHangRepository khachHangRepository;
     private final HoaDonRepository hoaDonRepository;
+    private final ChiTietDatBanComboRepository chiTietDatBanComboRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     // =========================
     // MAP RESPONSE (SAFE NULL BAN)
@@ -63,10 +65,18 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         response.setSoNguoi(d.getSoNguoi());
         response.setTrangThai(d.getTrangThai());
 
-        if (d.getCombo() != null) {
-            response.setIdCombo(d.getCombo().getIdCombo());
-            response.setTenCombo(d.getCombo().getTenCombo());
-            response.setGiaCombo(d.getCombo().getGiaCombo());
+        if (d.getChiTietDatBanCombos() != null) {
+            response.setDsCombo(
+                    d.getChiTietDatBanCombos()
+                            .stream()
+                            .map(ct -> new DTOChiTietDatBanComboResponse(
+                                    ct.getCombo().getIdCombo(),
+                                    ct.getCombo().getTenCombo(),
+                                    ct.getCombo().getGiaCombo(),
+                                    ct.getSoLuong()
+                            ))
+                            .toList()
+            );
         }
 
         return response;
@@ -93,8 +103,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
         DatBan db = mapper.map(d, DatBan.class);
 
-        if (d.getIdkhachHang() != null) {
-            KhachHang kh = khachHangRepository.findById(d.getIdkhachHang())
+        if (d.getIdKhachHang() != null) {
+            KhachHang kh = khachHangRepository.findById(d.getIdKhachHang())
                     .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
             db.setKhachHang(kh);
         } else {
@@ -114,11 +124,26 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             db.setBan(null);
         }
 
-        if (d.getIdCombo() != null) {
-            Combo existingCombo = comboRepository.findById(d.getIdCombo()).orElse(null);
-            db.setCombo(existingCombo);
-        } else {
-            db.setCombo(null);
+
+        if (d.getDsCombo() != null && !d.getDsCombo().isEmpty()) {
+
+            List<ChiTietDatBanCombo> chiTietDatBanCombos = new ArrayList<>();
+
+            d.getDsCombo().forEach(item -> {
+
+                Combo combo = comboRepository.findById(item.getIdCombo())
+                        .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy combo"));
+
+                ChiTietDatBanCombo chiTiet = new ChiTietDatBanCombo();
+
+                chiTiet.setDatBan(db);
+                chiTiet.setCombo(combo);
+                chiTiet.setSoLuong(item.getSoLuong());
+
+                chiTietDatBanCombos.add(chiTiet);
+            });
+
+            db.setChiTietDatBanCombos(chiTietDatBanCombos);
         }
 
         db.setGioDat(Time.valueOf(LocalTime.now()));
@@ -163,15 +188,36 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                         db.setBan(null);
                     }
 
-                    if (d.getIdCombo() != null) {
-                        Combo existingCombo = comboRepository.findById(d.getIdCombo()).orElse(null);
-                        db.setCombo(existingCombo);
-                    } else {
-                        db.setCombo(null);
+                    if (d.getDsCombo() != null) {
+
+                        // Xóa toàn bộ combo cũ trong DB
+                        chiTietDatBanComboRepository.deleteByDatBan_IdDatBan(db.getIdDatBan());
+
+                        entityManager.flush(); // ép DELETE chạy xuống DB ngay
+
+                        db.setChiTietDatBanCombos(new ArrayList<>());
+
+                        List<ChiTietDatBanCombo> chiTietDatBanCombos = new ArrayList<>();
+
+                        d.getDsCombo().forEach(item -> {
+
+                            Combo combo = comboRepository.findById(item.getIdCombo())
+                                    .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy combo"));
+
+                            ChiTietDatBanCombo chiTiet = new ChiTietDatBanCombo();
+
+                            chiTiet.setDatBan(db);
+                            chiTiet.setCombo(combo);
+                            chiTiet.setSoLuong(item.getSoLuong());
+
+                            chiTietDatBanCombos.add(chiTiet);
+                        });
+
+                        db.setChiTietDatBanCombos(chiTietDatBanCombos);
                     }
 
-                    if (d.getIdkhachHang() != null) {
-                        KhachHang kh = khachHangRepository.findById(d.getIdkhachHang())
+                    if (d.getIdKhachHang() != null) {
+                        KhachHang kh = khachHangRepository.findById(d.getIdKhachHang())
                                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
                         db.setKhachHang(kh);
                     } else {

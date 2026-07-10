@@ -24,4 +24,6 @@ public class ComboResponse {
     private String hinhAnh;
 
     private Integer trangThai;
+
+    private Integer trangThaiBan;
 }

@@ -16,24 +16,24 @@ import java.util.List;
 @Repository
 public interface ComboRepository extends JpaRepository<Combo,Integer> {
     @Query("""
-        select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai)
+        select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai, cb.trangThaiBan)
         from Combo cb
 """)
     List<ComboResponse>hienThiComBo();
     @Query("""
-        select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai)
+        select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai, cb.trangThaiBan)
         from Combo cb where cb.tenCombo=?1
 """)
     ComboResponse detailComBo(String tenCombo);
     @Query("""
-        select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai)
+        select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai, cb.trangThaiBan)
         from Combo cb
 """)
     Page<ComboResponse> phanTrangComBo(Pageable pageable);
 
     @Query("""
         select new com.example.hotpotrestaurantbooking_backend.dto.ComboResponse(
-            cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai
+            cb.idCombo, cb.tenCombo, cb.giaCombo, cb.hinhAnh, cb.trangThai, cb.trangThaiBan
         )
         from Combo cb
         where
