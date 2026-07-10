@@ -105,12 +105,13 @@ const updateSearch = (e: Event) => {
 
 <style scoped>
 .danh-sach-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  border-radius: 28px;
-  padding: 26px;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  box-shadow: 0 16px 40px rgba(103, 72, 32, 0.08);
+  border-radius: 24px;
+  padding: 24px;
   grid-column: 1;
+  color: #5f3d22;
 }
 
 .tieu-de-panel {
@@ -122,13 +123,14 @@ const updateSearch = (e: Event) => {
 }
 
 .tieu-de-panel h2 {
-  margin: 0 0 10px;
-  font-size: 1.15rem;
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  color: #8b5e34;
 }
 
 .tieu-de-panel p {
   margin: 0;
-  color: #c7c7c7;
+  color: #8f6b46;
   max-width: 420px;
 }
 
@@ -142,15 +144,15 @@ const updateSearch = (e: Event) => {
 
 .o-tim-kiem {
   flex: 1;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f5f5f5;
-  border-radius: 16px;
-  padding: 14px 16px;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
+  border-radius: 14px;
+  padding: 12px 14px;
 }
 
 .o-tim-kiem::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: #b18c62;
 }
 
 .chip-trang-thai {
@@ -160,9 +162,10 @@ const updateSearch = (e: Event) => {
   min-width: 170px;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #d8d8d8;
+  background: #fff3d3;
+  color: #8b5e34;
   font-size: 0.9rem;
+  border: 1px solid #e6d2aa;
 }
 
 .bao-bang {
@@ -172,29 +175,29 @@ const updateSearch = (e: Event) => {
 table {
   width: 100%;
   border-collapse: collapse;
-  color: #f1f1f1;
+  color: #5f3d22;
 }
 
 th {
   text-align: left;
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  color: #f8d46a;
+  border-bottom: 1px solid #efe0c1;
+  color: #8b5e34;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 td {
   padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #f3e4c7;
 }
 
 tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: #fff8ea;
 }
 
 tr.active {
-  background: rgba(248, 212, 106, 0.08);
+  background: rgba(216, 168, 92, 0.16);
 }
 
 .hanh-dong {
@@ -206,43 +209,45 @@ tr.active {
 .nut-xoa,
 .nut-phu {
   border: none;
-  border-radius: 8px;
-  padding: 6px 12px;
+  border-radius: 10px;
+  padding: 7px 12px;
   font-size: 0.85rem;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .nut-van-ban {
-  background: rgba(248, 212, 106, 0.15);
-  color: #f8d46a;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .nut-van-ban:hover {
-  background: rgba(248, 212, 106, 0.25);
+  background: #f2dfb0;
 }
 
 .nut-xoa {
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
+  background: #fff0eb;
+  color: #b84f3f;
+  border: 1px solid #f2b4a3;
 }
 
 .nut-xoa:hover {
-  background: rgba(255, 107, 107, 0.25);
+  background: #ffd7cb;
 }
 
 .nut-phu {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e8e8e8;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .nut-phu:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: #c99646;
 }
 
 .trang-trong {
   text-align: center;
   padding: 40px 20px;
-  color: #888;
+  color: #8f6b46;
 }
 </style>

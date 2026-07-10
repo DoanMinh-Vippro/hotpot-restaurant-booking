@@ -9,10 +9,6 @@ import DepositStatusChart from "./DepositStatusChart.vue";
 
 const router = useRouter();
 
-const goHome = () => {
-  router.push('/');
-};
-
 const dashboard = ref<any>({});
 const topMon = ref<any[]>([]);
 const topNhanVien = ref<any[]>([]);
@@ -111,10 +107,6 @@ onMounted(load);
 </script>
 <template>
   <div class="dashboard">
-    <div class="page-top">
-      <button class="back-home-btn" @click="goHome">🏠 Trang chủ</button>
-    </div>
-
     <!-- HEADER -->
     <div class="header">
       <h2>🍲 POS Restaurant Dashboard</h2>

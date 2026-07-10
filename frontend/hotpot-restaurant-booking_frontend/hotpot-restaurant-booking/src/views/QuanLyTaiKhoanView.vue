@@ -6,6 +6,7 @@ import NhanVienApi from '@/api/NhanVienApi'
 import ChucVuApi from '@/api/ChucVuApi'
 import { getAllKhachHang, getKhachHangByTaiKhoanId } from '@/api/khachhang'
 import HoaDonApi from '@/api/HoaDonApi'
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import type { HoaDonChiTiet } from '@/api/HoaDonApi'
 const router = useRouter()
 // Tab state (1: ADMIN, 2: NHÂN VIÊN, 3: KHÁCH HÀNG, 4: CHỨC VỤ)
@@ -32,9 +33,22 @@ const selectedDetail = ref<any>(null)
 const customerInvoices = ref<any[]>([])
 const customerInvoiceDetails = ref<Record<number, HoaDonChiTiet[]>>({})
 const invoiceLoading = ref(false)
-const customerModalTab = ref<'info' | 'invoices'>('info')
-const goToHome = () => {
-  router.push('/')
+const customerModalTab = ref<'info' | 'invoices' | 'bookings'>('info')
+const customerBookings = ref<any[]>([])
+const bookingLoading = ref(false)
+
+const loadCustomerBookings = async (khachHangId: number) => {
+  bookingLoading.value = true
+  try {
+    const res = await DatBanQuanLyApi.getAll()
+    const all = Array.isArray(res?.data) ? res.data : []
+    customerBookings.value = all.filter((b: any) => Number(b.idKhachHang) === Number(khachHangId))
+  } catch (err) {
+    console.error('Không lấy được lịch sử đặt bàn của khách:', err)
+    customerBookings.value = []
+  } finally {
+    bookingLoading.value = false
+  }
 }
 // Convert helper
 const toBoolean = (val: any) => {
@@ -460,6 +474,12 @@ const viewCustomerDetail = async (item: any) => {
     customerInvoices.value = []
     customerInvoiceDetails.value = {}
   }
+      // Load bookings for this customer (if backend supports)
+      if (khachHangId) {
+        await loadCustomerBookings(Number(khachHangId))
+      } else {
+        customerBookings.value = []
+      }
 }
 const closeDetailModal = () => {
   showDetailModal.value = false
@@ -549,23 +569,6 @@ const handleDeleteAccount = async (id: number) => {
     <!-- Page Header -->
     <div class="page-header-wrapper">
       <h2>👤 QUẢN LÝ TÀI KHOẢN HỆ THỐNG</h2>
-      <button class="btn-back-home" @click="goToHome">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-        Quay về trang chủ
-      </button>
     </div>
 
     <hr class="line-break" />
@@ -1007,6 +1010,12 @@ const handleDeleteAccount = async (id: number) => {
               >
                 🧾 Lịch sử hoá đơn
               </button>
+              <button
+                :class="['tab-small', { active: customerModalTab === 'bookings' }]"
+                @click="customerModalTab = 'bookings'"
+              >
+                🍲 Lịch sử đặt bàn
+              </button>
             </div>
 
             <div v-if="customerModalTab === 'info'">
@@ -1193,6 +1202,41 @@ const handleDeleteAccount = async (id: number) => {
                 </div>
               </div>
             </div>
+            <div v-if="customerModalTab === 'bookings'">
+              <div class="detail-section-title">🍲 Lịch Sử Đặt Bàn & Tiền Cọc</div>
+              <div v-if="bookingLoading" class="text-loading">Đang tải lịch sử đặt bàn...</div>
+              <div v-else-if="!customerBookings || customerBookings.length === 0" class="no-profile-text">
+                📭 Khách hàng này chưa từng đặt bàn trên hệ thống.
+              </div>
+              <div v-else class="booking-history-container">
+                <div v-for="(booking, index) in customerBookings" :key="booking.idDatBan" class="booking-item-card">
+                  <div class="booking-item-header">
+                    <span>Đơn Đặt Bàn #{{ booking.idDatBan }} (Lần {{ Number(index) + 1 }})</span>
+                    <span :class="booking.trangThai === 'DA_XAC_NHAN' ? 'status-green' : 'status-red'" style="font-size:11px;">● {{ booking.trangThaiText || booking.trangThai }}</span>
+                  </div>
+                  <table class="detail-table style-compact">
+                    <tbody>
+                      <tr>
+                        <td class="lbl">Thời gian dự kiến:</td>
+                        <td class="val text-blue">{{ formatDateTime(booking.thoiGianDenDuKien || booking.ngayDat) }}</td>
+                      </tr>
+                      <tr>
+                        <td class="lbl">Số người:</td>
+                        <td class="val"><span class="badge-count">{{ booking.soNguoi }} Người</span></td>
+                      </tr>
+                      <tr>
+                        <td class="lbl">Bàn / Ghi chú:</td>
+                        <td class="val">{{ booking.tenBan || 'Tự động xếp' }} <span v-if="booking.ghiChu" style="color:#aaa;">— "{{ booking.ghiChu }}"</span></td>
+                      </tr>
+                      <tr>
+                        <td class="lbl">Tiền cọc:</td>
+                        <td class="val">{{ formatCurrency(booking.soTienCoc) }} <span :class="booking.trangThaiCoc === 'DA_COC' ? 'status-green' : 'status-red'" style="font-size:12px; margin-left:6px">({{ booking.trangThaiCoc === 'DA_COC' ? 'Đã cọc' : 'Chưa cọc' }})</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </template>
         </div>
 
@@ -1206,10 +1250,10 @@ const handleDeleteAccount = async (id: number) => {
 <style scoped>
 .account-mgmt-page {
   padding: 20px;
-  background-color: #121212;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   min-height: 100vh;
   font-family: Arial, sans-serif;
-  color: #ffffff;
+  color: #5f3d22;
 }
 .page-header-wrapper {
   display: flex;
@@ -1221,9 +1265,9 @@ const handleDeleteAccount = async (id: number) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #1e1e1e;
+  background: linear-gradient(135deg, #4b7c45, #6d9b5d);
   color: #ffffff;
-  border: 1px solid #444;
+  border: 1px solid #4b7c45;
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 13px;
@@ -1232,9 +1276,9 @@ const handleDeleteAccount = async (id: number) => {
   transition: all 0.2s ease;
 }
 .btn-back-home:hover {
-  background-color: #2a2a2a;
-  border-color: #ffc107;
-  color: #ffc107;
+  background: linear-gradient(135deg, #3f693b, #5a8550);
+  border-color: #d8a85c;
+  color: #fffaf1;
 }
 .btn-back-home svg {
   transition: transform 0.2s ease;
@@ -1243,26 +1287,25 @@ const handleDeleteAccount = async (id: number) => {
   transform: scale(1.1);
 }
 h2 {
-  color: #ffc107;
+  color: #8b5e34;
   margin: 0;
 }
 .line-break {
   border: 0;
-  border-top: 1px solid #333;
+  border-top: 1px solid #e6d2aa;
   margin-bottom: 20px;
 }
-/* Tabs Navigation Styling */
 .tabs-navigation {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
-  border-bottom: 2px solid #333;
+  border-bottom: 2px solid #e6d2aa;
   padding-bottom: 10px;
 }
 .tab-btn {
-  background-color: #1e1e1e;
-  color: #aaa;
-  border: 1px solid #333;
+  background-color: #fff8ea;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
   padding: 10px 20px;
   font-weight: bold;
   border-radius: 6px 6px 0 0;
@@ -1271,31 +1314,31 @@ h2 {
   transition: all 0.3s ease;
 }
 .tab-btn:hover {
-  color: #fff;
-  background-color: #2a2a2a;
+  color: #3d2814;
+  background-color: #f3dfb4;
 }
 .tab-btn.active {
-  background-color: #ffc107;
-  color: #000;
-  border-color: #ffc107;
+  background: linear-gradient(135deg, #d8a85c, #f1cf87);
+  color: #3d2814;
+  border-color: #d8a85c;
   transform: translateY(-2px);
-  box-shadow: 0 -4px 10px rgba(255, 193, 7, 0.25);
+  box-shadow: 0 -4px 10px rgba(103, 72, 32, 0.16);
 }
-/* Filters row */
 .filters-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  background-color: #1a1a1a;
+  background: rgba(255, 248, 234, 0.95);
   padding: 12px 20px;
-  border-radius: 8px;
-  border: 1px solid #333;
+  border-radius: 12px;
+  border: 1px solid #e6d2aa;
+  box-shadow: 0 8px 18px rgba(103, 72, 32, 0.06);
 }
 .search-box input {
-  background-color: #222;
-  color: #fff;
-  border: 1px solid #444;
+  background-color: #fffaf1;
+  color: #5f3d22;
+  border: 1px solid #e6d2aa;
   padding: 8px 14px;
   border-radius: 6px;
   width: 320px;
@@ -1303,7 +1346,7 @@ h2 {
   transition: border-color 0.2s;
 }
 .search-box input:focus {
-  border-color: #ffc107;
+  border-color: #d8a85c;
 }
 .sort-box {
   display: flex;
@@ -1312,51 +1355,52 @@ h2 {
 }
 .sort-box label {
   font-size: 13px;
-  color: #ccc;
+  color: #8f6b46;
 }
 .select-classic {
-  background-color: #222;
-  color: #fff;
-  border: 1px solid #444;
+  background-color: #fffaf1;
+  color: #5f3d22;
+  border: 1px solid #e6d2aa;
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
   outline: none;
 }
 .select-classic:focus {
-  border-color: #ffc107;
+  border-color: #d8a85c;
 }
-/* Table styling */
 .table-container {
   overflow-x: auto;
-  border-radius: 8px;
-  border: 1px solid #333;
+  border-radius: 12px;
+  border: 1px solid #e6d2aa;
+  background: rgba(255, 248, 234, 0.95);
 }
 .table-classic {
   width: 100%;
   border-collapse: collapse;
-  background-color: #1a1a1a;
+  background: transparent;
 }
 .table-classic th {
-  background-color: #2a2a2a;
-  color: #ffc107;
+  background: #f3dfb4;
+  color: #8b5e34;
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 2px solid #333;
+  border-bottom: 2px solid #e6d2aa;
   font-size: 13px;
   letter-spacing: 0.5px;
 }
 .table-classic td {
   padding: 12px 16px;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid #efe0c1;
   font-size: 14px;
+  color: #5f3d22;
 }
 .table-classic tr:hover {
-  background-color: #222;
+  background-color: #fef4de;
 }
 .highlight-text {
   font-weight: bold;
-  color: #ffc107;
+  color: #8b5e34;
 }
 .status-green {
   color: #28a745;
@@ -1364,7 +1408,6 @@ h2 {
 .status-red {
   color: #dc3545;
 }
-/* Buttons */
 .btn-action {
   padding: 6px 12px;
   border-radius: 4px;
@@ -1377,45 +1420,44 @@ h2 {
   transition: all 0.2s ease;
 }
 .view {
-  border-color: #0d6efd;
-  color: #0d6efd;
+  border-color: #8b5e34;
+  color: #8b5e34;
 }
 .view:hover {
-  background-color: #0d6efd;
+  background-color: #8b5e34;
   color: #fff;
 }
 .delete {
-  border-color: #dc3545;
-  color: #dc3545;
+  border-color: #be5b46;
+  color: #be5b46;
 }
 .delete:hover {
-  background-color: #dc3545;
+  background-color: #be5b46;
   color: #fff;
 }
 .lock {
-  border-color: #fd7e14;
-  color: #fd7e14;
+  border-color: #c98b3e;
+  color: #c98b3e;
 }
 .lock:hover {
-  background-color: #fd7e14;
+  background-color: #c98b3e;
   color: #fff;
 }
 .unlock {
-  border-color: #28a745;
-  color: #28a745;
+  border-color: #4b7c45;
+  color: #4b7c45;
 }
 .unlock:hover {
-  background-color: #28a745;
-  color: #000;
+  background-color: #4b7c45;
+  color: #fff;
 }
 .text-loading {
   text-align: center;
   padding: 40px;
   font-size: 15px;
-  color: #aaa;
+  color: #8f6b46;
   font-style: italic;
 }
-/* Tab 4 Roles specific styling */
 .role-badge {
   padding: 4px 8px;
   border-radius: 4px;
@@ -1424,24 +1466,24 @@ h2 {
   letter-spacing: 0.5px;
 }
 .role-badge.admin {
-  background-color: rgba(220, 53, 69, 0.2);
-  color: #ff5b5b;
-  border: 1px solid rgba(220, 53, 69, 0.4);
+  background-color: rgba(220, 53, 69, 0.14);
+  color: #b94a4a;
+  border: 1px solid rgba(220, 53, 69, 0.24);
 }
 .role-badge.staff {
-  background-color: rgba(13, 110, 253, 0.2);
-  color: #599fff;
-  border: 1px solid rgba(13, 110, 253, 0.4);
+  background-color: rgba(13, 110, 253, 0.12);
+  color: #5f7fb8;
+  border: 1px solid rgba(13, 110, 253, 0.2);
 }
 .role-badge.user {
-  background-color: rgba(40, 167, 69, 0.2);
-  color: #2cd657;
-  border: 1px solid rgba(40, 167, 69, 0.4);
+  background-color: rgba(40, 167, 69, 0.12);
+  color: #4b7c45;
+  border: 1px solid rgba(40, 167, 69, 0.2);
 }
 .role-select {
-  background-color: #222;
-  color: #ffc107;
-  border: 1px solid #ffc107;
+  background-color: #fffaf1;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
   padding: 6px 12px;
   border-radius: 4px;
   font-weight: bold;
@@ -1449,52 +1491,51 @@ h2 {
   outline: none;
 }
 .role-select:focus {
-  box-shadow: 0 0 5px rgba(255, 193, 7, 0.5);
+  box-shadow: 0 0 5px rgba(216, 168, 92, 0.35);
 }
-/* Modal Styling */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.72);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
 }
 .modal-content {
-  background-color: #1a1a1a;
-  border: 1px solid #c5a059;
+  background: rgba(255, 248, 234, 0.98);
+  border: 1px solid #e6d2aa;
   border-radius: 8px;
   width: 600px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 5px 25px rgba(103, 72, 32, 0.18);
   overflow: hidden;
 }
 .modal-header {
-  background-color: #2a2a2a;
+  background: #f3dfb4;
   padding: 15px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #e6d2aa;
 }
 .modal-header h3 {
   margin: 0;
-  color: #ffc107;
+  color: #8b5e34;
   font-size: 15px;
   letter-spacing: 0.5px;
 }
 .close-btn {
-  color: #aaa;
+  color: #8f6b46;
   font-size: 24px;
   font-weight: bold;
   cursor: pointer;
   line-height: 1;
 }
 .close-btn:hover {
-  color: #fff;
+  color: #3d2814;
 }
 .modal-body {
   padding: 20px;
@@ -1502,14 +1543,14 @@ h2 {
   overflow-y: auto;
 }
 .detail-section-title {
-  color: #ffc107;
+  color: #8b5e34;
   font-size: 14px;
   font-weight: bold;
   letter-spacing: 0.5px;
   margin-top: 15px;
   margin-bottom: 10px;
   padding-bottom: 5px;
-  border-bottom: 1px dashed #333;
+  border-bottom: 1px dashed #e6d2aa;
 }
 .detail-table {
   width: 100%;
@@ -1518,58 +1559,54 @@ h2 {
 }
 .detail-table td {
   padding: 8px 6px;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid #efe0c1;
   font-size: 13.5px;
 }
 .detail-table .lbl {
   width: 180px;
-  color: #aaa;
+  color: #8f6b46;
 }
 .detail-table .val {
-  color: #fff;
+  color: #5f3d22;
 }
 .text-gold {
-  color: #ffc107;
+  color: #c98b3e;
   font-weight: bold;
 }
 .text-blue {
-  color: #599fff;
+  color: #5f7fb8;
 }
 .highlight-gray {
   font-family: monospace;
-  color: #aaa;
+  color: #8f6b46;
 }
 .no-profile-text {
-  color: #888;
+  color: #8f6b46;
   font-style: italic;
   padding: 10px 0;
   font-size: 13px;
 }
-/* Badges for roles in Modal */
 .badge-role-admin {
-  background-color: #dc3545;
-  color: #fff;
+  background-color: rgba(220, 53, 69, 0.14);
+  color: #b94a4a;
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 11px;
   font-weight: bold;
 }
 .badge-role-staff {
-  background-color: #0d6efd;
-  color: #fff;
+  background-color: rgba(13, 110, 253, 0.12);
+  color: #5f7fb8;
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 11px;
   font-weight: bold;
 }
-/* Customer Booking History Styling in Modal */
 .booking-history-container {
   max-height: 250px;
   overflow-y: auto;
   padding-right: 5px;
 }
-
-/* Customer modal tabs and invoice mini-cards */
 .customer-detail-tabs {
   display: flex;
   gap: 8px;
@@ -1577,20 +1614,20 @@ h2 {
 }
 .tab-small {
   background: transparent;
-  border: 1px solid #333;
-  color: #fff;
+  border: 1px solid #e6d2aa;
+  color: #8b5e34;
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
 }
 .tab-small.active {
-  background: #ffc107;
-  color: #000;
-  border-color: #ffc107;
+  background: linear-gradient(135deg, #d8a85c, #f1cf87);
+  color: #3d2814;
+  border-color: #d8a85c;
 }
 .invoice-card-mini {
-  background-color: #222;
-  border: 1px solid #333;
+  background-color: #fffaf1;
+  border: 1px solid #e6d2aa;
   border-radius: 6px;
   padding: 14px;
   margin-bottom: 12px;
@@ -1600,25 +1637,25 @@ h2 {
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #efe0c1;
   padding-bottom: 10px;
   margin-bottom: 12px;
 }
 .invoice-code {
   display: block;
-  color: #ffc107;
+  color: #8b5e34;
   font-size: 16px;
 }
 .invoice-date {
   display: block;
-  color: #999;
+  color: #8f6b46;
   font-size: 12px;
   margin-top: 4px;
 }
 .invoice-status {
   display: inline-block;
-  color: #111;
-  background-color: #ffc107;
+  color: #3d2814;
+  background: linear-gradient(135deg, #d8a85c, #f1cf87);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 11px;
@@ -1633,12 +1670,12 @@ h2 {
 .invoice-info-grid span,
 .invoice-money-grid span {
   display: block;
-  color: #999;
+  color: #8f6b46;
   font-size: 12px;
   margin-bottom: 4px;
 }
 .invoice-total-box strong {
-  color: #28a745;
+  color: #4b7c45;
   font-size: 16px;
 }
 .invoice-info-grid,
@@ -1650,14 +1687,14 @@ h2 {
 }
 .invoice-info-grid strong,
 .invoice-money-grid strong {
-  color: #f5f5f5;
+  color: #5f3d22;
   font-size: 13px;
   word-break: break-word;
 }
 .invoice-money-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  background-color: #1a1a1a;
-  border: 1px solid #333;
+  background-color: #fff8ea;
+  border: 1px solid #e6d2aa;
   border-radius: 6px;
   padding: 10px;
 }
@@ -1665,7 +1702,7 @@ h2 {
   overflow-x: auto;
 }
 .invoice-detail-title {
-  color: #ffc107;
+  color: #8b5e34;
   font-size: 13px;
   font-weight: bold;
   margin-bottom: 8px;
@@ -1677,29 +1714,29 @@ h2 {
 }
 .invoice-detail-table th,
 .invoice-detail-table td {
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #efe0c1;
   padding: 8px;
   text-align: left;
   vertical-align: top;
 }
 .invoice-detail-table th {
-  color: #ffc107;
-  background-color: #2a2a2a;
+  color: #8b5e34;
+  background-color: #f3dfb4;
 }
 .combo-items {
-  color: #999;
+  color: #8f6b46;
   font-size: 11px;
   margin-top: 3px;
 }
 .invoice-empty-detail {
-  color: #aaa;
+  color: #8f6b46;
   font-size: 12px;
   font-style: italic;
   padding: 8px 0;
 }
 .booking-item-card {
-  background-color: #222;
-  border: 1px solid #333;
+  background-color: #fffaf1;
+  border: 1px solid #e6d2aa;
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 10px;
@@ -1708,9 +1745,9 @@ h2 {
   display: flex;
   justify-content: space-between;
   font-weight: bold;
-  color: #ffc107;
+  color: #8b5e34;
   font-size: 12.5px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #efe0c1;
   padding-bottom: 6px;
   margin-bottom: 6px;
 }
@@ -1722,34 +1759,34 @@ h2 {
   width: 150px !important;
 }
 .badge-count {
-  background-color: #ffc107;
-  color: #000;
+  background: linear-gradient(135deg, #d8a85c, #f1cf87);
+  color: #3d2814;
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 11px;
   font-weight: bold;
 }
 .gold-text {
-  color: #ffc107;
+  color: #c98b3e;
   font-weight: bold;
 }
 .modal-footer {
   padding: 15px 20px;
-  background-color: #2a2a2a;
+  background: #f3dfb4;
   display: flex;
   justify-content: flex-end;
-  border-top: 1px solid #333;
+  border-top: 1px solid #e6d2aa;
 }
 .btn-gray {
-  background-color: #555;
-  color: #fff;
+  background: #fff3d3;
+  color: #8b5e34;
   padding: 8px 16px;
   border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
-  border: none;
+  border: 1px solid #e6d2aa;
 }
 .btn-gray:hover {
-  background-color: #666;
+  background: #f3dfb4;
 }
 </style>

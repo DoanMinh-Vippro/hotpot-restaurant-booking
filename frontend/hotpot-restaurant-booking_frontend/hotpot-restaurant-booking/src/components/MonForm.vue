@@ -224,10 +224,11 @@ defineExpose({
 
 <style scoped>
 .bieu-mau-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 28px;
-  padding: 26px;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .tieu-de-panel {
@@ -235,13 +236,13 @@ defineExpose({
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin: 0 0 10px;
 }
 
 .tieu-de-panel p {
   margin: 0;
-  color: #c7c7c7;
+  color: #8f6b46;
 }
 
 .luoi-bieu-mau {
@@ -255,18 +256,19 @@ defineExpose({
 }
 
 label {
-  color: #d8d8d8;
+  color: #6b4728;
   margin-bottom: 6px;
+  font-weight: 600;
 }
 
 input[type='text'],
 input[type='number'],
 select {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f5f5f5;
-  border-radius: 16px;
-  padding: 14px 16px;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
+  border-radius: 14px;
+  padding: 12px 14px;
   width: 100%;
   box-sizing: border-box;
   outline: none;
@@ -274,12 +276,12 @@ select {
 
 input:focus,
 select:focus {
-  border-color: #f8d46a;
+  border-color: #d8a85c;
 }
 
 select option {
-  background: #151515;
-  color: #ffffff;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 
 .nhom-nut {
@@ -289,23 +291,23 @@ select option {
 .nut-chinh {
   width: 100%;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 12px;
-  background: #f8d46a;
-  color: #1a1410;
-  font-weight: 600;
+  background: #d8a85c;
+  color: #3d2814;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .error-text {
-  color: #ff6b6b;
+  color: #c94f3a;
   font-size: 13px;
   margin-top: 6px;
   margin-left: 8px;
 }
 
 .is-invalid {
-  border: 1px solid #ff6b6b !important;
+  border: 1px solid #c94f3a !important;
   background: rgba(255, 107, 107, 0.05) !important;
 }
 </style>

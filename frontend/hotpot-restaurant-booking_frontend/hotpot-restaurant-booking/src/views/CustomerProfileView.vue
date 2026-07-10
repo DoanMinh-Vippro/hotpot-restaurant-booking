@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { getAllKhachHang, updateKhachHang } from '@/api/khachhang'
 import HoaDonApi from '@/api/HoaDonApi'
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import type { HoaDon, HoaDonChiTiet } from '@/api/HoaDonApi'
 import { printInvoiceReceipt } from '@/utils/printInvoice'
 
@@ -17,7 +18,10 @@ const invoiceDetails = ref<Record<number, HoaDonChiTiet[]>>({})
 const loading = ref(true)
 const isEditing = ref(false)
 const editForm = ref<any>(null)
-const activeProfileTab = ref<'info' | 'invoices'>('info')
+const activeProfileTab = ref<'info' | 'invoices' | 'bookings'>('info')
+
+const customerBookings = ref<any[]>([])
+const bookingLoading = ref(false)
 
 // Dữ liệu từ form
 const formData = ref({
@@ -101,10 +105,46 @@ const loadInvoiceHistory = async () => {
   }
 }
 
+const loadBookingHistory = async () => {
+  bookingLoading.value = true
+  try {
+    if (!authStore.customerInfo.khachHangId) {
+      customerBookings.value = []
+      return
+    }
+    const res = await DatBanQuanLyApi.getAll()
+    const all = Array.isArray(res?.data) ? res.data : []
+    const custId = authStore.customerInfo.khachHangId
+    const custPhoneRaw = (authStore.customerInfo.soDienThoai || '')
+    const custPhone = custPhoneRaw.replace(/\D/g, '')
+    const custCode = (authStore.customerInfo.maKhachHang || '').toString()
+    const custName = (authStore.customerInfo.tenKhachHang || '').toLowerCase()
+
+    const normalizePhone = (p: any) => (p ? String(p).replace(/\D/g, '') : '')
+
+    customerBookings.value = all.filter((b: any) => {
+      // Prefer explicit id match
+      if (b.idKhachHang && custId && Number(b.idKhachHang) === Number(custId)) return true
+      // Fallback to phone match for online/guest bookings (normalize digits)
+      const bPhone = normalizePhone(b.sdtKhachHang)
+      if (custPhone && bPhone && bPhone.endsWith(custPhone)) return true
+      // Fallback to customer code or name
+      if (custCode && (String(b.maKhachHang) === custCode)) return true
+      if (custName && String(b.tenKhachHang || '').toLowerCase().includes(custName)) return true
+      return false
+    })
+  } catch (err) {
+    console.error('Lỗi khi tải lịch sử đặt bàn:', err)
+    customerBookings.value = []
+  } finally {
+    bookingLoading.value = false
+  }
+}
+
 const loadData = async () => {
   loading.value = true
   try {
-    await Promise.all([loadCustomerInfo(), loadInvoiceHistory()])
+    await Promise.all([loadCustomerInfo(), loadInvoiceHistory(), loadBookingHistory()])
   } finally {
     loading.value = false
   }
@@ -221,6 +261,49 @@ const invoiceItemName = (item: HoaDonChiTiet) => {
   return item.tenMon ?? item.tenCombo ?? 'Món chưa đặt tên'
 }
 
+const bookingStatusLabel = (booking: any) => {
+  if (booking?.trangThaiText) return booking.trangThaiText
+  const status = booking?.trangThai
+  if (status === 'CHO_XAC_NHAN') return 'Chờ xác nhận'
+  if (status === 'DA_XAC_NHAN') return 'Đã xác nhận'
+  if (status === 'DA_NHAN_BAN') return 'Đã nhận bàn'
+  if (status === 'DA_HUY') return 'Đã hủy'
+  if (status === 'HOAN_THANH') return 'Hoàn thành'
+  return status || 'Không rõ'
+}
+
+const bookingStatusClass = (booking: any) => {
+  const status = booking?.trangThai
+  if (status === 'DA_XAC_NHAN' || status === 'DA_NHAN_BAN' || status === 'HOAN_THANH') return 'status-green'
+  if (status === 'CHO_XAC_NHAN') return 'status-yellow'
+  return 'status-red'
+}
+
+const bookingDepositStatusLabel = (booking: any) => {
+  if (booking?.trangThaiCocText) return booking.trangThaiCocText
+  const status = booking?.trangThaiCoc
+  if (status === 'DA_COC') return 'Đã cọc'
+  if (status === 'DA_HOAN_COC') return 'Đã hoàn cọc'
+  if (status === 'KHONG_HOAN_COC') return 'Không hoàn cọc'
+  if (status === 'CHUA_COC') return 'Chưa cọc'
+  return 'Chưa có'
+}
+
+const bookingDepositStatusClass = (booking: any) => {
+  const status = booking?.trangThaiCoc
+  if (status === 'DA_COC') return 'status-green'
+  if (status === 'DA_HOAN_COC') return 'status-yellow'
+  return 'status-red'
+}
+
+const bookingPaymentMethodLabel = (booking: any) => {
+  const method = booking?.phuongThucThanhToan
+  if (method === 'CHUYEN_KHOAN') return 'Chuyển khoản'
+  if (method === 'VNPAY') return 'VNPay'
+  if (method === 'TIEN_MAT') return 'Tiền mặt'
+  return ''
+}
+
 const goToPage = (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
@@ -270,6 +353,12 @@ const exportInvoicePdf = (invoice: HoaDon) => {
           @click="activeProfileTab = 'invoices'"
         >
           Lịch sử hoá đơn
+        </button>
+        <button
+          :class="['profile-tab', { active: activeProfileTab === 'bookings' }]"
+          @click="activeProfileTab = 'bookings'"
+        >
+          Lịch sử đặt bàn
         </button>
       </div>
 
@@ -513,6 +602,64 @@ const exportInvoicePdf = (invoice: HoaDon) => {
               >
                 Sau →
               </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Booking History Section -->
+        <section v-if="activeProfileTab === 'bookings'" class="booking-section">
+          <div class="section-header">
+            <h2>LỊCH SỬ ĐẶT BÀN</h2>
+            <span class="booking-count">{{ customerBookings.length }} lần</span>
+          </div>
+
+          <div v-if="bookingLoading" class="text-loading">Đang tải lịch sử đặt bàn...</div>
+          <div v-else-if="customerBookings.length === 0" class="empty-state">
+            <p>Bạn chưa có lịch sử đặt bàn nào.</p>
+          </div>
+
+          <div v-else class="bookings-container">
+            <div v-for="(b, idx) in customerBookings" :key="b.idDatBan" class="booking-card">
+              <div class="booking-card-header">
+                <div>
+                  <strong class="booking-code">Đơn #{{ b.idDatBan }} (Lần {{ Number(idx) + 1 }})</strong>
+                  <div class="booking-date">{{ formatDateTime(b.thoiGianDenDuKien || b.ngayDat) }}</div>
+                </div>
+                <div class="booking-status">
+                  <span :class="['status-pill', bookingStatusClass(b)]">● {{ bookingStatusLabel(b) }}</span>
+                </div>
+              </div>
+
+              <div class="booking-detail-table-wrap">
+                <table class="booking-detail-table">
+                  <tbody>
+                    <tr>
+                      <td class="label">Ngày đặt:</td>
+                      <td class="value">{{ formatDateTime(b.ngayDat && b.gioDat ? `${b.ngayDat}T${b.gioDat}` : b.ngayDat) }}</td>
+                    </tr>
+                    <tr>
+                      <td class="label">Thời gian dự kiến:</td>
+                      <td class="value">{{ formatDateTime(b.thoiGianDenDuKien || (b.ngayDat && b.gioDat ? `${b.ngayDat}T${b.gioDat}` : b.ngayDat)) }}</td>
+                    </tr>
+                    <tr>
+                      <td class="label">Số người:</td>
+                      <td class="value"><span class="badge-count">{{ b.soNguoi || 0 }} Người</span></td>
+                    </tr>
+                    <tr>
+                      <td class="label">Bàn / Ghi chú:</td>
+                      <td class="value">{{ b.tenBan || 'Tự động xếp' }} <span v-if="b.ghiChu" class="booking-note">— "{{ b.ghiChu }}"</span></td>
+                    </tr>
+                    <tr>
+                      <td class="label">Tiền cọc:</td>
+                      <td class="value">{{ formatCurrency(b.soTienCoc) }} <span :class="['booking-deposit-status', bookingDepositStatusClass(b)]">({{ bookingDepositStatusLabel(b) }})</span></td>
+                    </tr>
+                    <tr v-if="b.tenCombo || bookingPaymentMethodLabel(b)">
+                      <td class="label">Combo / Thanh toán:</td>
+                      <td class="value">{{ [b.tenCombo, bookingPaymentMethodLabel(b)].filter(Boolean).join(' • ') }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -805,6 +952,126 @@ const exportInvoicePdf = (invoice: HoaDon) => {
   padding: 40px;
   color: #999;
   font-size: 14px;
+}
+
+/* Booking History */
+.booking-section {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(197, 160, 89, 0.2);
+  padding: 30px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.bookings-container {
+  display: grid;
+  gap: 14px;
+}
+
+.booking-card {
+  background: rgba(197, 160, 89, 0.05);
+  border: 1px solid rgba(197, 160, 89, 0.15);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.booking-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(197, 160, 89, 0.15);
+}
+
+.booking-code {
+  color: #c5a059;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.booking-date {
+  margin-top: 4px;
+  color: #999;
+  font-size: 12px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.status-yellow {
+  color: #f0c36d;
+}
+
+.status-green {
+  color: #4caf50;
+}
+
+.status-red {
+  color: #ff6b6b;
+}
+
+.booking-detail-table-wrap {
+  overflow-x: auto;
+}
+
+.booking-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.booking-detail-table td {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+}
+
+.booking-detail-table tr:last-child td {
+  border-bottom: none;
+}
+
+.booking-detail-table .label {
+  width: 35%;
+  color: #c5a059;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.booking-detail-table .value {
+  color: #f0f0f0;
+  font-size: 13px;
+}
+
+.booking-note {
+  color: #aaa;
+  font-style: italic;
+}
+
+.booking-deposit-status {
+  font-size: 12px;
+  margin-left: 6px;
+  font-weight: 700;
+}
+
+.badge-count {
+  display: inline-block;
+  background: rgba(197, 160, 89, 0.2);
+  color: #c5a059;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 /* Invoice Cards */

@@ -10,10 +10,6 @@ import AddBan from '@/components/AddBan.vue'
 
 const router = useRouter()
 
-const goHome = () => {
-  router.push('/')
-}
-
 /**
  * 1. DATA CHÍNH
  */
@@ -109,10 +105,6 @@ onMounted(() => {
 
 <template>
   <div class="ban-view">
-    <div class="page-top">
-      <button class="back-home-btn" @click="goHome">🏠 Trang chủ</button>
-    </div>
-
     <!-- TAB KHU VỰC -->
     <BanTab :listKhuVuc="danhSachKhuVuc" @change="handleChangeTab" @add="openPopupAdd">
       <template #default="{ idKhuVuc }">
@@ -141,9 +133,10 @@ onMounted(() => {
 
 <style scoped>
 .ban-view {
-  background: #0b0b0d;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   min-height: 100vh;
   padding: 12px;
+  color: #5f3d22;
 }
 
 .page-top {

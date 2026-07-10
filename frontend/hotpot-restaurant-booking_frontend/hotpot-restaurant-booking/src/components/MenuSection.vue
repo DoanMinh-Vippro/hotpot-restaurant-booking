@@ -26,6 +26,8 @@ const totalPagesCombo = ref(0)
 
 // Ảnh phôi mặc định sang trọng dành cho món lẻ không có ảnh
 const anhMacDinhMonLe = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80'
+// Decorative hero image (sourced from Unsplash) to show in menu header
+const heroImage = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200'
 
 // Hàm tải danh sách Món lẻ theo trang
 const fetchMonByPage = async (pageMucTieu: number) => {
@@ -73,6 +75,12 @@ const fetchComboByPage = async (pageMucTieu: number) => {
   }
 }
 
+// Return a dynamic Unsplash image URL for a given keyword (used as fallback)
+const dynamicImageFor = (keyword: string | undefined, w = 400, h = 300) => {
+  const q = encodeURIComponent((keyword && String(keyword).trim()) || 'vietnamese food')
+  return `https://source.unsplash.com/${w}x${h}/?${q}`
+}
+
 // Hàm nạp lần đầu khi load component
 const fetchThucDonTongHop = async () => {
   await Promise.all([fetchMonByPage(0), fetchComboByPage(0)])
@@ -87,10 +95,11 @@ onMounted(fetchThucDonTongHop)
 
     <div class="menu-content-wrapper">
       <div class="section-header">
-        <p class="subtitle">ẨM THỰC</p>
-        <h2>THỰC ĐƠN ĐẶC SẮC</h2>
+          <div class="section-header-left">
+            <p class="subtitle">ẨM THỰC</p>
+            <h2>THỰC ĐƠN ĐẶC SẮC</h2>
 
-        <div class="menu-tabs">
+            <div class="menu-tabs">
           <button
             class="tab-btn"
             :class="{ active: activeTab === 'mon-le' }"
@@ -105,7 +114,16 @@ onMounted(fetchThucDonTongHop)
           >
             Gói Combo Ưu Đãi
           </button>
-        </div>
+            </div>
+          </div>
+
+          <div class="section-header-right">
+            <div class="menu-hero">
+              <img :src="heroImage" alt="Món đặc sắc" />
+            </div>
+          </div>
+        
+        
       </div>
 
       <div v-if="loading" class="menu-loading">
@@ -117,7 +135,11 @@ onMounted(fetchThucDonTongHop)
           <div class="menu-grid">
             <div v-for="mon in monItems" :key="mon.idMon" class="menu-card animate-fade">
               <div class="menu-img">
-                <img :src="mon.hinhAnh ? `http://localhost:8080/uploads/${mon.hinhAnh}` : anhMacDinhMonLe" :alt="mon.tenMon" />
+                <img
+                  :src="mon.hinhAnh ? `http://localhost:8080/uploads/${mon.hinhAnh}` : dynamicImageFor(mon.tenMon, 400, 300)"
+                  :alt="mon.tenMon"
+                  loading="lazy"
+                />
               </div>
               <div class="menu-info">
                 <div class="header">
@@ -191,8 +213,9 @@ onMounted(fetchThucDonTongHop)
             <div v-for="cb in comboItems" :key="cb.idCombo" class="menu-card animate-fade">
               <div class="menu-img">
                 <img
-                  :src="cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : anhMacDinhMonLe"
+                  :src="cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : dynamicImageFor(cb.tenCombo, 400, 300)"
                   :alt="cb.tenCombo"
+                  loading="lazy"
                 />
               </div>
               <div class="menu-info">
@@ -273,14 +296,41 @@ onMounted(fetchThucDonTongHop)
 }
 
 .section-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
   margin-bottom: 60px;
+}
+.section-header-left {
+  flex: 1 1 60%;
 }
 .section-header h2 {
   font-size: 3rem;
   font-family: 'Playfair Display', serif;
   margin-top: 10px;
   letter-spacing: 2px;
+}
+
+.section-header-right {
+  flex: 0 0 380px;
+  display: flex;
+  justify-content: flex-end;
+}
+.menu-hero {
+  width: 380px;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  transform: translateY(-10px) rotate(-1deg);
+  border: 4px solid rgba(197,160,89,0.08);
+}
+.menu-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .subtitle {
   color: #c5a059;

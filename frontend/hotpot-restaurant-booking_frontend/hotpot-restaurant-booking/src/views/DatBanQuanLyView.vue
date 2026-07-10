@@ -115,10 +115,25 @@ const visibleReservations = computed(() => {
     })
 })
 
+const syncActiveTabWithReservations = () => {
+  const currentStatus = normalizeStatus(reservations.value.find((item) => normalizeStatus(item.trangThai) === activeTab.value)?.trangThai)
+  if (currentStatus) return
+
+  const preferredStatusOrder: ReservationStatus[] = ['CHO_XAC_NHAN', 'DA_XAC_NHAN', 'DA_NHAN_BAN', 'HOAN_THANH', 'DA_HUY']
+  const preferredStatus = preferredStatusOrder.find((status) =>
+    reservations.value.some((item) => normalizeStatus(item.trangThai) === status),
+  )
+
+  if (preferredStatus) {
+    activeTab.value = preferredStatus
+  }
+}
+
 const loadData = async () => {
   try {
     const response = await DatBanQuanLyApi.getAll()
     reservations.value = Array.isArray(response?.data) ? response.data : []
+    syncActiveTabWithReservations()
   } catch (error) {
     console.error('Lỗi khi tải danh sách đặt bàn:', error)
   }
@@ -166,7 +181,7 @@ const changeStatus = async (reservation: any, newStatus: ReservationStatus) => {
   if (!confirmed) return
 
   try {
-    await DatBanQuanLyApi.update(reservation.idDatBan, { ...reservation, trangThai: newStatus })
+    await DatBanQuanLyApi.update(reservation.idDatBan, { trangThai: newStatus })
 
     if (newStatus === 'DA_XAC_NHAN' && reservation.idBan) {
       await BanApi.update(reservation.idBan, { trangThai: 'DA_DAT' })
@@ -180,6 +195,7 @@ const changeStatus = async (reservation: any, newStatus: ReservationStatus) => {
       await BanApi.update(reservation.idBan, { trangThai: 'TRONG' })
     }
 
+    pushStatusNotification(reservation, newStatus)
     await loadData()
     activeTab.value = newStatus
   } catch (error) {
@@ -241,13 +257,29 @@ const submitWalkInReservation = async () => {
   }
 }
 
-const goHome = () => {
-  router.push('/')
-}
-
 const formatCurrency = (value: number | string | null | undefined) => {
   const amount = Number(value || 0)
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+}
+
+const pushStatusNotification = (reservation: any, newStatus: ReservationStatus) => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('notifications') || '[]') || []
+    const entry = {
+      title: 'Cập nhật trạng thái đơn',
+      message: `Đơn #${reservation.idDatBan} chuyển sang ${statusLabels[newStatus]}.`,
+      time: new Date().toISOString(),
+      read: false,
+      targetKhachHangId: reservation.idKhachHang ?? null,
+      targetKhachHangPhone: reservation.sdtKhachHang ?? null,
+    }
+
+    stored.unshift(entry)
+    localStorage.setItem('notifications', JSON.stringify(stored))
+    window.dispatchEvent(new Event('storage'))
+  } catch (error) {
+    console.warn('Không thể ghi thông báo:', error)
+  }
 }
 
 onMounted(loadData)
@@ -256,7 +288,6 @@ onMounted(loadData)
 <template>
   <div class="page-shell">
     <div class="page-top">
-      <button class="back-home-btn" @click="goHome">🏠 Trang chủ</button>
       <h2 class="page-title">Quản lý đặt bàn</h2>
     </div>
 
@@ -468,7 +499,7 @@ onMounted(loadData)
 <style scoped>
 .page-shell {
   padding: 18px 0 32px;
-  color: #fff;
+  color: #5f3d22;
 }
 
 .page-top {
@@ -482,13 +513,13 @@ onMounted(loadData)
 .page-title {
   margin: 0;
   font-size: 1.2rem;
-  color: #ffd86b;
+  color: #8b5e34;
 }
 
 .back-home-btn {
-  border: 1px solid rgba(212, 175, 55, 0.35);
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffd86b;
+  border: 1px solid #e2cfa6;
+  background: #fff6df;
+  color: #8b5e34;
   padding: 8px 14px;
   border-radius: 999px;
   cursor: pointer;
@@ -496,7 +527,7 @@ onMounted(loadData)
 }
 
 .back-home-btn:hover {
-  background: rgba(212, 175, 55, 0.16);
+  background: #f2dfb0;
 }
 
 .section-switcher {
@@ -507,18 +538,18 @@ onMounted(loadData)
 }
 
 .section-btn {
-  border: 1px solid #2e2e2e;
-  background: #121212;
-  color: #f8e6a0;
+  border: 1px solid #e2cfa6;
+  background: #fff8ea;
+  color: #6b4728;
   padding: 8px 12px;
   border-radius: 999px;
   cursor: pointer;
 }
 
 .section-btn.active {
-  background: #c5a059;
-  color: #111;
-  border-color: #c5a059;
+  background: #d8a85c;
+  color: #3d2814;
+  border-color: #d8a85c;
   font-weight: 700;
 }
 
@@ -530,18 +561,18 @@ onMounted(loadData)
 }
 
 .tab-button {
-  border: 1px solid #333;
-  background: #111;
-  color: #e5e5e5;
+  border: 1px solid #e2cfa6;
+  background: #fff8ea;
+  color: #6b4728;
   padding: 8px 12px;
   border-radius: 999px;
   cursor: pointer;
 }
 
 .tab-button.active {
-  background: #c5a059;
-  color: #111;
-  border-color: #c5a059;
+  background: #d8a85c;
+  color: #3d2814;
+  border-color: #d8a85c;
   font-weight: 700;
 }
 
@@ -557,7 +588,7 @@ onMounted(loadData)
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: #d8c07d;
+  color: #8b5e34;
   font-size: 0.85rem;
 }
 
@@ -565,25 +596,26 @@ onMounted(loadData)
   min-width: 150px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid #2c2c2c;
-  background: #111;
-  color: #fff;
+  border: 1px solid #e2cfa6;
+  background: #fffaf1;
+  color: #4d3422;
 }
 
 .clear-filter-btn {
-  border: 1px solid #3b3b3b;
-  background: #171717;
-  color: #fff;
+  border: 1px solid #d8b66c;
+  background: #fff3d3;
+  color: #6b4728;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .table-card {
-  background: #0d0d0d;
-  border: 1px solid #222;
+  background: #fffaf1;
+  border: 1px solid #e8d3a9;
   border-radius: 16px;
   padding: 16px;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .table-header {
@@ -595,11 +627,11 @@ onMounted(loadData)
 
 .table-header h3 {
   margin: 0;
-  color: #ffd86b;
+  color: #8b5e34;
 }
 
 .table-header span {
-  color: #aaa;
+  color: #7c6042;
   font-size: 0.9rem;
 }
 
@@ -610,19 +642,19 @@ onMounted(loadData)
 table {
   width: 100%;
   border-collapse: collapse;
-  color: #fff;
+  color: #5f3d22;
 }
 
 th,
 td {
   padding: 10px 8px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid #efe0be;
   text-align: left;
   font-size: 0.9rem;
 }
 
 th {
-  color: #c5a059;
+  color: #8b5e34;
   text-transform: uppercase;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
@@ -631,9 +663,9 @@ th {
 select,
 input,
 textarea {
-  border: 1px solid #333;
-  background: #151515;
-  color: #fff;
+  border: 1px solid #e2cfa6;
+  background: #fffdf8;
+  color: #4d3422;
   padding: 8px 10px;
   border-radius: 8px;
   width: 100%;
@@ -646,42 +678,42 @@ textarea {
 }
 
 .btn {
-  border: 1px solid #c5a059;
+  border: 1px solid #d8a85c;
   background: transparent;
-  color: #c5a059;
+  color: #8b5e34;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .btn:hover {
-  background: #c5a059;
-  color: #111;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .btn-primary {
-  background: #c5a059;
-  color: #111;
+  background: #d8a85c;
+  color: #3d2814;
   font-weight: 700;
 }
 
 .btn-secondary {
-  border-color: #4a4a4a;
-  color: #ddd;
+  border-color: #c9b07d;
+  color: #6b4728;
 }
 
 .empty-state {
   padding: 24px;
   text-align: center;
-  color: #888;
+  color: #8f6b46;
 }
 
 .walkin-card {
-  background: linear-gradient(135deg, rgba(32, 25, 16, 0.96), rgba(14, 14, 14, 0.95));
-  border: 1px solid rgba(197, 160, 89, 0.25);
+  background: linear-gradient(135deg, #fff8ea 0%, #f5e3bf 100%);
+  border: 1px solid #e5c988;
   border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 14px 32px rgba(103, 72, 32, 0.08);
 }
 
 .walkin-header {
@@ -694,20 +726,20 @@ textarea {
 
 .walkin-header h3 {
   margin: 0 0 4px;
-  color: #ffd86b;
+  color: #8b5e34;
 }
 
 .walkin-header p {
   margin: 0;
-  color: #c7c7c7;
+  color: #7c6042;
   font-size: 0.92rem;
 }
 
 .walkin-badge {
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(197, 160, 89, 0.16);
-  color: #f3d47d;
+  background: rgba(216, 168, 92, 0.18);
+  color: #8b5e34;
   font-size: 0.8rem;
   white-space: nowrap;
 }
@@ -722,7 +754,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: #e7d9a8;
+  color: #6b4728;
   font-size: 0.9rem;
 }
 
@@ -741,7 +773,7 @@ textarea {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(75, 53, 27, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -751,11 +783,11 @@ textarea {
 
 .detail-modal {
   width: min(620px, 100%);
-  background: #121212;
-  border: 1px solid #333;
+  background: #fffaf1;
+  border: 1px solid #e4c78b;
   border-radius: 16px;
   padding: 18px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 16px 40px rgba(103, 72, 32, 0.16);
 }
 
 .modal-header {
@@ -767,13 +799,13 @@ textarea {
 
 .modal-header h3 {
   margin: 0;
-  color: #ffd86b;
+  color: #8b5e34;
 }
 
 .close-btn {
   border: none;
   background: transparent;
-  color: #fff;
+  color: #7a4d24;
   font-size: 1.3rem;
   cursor: pointer;
 }
@@ -789,18 +821,18 @@ textarea {
   flex-direction: column;
   gap: 4px;
   padding: 10px;
-  border: 1px solid #232323;
+  border: 1px solid #efe0be;
   border-radius: 10px;
-  background: #171717;
+  background: #fff7e8;
 }
 
 .detail-grid span {
-  color: #8e8e8e;
+  color: #8f6b46;
   font-size: 0.8rem;
 }
 
 .detail-grid strong {
-  color: #fff;
+  color: #4d3422;
   font-size: 0.94rem;
 }
 

@@ -30,10 +30,6 @@ const formKhuVuc = ref({
 const showDetailModal = ref(false)
 const selectedKhuVuc = ref<any>(null)
 
-const goToHome = () => {
-  router.push('/')
-}
-
 // 1. Tải dữ liệu
 const loadData = async () => {
   loading.value = true
@@ -84,13 +80,8 @@ const closeDetailModal = () => {
 }
 
 const handleSave = async () => {
-  if (!formKhuVuc.value.maKhuVuc) {
-    alert('Vui lòng nhập mã khu vực!')
-    return
-  }
-
-  if (!formKhuVuc.value.tenKhuVuc) {
-    alert('Vui lòng nhập tên khu vực!')
+  if (!formKhuVuc.value.maKhuVuc || !formKhuVuc.value.tenKhuVuc) {
+    alert('Vui lòng nhập đầy đủ Mã và Tên khu vực!')
     return
   }
 
@@ -170,23 +161,6 @@ const resetFilter = () => {
   <div class="khu-vuc-page">
     <div class="page-header-wrapper">
       <h2>👑 QUẢN LÝ KHU VỰC NHÀ HÀNG</h2>
-      <button class="btn-back-home" @click="goToHome">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-        Quay về trang chủ
-      </button>
     </div>
 
     <hr class="line-break" />
@@ -308,31 +282,8 @@ const resetFilter = () => {
               </tr>
             </tbody>
           </table>
-          <div class="detail-section-title">🪑 Sơ Đồ Loại Bàn</div>
-          <div class="booking-history-container">
-            <div
-              v-for="(ban, index) in selectedKhuVuc.banList"
-              :key="ban.id"
-              class="booking-item-card"
-            >
-              <table class="detail-table style-compact">
-                <tbody>
-                  <tr>
-                    <td class="lbl">Loại bàn:</td>
-                    <td class="val gold-text">{{ ban.loaiBan }}</td>
-                  </tr>
-                  <tr>
-                    <td class="lbl">Số lượng:</td>
-                    <td class="val">
-                      <span class="badge-count">{{ ban.soLuongBan }}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="padding: 15px; text-align: right">
           <button class="btn-gray" @click="closeDetailModal">Đóng lại</button>
         </div>
       </div>
@@ -343,127 +294,37 @@ const resetFilter = () => {
 <style scoped>
 .khu-vuc-page {
   padding: 25px;
-  background: #121212;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   min-height: 100vh;
-  color: #fff;
+  color: #5f3d22;
   font-family: Arial, sans-serif;
 }
 
-.page-header-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
 h2 {
-  color: #ffc107;
+  color: #8b5e34;
   font-size: 28px;
   font-weight: bold;
 }
-
 .line-break {
   border: none;
-  border-top: 1px solid #333;
+  border-top: 1px solid #e6d2aa;
   margin: 20px 0 25px;
 }
-
-/* =======================
-        BUTTON
-======================= */
-
-.btn-back-home,
-.btn-yellow,
-.btn-gray,
-.btn-submit,
-.btn-action {
-  transition: 0.2s;
-}
-
-.btn-back-home {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #1f1f1f;
-  color: white;
-  border: 1px solid #444;
-  padding: 9px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-back-home:hover {
-  background: #333;
-}
-
-.btn-yellow {
-  background: #ffc107;
-  color: #000;
-  border: none;
-  padding: 9px 18px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-yellow:hover {
-  opacity: 0.9;
-}
-
-.btn-gray {
-  background: #555;
-  color: white;
-  border: none;
-  padding: 9px 18px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-submit {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-submit:hover {
-  background: #218838;
-}
-
-/* =======================
-      SEARCH
-======================= */
 
 .search-section {
   display: flex;
   gap: 10px;
   margin-bottom: 25px;
-  flex-wrap: wrap;
 }
-
 .search-section input,
 .select-classic {
-  background: #1f1f1f;
-  color: white;
-  border: 1px solid #444;
-  border-radius: 6px;
+  background-color: #fffaf1;
+  color: #5f3d22;
+  border: 1px solid #e6d2aa;
   padding: 10px;
+  border-radius: 6px;
   min-width: 220px;
 }
-
-.search-section input:focus,
-.select-classic:focus {
-  outline: none;
-  border-color: #ffc107;
-}
-
-/* =======================
-      LAYOUT
-======================= */
 
 .main-layout {
   display: flex;
@@ -471,133 +332,82 @@ h2 {
   align-items: flex-start;
   flex-wrap: wrap;
 }
-
-.form-container,
-.table-container {
-  background: #1a1a1a;
-  border: 1px solid #2f2f2f;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
-}
-
 .form-container {
   flex: 1;
-  min-width: 330px;
-  padding: 22px;
+  min-width: 350px;
+  background: rgba(255, 248, 234, 0.95);
+  padding: 20px;
+  border: 1px solid #e6d2aa;
+  border-radius: 12px;
 }
-
 .table-container {
   flex: 2;
   overflow: hidden;
+  background: rgba(255, 248, 234, 0.95);
+  border-radius: 12px;
 }
 
 .form-title {
-  color: #ffc107;
+  color: #8b5e34;
   margin-bottom: 20px;
 }
-
 .form-row {
   margin-bottom: 16px;
 }
-
 .form-label {
   display: block;
   margin-bottom: 6px;
   font-weight: bold;
-  color: #ddd;
 }
-
 .form-row input,
 .form-row textarea {
   width: 100%;
   box-sizing: border-box;
-  background: #222;
-  color: white;
-  border: 1px solid #444;
-  border-radius: 6px;
   padding: 10px;
+  border: 1px solid #e6d2aa;
+  border-radius: 6px;
 }
 
-.form-row input:focus,
-.form-row textarea:focus {
-  outline: none;
-  border-color: #ffc107;
+.btn-yellow {
+  background: #ffc107;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
 }
-
-.form-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
+.btn-submit {
+  background: #4b7c45;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
 }
-
-/* =======================
-      TABLE
-======================= */
+.btn-gray {
+  background: #888;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
 .table-classic {
   width: 100%;
   border-collapse: collapse;
 }
-
-.table-classic thead {
-  background: #2b2b2b;
-}
-
 .table-classic th {
-  color: #ffc107;
-  padding: 14px;
+  background: #f3dfb4;
+  color: #8b5e34;
+  padding: 12px;
+  text-align: left;
 }
-
 .table-classic td {
-  padding: 13px;
-  border-top: 1px solid #2f2f2f;
+  padding: 12px;
+  border-bottom: 1px solid #efe0c1;
 }
-
-.table-classic tbody tr {
-  transition: 0.2s;
-}
-
-.table-classic tbody tr:hover {
-  background: #232323;
-}
-
-.highlight-text {
-  color: #ffc107;
-  font-weight: bold;
-}
-
-/* =======================
-      BUTTON TABLE
-======================= */
-
-.btn-action {
-  border: none;
-  border-radius: 5px;
-  padding: 6px 12px;
-  margin: 0 3px;
-  cursor: pointer;
-  color: white;
-}
-
-.view {
-  background: #17a2b8;
-}
-
-.edit {
-  background: #007bff;
-}
-
-.delete {
-  background: #dc3545;
-}
-
-.btn-action:hover {
-  filter: brightness(1.1);
-}
-
-/* =======================
-      STATUS
-======================= */
 
 .btn-status {
   border: none;
@@ -606,107 +416,56 @@ h2 {
   cursor: pointer;
   font-weight: bold;
 }
-
 .active {
-  background: #28a745;
+  background: #4b7c45;
   color: white;
 }
-
 .locked {
-  background: #6c757d;
+  background: #c98b3e;
   color: white;
 }
 
-/* =======================
-      MODAL
-======================= */
+.btn-action {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  margin: 0 3px;
+  cursor: pointer;
+  color: white;
+}
+.view {
+  background: #17a2b8;
+}
+.edit {
+  background: #007bff;
+}
+.delete {
+  background: #dc3545;
+}
 
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
 }
-
 .modal-content {
-  width: 600px;
-  max-width: 95%;
-  background: #1c1c1c;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid #444;
+  background: #fffaf1;
+  padding: 20px;
+  border-radius: 8px;
+  width: 500px;
 }
-
 .modal-header {
-  background: #2a2a2a;
-  color: #ffc107;
-  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 15px;
 }
-
-.close-btn {
-  font-size: 28px;
-  cursor: pointer;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.detail-section-title {
-  margin: 15px 0 10px;
-  color: #ffc107;
-  font-weight: bold;
-}
-
-.detail-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.detail-table td {
-  padding: 8px 5px;
-}
-
-.lbl {
-  width: 180px;
-  color: #9c9c9c;
-}
-
-.val {
-  color: white;
-}
-
-.text-blue {
-  color: #4fc3f7;
-}
-
-.gold-text {
-  color: #ffc107;
-}
-
-.booking-item-card {
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 10px;
-  background: #202020;
-}
-
-.badge-count {
-  background: #ffc107;
-  color: #000;
-  padding: 3px 8px;
-  border-radius: 20px;
-  font-weight: bold;
-}
-
 .text-loading {
   text-align: center;
   padding: 40px;
+  font-weight: bold;
 }
 </style>

@@ -10,9 +10,9 @@ interface ComboDatBan {
   soLuong: number
 }
 
-// v-model từ DatBanForm
+// v-model có thể là mảng combo hoặc id combo đơn giản tùy nơi dùng
 const props = defineProps<{
-  modelValue: ComboDatBan[]
+  modelValue: ComboDatBan[] | number | null
 }>()
 
 const emit = defineEmits(['update:modelValue', 'selectedCombo'])
@@ -36,14 +36,22 @@ const loadComboGoiY = async () => {
 }
 
 // chọn hoặc bỏ chọn combo
+const getSelectedItems = () => {
+  if (Array.isArray(props.modelValue)) return props.modelValue
+  return []
+}
+
 const selectCombo = (combo: Combo) => {
-  const dsCombo = [...props.modelValue]
+  const dsCombo = [...getSelectedItems()]
 
   const index = dsCombo.findIndex((item) => item.idCombo === combo.idCombo)
 
   // Nếu đã có thì tăng số lượng
   if (index >= 0) {
-    dsCombo[index].soLuong++
+    const currentItem = dsCombo[index]
+    if (currentItem) {
+      currentItem.soLuong++
+    }
   } else {
     // Nếu chưa có thì thêm mới
     dsCombo.push({
@@ -61,15 +69,18 @@ const selectCombo = (combo: Combo) => {
 
 // giảm số lượng combo
 const giamSoLuong = (idCombo: number) => {
-  const dsCombo = [...props.modelValue]
+  const dsCombo = [...getSelectedItems()]
 
   const index = dsCombo.findIndex((item) => item.idCombo === idCombo)
 
   if (index >= 0) {
-    if (dsCombo[index].soLuong > 1) {
-      dsCombo[index].soLuong--
-    } else {
-      dsCombo.splice(index, 1)
+    const currentItem = dsCombo[index]
+    if (currentItem) {
+      if (currentItem.soLuong > 1) {
+        currentItem.soLuong--
+      } else {
+        dsCombo.splice(index, 1)
+      }
     }
   }
 
@@ -93,7 +104,7 @@ onMounted(loadComboGoiY)
     <div class="combo-header">
       <span> 🍱 Gói Combo Ưu Đãi </span>
 
-      <button v-if="modelValue.length > 0" @click="xoaTatCa">Bỏ chọn</button>
+      <button v-if="getSelectedItems().length > 0" @click="xoaTatCa">Bỏ chọn</button>
     </div>
 
     <div v-if="loading" class="loading-text">Đang tải...</div>
@@ -118,10 +129,10 @@ onMounted(loadComboGoiY)
 
           <span class="gia"> {{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ </span>
 
-          <div v-if="modelValue.some((item) => item.idCombo === cb.idCombo)">
+          <div v-if="getSelectedItems().some((item) => item.idCombo === cb.idCombo)">
             <span>
               SL:
-              {{ modelValue.find((item) => item.idCombo === cb.idCombo)?.soLuong }}
+              {{ getSelectedItems().find((item) => item.idCombo === cb.idCombo)?.soLuong }}
             </span>
 
             <button @click.stop="giamSoLuong(cb.idCombo)">-</button>

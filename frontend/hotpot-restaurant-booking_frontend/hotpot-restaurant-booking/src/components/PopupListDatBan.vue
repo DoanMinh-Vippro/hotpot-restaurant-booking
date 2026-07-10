@@ -90,62 +90,44 @@ onMounted(() => {
 .overlay {
   position: fixed;
   inset: 0;
-
-  background: rgba(0, 0, 0, 0.6);
-
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   justify-content: center;
   align-items: center;
-
   z-index: 999;
 }
 
 .popup {
   width: 900px;
   max-height: 80vh;
-
   overflow-y: auto;
-
-  background: #1d1d1d;
-
+  background: #fffaf1;
   border-radius: 16px;
-
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid #e6d2aa;
 }
 
 .popup-header {
   padding: 20px;
-
   text-align: center;
-
   font-size: 22px;
   font-weight: 700;
-
-  color: #ffd86b;
-
-  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  color: #8b5e34;
+  border-bottom: 1px solid #e6d2aa;
 }
 
 .popup-body {
   padding: 20px;
-
   display: flex;
   flex-direction: column;
-
   gap: 12px;
 }
 
 .dat-ban-card {
-  background: #2a2a2a;
-
+  background: #fff8ea;
   border-radius: 12px;
-
   padding: 16px;
-
-  color: white;
-
-  border: 1px solid rgba(212, 175, 55, 0.15);
-
+  color: #5f3d22;
+  border: 1px solid #e6d2aa;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -155,23 +137,19 @@ onMounted(() => {
   display: inline-block;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(255, 216, 107, 0.16);
-  color: #ffd86b;
+  background: rgba(216, 168, 92, 0.16);
+  color: #8b5e34;
   font-size: 12px;
   font-weight: 600;
 }
 
 .btn-chon {
-  background: linear-gradient(135deg, #ffd86b, #d4af37);
-
+  background: #d8a85c;
   border: none;
-
   padding: 10px 18px;
-
   border-radius: 8px;
-
   cursor: pointer;
-
   font-weight: 600;
+  color: #3d2814;
 }
 </style>
