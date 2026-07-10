@@ -29,8 +29,10 @@ const emit = defineEmits<{
   <Teleport to="body">
     <div v-if="show && result" class="overlay">
       <div class="dialog">
-        <div class="header">
-          <h2>Đề xuất bàn</h2>
+        <div class="header" :class="result.trangThai === 'KHONG_CO_BAN' ? 'error' : 'success'">
+          <h2>
+            {{ result.trangThai === 'KHONG_CO_BAN' ? 'Không tìm thấy bàn' : 'Đề xuất bàn' }}
+          </h2>
         </div>
 
         <div class="content">
@@ -38,33 +40,42 @@ const emit = defineEmits<{
             {{ result.message }}
           </p>
 
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Bàn</th>
-                <th>Khu vực</th>
-                <th>Loại bàn</th>
-              </tr>
-            </thead>
+          <template v-if="result.trangThai !== 'KHONG_CO_BAN'">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Bàn</th>
+                  <th>Khu vực</th>
+                  <th>Loại bàn</th>
+                </tr>
+              </thead>
 
-            <tbody>
-              <tr v-for="ban in result.dsBan" :key="ban.idBan">
-                <td>{{ ban.tenBan }}</td>
-                <td>{{ ban.tenKhuVuc }}</td>
-                <td>{{ ban.loaiBan }}</td>
-              </tr>
-            </tbody>
-          </table>
+              <tbody>
+                <tr v-for="ban in result.dsBan" :key="ban.idBan">
+                  <td>{{ ban.tenBan }}</td>
+                  <td>{{ ban.tenKhuVuc }}</td>
+                  <td>{{ ban.loaiBan }}</td>
+                </tr>
+              </tbody>
+            </table>
 
-          <div class="capacity">
-            Tổng sức chứa: <strong>{{ result.tongSucChua }}</strong>
-          </div>
+            <div class="capacity">
+              Tổng sức chứa:
+              <strong>{{ result.tongSucChua }}</strong>
+            </div>
+          </template>
         </div>
 
         <div class="footer">
-          <button class="btn btn-cancel" @click="emit('cancel')">Không đồng ý</button>
+          <template v-if="result.trangThai === 'KHONG_CO_BAN'">
+            <button class="btn btn-confirm" @click="emit('cancel')">Đã hiểu</button>
+          </template>
 
-          <button class="btn btn-confirm" @click="emit('confirm')">Đồng ý</button>
+          <template v-else>
+            <button class="btn btn-cancel" @click="emit('cancel')">Hủy Đặt</button>
+
+            <button class="btn btn-confirm" @click="emit('confirm')">Đồng ý</button>
+          </template>
         </div>
       </div>
     </div>
@@ -72,91 +83,257 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
+/* ================= OVERLAY ================= */
+
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
+  background: rgba(8, 8, 8, 0.72);
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.3s ease;
   z-index: 9999;
 }
 
+/* ================= DIALOG ================= */
+
 .dialog {
-  width: 600px;
-  max-width: 95%;
-  background: #fff;
-  border-radius: 12px;
+  width: 760px;
+  max-width: 94%;
   overflow: hidden;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fffefb 0%, #faf6ef 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow:
+    0 35px 80px rgba(0, 0, 0, 0.45),
+    inset 0 1px rgba(255, 255, 255, 0.7);
+  animation: popup 0.3s ease;
 }
 
+/* ================= HEADER ================= */
+
 .header {
-  padding: 18px 24px;
-  border-bottom: 1px solid #ececec;
+  position: relative;
+  padding: 26px 34px;
+  overflow: hidden;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #111, #252525);
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #7d5b11, #f7d777, #7d5b11);
+}
+
+.header.error::before {
+  background: linear-gradient(135deg, #4d1111, #7f1d1d);
 }
 
 .header h2 {
+  position: relative;
+  z-index: 2;
   margin: 0;
-  font-size: 22px;
+  color: #f7df95;
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 
+/* ================= CONTENT ================= */
+
 .content {
-  padding: 20px 24px;
+  padding: 30px;
 }
 
 .message {
-  margin-bottom: 18px;
-  line-height: 1.6;
+  background: #fffcf5;
+  border: 1px solid #e8d8ac;
+  border-left: 6px solid #d4af37;
+  border-radius: 14px;
+  padding: 18px 22px;
+  line-height: 1.8;
+  color: #5b4820;
+  font-size: 15px;
+  margin-bottom: 24px;
 }
+
+/* ================= TABLE ================= */
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid #e6d6ac;
+  background: white;
 }
 
-.table th,
-.table td {
-  border: 1px solid #e5e5e5;
-  padding: 10px;
-  text-align: center;
+.table thead {
+  background: linear-gradient(180deg, #2c2c2c, #181818);
 }
 
 .table th {
-  background: #f7f7f7;
+  color: #f7d777;
+  padding: 16px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.5px;
 }
 
+.table td {
+  padding: 16px;
+  text-align: center;
+  color: #4d4d4d;
+  border-top: 1px solid #f1ead9;
+}
+
+.table tbody tr {
+  transition: 0.25s;
+}
+
+.table tbody tr:nth-child(odd) {
+  background: #fffdfa;
+}
+
+.table tbody tr:nth-child(even) {
+  background: #fbf7ef;
+}
+
+.table tbody tr:hover {
+  background: #fff4d8;
+  transform: scale(1.005);
+}
+
+/* ================= CAPACITY ================= */
+
 .capacity {
-  margin-top: 18px;
+  margin-top: 24px;
+  padding: 18px 22px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #fff9ea, #fffdf7);
+  border: 1px solid #ead8a4;
+  color: #6b531c;
   font-size: 15px;
 }
+
+.capacity strong {
+  color: #b8860b;
+  font-size: 22px;
+  margin-left: 6px;
+}
+
+/* ================= FOOTER ================= */
 
 .footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 18px 24px;
-  border-top: 1px solid #ececec;
+  gap: 14px;
+  padding: 24px 30px;
+  background: #f8f5ef;
+  border-top: 1px solid #ebe0c4;
 }
+
+/* ================= BUTTON ================= */
 
 .btn {
+  min-width: 155px;
+  padding: 13px 22px;
   border: none;
-  padding: 10px 22px;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: 0.25s;
 }
+
+/* Nút phụ */
 
 .btn-cancel {
-  background: #e5e7eb;
+  background: #222;
+  color: #f6d878;
+  border: 1px solid #3d3d3d;
 }
 
+.btn-cancel:hover {
+  background: #111;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Nút chính */
+
 .btn-confirm {
-  background: #16a34a;
-  color: white;
+  background: linear-gradient(135deg, #b88921, #e7cb74, #c4972d);
+  color: #332100;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-confirm::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.45);
+  transform: skewX(-25deg);
+}
+
+.btn-confirm:hover::before {
+  left: 150%;
+  transition: 0.7s;
 }
 
 .btn-confirm:hover {
-  background: #15803d;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(212, 175, 55, 0.45);
+}
+
+/* ================= SCROLL ================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c6a857;
+  border-radius: 10px;
+}
+
+/* ================= ANIMATION ================= */
+
+@keyframes popup {
+  from {
+    opacity: 0;
+    transform: translateY(-25px) scale(0.93);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

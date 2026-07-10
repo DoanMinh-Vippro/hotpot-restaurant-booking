@@ -1,50 +1,48 @@
 <script setup lang="ts">
-import DatBanApi from '@/api/DatBanApi';
-import DatBanForm from '@/components/DatBanForm.vue';
-import DatBanTable from '@/components/DatBanTable.vue';
-import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import DatBanApi from '@/api/DatBanApi'
+import DatBanForm from '@/components/DatBanForm.vue'
+import DatBanTable from '@/components/DatBanTable.vue'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-const router = useRouter();
+const router = useRouter()
 const list = ref([]) // Truyền data xuống DatBanTable
 const datBanForm = ref(null) // Biến dùng với form
 
 const goHome = () => {
-  router.push('/');
+  router.push('/')
 }
 
-const loadData = async () =>{
-    const response = await DatBanApi.getAll();
-    list.value = response.data 
+const loadData = async () => {
+  const response = await DatBanApi.getAll()
+  list.value = response.data
 }
 
-const detail = (datban: any) =>{
-    datBanForm.value = datban
-}
+// const detail = (datban: any) =>{
+//     datBanForm.value = datban
+// }
 
-const deleteById = async (id: number) =>{
-    if(confirm('Bạn có chắc chắn muốn xóa?')){
-        await DatBanApi.delete(id)
-        loadData()
-    }
-}
+// const deleteById = async (id: number) =>{
+//     if(confirm('Bạn có chắc chắn muốn xóa?')){
+//         await DatBanApi.delete(id)
+//         loadData()
+//     }
+// }
 
 onMounted(loadData)
 </script>
 
 <template>
-    <div class="dat-ban-layout">
-        <DatBanForm :datBanForm="datBanForm" @refresh="loadData" />        
-
-        <DatBanTable :list="list" @detail="detail" @delete="deleteById" />
-    </div>
+  <div class="dat-ban-layout">
+    <DatBanForm :datBanForm="datBanForm" @refresh="loadData" />
+  </div>
 </template>
 
 <style scoped>
 .dat-ban-layout {
   min-height: 100vh;
   padding: 30px;
-  background: #0f0f0f;
+  background: transparent;
 
   display: grid;
   grid-template-columns: 1fr;

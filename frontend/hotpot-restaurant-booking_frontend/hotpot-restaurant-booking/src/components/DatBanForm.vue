@@ -7,12 +7,17 @@ import { paymentApi } from '@/api/PaymentApi.ts'
 import PaymentDialog from './PaymentDialog.vue'
 import ConfirmBanDialog from './ConfirmBanDialog.vue'
 
-type PaymentMethod = 'CHUYEN_KHOAN' | 'VNPAY'
+type PaymentMethod = 'CHUYEN_KHOAN' | 'VNPAY' | 'CHUA_THANH_TOAN'
 
 const showPayment = ref(false)
 const showConfirmBan = ref(false) // xác nhận của check bàn
 const dsBanDeXuat = ref<any[]>([])
 const checkBanResult = ref<any>(null)
+
+// hàm format tiền cọc
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('vi-VN').format(value)
+}
 
 const paymentData = ref({
   qrUrl: '',
@@ -89,14 +94,9 @@ const checkBan = async () => {
       thoiGianDenDuKien: formData.value.thoiGianDenDuKien,
     })
 
-    const result = res.data
+    checkBanResult.value = res.data
+    dsBanDeXuat.value = res.data.dsBan || []
 
-    if (result.trangThai === 'KHONG_CO_BAN') {
-      alert(result.message)
-      return
-    }
-    checkBanResult.value = result
-    dsBanDeXuat.value = result.dsBan
     showConfirmBan.value = true
   } catch (error) {
     console.error('Lỗi kiểm tra bàn:', error)
@@ -104,6 +104,7 @@ const checkBan = async () => {
 }
 
 const confirmBan = () => {
+  if (!checkBanResult.value) return
   formData.value.dsBan = checkBanResult.value.dsBan.map((b: any) => b.idBan)
   showConfirmBan.value = false
   createBooking()
@@ -193,23 +194,23 @@ const createBooking = async () => {
   resetForm()
 }
 
-const update = async () => {
-  console.log('FORM DATA:', formData.value)
+// const update = async () => {
+//   console.log('FORM DATA:', formData.value)
 
-  if (formData.value.idDatBan == null) {
-    console.error('Không có idDatBan để update')
-    return
-  }
+//   if (formData.value.idDatBan == null) {
+//     console.error('Không có idDatBan để update')
+//     return
+//   }
 
-  try {
-    await DatBanApi.update(formData.value.idDatBan, formData.value)
-    alert('sửa thành công')
-    emit('refresh')
-    resetForm()
-  } catch (error) {
-    console.error('sửa thất bại', error)
-  }
-}
+//   try {
+//     await DatBanApi.update(formData.value.idDatBan, formData.value)
+//     alert('sửa thành công')
+//     emit('refresh')
+//     resetForm()
+//   } catch (error) {
+//     console.error('sửa thất bại', error)
+//   }
+// }
 
 const resetForm = () => {
   formData.value = {
@@ -276,7 +277,7 @@ const quayLai = () => {
         </div>
         <div class="form-group">
           <label>Tiền Cọc</label>
-          <input v-model.number="formData.soTienCoc" type="number" readonly />
+          <input :value="`${formatCurrency(formData.soTienCoc)} VNĐ`" type="text" readonly />
         </div>
       </div>
 
@@ -287,7 +288,6 @@ const quayLai = () => {
 
       <div class="button-group">
         <button class="btn-add" @click.prevent="checkBan()">Kiểm tra bàn</button>
-        <button class="btn-update" @click.prevent="update()">Cập Nhật</button>
       </div>
     </div>
 
@@ -316,23 +316,25 @@ const quayLai = () => {
 
 <style scoped>
 .form-container {
-  background: #1a1a1a;
-  padding: 35px;
-  border-radius: 4px;
-  max-width: 500px;
-  margin: 20px auto;
-  border: 1px solid #3d3d3d;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 520px;
+  margin: 0;
+  padding: 38px;
+  background: linear-gradient(180deg, #181818 0%, #101010 100%);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 18px;
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px rgba(255, 255, 255, 0.04);
 }
 
 h3 {
-  color: #d4af37;
+  color: #f2d57c;
+  font-size: 30px;
+  font-weight: 600;
   text-align: center;
-  font-size: 1.4rem;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   margin-bottom: 35px;
-  text-transform: uppercase;
-  font-weight: 300;
 }
 
 /* Quan trọng: Tạo khoảng cách giữa các nhóm */
@@ -350,32 +352,35 @@ h3 {
 }
 
 label {
-  color: #a0a0a0;
-  font-size: 0.65rem;
-  letter-spacing: 1.5px;
-  margin-bottom: 8px;
-  text-transform: uppercase;
   display: block;
+  margin-bottom: 8px;
+  color: #d8c38d;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 1px;
 }
 
 input,
 select,
 textarea {
   width: 100%;
-  padding: 8px 0;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #444;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #3b3b3b;
+  background: #222;
   color: #fff;
-  font-size: 0.9rem;
-  transition: all 0.3s;
+  transition: 0.25s;
+  font-size: 15px;
+  box-sizing: border-box;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-bottom: 1px solid #d4af37;
   outline: none;
+  border-color: #d4af37;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.18);
+  background: #272727;
 }
 
 .button-group {
@@ -386,15 +391,23 @@ textarea:focus {
 
 button {
   flex: 1;
-  padding: 12px;
-  border: 1px solid #d4af37;
-  background: transparent;
-  color: #d4af37;
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
   cursor: pointer;
-  transition: all 0.4s;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: 0.25s;
+}
+
+.btn-add {
+  background: linear-gradient(135deg, #c79b33, #e8cf84);
+  color: #2f2308;
+}
+
+.btn-add:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(212, 175, 55, 0.35);
 }
 
 button:hover {
@@ -419,18 +432,21 @@ select {
   background-position: right 0px top 50%;
   background-size: 10px auto;
 }
+
 input[type='datetime-local']::-webkit-calendar-picker-indicator {
   filter: invert(1); /* Đảo màu icon lịch để hợp với nền đen */
   cursor: pointer;
 }
 /* Container cha chứa cả Form và Combo */
 .page-container {
-  display: flex; /* Chia làm 2 cột */
-  justify-content: center; /* Căn giữa */
-  align-items: flex-start; /* Căn đều phía trên */
-  gap: 30px; /* Khoảng cách giữa 2 cột */
-  padding: 20px;
-  flex-wrap: wrap; /* Cho phép tự xuống dòng nếu màn hình hẹp */
+  width: 100%;
+  max-width: 1400px;
+  margin: auto;
+  display: flex;
+  gap: 35px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 35px;
 }
 
 /* Sửa lại form-container một chút */
@@ -447,10 +463,12 @@ input[type='datetime-local']::-webkit-calendar-picker-indicator {
 
 /* Định dạng cột bên phải */
 .combo-section {
-  width: 100%;
-  max-width: 400px; /* Tùy chỉnh độ rộng phần combo */
-  min-width: 300px;
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
+
 @media (max-width: 768px) {
   .page-container {
     flex-direction: column; /* Chuyển từ ngang sang dọc */
@@ -461,46 +479,39 @@ input[type='datetime-local']::-webkit-calendar-picker-indicator {
     max-width: 100%; /* Chiếm hết chiều rộng màn hình */
   }
 }
+
 .go-home {
   margin-top: 25px;
 }
 
 .btn-back {
   width: 100%;
-  padding: 14px 20px;
-
-  background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
-
-  border: 1px solid #d4af37;
-  border-radius: 4px;
-
-  color: #d4af37;
-
-  font-size: 0.9rem;
-  font-weight: 500;
-
-  letter-spacing: 2px;
-  text-transform: uppercase;
-
-  cursor: pointer;
-
-  transition: all 0.3s ease;
-
-  box-shadow:
-    0 0 0 rgba(212, 175, 55, 0),
-    0 10px 20px rgba(0, 0, 0, 0.3);
+  height: 52px;
+  border-radius: 12px;
+  background: #202020;
+  color: #f0d782;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  transition: 0.25s;
 }
 
 .btn-back:hover {
-  background: #d4af37;
-  color: #1a1a1a;
-
+  background: #111;
   transform: translateY(-2px);
-
-  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
 }
 
 .btn-back:active {
   transform: translateY(0);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #777;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
 }
 </style>
