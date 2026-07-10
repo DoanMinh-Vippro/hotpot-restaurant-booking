@@ -1,209 +1,212 @@
 <template>
-  <div class="container">
-    
-    <div class="cot-trai">
+  <div class="trang-quan-ly-mon">
+    <div class="cot-danh-sach">
       <MonTable
-        :danh-sach-mon="danhSachMon"
+        :danhSachMon="danhSachMon"
         :loading="loading"
-        :selected-id="selectedId"
-        :danh-sach-danh-muc="danhSachDanhMuc"
-        @edit="suaMon"
-        @delete="xoaMon"
-        @add="themMoi"
-        @search="nhanSuKienTimKiem"
-        @reset="lamMoiTimKiem"
-        @go-to-category="chuyenSangDanhMuc"
-      />
-
-      <Pagination 
-        :page-no="trangHienTai"
-        :total-pages="tongSoTrang"
-        @change-page="chuyenTrang"
+        :selectedId="selectedId"
+        :danhSachDanhMuc="danhSachDanhMuc"
+        @edit="chonMonAnXemPreview"
+        @delete="xuLyXoaMon"
+        @add="chuyenSangThemMoi"
+        @search="xuLyTimKiem"
+        @reset="xuLyLamMoi"
+        @go-to-category="() => $router.push('/danhmuc')" 
       />
     </div>
 
-    <div class="cot-phai">
+    <div class="cot-bieu-mau">
       <MonForm
         ref="formRef"
-        :danh-sach-danh-muc="danhSachDanhMuc"
-        :danh-sach-mon="danhSachMon"
-        @submit="luuMon"
+        :danhSachDanhMuc="danhSachDanhMuc"
+        :danhSachMon="danhSachMon"
+        @submit="xuLySubmitForm"
       />
 
-      <MonPreview
-        :mon-da-chon="monDangChon"
-      />
+      <MonPreview :monDaChon="monDaChon" />
     </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-
-import MonApi from '../api/MonApi'
-import DanhMucApi from '../api/DanhMucApi'
-
-import MonForm from '../components/MonForm.vue'
+import MonApi, { type Mon, type MonRequest } from '../api/MonApi'
+import DanhMucApi, { type DanhMuc } from '../api/DanhMucApi'
 import MonTable from '../components/MonTable.vue'
+import MonForm from '../components/MonForm.vue'
 import MonPreview from '../components/MonPreview.vue'
-import Pagination from '../components/Pagination.vue' 
 
-import type { Mon, MonRequest } from '../api/MonApi'
-import type { DanhMuc } from '../api/DanhMucApi'
-
-const router = useRouter()
+// Quản lý trạng thái và danh sách dữ liệu
+const loading = ref(false)
 const danhSachMon = ref<Mon[]>([])
 const danhSachDanhMuc = ref<DanhMuc[]>([])
 
-const monDangChon = ref<Mon>()
+// Quản lý bản ghi đang chọn phục vụ xem trước (Preview) và sửa form
 const selectedId = ref<number | null>(null)
-const loading = ref(false)
-const formRef = ref()
+const monDaChon = ref<Mon | undefined>(undefined)
+const formRef = ref<any>(null)
 
-const bieuThucTenMon = ref('')
-const bieuThucLoaiDanhMuc = ref('')
-const trangHienTai = ref(0)
-const kichThuocTrang = ref(5) 
-const tongSoTrang = ref(0)
+// Bộ lọc tìm kiếm
+const filterData = ref({
+  tenMon: '',
+  loaiDanhMuc: ''
+})
 
-const fetchDuLieu = async () => {
+// Các hàm fetch dữ liệu từ API
+const taiDanhSachDanhMuc = async () => {
+  try {
+    const res = await DanhMucApi.getDanhSach()
+    danhSachDanhMuc.value = res.data
+  } catch (error) {
+    console.error('Lỗi tải danh mục:', error)
+  }
+}
+
+const taiDanhSachMon = async () => {
   loading.value = true
   try {
     const res = await MonApi.searchMon(
-      bieuThucTenMon.value,
-      undefined, 
-      undefined, 
-      bieuThucLoaiDanhMuc.value,
-      trangHienTai.value,
-      kichThuocTrang.value
+      filterData.value.tenMon,
+      undefined,
+      undefined,
+      filterData.value.loaiDanhMuc,
+      0,
+      100 
     )
+    danhSachMon.value = res.data.content || res.data
     
-    const responseData = res.data as any
-    if (responseData && responseData.content) {
-      danhSachMon.value = responseData.content
-      tongSoTrang.value = responseData.totalPages || 0
-    } else {
-      danhSachMon.value = Array.isArray(responseData) ? responseData : []
-      tongSoTrang.value = 1
+
+    if (monDaChon.value) {
+      const itemMoi = danhSachMon.value.find(m => m.idMon === monDaChon.value?.idMon)
+      if (itemMoi) monDaChon.value = itemMoi
     }
   } catch (error) {
-    console.error("Hệ thống lỗi khi nạp danh sách món ăn phân trang:", error)
+    console.error('Lỗi tải danh sách món ăn:', error)
   } finally {
     loading.value = false
   }
 }
 
-const loadDanhMuc = async () => {
-  try {
-    const res = await DanhMucApi.getDanhSach()
-    danhSachDanhMuc.value = Array.isArray(res.data) ? res.data : (res.data as any).content || []
-  } catch (error) {
-    console.error("Lỗi khi tải danh mục cấu hình:", error)
-  }
-}
-
-// Chuyển sang route quản lý danh mục (Khớp name: 'danhMuc' trong router/index.ts)
-const chuyenSangDanhMuc = () => {
-  router.push({ name: 'danhMuc' })
-}
-
-const nhanSuKienTimKiem = async (boLoc: { tenMon: string, loaiDanhMuc: string }) => {
-  bieuThucTenMon.value = boLoc.tenMon
-  bieuThucLoaiDanhMuc.value = boLoc.loaiDanhMuc
-  trangHienTai.value = 0
-  await fetchDuLieu()
-}
-
-const chuyenTrang = async (trangMucTieu: number) => {
-  trangHienTai.value = trangMucTieu
-  await fetchDuLieu()
-}
-
-const lamMoiTimKiem = async () => {
-  bieuThucTenMon.value = ''
-  bieuThucLoaiDanhMuc.value = ''
-  trangHienTai.value = 0
-  await fetchDuLieu()
-}
-
-onMounted(async () => {
-  await fetchDuLieu()
-  await loadDanhMuc()
-})
-
-const themMoi = () => {
-  monDangChon.value = undefined
-  selectedId.value = null
-  formRef.value?.fillForm()
-}
-
-const suaMon = (mon: Mon) => {
-  monDangChon.value = mon
+// Điều hướng trạng thái Form
+const chonMonAnXemPreview = (mon: Mon) => {
   selectedId.value = mon.idMon
-  formRef.value?.fillForm(mon)
+  monDaChon.value = mon
+  formRef.value?.fillForm(mon) 
 }
 
-const luuMon = async (payload: MonRequest) => {
+const chuyenSangThemMoi = () => {
+  selectedId.value = null
+  monDaChon.value = undefined
+  formRef.value?.fillForm() 
+}
+
+// Xử lý bộ lọc tìm kiếm
+const xuLyTimKiem = (payload: { tenMon: string; loaiDanhMuc: string }) => {
+  filterData.value.tenMon = payload.tenMon
+  filterData.value.loaiDanhMuc = payload.loaiDanhMuc
+  taiDanhSachMon()
+}
+
+const xuLyLamMoi = () => {
+  filterData.value.tenMon = ''
+  filterData.value.loaiDanhMuc = ''
+  taiDanhSachMon()
+}
+
+const xuLySubmitForm = async (payload: any) => {
   const isUpdate = selectedId.value !== null
   const actionName = isUpdate ? 'cập nhật' : 'thêm mới'
 
-  if (!confirm(`Bạn có chắc chắn muốn ${actionName} món này không?`)) return
+  if (!confirm(`Bạn có chắc chắn muốn ${actionName} món ăn này không?`)) return
 
+  loading.value = true
   try {
-    if (isUpdate) {
-      await MonApi.updateMon(selectedId.value!, payload)
-    } else {
-      await MonApi.addMon(payload)
+    let tenFileAnhCuoiCung = payload.hinhAnh; 
+    if (payload.fileThat) {
+      const uploadRes = await MonApi.uploadImage(payload.fileThat);
+      tenFileAnhCuoiCung = uploadRes.data; 
     }
 
-    themMoi()
-    await fetchDuLieu()
-    alert(`${isUpdate ? 'Cập nhật' : 'Thêm mới'} món thành công!`)
-    
+    // Đóng gói request payload sạch sẽ
+    const dataGuiDi: MonRequest = {
+      tenMon: payload.tenMon,
+      hinhAnh: tenFileAnhCuoiCung, 
+      donGiaHienTai: payload.donGiaHienTai,
+      idDanhMuc: payload.idDanhMuc,
+      trangThai: payload.trangThai,
+      trangThaiBan: payload.trangThaiBan 
+    }
+
+    if (isUpdate) {
+      await MonApi.updateMon(selectedId.value!, dataGuiDi)
+    } else {
+      await MonApi.addMon(dataGuiDi)
+    }
+
+    alert(`${isUpdate ? 'Cập nhật' : 'Thêm mới'} món ăn thành công!`)
+    chuyenSangThemMoi()
+    await taiDanhSachMon()
+
   } catch (error: any) {
-    const errorMsg = error.response?.data?.message || error.response?.data || `Có lỗi xảy ra khi ${actionName} món!`;
-    alert(errorMsg); 
+    // Bắt lỗi Spring Boot Validation / Business Logic thông qua ApiClient
+    const beErrorMsg = error.response?.data?.message || error.response?.data || `Có lỗi khi ${actionName}!`;
+    alert(beErrorMsg);
+  } finally {
+    loading.value = false
   }
 }
 
-const xoaMon = async (idMon: number) => {
-  if (!confirm('Bạn có chắc chắn muốn ngưng bán món này không?')) return
-
-  try {
-    await MonApi.deleteMon(idMon)
-
-    if (selectedId.value === idMon) themMoi()
-    await fetchDuLieu()
-    
-    alert('Đã ngưng bán món thành công!')
-  } catch (error: any) {
-    alert('Có lỗi xảy ra khi ngưng bán món!');
+// Ngưng bán món ăn (Xóa mềm) giống Combo
+const xuLyXoaMon = async (idMon: number) => {
+  if (confirm('Bạn có chắc chắn muốn ngưng bán món ăn này không?')) {
+    try {
+      await MonApi.deleteMon(idMon)
+      alert('Đã ngưng bán món ăn thành công!')
+      
+      if (selectedId.value === idMon) chuyenSangThemMoi()
+      await taiDanhSachMon()
+    } catch (error: any) {
+      const beErrorMsg = error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi ngưng bán món!';
+      alert(beErrorMsg);
+    }
   }
 }
+
+onMounted(() => {
+  taiDanhSachDanhMuc()
+  taiDanhSachMon()
+})
 </script>
 
 <style scoped>
-.container {
-  min-height: 100vh;
-  padding: 120px 32px 32px;
-  background: #0f0f0f;
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
+.trang-quan-ly-mon {
+  display: flex;
   gap: 24px;
-  align-items: start;
+  padding: 24px;
+  background: #0a0a0a;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
-.cot-trai, .cot-phai {
+.cot-danh-sach {
+  flex: 2;
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
-@media (max-width: 1200px) {
-  .container {
-    grid-template-columns: 1fr;
+.cot-bieu-mau {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .trang-quan-ly-mon {
+    flex-direction: column;
+  }
+  .cot-danh-sach, .cot-bieu-mau {
+    flex: 1;
   }
 }
 </style>

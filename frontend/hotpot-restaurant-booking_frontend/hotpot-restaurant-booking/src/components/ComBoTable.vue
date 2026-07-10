@@ -52,9 +52,10 @@ const xoa = (id: number) => {
           <thead>
             <tr>
               <th>Hình ảnh</th>
-              <th>Tên</th>
-              <th>Giá</th>
-              <th>Trạng thái</th>
+              <th>Tên combo</th>
+              <th>Giá tiền</th>
+              <th>Trạng thái kinh doanh</th>
+              <th>Trạng thái kho</th>
               <th>Hành động</th>
             </tr>
           </thead>
@@ -69,21 +70,32 @@ const xoa = (id: number) => {
                 />
                 <span v-else class="chua-co-anh">Không có ảnh</span>
               </td>
+              
               <td class="o-chu-thuong text-dam">{{ cb.tenCombo }}</td>
               <td class="o-chu-thuong">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ</td>
-              <td class="o-chu-thuong">               
-              <span
-                :class="{
-                  'trang-thai-con': cb.trangThai === 1,
-                  'trang-thai-ngung': cb.trangThai === 0,
-                  'trang-thai-het': cb.trangThai === 2,
-                }"
-              >
-                {{
-                  cb.trangThai === 1 ? 'Còn bán' : cb.trangThai === 0 ? 'Ngưng bán' : 'Tạm hết món'
-                }}
-              </span>
-            </td>
+              
+              <td class="o-chu-thuong">              
+                <span
+                  :class="{
+                    'trang-thai-con': cb.trangThai === 1,
+                    'trang-thai-ngung': cb.trangThai === 0,
+                  }"
+                >
+                  {{ cb.trangThai === 1 ? 'Còn bán' : 'Ngưng bán' }}
+                </span>
+              </td>
+
+              <td class="o-chu-thuong">              
+                <span
+                  :class="{
+                    'trang-thai-con': cb.trangThaiBan === 1 && cb.trangThai === 1,
+                    'trang-thai-het': cb.trangThaiBan === 0 || cb.trangThai === 0,
+                  }"
+                >
+                  {{ cb.trangThai === 0 ? 'Hết hàng ' : (cb.trangThaiBan === 1 ? 'Còn hàng' : 'Hết hàng') }}
+                </span>
+              </td>
+
               <td>
                 <div class="hanh-dong-o">
                   <button class="nut-xem-ct" @click="$emit('view-detail', cb)">Xem chi tiết</button>
@@ -93,7 +105,7 @@ const xoa = (id: number) => {
               </td>
             </tr>
             <tr v-if="danhSachCombo.length === 0">
-              <td colspan="5" style="text-align: center; color: #a0a0a0; padding: 30px;">
+              <td colspan="6" style="text-align: center; color: #a0a0a0; padding: 30px;">
                 Không tìm thấy combo phù hợp.
               </td>
             </tr>
@@ -175,7 +187,6 @@ const xoa = (id: number) => {
   color: #f8d46a;
 }
 
-/* Hỗ trợ cuộn mượt mà nếu danh sách bị quá dài tràn màn hình */
 .bang-bao-boc {
   width: 100%;
   overflow-x: auto;
@@ -198,12 +209,11 @@ td {
   padding: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, .06);
   text-align: left;
-  vertical-align: middle; /* Căn giữa nội dung chữ theo chiều dọc dòng */
+  vertical-align: middle;
 }
 
-/* Định hình dòng chữ thông thường để cân đối với dòng chứa nút flex */
 .o-chu-thuong {
-  line-height: 60px; /* Bằng đúng chiều cao ảnh combo để gióng hàng cực chuẩn */
+  line-height: 60px;
   white-space: nowrap;
 }
 
@@ -232,17 +242,16 @@ img.img-combo {
   line-height: 60px;
 }
 
-/* Cố định khối hành động để các nút không bao giờ bị nhảy lệch hay rớt dòng */
 .hanh-dong-o {
   display: flex;
-  align-items: center;      /* Căn giữa nút theo chiều dọc */
-  justify-content: flex-start; /* Đẩy sát nút về phía tiêu đề */
-  gap: 8px;                 /* Khoảng cách chuẩn giữa các nút */
-  height: 60px;             /* Khớp hoàn hảo với chiều cao tổng thể của dòng */
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 60px;
 }
 
 .hanh-dong-o button {
-  white-space: nowrap;      /* Không cho phép chữ trong nút bị bẻ xuống dòng */
+  white-space: nowrap;
 }
 
 button {

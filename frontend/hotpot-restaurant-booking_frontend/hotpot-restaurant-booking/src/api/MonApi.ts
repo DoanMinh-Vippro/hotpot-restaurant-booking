@@ -3,6 +3,7 @@ import ApiClient from './ApiClient'
 export interface Mon {
   idMon: number
   tenMon: string
+  hinhAnh: string
   donGiaHienTai: number
   giaSauGiam: number
   soTienDuocGiam: number
@@ -10,14 +11,17 @@ export interface Mon {
   idDanhMuc: number
   loaiDanhMuc: string
   trangThai: number
+  trangThaiBan: number
 }
 
 export interface MonRequest {
   idMon?: number
   tenMon: string
+  hinhAnh: string
   donGiaHienTai: number
   idDanhMuc: number
   trangThai: number
+  trangThaiBan: number
 }
 
 class MonApi {
@@ -74,6 +78,14 @@ class MonApi {
   deleteMon(idMon: number) {
     return ApiClient.delete('/deleteMon', {
       params: { idMon },
+    })
+  }
+
+  uploadImage(file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return ApiClient.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
   }
 }

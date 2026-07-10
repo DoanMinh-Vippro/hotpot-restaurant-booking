@@ -13,6 +13,12 @@ defineProps<{
     <p><b>Tên:</b> {{ comboDaChon.tenCombo }}</p>
     <p><b>Giá:</b> {{ comboDaChon.giaCombo.toLocaleString('vi-VN') }} đ</p>
     <p><b>Ảnh:</b> {{ comboDaChon.hinhAnh }}</p>
+    <p>
+      <b>Kho hàng:</b> 
+      <span :class="comboDaChon.trangThaiBan === 1 ? 'chu-xanh' : 'chu-do'">
+        {{ comboDaChon.trangThaiBan === 1 ? 'Còn hàng' : 'Hết hàng' }}
+      </span>
+    </p>
   </div>
 </template>
 
@@ -28,5 +34,15 @@ defineProps<{
 
 h3 {
   color: #f8d46a;
+}
+
+.chu-xanh {
+  color: #52c41a;
+  font-weight: 500;
+}
+
+.chu-do {
+  color: #ff4d4f;
+  font-weight: 500;
 }
 </style>

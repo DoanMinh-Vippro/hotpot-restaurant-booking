@@ -26,7 +26,7 @@ const loadComboGoiY = async () => {
 
   try {
     const res = await ComBoApi.hienThiComBo()
-
+    // Chỉ lấy combo đang kinh doanh (trangThai === 1)
     danhSachCombo.value = (res.data || []).filter((cb: Combo) => cb.trangThai === 1)
   } catch (error) {
     console.error('Không thể tải danh sách combo:', error)
@@ -37,6 +37,12 @@ const loadComboGoiY = async () => {
 
 // chọn hoặc bỏ chọn combo
 const selectCombo = (combo: Combo) => {
+
+  if (combo.trangThaiBan === 0) {
+    alert(`Combo "${combo.tenCombo}" hiện đã hết hàng, vui lòng chọn combo khác!`)
+    return
+  }
+  
   const dsCombo = [...props.modelValue]
 
   const index = dsCombo.findIndex((item) => item.idCombo === combo.idCombo)

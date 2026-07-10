@@ -16,10 +16,9 @@ const emit = defineEmits([
   'add',
   'search',
   'reset',
-  'go-to-category', // Khai báo sự kiện chuyển màn danh mục
+  'go-to-category',
 ])
 
-// Quản lý trạng thái bộ lọc nội bộ
 const searchTenMon = ref('')
 const searchLoaiDanhMuc = ref('')
 
@@ -43,6 +42,7 @@ const xoa = (id: number) => {
 
 <template>
   <div class="khu-vuc-danh-sach">
+    
     <div class="bo-loc-panel">
       <input
         v-model="searchTenMon"
@@ -69,73 +69,83 @@ const xoa = (id: number) => {
           <h2>Danh sách món</h2>
           <p>Quản lý các món ăn hiện có.</p>
         </div>
-
         <button class="nut-phu" type="button" @click="$emit('add')">Thêm món</button>
       </div>
 
       <div v-if="loading" class="trang-thai-tai">Đang tải dữ liệu thực đơn...</div>
 
-      <table v-else>
-        <thead>
-          <tr>
-            <th>Tên món</th>
-            <th>Giá</th>
-            <th>Khuyến mãi</th>
-            <th>Danh mục</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
+      <div v-else class="bang-bao-boc">
+        <table>
+          <thead>
+            <tr>
+              <th>Hình ảnh</th>
+              <th>Tên món</th>
+              <th>Giá</th>
+              <th>Khuyến mãi</th>
+              <th>Danh mục</th>
+              <th>Trạng thái kinh doanh</th>
+              <th>Trạng thái kho</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          <tr
-            v-for="mon in danhSachMon"
-            :key="mon.idMon"
-            :class="{ active: mon.idMon === selectedId }"
-          >
-            <td>{{ mon.tenMon }}</td>
-            <td>
-              <template v-if="mon.soTienDuocGiam > 0">
-                <div class="gia-goc">{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ</div>
+          <tbody>
+            <tr
+              v-for="mon in danhSachMon"
+              :key="mon.idMon"
+            >
+              <td class="o-anh">
+                <img
+                  v-if="mon.hinhAnh"
+                  :src="`http://localhost:8080/uploads/${mon.hinhAnh}`"
+                  class="img-mon"
+                />
+                <span v-else class="chua-co-anh">Không có ảnh</span>
+              </td>
 
-                <div class="gia-giam">{{ Number(mon.giaSauGiam).toLocaleString('vi-VN') }} đ</div>
-              </template>
+              <td class="o-chu-thuong text-dam">{{ mon.tenMon }}</td>
+              
+              <td class="o-chu-thuong">
+                <template v-if="mon.soTienDuocGiam > 0">
+                  <div class="gia-goc">{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ</div>
+                  <div class="gia-giam">{{ Number(mon.giaSauGiam).toLocaleString('vi-VN') }} đ</div>
+                </template>
+                <template v-else>
+                  {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ
+                </template>
+              </td>
+              
+              <td class="o-chu-thuong">{{ mon.tenChuongTrinhGiamGia || '---' }}</td>
+              <td class="o-chu-thuong">{{ mon.loaiDanhMuc }}</td>
 
-              <template v-else>
-                {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ
-              </template>
-            </td>
-            <td>
-              {{ mon.tenChuongTrinhGiamGia }}
-            </td>
-            <td>{{ mon.loaiDanhMuc }}</td>
+              <td class="o-chu-thuong">
+                <span :class="mon.trangThai === 0 ? 'trang-thai-con' : 'trang-thai-ngung'">
+                  {{ mon.trangThai === 0 ? 'Còn bán' : 'Ngưng bán' }}
+                </span>
+              </td>
 
-            <td>
-              <span
-                :class="{
-                  'trang-thai-con': mon.trangThai === 0,
-                  'trang-thai-ngung': mon.trangThai === 1,
-                  'trang-thai-het': mon.trangThai === 2,
-                }"
-              >
-                {{
-                  mon.trangThai === 0 ? 'Còn bán' : mon.trangThai === 1 ? 'Ngưng bán' : 'Tạm hết món'
-                }}
-              </span>
-            </td>
+              <td class="o-chu-thuong">
+                <span :class="(mon.trangThaiBan === 0 || mon.trangThai === 1) ? 'trang-thai-het' : 'trang-thai-con'">
+                  {{ mon.trangThai === 1 ? 'Hết hàng ' : (mon.trangThaiBan === 1 ? 'Còn hàng' : 'Hết hàng') }}
+                </span>
+              </td>
 
-            <td class="hanh-dong">
-              <button class="nut-sua" @click="$emit('edit', mon)">Sửa</button>
-              <button class="nut-xoa" @click="xoa(mon.idMon)">Ngưng bán</button>
-            </td>
-          </tr>
-          <tr v-if="danhSachMon.length === 0">
-            <td colspan="5" style="text-align: center; color: #a0a0a0; padding: 20px">
-              Không tìm thấy món ăn nào phù hợp.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <td>
+                <div class="hanh-dong-o">
+                  <button class="nut-sua" @click="$emit('edit', mon)">Sửa</button>
+                  <button class="nut-xoa" @click="xoa(mon.idMon)">Ngưng bán</button>
+                </div>
+              </td>
+            </tr>
+            
+            <tr v-if="danhSachMon.length === 0">
+              <td colspan="8" style="text-align: center; color: #a0a0a0; padding: 20px">
+                Không tìm thấy món ăn nào phù hợp.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 </template>
@@ -206,20 +216,18 @@ const xoa = (id: number) => {
   border: 1px solid rgba(100, 149, 237, 0.2);
 }
 
-.nut-danh-muc:hover {
-  background: rgba(100, 149, 237, 0.25);
-}
-
 .danh-sach-panel {
   background: rgba(15, 15, 15, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 28px;
   padding: 26px;
+  color: white;
 }
 
 .tieu-de-panel {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
 }
 
@@ -233,91 +241,137 @@ const xoa = (id: number) => {
   margin: 4px 0 0;
 }
 
+.bang-bao-boc {
+  width: 100%;
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  color: white;
 }
 
 th {
   text-align: left;
-  padding: 12px;
+  padding: 14px;
   color: #f8d46a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-weight: 600;
 }
 
 td {
   padding: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+  vertical-align: middle;
 }
 
 tr.active {
   background: rgba(248, 212, 106, 0.06);
 }
 
-.trang-thai-tai {
-  text-align: center;
-  padding: 30px;
-  color: #f8d46a;
+/* ĐỒNG BỘ CSS HIỂN THỊ ẢNH THEO ĐÚNG COMBO */
+.o-anh {
+  height: 60px;
+  width: 60px;
+  padding: 14px;
 }
 
-.hanh-dong {
+img.img-mon {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.chua-co-anh {
+  font-size: 13px;
+  color: #a0a0a0;
+  display: block;
+  line-height: 60px;
+}
+
+.o-chu-thuong {
+  line-height: 60px;
+  white-space: nowrap;
+}
+
+.text-dam {
+  font-weight: 600;
+}
+
+.hanh-dong-o {
   display: flex;
+  align-items: center;
+  justify-content: flex-start;
   gap: 8px;
+  height: 60px;
+}
+
+.hanh-dong-o button {
+  white-space: nowrap;
+}
+
+button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+.nut-phu {
+  background: #f8d46a;
+  color: #1a1410;
+  padding: 10px 16px;
+  font-weight: 600;
+  border-radius: 16px;
 }
 
 .nut-sua {
   background: rgba(248, 212, 106, 0.15);
   color: #f8d46a;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
 .nut-xoa {
   background: rgba(255, 107, 107, 0.15);
   color: #ff6b6b;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
-.nut-phu {
-  border: none;
-  padding: 10px 16px;
-  border-radius: 12px;
-  background: #f8d46a;
-  color: #1a1410;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* CẬP NHẬT: Thêm CSS định dạng màu sắc trạng thái đồng bộ với Combo */
 .trang-thai-con {
-  color: #52c41a; /* Màu xanh lá cây */
+  color: #52c41a;
 }
 
 .trang-thai-ngung {
-  color: #ff4d4f; /* Màu đỏ */
+  color: #ff4d4f;
 }
+
 .trang-thai-het {
-  color: #fa8c16; /* Màu cam hổ phách */
+  color: #fa8c16;
 }
+
 .gia-goc {
   text-decoration: line-through;
   color: #888;
   font-size: 13px;
+  line-height: 20px;
 }
 
 .gia-giam {
   color: #ff4d4f;
   font-weight: 700;
+  line-height: 20px;
 }
 
-@media (max-width: 1200px) {
-  .bo-loc-panel {
-    flex-wrap: wrap;
-  }
+.trang-thai-tai {
+  text-align: center;
+  padding: 30px;
+  color: #f8d46a;
 }
 </style>
