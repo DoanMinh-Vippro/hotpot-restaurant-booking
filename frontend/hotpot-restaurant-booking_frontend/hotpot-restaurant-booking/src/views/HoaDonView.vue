@@ -81,7 +81,6 @@ onMounted(tai_hoa_don)
 <template>
   <main class="trang-hoa-don">
     <header class="tieu-de-hoa-don">
-      <button class="nut-ma" type="button" @click="router.push('/')">Trang chủ</button>
       <div>
         <p class="tieu-le">Quản lý thanh toán</p>
         <h1>Hóa đơn</h1>
@@ -121,11 +120,8 @@ onMounted(tai_hoa_don)
 .trang-hoa-don {
   min-height: 100vh;
   padding: 32px clamp(16px, 4vw, 56px);
-  color: #f7f2e9;
-  background:
-    linear-gradient(rgba(8, 8, 8, 0.92), rgba(8, 8, 8, 0.96)),
-    url('https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1800&q=80')
-      center / cover fixed;
+  color: #5f3d22;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   font-family:
     Inter,
     ui-sans-serif,
@@ -157,7 +153,7 @@ onMounted(tai_hoa_don)
 }
 .tieu-le {
   margin: 0 0 8px;
-  color: #d7b46a;
+  color: #8b5e34;
   font-size: 0.75rem;
   font-weight: 700;
   text-align: center;
@@ -182,12 +178,13 @@ onMounted(tai_hoa_don)
   cursor: pointer;
 }
 .nut-chinh {
-  background: #d7b46a;
-  color: #16110a;
+  background: #d8a85c;
+  color: #3d2814;
 }
 .nut-phu,
 .nut-ma {
-  background: rgba(255, 255, 255, 0.06);
+  background: #fff6df;
+  color: #8b5e34;
 }
 .luoi-tom-tat {
   display: grid;
@@ -196,16 +193,17 @@ onMounted(tai_hoa_don)
   margin-bottom: 18px;
 }
 .chi-muc-tom-tat {
-  border: 1px solid rgba(215, 180, 106, 0.2);
-  background: rgba(14, 14, 14, 0.88);
+  border: 1px solid #e6d2aa;
+  background: rgba(255, 248, 234, 0.95);
   backdrop-filter: blur(10px);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 18px;
+  box-shadow: 0 8px 20px rgba(103, 72, 32, 0.06);
 }
 .chi-muc-tom-tat span {
   display: block;
   margin-bottom: 6px;
-  color: #b7ad9c;
+  color: #8f6b46;
   font-size: 0.78rem;
 }
 .chi-muc-tom-tat strong {

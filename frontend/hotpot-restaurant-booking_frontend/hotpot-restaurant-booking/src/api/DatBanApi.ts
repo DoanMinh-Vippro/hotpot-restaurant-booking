@@ -1,25 +1,29 @@
-import ApiClient from "./ApiClient"
-    const DatBanApi = {
-        getAll(){
-            return ApiClient.get("/api/dat-bans")
-        },
+import ApiClient from './ApiClient'
+import type { DTOCheckBanResponse } from '@/types/DatBanType'
 
-        findById(id: number){
-            return ApiClient.get(`/api/dat-bans/${id}`)
-        },
+const DatBanApi = {
+  getAll() {
+    return ApiClient.get('/api/dat-bans')
+  },
 
-        add(data: any){
-            return ApiClient.post("/api/dat-bans",data)
-        },
+  findById(id: number) {
+    return ApiClient.get(`/api/dat-bans/${id}`)
+  },
 
-        update(id: number, data: any){
-            return ApiClient.put(`/api/dat-bans/${id}`,data)
-        },
+  add(data: any) {
+    return ApiClient.post('/api/dat-bans', data)
+  },
 
-        delete(id: number){
-            return ApiClient.delete(`/api/dat-bans/${id}`)
-        }
+  update(id: number, data: any) {
+    return ApiClient.put(`/api/dat-bans/${id}`, data)
+  },
 
-    }
+  delete(id: number) {
+    return ApiClient.delete(`/api/dat-bans/${id}`)
+  },
+  checkBan(data: any) {
+    return ApiClient.post<DTOCheckBanResponse>('/api/dat-bans/check-ban', data)
+  },
+}
 
-        export default DatBanApi;
+export default DatBanApi

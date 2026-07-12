@@ -142,56 +142,46 @@ onMounted(() => {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-
   z-index: 9999;
 }
 
 .popup {
   width: 500px;
   max-width: 95%;
-
-  background: #0f0f11;
-
+  background: #fffaf1;
   border-radius: 14px;
-  border: 1px solid rgba(212, 175, 55, 0.25);
-
+  border: 1px solid #e6d2aa;
   overflow: hidden;
-
-  box-shadow: 0 0 25px rgba(212, 175, 55, 0.18);
+  box-shadow: 0 16px 40px rgba(103, 72, 32, 0.16);
 }
 
 .popup-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
   padding: 18px 22px;
-
-  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  border-bottom: 1px solid #e6d2aa;
 }
 
 .popup-header h2 {
   margin: 0;
-  color: #ffd86b;
+  color: #8b5e34;
 }
 
 .btn-close {
   background: transparent;
   border: none;
-
-  color: #ccc;
+  color: #8f6b46;
   font-size: 22px;
-
   cursor: pointer;
 }
 
 .btn-close:hover {
-  color: white;
+  color: #5f3d22;
 }
 
 .popup-body {
@@ -205,70 +195,56 @@ onMounted(() => {
 }
 
 .form-group label {
-  color: #ffd86b;
+  color: #8b5e34;
   margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .form-group input,
 .form-group select {
   padding: 11px 12px;
-
-  background: #18181b;
-  color: white;
-
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: #fffdf8;
+  color: #5f3d22;
+  border: 1px solid #e6d2aa;
   border-radius: 8px;
-
   outline: none;
-
   transition: 0.25s;
 }
 
 .form-group input:focus,
 .form-group select:focus {
-  border-color: #ffd86b;
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
+  border-color: #d8a85c;
+  box-shadow: 0 0 10px rgba(216, 168, 92, 0.12);
 }
 
 .popup-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-
   padding: 18px 22px;
-
-  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  border-top: 1px solid #e6d2aa;
 }
 
 .btn {
   padding: 10px 18px;
-
   border: none;
   border-radius: 8px;
-
   cursor: pointer;
-
   font-weight: 600;
-
   transition: 0.25s;
 }
 
 .btn-cancel {
-  background: #444;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background: #555;
+  background: #fff3d3;
+  color: #8b5e34;
 }
 
 .btn-save {
-  background: #d4af37;
-  color: #111;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .btn-save:hover {
-  background: #e2bf55;
+  background: #e1bb6b;
 }
 </style>

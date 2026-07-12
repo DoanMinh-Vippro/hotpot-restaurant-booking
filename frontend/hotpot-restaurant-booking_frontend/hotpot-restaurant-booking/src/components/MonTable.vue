@@ -158,20 +158,21 @@ const xoa = (id: number) => {
 }
 
 .bo-loc-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 20px;
   padding: 16px 20px;
   display: flex;
   gap: 12px;
   align-items: center;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .bo-loc-panel input,
 .bo-loc-panel select {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f5f5f5;
+  background: #fffdf8;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   padding: 10px 14px;
   border-radius: 12px;
   outline: none;
@@ -180,12 +181,12 @@ const xoa = (id: number) => {
 
 .bo-loc-panel input:focus,
 .bo-loc-panel select:focus {
-  border-color: #f8d46a;
+  border-color: #d8a85c;
 }
 
 .bo-loc-panel select option {
-  background: #151515;
-  color: #fff;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 
 .nut-tim,
@@ -201,27 +202,33 @@ const xoa = (id: number) => {
 }
 
 .nut-tim {
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .nut-lam-moi {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .nut-danh-muc {
-  background: rgba(100, 149, 237, 0.15);
-  color: #6495ed;
-  border: 1px solid rgba(100, 149, 237, 0.2);
+  background: #eef4ff;
+  color: #345fb0;
+  border: 1px solid #cddaf7;
+}
+
+.nut-danh-muc:hover {
+  background: #e1ebff;
 }
 
 .danh-sach-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 28px;
-  padding: 26px;
-  color: white;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
+
 }
 
 .tieu-de-panel {
@@ -232,12 +239,12 @@ const xoa = (id: number) => {
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin: 0;
 }
 
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
   margin: 4px 0 0;
 }
 
@@ -249,25 +256,35 @@ const xoa = (id: number) => {
 table {
   width: 100%;
   border-collapse: collapse;
+
+  color: #5f3d22;
+
 }
 
 th {
   text-align: left;
-  padding: 14px;
-  color: #f8d46a;
+
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   font-weight: 600;
+
+  padding: 12px;
+  color: #8b5e34;
+
 }
 
 td {
   padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+
   text-align: left;
   vertical-align: middle;
+
+  border-bottom: 1px solid #efe0c1;
+
 }
 
 tr.active {
-  background: rgba(248, 212, 106, 0.06);
+  background: rgba(216, 168, 92, 0.14);
 }
 
 /* ĐỒNG BỘ CSS HIỂN THỊ ẢNH THEO ĐÚNG COMBO */
@@ -372,6 +389,8 @@ button:hover {
 .trang-thai-tai {
   text-align: center;
   padding: 30px;
-  color: #f8d46a;
+  color: #8b5e34;
 }
+
 </style>
+

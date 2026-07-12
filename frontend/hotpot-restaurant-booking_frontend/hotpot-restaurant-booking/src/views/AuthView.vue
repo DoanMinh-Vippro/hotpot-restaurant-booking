@@ -32,8 +32,12 @@ const handleSubmit = async () => {
           }
         : undefined,
     )
+
+    const roleName = String(res.data?.role || '').toUpperCase()
+    const isAdminRole = authStore.isAdmin || ['ADMIN', 'STAFF', 'ROLE_ADMIN', 'ROLE_STAFF'].includes(roleName)
+
     alert('Đăng nhập thành công!')
-    router.push('/')
+    router.replace(isAdminRole ? '/dat-ban-quan-ly' : '/')
   } catch (error: any) {
     console.error(error)
     const errMsg = error?.response?.data?.message || 'Đăng nhập thất bại, vui lòng kiểm tra lại tài khoản!'

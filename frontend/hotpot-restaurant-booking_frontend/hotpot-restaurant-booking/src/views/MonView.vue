@@ -179,12 +179,17 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
 .trang-quan-ly-mon {
   display: flex;
-  gap: 24px;
-  padding: 24px;
-  background: #0a0a0a;
+}
+.container {
   min-height: 100vh;
+  padding: 20px 0 32px;
+  background: transparent;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 24px;
   box-sizing: border-box;
 }
 

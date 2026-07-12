@@ -21,7 +21,16 @@ public interface DatBanRepository extends JpaRepository<DatBan,Integer> {
     @Query("SELECT COALESCE(SUM(d.soTienCoc), 0) FROM DatBan d " +
             "WHERE d.trangThaiCoc = com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc.DA_COC")
     BigDecimal sumTongTienCocDaThu();
+
+    //===============================================================
     List<DatBan> findByKhachHang_IdKhachHang(Integer id);
 
     List<DatBan> findByTrangThai(TrangThaiDatBan trangThai);
+
+
+//    List<DatBan> findByTrangThaiIn(List<TrangThaiDatBan> trangThais);
+
+    List<DatBan> findByTrangThaiIn(List<TrangThaiDatBan> trangThai);
+
+
 }

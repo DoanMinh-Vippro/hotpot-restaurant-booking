@@ -35,7 +35,7 @@ public class DatBanQuanLyController {
     }
 
     @PutMapping("{id}")
-    public ResponseEntity<DTODatBanQuanLyResponse> update(@PathVariable Integer id, @Valid @RequestBody DTODatBanQuanLyRequest request) {
+    public ResponseEntity<DTODatBanQuanLyResponse> update(@PathVariable Integer id, @RequestBody DTODatBanQuanLyRequest request) {
         return ResponseEntity.status(HttpStatus.OK).body(datBanQuanLyService.update(id, request));
     }
 

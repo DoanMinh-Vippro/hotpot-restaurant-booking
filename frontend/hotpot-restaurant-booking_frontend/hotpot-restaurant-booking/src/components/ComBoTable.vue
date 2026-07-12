@@ -125,19 +125,20 @@ const xoa = (id: number) => {
 }
 
 .bo-loc-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 20px;
   padding: 16px 20px;
   display: flex;
   gap: 12px;
   align-items: center;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .bo-loc-panel input {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f5f5f5;
+  background: #fffdf8;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   padding: 10px 14px;
   border-radius: 12px;
   outline: none;
@@ -146,7 +147,7 @@ const xoa = (id: number) => {
 }
 
 .bo-loc-panel input:focus {
-  border-color: #f8d46a;
+  border-color: #d8a85c;
 }
 
 .nut-tim, .nut-lam-moi {
@@ -159,21 +160,23 @@ const xoa = (id: number) => {
 }
 
 .nut-tim {
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .nut-lam-moi {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .danh-sach-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 28px;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  border-radius: 24px;
   padding: 26px;
-  color: white;
+  color: #5f3d22;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .tieu-de-panel {
@@ -184,7 +187,7 @@ const xoa = (id: number) => {
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
 }
 
 .bang-bao-boc {
@@ -198,16 +201,16 @@ table {
 }
 
 th {
-  color: #f8d46a;
+  color: #8b5e34;
   padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, .06);
+  border-bottom: 1px solid #efe0c1;
   text-align: left;
   font-weight: 600;
 }
 
 td {
   padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, .06);
+  border-bottom: 1px solid #efe0c1;
   text-align: left;
   vertical-align: middle;
 }
@@ -237,7 +240,7 @@ img.img-combo {
 
 .chua-co-anh {
   font-size: 13px;
-  color: #a0a0a0;
+  color: #8f6b46;
   display: block;
   line-height: 60px;
 }
@@ -268,36 +271,36 @@ button:hover {
 }
 
 .tieu-de-panel button {
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
   padding: 10px 16px;
   font-weight: 600;
   border-radius: 16px;
 }
 
 .nut-xem-ct {
-  background: rgba(100, 149, 237, 0.15);
-  color: #6495ed;
+  background: #eef4ff;
+  color: #345fb0;
 }
 
 .nut-sua {
-  background: rgba(248, 212, 106, 0.15);
-  color: #f8d46a;
+  background: #fff3d3;
+  color: #8b5e34;
 }
 
 .nut-xoa {
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
+  background: #fff0eb;
+  color: #b84f3f;
 }
 
 .trang-thai-con {
-  color: #52c41a;
+  color: #2e7d32;
 }
 
 .trang-thai-ngung {
-  color: #ff4d4f;
+  color: #c94f3a;
 }
 .trang-thai-het {
-  color: #fa8c16; /* Màu cam hổ phách */
+  color: #c77b1a;
 }
 </style>

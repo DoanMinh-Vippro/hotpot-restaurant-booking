@@ -1,23 +1,14 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
-import com.example.hotpotrestaurantbooking_backend.dto.DTOChiTietDatBanComboRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOChiTietDatBanComboResponse;
-import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
-import com.example.hotpotrestaurantbooking_backend.entity.ChiTietDatBanCombo;
-import com.example.hotpotrestaurantbooking_backend.entity.Combo;
-import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
-import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
-import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
-import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
+import com.example.hotpotrestaurantbooking_backend.dto.*;
+import com.example.hotpotrestaurantbooking_backend.entity.*;
+import com.example.hotpotrestaurantbooking_backend.enums.*;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
-import com.example.hotpotrestaurantbooking_backend.repository.ChiTietDatBanComboRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
-import com.example.hotpotrestaurantbooking_backend.repository.KhachHangRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,7 +17,10 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -36,25 +30,192 @@ public class DatBanServiceImpl implements DatBanService {
     private final ModelMapper mapper;
     private final ComboRepository comboRepository;
     private final ChiTietDatBanComboRepository chiTietDatBanComboRepository;
+    private final ChiTietDatBanBanRepository chiTietDatBanBanRepository;
     private final KhachHangRepository khachHangRepository;
-
+    private final BanRepository banRepository;
+    private int tongSucChuaTotNhat;
     private static final String COMBO_NULL_MSG = "Đơn đặt bàn này không chọn combo đặt trước";
 
-    private void setComboInfo(DatBan db, DTODatBanResponse res) {
 
-        List<DTOChiTietDatBanComboResponse> danhSachCombo =
-                chiTietDatBanComboRepository.findByDatBan_IdDatBan(db.getIdDatBan())
-                        .stream()
-                        .map(ct -> new DTOChiTietDatBanComboResponse(
-                                ct.getCombo().getIdCombo(),
-                                ct.getCombo().getTenCombo(),
-                                ct.getCombo().getGiaCombo(),
-                                ct.getSoLuong()
-                        ))
-                        .toList();
+    private void setComboInfo(DatBan db, DTODatBanResponse res) {
+        List<DTOChiTietDatBanComboResponse> danhSachCombo = List.of();
+
+        try {
+            danhSachCombo = chiTietDatBanComboRepository.findByDatBan_IdDatBan(db.getIdDatBan())
+                    .stream()
+                    .map(ct -> new DTOChiTietDatBanComboResponse(
+                            ct.getCombo() != null ? ct.getCombo().getIdCombo() : null,
+                            ct.getCombo() != null ? ct.getCombo().getTenCombo() : null,
+                            ct.getCombo() != null ? ct.getCombo().getGiaCombo() : null,
+                            ct.getSoLuong()
+                    ))
+                    .toList();
+        } catch (DataAccessException ex) {
+            danhSachCombo = List.of();
+        }
 
         res.setDsCombo(danhSachCombo);
     }
+
+    private void validateDsBan(List<Integer> dsBan, LocalDateTime thoiGianDenDuKien) {
+
+        List<DatBan> dsDatBan = datBanRepository.findByTrangThaiIn(
+                List.of(TrangThaiDatBan.CHO_XAC_NHAN, TrangThaiDatBan.DA_XAC_NHAN)
+        );
+
+        for (Integer idBan : dsBan) {
+            Ban ban = banRepository.findById(idBan)
+                    .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn"));
+
+            if (ban.getTrangThai() == TrangThaiBan.BAO_TRI) {
+                throw new RuntimeException("Bàn " + ban.getTenBan() + " đang bảo trì.");
+            }
+
+            if (banBiTrungLich(ban, thoiGianDenDuKien, dsDatBan)) {
+                throw new RuntimeException("Bàn " + ban.getTenBan() + " vừa được khách khác đặt."
+                );
+            }
+        }
+    }
+
+    private List<Ban> timDanhSachBanTrong(LocalDateTime thoiGianDenDuKien,
+                                          Integer soNguoi) {
+
+        List<Ban> dsBan = banRepository.findAll();
+
+        List<DatBan> dsDatBan = datBanRepository.findByTrangThaiIn(
+                List.of(
+                        TrangThaiDatBan.CHO_XAC_NHAN,
+                        TrangThaiDatBan.DA_XAC_NHAN
+                )
+        );
+
+        List<Ban> ketQua = new ArrayList<>();
+
+        for (Ban ban : dsBan) {
+
+            // Bàn đang bảo trì
+            if (ban.getTrangThai() == TrangThaiBan.BAO_TRI) {
+                continue;
+            }
+
+            // Không đủ sức chứa
+            if (ban.getLoaiBan().getSucChua() < soNguoi) {
+                continue;
+            }
+
+            // Bị trùng lịch
+            if (banBiTrungLich(ban, thoiGianDenDuKien, dsDatBan)) {
+                continue;
+            }
+
+            ketQua.add(ban);
+        }
+
+        return ketQua;
+    }
+
+
+    private boolean banBiTrungLich(Ban ban, LocalDateTime thoiGianDenDuKien, List<DatBan> dsDatBan) {
+        LocalDateTime ketThucMoi = thoiGianDenDuKien.plusHours(2);
+
+        for (DatBan datBan : dsDatBan) {
+            boolean trungBan = datBan.getChiTietDatBanBans()
+                    .stream()
+                    .anyMatch(ct -> ct.getBan().getIdBan().equals(ban.getIdBan()));
+
+            if (!trungBan) {
+                continue;
+            }
+            LocalDateTime batDauCu = datBan.getThoiGianDenDuKien();
+            LocalDateTime ketThucCu = batDauCu.plusHours(2);
+            if (thoiGianDenDuKien.isBefore(ketThucCu)
+                    && ketThucMoi.isAfter(batDauCu)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    private List<Ban> timBanPhuHop(LocalDateTime thoiGianDenDuKien, Integer soNguoi) {
+        List<Ban> dsBanTrong = timDanhSachBanTrong(thoiGianDenDuKien, soNguoi);
+        if (dsBanTrong.isEmpty()) {
+            return List.of();
+        }
+        dsBanTrong.sort(Comparator.comparingInt(b -> b.getLoaiBan().getSucChua()));
+        return List.of(dsBanTrong.get(0));
+    }
+
+    private void timToHopDeQuy(List<Ban> dsBan,
+                               Integer soNguoi,
+                               int index,
+                               List<Ban> ketQua,
+                               List<Ban> hienTai,
+                               int tongSucChua) {
+        // Đã đủ sức chứa
+        if (tongSucChua >= soNguoi) {
+            if (ketQua.isEmpty()) {
+                ketQua.addAll(new ArrayList<>(hienTai));
+                tongSucChuaTotNhat = tongSucChua;
+            }
+            else if (hienTai.size() < ketQua.size()) {
+                ketQua.clear();
+                ketQua.addAll(new ArrayList<>(hienTai));
+                tongSucChuaTotNhat = tongSucChua;
+            }
+            else if (hienTai.size() == ketQua.size() && tongSucChua < tongSucChuaTotNhat) {
+                ketQua.clear();
+                ketQua.addAll(new ArrayList<>(hienTai));
+                tongSucChuaTotNhat = tongSucChua;
+            }
+            return;
+        }
+        // Duyệt hết danh sách
+        if (index >= dsBan.size()) {
+            return;
+        }
+        for (int i = index; i < dsBan.size(); i++) {
+            Ban ban = dsBan.get(i);
+            hienTai.add(ban);
+            timToHopDeQuy(dsBan, soNguoi, i + 1, ketQua, hienTai, tongSucChua + ban.getLoaiBan().getSucChua());
+            hienTai.remove(hienTai.size() - 1);
+        }
+    }
+
+    private List<Ban> timToHopBan(LocalDateTime thoiGianDenDuKien, Integer soNguoi) {
+
+        List<Ban> dsBan = timDanhSachBanTrong(
+                thoiGianDenDuKien,
+                1
+        );
+
+        List<Ban> ketQua = new ArrayList<>();
+
+        tongSucChuaTotNhat = Integer.MAX_VALUE;
+        dsBan.sort(Comparator
+                        .comparing((Ban b) -> b.getKhuVuc().getIdKhuVuc())
+                        .thenComparingInt(b -> b.getLoaiBan().getSucChua()));
+
+        timToHopDeQuy(dsBan, soNguoi, 0, ketQua, new ArrayList<>(), 0);
+        return ketQua;
+    }
+
+
+    private List<DTOBanResponse> convertBanResponse(List<Ban> dsBan) {
+        return dsBan.stream()
+                .map(ban -> new DTOBanResponse(
+                        ban.getIdBan(),
+                        ban.getTenBan(),
+                        ban.getLoaiBan(),
+                        ban.getKhuVuc() != null ? ban.getKhuVuc().getIdKhuVuc() : null,
+                        ban.getKhuVuc() != null ? ban.getKhuVuc().getTenKhuVuc() : null,
+                        ban.getTrangThai()
+                ))
+                .toList();
+    }
+        //==========================================================================================
 
     @Override
     public List<DTODatBanResponse> getAll() {
@@ -91,75 +252,44 @@ public class DatBanServiceImpl implements DatBanService {
 
         d.setIdDatBan(null);
 
-        // Tránh ModelMapper map nhầm Ban cũ gây lỗi FK id_ban khi insert
-        d.setBan(null);
-
         d.setKhachHang(khachHang);
 
         d.setGioDat(Time.valueOf(LocalTime.now()));
         d.setNgayDat(LocalDate.now());
 
         d.setTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
-        d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
 
-        if (d.getSoTienCoc() == null) {
-            d.setSoTienCoc(BigDecimal.ZERO);
+        if (d.getSoTienCoc().compareTo(BigDecimal.ZERO) == 0) {
+            d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
+            d.setPhuongThucThanhToan(PhuongThucThanhToan.CHUA_THANH_TOAN);
         }
 
-        // ============================================================
-        // LƯU ĐẶT BÀN TRƯỚC
-        //
-        // Phải save DatBan trước để sinh id_dat_ban.
-        // Sau đó mới có thể lưu danh sách combo vào bảng trung gian
-        // ChiTietDatBanCombo.
-        //
-        // Thiết kế mới:
-        //
-        // DatBan
-        //      |
-        //      | 1 - N
-        //      |
-        // ChiTietDatBanCombo
-        //      |
-        //      | N - 1
-        //      |
-        // Combo
-        //
-        // Mục tiêu:
-        // - Một đơn đặt bàn chọn nhiều combo.
-        // - Mỗi combo có số lượng riêng.
-        // - Đồng nhất mô hình với HoaDon - HoaDonChiTiet.
-        // ============================================================
-
+        validateDsBan(datBan.getDsBan(), datBan.getThoiGianDenDuKien());
         datBanRepository.save(d);
+        if(datBan.getDsBan() != null && !datBan.getDsBan().isEmpty()) {
+            for (Integer idBan : datBan.getDsBan()) {
+                Ban ban = banRepository.findById(idBan)
+                        .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn"));
 
-        // ============================================================
-        // Lưu danh sách combo khách đã chọn.
-        //
-        // Không dùng ModelMapper vì dsCombo chỉ là DTO.
-        // Chủ động lấy Combo từ DB để:
-        // - Kiểm tra combo tồn tại.
-        // - Lưu đúng số lượng.
-        // - Tránh các lỗi mapping ngoài ý muốn.
-        // ============================================================
+                ChiTietDatBanBan chiTietBan = new ChiTietDatBanBan();
+                chiTietBan.setDatBan(d);
+                chiTietBan.setBan(ban);
+                chiTietDatBanBanRepository.save(chiTietBan);
+            }
+        }
 
         if (datBan.getDsCombo() != null && !datBan.getDsCombo().isEmpty()) {
-
             for (DTOChiTietDatBanComboRequest item: datBan.getDsCombo()) {
-
                 Combo combo = comboRepository.findById(item.getIdCombo())
-                        .orElseThrow(() ->
-                                new CustomResourceNotFoundException("Combo không tồn tại"));
+                        .orElseThrow(() -> new CustomResourceNotFoundException("Combo không tồn tại"));
 
                 ChiTietDatBanCombo chiTiet = new ChiTietDatBanCombo();
-
                 chiTiet.setDatBan(d);
                 chiTiet.setCombo(combo);
                 chiTiet.setSoLuong(item.getSoLuong());
 
                 chiTietDatBanComboRepository.save(chiTiet);
             }
-
         } else {
             // Không chọn combo thì không cần tiền cọc
             d.setSoTienCoc(BigDecimal.ZERO);
@@ -167,7 +297,6 @@ public class DatBanServiceImpl implements DatBanService {
         }
 
         DTODatBanResponse res = mapper.map(d, DTODatBanResponse.class);
-
         setComboInfo(d, res);
 
         return res;
@@ -252,7 +381,6 @@ public class DatBanServiceImpl implements DatBanService {
                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khách hàng"));
 
         d.setIdDatBan(null);
-        d.setBan(null);
         d.setKhachHang(khachHang);
 
         d.setGioDat(Time.valueOf(LocalTime.now()));
@@ -265,8 +393,20 @@ public class DatBanServiceImpl implements DatBanService {
             d.setSoTienCoc(BigDecimal.ZERO);
         }
 
+        validateDsBan(datBan.getDsBan(), datBan.getThoiGianDenDuKien());
         // Lưu đơn đặt bàn trước để có id_dat_ban
         datBanRepository.save(d);
+        if (datBan.getDsBan() != null && !datBan.getDsBan().isEmpty()) {
+            for (Integer idBan : datBan.getDsBan()) {
+                Ban ban = banRepository.findById(idBan)
+                        .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn"));
+
+                ChiTietDatBanBan chiTietBan = new ChiTietDatBanBan();
+                chiTietBan.setDatBan(d);
+                chiTietBan.setBan(ban);
+                chiTietDatBanBanRepository.save(chiTietBan);
+            }
+        }
 
         // Sau khi DatBan đã được lưu mới có thể lưu các combo vào bảng trung gian
         if (datBan.getDsCombo() != null && !datBan.getDsCombo().isEmpty()) {
@@ -288,6 +428,98 @@ public class DatBanServiceImpl implements DatBanService {
         }
 
         return d;
+    }
+
+
+    @Override
+    public DTOCheckBanResponse checkBan(DTOCheckBanRequest request) {
+
+        DTOCheckBanResponse response = new DTOCheckBanResponse();
+
+
+        // 1. Ưu tiên tìm 1 bàn đủ sức chứa
+        List<Ban> dsBanDon = timBanPhuHop(
+                request.getThoiGianDenDuKien(),
+                request.getSoNguoi()
+        );
+
+
+        if (!dsBanDon.isEmpty()) {
+
+            response.setTrangThai(
+                    TrangThaiCheckBan.CO_BAN_DON.name()
+            );
+
+            response.setMessage(
+                    "Nhà hàng còn bàn phù hợp"
+            );
+
+            response.setCanGhep(false);
+
+            response.setTongSucChua(
+                    dsBanDon.stream()
+                            .mapToInt(b -> b.getLoaiBan().getSucChua())
+                            .sum()
+            );
+
+            response.setDsBan(
+                    convertBanResponse(dsBanDon)
+            );
+
+            return response;
+        }
+
+
+        // 2. Không có bàn đơn -> thử ghép bàn
+        List<Ban> dsBanGhep = timToHopBan(
+                request.getThoiGianDenDuKien(),
+                request.getSoNguoi()
+        );
+
+
+        if (!dsBanGhep.isEmpty()) {
+
+            response.setTrangThai(
+                    TrangThaiCheckBan.CAN_GHEP.name()
+            );
+
+            response.setMessage(
+                    "Cần ghép nhiều bàn để phục vụ"
+            );
+
+            response.setCanGhep(true);
+
+            response.setTongSucChua(
+                    dsBanGhep.stream()
+                            .mapToInt(b -> b.getLoaiBan().getSucChua())
+                            .sum()
+            );
+
+            response.setDsBan(
+                    convertBanResponse(dsBanGhep)
+            );
+
+            return response;
+        }
+
+
+        // 3. Không đủ sức chứa hoặc không còn bàn
+        response.setTrangThai(
+                TrangThaiCheckBan.KHONG_CO_BAN.name()
+        );
+
+        response.setMessage(
+                "Nhà hàng hiện không đủ sức chứa"
+        );
+
+        response.setCanGhep(false);
+
+        response.setTongSucChua(0);
+
+        response.setDsBan(List.of());
+
+
+        return response;
     }
 
 

@@ -13,6 +13,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -48,23 +49,34 @@ public class BanServiceImplement implements BanService {
                 })
                 .orElseThrow(()-> new CustomResourceNotFoundException("khong tim thay id: " + id));
     }
+//========================================================================
+private int getNextSoThuTu(KhuVuc khuVuc) { //tạo mã số của tên bàn
+    return banRepository.findByKhuVuc_IdKhuVuc(khuVuc.getIdKhuVuc())
+            .stream()
+            .map(Ban::getTenBan)
+            .filter(Objects::nonNull)
+            .filter(name -> name.startsWith(khuVuc.getMaKhuVuc()))
+            .map(name -> name.substring(khuVuc.getMaKhuVuc().length()))
+            .mapToInt(Integer::parseInt)
+            .max()
+            .orElse(0) + 1;
+}
 
     @Override
     public DTOBanResponse add(DTOBanRequest request) {
-        Ban b = new Ban();
-        b.setLoaiBan(request.getLoaiBan());
-        b.setTrangThai(request.getTrangThai());
 
-        KhuVuc k = khuVucRepository.findById(request.getIdKhuVuc()).orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay khu vuc"));
+        KhuVuc khuVuc = khuVucRepository.findById(request.getIdKhuVuc())
+                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy khu vực"));
+        Ban ban = new Ban();
+        ban.setLoaiBan(request.getLoaiBan());
+        ban.setTrangThai(request.getTrangThai());
+        ban.setKhuVuc(khuVuc);
 
-        b.setKhuVuc(k);
-        banRepository.save(b);
-        b.setTenBan("B"+b.getIdBan());
-        banRepository.save(b);
-        DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
-        response.setTenKhuVuc(
-                b.getKhuVuc().getTenKhuVuc()
-        );
+        int stt = getNextSoThuTu(khuVuc);
+        ban.setTenBan(khuVuc.getMaKhuVuc() + stt);
+        banRepository.save(ban);
+        DTOBanResponse response = mapper.map(ban, DTOBanResponse.class);
+        response.setTenKhuVuc(khuVuc.getTenKhuVuc());
         return response;
     }
 

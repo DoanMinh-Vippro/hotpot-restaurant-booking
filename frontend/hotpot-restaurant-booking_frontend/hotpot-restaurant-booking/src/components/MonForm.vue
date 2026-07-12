@@ -259,7 +259,7 @@ defineExpose({
 
 <style scoped>
 .bieu-mau-panel {
-  background: rgba(15, 15, 15, 0.94);
+  background: #fff8ea;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 28px;
   padding: 26px;
@@ -273,6 +273,26 @@ defineExpose({
 
 .tieu-de-panel p {
   color: #c7c7c7;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
+}
+
+.tieu-de-panel {
+  margin-bottom: 18px;
+}
+
+.tieu-de-panel h2 {
+  color: #8b5e34;
+  margin: 0 0 10px;
+}
+
+.tieu-de-panel p {
+  margin: 0;
+  color: #8f6b46;
+
 }
 
 .luoi-bieu-mau {
@@ -286,18 +306,28 @@ defineExpose({
 }
 
 label {
-  color: #d8d8d8;
+  color: #6b4728;
   margin-bottom: 6px;
+  font-weight: 600;
 }
 
 input,
 select {
+
   margin-top: 6px;
-  border: 1px solid rgba(255,255,255,.08);
+  /* border: 1px solid rgba(255,255,255,.08);
   background: rgba(255,255,255,.04);
   color: white;
   border-radius: 16px;
-  padding: 14px 16px;
+  padding: 14px 16px; */
+
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
+  border-radius: 14px;
+  padding: 12px 14px;
+  width: 100%;
+  box-sizing: border-box;
   outline: none;
   box-sizing: border-box;
   width: 100%;
@@ -305,7 +335,7 @@ select {
 
 input:focus,
 select:focus {
-  border-color: #f8d46a;
+  border-color: #d8a85c;
 }
 
 .input-file {
@@ -343,6 +373,11 @@ select:focus {
   object-fit: cover;
   border-radius: 12px;
 }
+select option {
+  background: #fffdf8;
+  color: #5f3d22;
+
+}
 
 .nhom-nut {
   margin-top: 18px;
@@ -351,11 +386,11 @@ select:focus {
 .nut-chinh {
   width: 100%;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 12px;
-  background: #f8d46a;
-  color: #1a1410;
-  font-weight: 600;
+  background: #d8a85c;
+  color: #3d2814;
+  font-weight: 700;
   cursor: pointer;
 }
 select option {
@@ -364,14 +399,14 @@ select option {
 }
 
 .error-text {
-  color: #ff6b6b;
+  color: #c94f3a;
   font-size: 13px;
   margin-top: 6px;
   margin-left: 8px;
 }
 
 .is-invalid {
-  border: 1px solid #ff6b6b !important;
+  border: 1px solid #c94f3a !important;
   background: rgba(255, 107, 107, 0.05) !important;
 }
 

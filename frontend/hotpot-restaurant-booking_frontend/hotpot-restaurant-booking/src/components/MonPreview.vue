@@ -56,34 +56,18 @@ defineProps<{
 <style scoped>
 .hop-xem-truoc {
   margin-top: 18px;
-  padding: 18px;
-  border-radius: 20px;
-  background: rgba(248, 212, 106, 0.05);
-  border: 1px solid rgba(248, 212, 106, 0.12);
-  color: #d8d8d8;
+  padding: 16px;
+  border-radius: 14px;
+  background: #fff8ea;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
 }
 
 .hop-xem-truoc h3 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin-top: 0;
   margin-bottom: 14px;
 }
-
-/* .khung-anh-preview-lon {
-  width: 100%;
-  height: 190px;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #141414;
-  margin-bottom: 16px;
-}
-
-.khung-anh-preview-lon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-} */
 
 .chi-tiet-thong-tin p {
   margin: 10px 0;
@@ -92,7 +76,7 @@ defineProps<{
 }
 
 .gia-tri-highlight {
-  color: #f8d46a;
+  color: #8b5e34;
   font-weight: 600;
   margin-left: 6px;
 }
@@ -104,11 +88,12 @@ defineProps<{
 
 .mau-con-hang {
   color: #52c41a;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .mau-het-hang {
-  color: #fa8c16;
-  font-weight: 600;
+  color: #ff4d4f;
+  font-weight: 500;
 }
+
 </style>

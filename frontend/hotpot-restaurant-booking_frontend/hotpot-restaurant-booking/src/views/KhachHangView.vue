@@ -390,28 +390,24 @@ const formatDateTime = (dateTimeStr: string) => {
 <style scoped>
 .khach-hang-page {
   padding: 20px;
-  background-color: #121212;
+  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   min-height: 100vh;
   font-family: Arial, sans-serif;
-  color: #ffffff;
+  color: #5f3d22;
 }
-
-/* THÊM MỚI: Flexbox CSS cho vùng header của trang */
 .page-header-wrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 5px;
 }
-
-/* THÊM MỚI: Định dạng nút bấm Quay về trang chủ */
 .btn-back-home {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #1e1e1e;
+  background: linear-gradient(135deg, #4b7c45, #6d9b5d);
   color: #ffffff;
-  border: 1px solid #444;
+  border: 1px solid #4b7c45;
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 13px;
@@ -419,159 +415,129 @@ const formatDateTime = (dateTimeStr: string) => {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .btn-back-home:hover {
-  background-color: #2a2a2a;
-  border-color: #ffc107;
-  color: #ffc107;
+  background: linear-gradient(135deg, #3f693b, #5a8550);
+  border-color: #d8a85c;
+  color: #fffaf1;
 }
-
 .btn-back-home svg {
   transition: transform 0.2s ease;
 }
-
 .btn-back-home:hover svg {
   transform: scale(1.1);
 }
-
-h2 { color: #ffc107; margin: 0; }
-h2 { color: #ffc107; margin-top: 0; }
-.line-break { border: 0; border-top: 1px solid #333; margin-bottom: 20px; }
-
-/* Tìm kiếm & Select */
+h2 { color: #8b5e34; margin: 0; }
+h2 { color: #8b5e34; margin-top: 0; }
+.line-break { border: 0; border-top: 1px solid #e6d2aa; margin-bottom: 20px; }
 .search-section { margin-bottom: 25px; display: flex; align-items: center; }
-.search-section input { background-color: #222; color: #fff; border: 1px solid #555; padding: 7px 12px; border-radius: 4px; width: 250px; margin-right: 10px; }
-.select-classic { background-color: #222; color: #fff; border: 1px solid #555; padding: 7px 12px; border-radius: 4px; margin-right: 10px; cursor: pointer; }
-
-/* Khung Form */
-.form-container { background-color: #1a1a1a; padding: 20px; border: 1px solid #333; border-radius: 6px; width: 450px; margin-bottom: 30px; }
-.form-title { color: #ffc107; margin-top: 0; margin-bottom: 15px; font-size: 15px; }
+.search-section input { background-color: #fffaf1; color: #5f3d22; border: 1px solid #e6d2aa; padding: 7px 12px; border-radius: 6px; width: 250px; margin-right: 10px; }
+.select-classic { background-color: #fffaf1; color: #5f3d22; border: 1px solid #e6d2aa; padding: 7px 12px; border-radius: 6px; margin-right: 10px; cursor: pointer; }
+.form-container { background: rgba(255, 248, 234, 0.95); padding: 20px; border: 1px solid #e6d2aa; border-radius: 12px; width: 450px; margin-bottom: 30px; box-shadow: 0 8px 20px rgba(103, 72, 32, 0.06); }
+.form-title { color: #8b5e34; margin-top: 0; margin-bottom: 15px; font-size: 15px; }
 .form-row { margin-bottom: 12px; display: flex; align-items: center; }
-.form-label { width: 140px; font-size: 14px; color: #ccc; }
-.form-row input { flex: 1; background-color: #2b3035; color: #fff; border: 1px solid #555; padding: 6px 10px; border-radius: 4px; }
+.form-label { width: 140px; font-size: 14px; color: #8f6b46; }
+.form-row input { flex: 1; background-color: #fffaf1; color: #5f3d22; border: 1px solid #e6d2aa; padding: 6px 10px; border-radius: 6px; }
 .form-buttons { margin-left: 140px; display: flex; gap: 10px; }
-
 .status-green { color: #198754; }
 .status-red { color: #dc3545; }
-
-/* Bảng */
-.table-classic { width: 100%; border-collapse: collapse; background-color: #1a1a1a; border: 1px solid #333; }
-.table-classic th { background-color: #2a2a2a; color: #ffc107; padding: 10px; text-align: left; border-bottom: 2px solid #444; }
-.table-classic td { padding: 10px; border-bottom: 1px solid #2a2a2a; }
-.table-classic tr:hover { background-color: #222; }
-.highlight-text { font-weight: bold; color: #ffc107; }
-
-/* Nút bấm */
-button { padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; margin-right: 5px; }
-.btn-yellow { background-color: #ffc107; color: #000; }
-.btn-gray { background-color: #555; color: #fff; }
-.btn-submit { background-color: #198754; color: #fff; }
+.table-classic { width: 100%; border-collapse: collapse; background: rgba(255, 248, 234, 0.95); border: 1px solid #e6d2aa; }
+.table-classic th { background: #f3dfb4; color: #8b5e34; padding: 10px; text-align: left; border-bottom: 2px solid #e6d2aa; }
+.table-classic td { padding: 10px; border-bottom: 1px solid #efe0c1; color: #5f3d22; }
+.table-classic tr:hover { background-color: #fef4de; }
+.highlight-text { font-weight: bold; color: #8b5e34; }
+button { padding: 6px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; margin-right: 5px; }
+.btn-yellow { background: linear-gradient(135deg, #d8a85c, #f1cf87); color: #3d2814; }
+.btn-gray { background: #fff3d3; color: #8b5e34; border: 1px solid #e6d2aa; }
+.btn-submit { background: #4b7c45; color: #fff; }
 .btn-action { padding: 3px 8px; font-size: 12px; background: transparent; border: 1px solid; margin-right: 5px; }
-
-.view { border-color: #0d6efd; color: #0d6efd; }
-.view:hover { background: #0d6efd; color: #fff; }
-.edit { border-color: #ffc107; color: #ffc107; }
-.edit:hover { background: #ffc107; color: #000; }
-.delete { border-color: #dc3545; color: #dc3545; }
-.delete:hover { background: #dc3545; color: #fff; }
-
-/* ================= MODAL XEM CHI TIẾT LỊCH SỬ LỒNG NHAU ================= */
+.view { border-color: #8b5e34; color: #8b5e34; }
+.view:hover { background: #8b5e34; color: #fff; }
+.edit { border-color: #c98b3e; color: #c98b3e; }
+.edit:hover { background: #c98b3e; color: #3d2814; }
+.delete { border-color: #be5b46; color: #be5b46; }
+.delete:hover { background: #be5b46; color: #fff; }
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: rgba(0, 0, 0, 0.72);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
 }
-
 .modal-content {
-  background-color: #1a1a1a;
-  border: 1px solid #c5a059;
+  background: rgba(255, 248, 234, 0.98);
+  border: 1px solid #e6d2aa;
   border-radius: 8px;
   width: 550px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  box-shadow: 0 5px 15px rgba(103, 72, 32, 0.16);
   overflow: hidden;
 }
-
 .modal-header {
-  background-color: #2a2a2a;
+  background: #f3dfb4;
   padding: 15px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #e6d2aa;
 }
-
-.modal-header h3 { margin: 0; color: #ffc107; font-size: 14px; letter-spacing: 1px; }
-.close-btn { color: #aaa; font-size: 24px; font-weight: bold; cursor: pointer; }
-.close-btn:hover { color: #fff; }
+.modal-header h3 { margin: 0; color: #8b5e34; font-size: 14px; letter-spacing: 1px; }
+.close-btn { color: #8f6b46; font-size: 24px; font-weight: bold; cursor: pointer; }
+.close-btn:hover { color: #3d2814; }
 .modal-body { padding: 15px 20px; max-height: 70vh; overflow-y: auto; }
-
 .detail-section-title {
-  color: #ffc107;
+  color: #8b5e34;
   font-size: 13px;
   font-weight: bold;
   letter-spacing: 1px;
   margin-top: 15px;
   margin-bottom: 8px;
   padding-bottom: 3px;
-  border-bottom: 1px dashed #333;
+  border-bottom: 1px dashed #e6d2aa;
 }
-
 .detail-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-.detail-table td { padding: 7px 5px; border-bottom: 1px solid #2a2a2a; }
-.detail-table .lbl { width: 150px; color: #aaa; font-size: 13px; }
-.detail-table .val { color: #fff; font-size: 13px; }
-
-/* Thẻ bọc danh sách đơn đặt bàn lặp */
+.detail-table td { padding: 7px 5px; border-bottom: 1px solid #efe0c1; }
+.detail-table .lbl { width: 150px; color: #8f6b46; font-size: 13px; }
+.detail-table .val { color: #5f3d22; font-size: 13px; }
 .booking-history-container {
   max-height: 280px;
   overflow-y: auto;
   padding-right: 5px;
 }
-
 .no-booking-text {
-  color: #777;
+  color: #8f6b46;
   font-style: italic;
   padding: 15px 0;
   text-align: center;
   font-size: 13px;
 }
-
 .booking-item-card {
-  background-color: #222;
-  border: 1px solid #333;
+  background-color: #fffaf1;
+  border: 1px solid #e6d2aa;
   border-radius: 4px;
   padding: 10px;
   margin-bottom: 12px;
 }
-
 .booking-item-header {
   display: flex;
   justify-content: space-between;
   font-weight: bold;
-  color: #ffc107;
+  color: #8b5e34;
   font-size: 12px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #efe0c1;
   padding-bottom: 5px;
   margin-bottom: 5px;
 }
-
 .style-compact td { padding: 4px 5px !important; border-bottom: none !important; }
 .style-compact .lbl { width: 140px !important; }
-
-/* Trực quan */
-.badge-count { background-color: #ffc107; color: #000; padding: 1px 5px; border-radius: 3px; font-size: 11px; font-weight: bold; }
-.badge-method { background-color: #0d6efd; color: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: bold; }
-.badge-method.gray { background-color: #555; }
-.code-text { font-family: 'Courier New', Courier, monospace; color: #20c997; font-weight: bold; font-size: 11px; }
-.gold-text { color: #c5a059; font-weight: bold; }
-.text-blue { color: #599fff; }
-
-.modal-footer { padding: 10px 20px; background-color: #2a2a2a; display: flex; justify-content: flex-end; border-top: 1px solid #333; }
+.badge-count { background: linear-gradient(135deg, #d8a85c, #f1cf87); color: #3d2814; padding: 1px 5px; border-radius: 3px; font-size: 11px; font-weight: bold; }
+.badge-method { background-color: #4b7c45; color: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+.badge-method.gray { background-color: #c98b3e; }
+.code-text { font-family: 'Courier New', Courier, monospace; color: #4b7c45; font-weight: bold; font-size: 11px; }
+.gold-text { color: #c98b3e; font-weight: bold; }
+.text-blue { color: #5f7fb8; }
+.modal-footer { padding: 10px 20px; background: #f3dfb4; display: flex; justify-content: flex-end; border-top: 1px solid #e6d2aa; }
 </style>

@@ -178,8 +178,8 @@ const xoa = async (id: number) => {
 /* Giữ nguyên 100% css layout chia grid 2 cột của bạn */
 .container {
   min-height: 100vh;
-  padding: 120px 32px 32px;
-  background: #0f0f0f;
+  padding: 20px 0 32px;
+  background: transparent;
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;

@@ -170,12 +170,13 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
 
 <style scoped>
 .chi-tiet-hoa-don {
-  border: 1px solid rgba(215, 180, 106, 0.2);
-  background: rgba(14, 14, 14, 0.88);
+  border: 1px solid #e6d2aa;
+  background: rgba(255, 248, 234, 0.96);
   backdrop-filter: blur(10px);
-  border-radius: 8px;
+  border-radius: 16px;
   padding: 18px;
-  color: #f7f2e9;
+  color: #5f3d22;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
 .tieu-de-panel {
@@ -190,10 +191,11 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
   margin: 0;
   font-size: 1rem;
   letter-spacing: 0;
+  color: #8b5e34;
 }
 
 .tieu-de-panel span {
-  color: #d7b46a;
+  color: #8f6b46;
   font-size: 0.82rem;
 }
 
@@ -207,7 +209,7 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
 
 .dau-chi-tiet .tieu-le {
   margin: 0 0 8px;
-  color: #d7b46a;
+  color: #8b5e34;
   font-size: 0.75rem;
   font-weight: 700;
   text-align: left;
@@ -218,25 +220,26 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
   margin: 0;
   font-size: clamp(1.8rem, 4vw, 3rem);
   letter-spacing: 0;
+  color: #5f3d22;
 }
 
 .dau-chi-tiet span {
-  color: #cfc3ae;
+  color: #8f6b46;
 }
 
 .hop-tong-tien {
   min-width: 190px;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 18px;
-  background: #d7b46a;
-  color: #15110b;
+  background: #d8a85c;
+  color: #3d2814;
   text-align: right;
 }
 
 .hop-tong-tien span {
   display: block;
   margin-bottom: 6px;
-  color: rgba(21, 17, 11, 0.68);
+  color: rgba(61, 40, 20, 0.72);
   font-size: 0.78rem;
 }
 
@@ -254,22 +257,23 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
 
 .luoi-thong-tin div,
 .luoi-so-tien div {
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.055);
+  background: #fff8ea;
+  border: 1px solid #e6d2aa;
 }
 
 .luoi-thong-tin span,
 .luoi-so-tien span {
   display: block;
   margin-bottom: 6px;
-  color: #b7ad9c;
+  color: #8f6b46;
   font-size: 0.78rem;
 }
 
 .mon-combo {
   margin-top: 6px;
-  color: #cfc3ae;
+  color: #8f6b46;
   font-size: 0.85rem;
   line-height: 1.3;
 }
@@ -286,24 +290,24 @@ table {
 
 th,
 td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #efe0c1;
   padding: 13px 10px;
   text-align: left;
   white-space: nowrap;
 }
 
 th {
-  color: #d7b46a;
+  color: #8b5e34;
   font-size: 0.78rem;
   text-transform: uppercase;
 }
 
 td {
-  color: #efe8dc;
+  color: #5f3d22;
 }
 
 .trang-trong {
-  color: #cfc3ae;
+  color: #8f6b46;
   margin: 14px 0;
 }
 

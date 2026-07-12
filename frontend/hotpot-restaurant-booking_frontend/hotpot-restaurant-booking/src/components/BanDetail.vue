@@ -180,7 +180,7 @@ const switchToAdd = () => {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -188,11 +188,12 @@ const switchToAdd = () => {
 
 .modal {
   width: 360px;
-  background: #111;
-  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: #fffaf1;
+  border: 1px solid #e6d2aa;
   border-radius: 12px;
   padding: 16px;
-  color: #ffd86b;
+  color: #8b5e34;
+  box-shadow: 0 16px 40px rgba(103, 72, 32, 0.16);
 }
 
 .form {
@@ -205,10 +206,10 @@ const switchToAdd = () => {
 input,
 select {
   padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #333;
-  background: #0b0b0b;
-  color: #fff;
+  border-radius: 8px;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 
 .actions {
@@ -219,9 +220,10 @@ select {
 
 button {
   padding: 6px 12px;
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  background: transparent;
-  color: #ffd86b;
+  border: 1px solid #e6d2aa;
+  background: #fff3d3;
+  color: #8b5e34;
   cursor: pointer;
+  border-radius: 8px;
 }
 </style>
