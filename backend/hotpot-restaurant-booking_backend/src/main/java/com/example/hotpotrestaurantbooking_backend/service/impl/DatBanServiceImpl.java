@@ -209,6 +209,7 @@ public class DatBanServiceImpl implements DatBanService {
                         ban.getIdBan(),
                         ban.getTenBan(),
                         ban.getLoaiBan(),
+                        ban.getLoaiBan().getSucChua(),
                         ban.getKhuVuc() != null ? ban.getKhuVuc().getIdKhuVuc() : null,
                         ban.getKhuVuc() != null ? ban.getKhuVuc().getTenKhuVuc() : null,
                         ban.getTrangThai()

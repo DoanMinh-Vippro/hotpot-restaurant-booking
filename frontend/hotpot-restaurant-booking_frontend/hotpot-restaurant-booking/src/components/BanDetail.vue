@@ -179,51 +179,131 @@ const switchToAdd = () => {
 <style scoped>
 .overlay {
   position: fixed;
+
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+
+  background: rgba(120, 100, 70, 0.28);
+
   display: flex;
+
   justify-content: center;
+
   align-items: center;
+
+  z-index: 999;
 }
 
 .modal {
-  width: 360px;
-  background: #fffaf1;
-  border: 1px solid #e6d2aa;
-  border-radius: 12px;
-  padding: 16px;
-  color: #8b5e34;
-  box-shadow: 0 16px 40px rgba(103, 72, 32, 0.16);
+  width: 420px;
+
+  max-width: 90vw;
+
+  background: #fffdf8;
+
+  border: 1px solid #eadfc9;
+
+  border-radius: 18px;
+
+  padding: 24px;
+
+  color: #756044;
+
+  box-shadow: 0 20px 50px rgba(120, 100, 70, 0.15);
+}
+
+.modal h2 {
+  margin: 0 0 18px;
+
+  color: #6f5a3a;
+
+  font-size: 22px;
+
+  font-weight: 700;
 }
 
 .form {
   display: flex;
+
   flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
+
+  gap: 14px;
+
+  margin-top: 12px;
 }
 
 input,
 select {
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #e6d2aa;
-  background: #fffdf8;
-  color: #5f3d22;
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 12px 14px;
+
+  border-radius: 12px;
+
+  border: 1px solid #e6d8bc;
+
+  background: #fffaf2;
+
+  color: #6b5738;
+
+  font-size: 14px;
+
+  transition: all 0.25s ease;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+
+  border-color: #d8b77a;
+
+  box-shadow: 0 0 0 3px rgba(216, 183, 122, 0.18);
 }
 
 .actions {
   display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
+
+  justify-content: flex-end;
+
+  gap: 12px;
+
+  margin-top: 22px;
 }
 
 button {
-  padding: 6px 12px;
-  border: 1px solid #e6d2aa;
-  background: #fff3d3;
-  color: #8b5e34;
+  padding: 10px 18px;
+
+  border-radius: 10px;
+
+  border: none;
+
+  background: #d8b77a;
+
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
   cursor: pointer;
-  border-radius: 8px;
+
+  transition: all 0.25s ease;
+}
+
+button:hover {
+  background: #caa466;
+
+  transform: translateY(-2px);
+}
+
+button:first-child {
+  background: #eee6d8;
+
+  color: #756044;
+}
+
+button:first-child:hover {
+  background: #e1d5c1;
 }
 </style>

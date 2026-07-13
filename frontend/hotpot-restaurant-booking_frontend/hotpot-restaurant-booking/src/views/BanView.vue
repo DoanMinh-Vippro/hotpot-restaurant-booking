@@ -133,27 +133,65 @@ onMounted(() => {
 
 <style scoped>
 .ban-view {
-  background: linear-gradient(135deg, #f9efe0 0%, #f4e4c6 100%);
   min-height: 100vh;
-  padding: 12px;
-  color: #5f3d22;
+
+  padding: 18px;
+
+  background: linear-gradient(135deg, #fffdf8 0%, #f8f1e5 100%);
+
+  color: #6f5a3a;
 }
 
 .page-top {
-  margin-bottom: 12px;
+  margin-bottom: 18px;
+
+  display: flex;
+
+  align-items: center;
 }
 
+/* BUTTON QUAY LẠI */
 .back-home-btn {
-  border: 1px solid rgba(212, 175, 55, 0.35);
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffd86b;
-  padding: 8px 14px;
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 10px 18px;
+
   border-radius: 999px;
+
+  border: 1px solid #e8d8bd;
+
+  background: #fffaf2;
+
+  color: #8a6a3f;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
   cursor: pointer;
-  font-weight: 600;
+
+  transition: all 0.25s ease;
+
+  box-shadow: 0 4px 12px rgba(160, 130, 80, 0.08);
 }
 
 .back-home-btn:hover {
-  background: rgba(212, 175, 55, 0.16);
+  background: #f3dfb8;
+
+  color: #6b5130;
+
+  border-color: #dfc18a;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 8px 18px rgba(160, 130, 80, 0.15);
+}
+
+.back-home-btn:active {
+  transform: scale(0.97);
 }
 </style>

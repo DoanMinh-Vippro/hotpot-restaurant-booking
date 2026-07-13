@@ -3,6 +3,7 @@
 // ===========================================
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
+import com.example.hotpotrestaurantbooking_backend.dto.DTOKhachHangSearchResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DatBanResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.KhachHangRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.KhachHangResponse;
@@ -166,7 +167,6 @@ public class KhachHangServiceImpl implements KhachHangService {
         khachHang.setTrangThai(true);
         khachHangRepository.save(khachHang);
         return modelMapper.map(khachHang, KhachHangResponse.class);
-
     }
 
     @Override
@@ -184,13 +184,22 @@ public class KhachHangServiceImpl implements KhachHangService {
         }).orElseThrow(()->new CustomResourceNotFoundException("Không có dữ liệu"));     }
 
     @Override
-    public List<KhachHang> search(String keyword) {
+    public List<DTOKhachHangSearchResponse> search(String keyword) {
+
         return khachHangRepository
-                . findByTenKhachHangContainingOrMaKhachHangContainingOrSoDienThoaiContainingOrEmailContainingOrTaiKhoan_MaTaiKhoanContaining(
+                .findByTenKhachHangContainingOrMaKhachHangContainingOrSoDienThoaiContainingOrEmailContainingOrTaiKhoan_MaTaiKhoanContaining(
                         keyword,
                         keyword,
                         keyword,
                         keyword,
                         keyword
-                );    }
+                )
+                .stream()
+                .map(k -> new DTOKhachHangSearchResponse(
+                        k.getIdKhachHang(),
+                        k.getTenKhachHang(),
+                        k.getSoDienThoai()
+                ))
+                .toList();
+    }
 }

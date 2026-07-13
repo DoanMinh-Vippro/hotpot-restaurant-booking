@@ -1,5 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.service;
 
+import com.example.hotpotrestaurantbooking_backend.dto.DTOKhachHangSearchResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.KhachHangRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.KhachHangResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
@@ -17,6 +18,6 @@ public interface KhachHangService {
     KhachHangResponse findByTaiKhoanId(Integer idTaiKhoan);
     KhachHangResponse add(KhachHangRequest khachHangRequest);
     KhachHangResponse update(KhachHangRequest khachHangRequest, Integer id);
-    List<KhachHang> search(String keyword);
+    List<DTOKhachHangSearchResponse> search(String keyword);
 
 }

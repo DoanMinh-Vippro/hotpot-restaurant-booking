@@ -32,5 +32,23 @@ public interface DatBanRepository extends JpaRepository<DatBan,Integer> {
 
     List<DatBan> findByTrangThaiIn(List<TrangThaiDatBan> trangThai);
 
+    @Query("""
+select distinct d
+from DatBan d
+join d.chiTietDatBanBans ct
+where ct.ban.idBan = :idBan
+and d.trangThai in :trangThai
+""")
+    List<DatBan> findByBanAndTrangThai(Integer idBan, List<TrangThaiDatBan> trangThai);
+
+    @Query("""
+    SELECT DISTINCT d
+    FROM DatBan d
+    JOIN d.chiTietDatBanBans ct
+    WHERE ct.ban.idBan = :idBan
+      AND d.trangThai IN :trangThai
+""")
+    List<DatBan> findByIdBanAndTrangThai(Integer idBan, List<TrangThaiDatBan> trangThai);
+
 
 }

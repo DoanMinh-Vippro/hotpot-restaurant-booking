@@ -23,6 +23,12 @@ public class Ban {
     @Enumerated(EnumType.ORDINAL)
     @Column(name = "loai_ban")
     private LoaiBan loaiBan;
+
+    @Transient
+    public Integer getSucChua() {
+        return loaiBan != null ? loaiBan.getSucChua() : 0;
+    }
+
     @ManyToOne
     @JoinColumn(name = "id_khu_vuc")
     private KhuVuc khuVuc;

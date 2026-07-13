@@ -1,7 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.controller;
 
-import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanQuanLyResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.*;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
 import jakarta.validation.Valid;
@@ -10,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -48,5 +48,33 @@ public class DatBanQuanLyController {
     @GetMapping("/trang-thai/{trangThai}")
     public ResponseEntity<List<DTODatBanQuanLyResponse>> findByTrangThai(@PathVariable TrangThaiDatBan trangThai) {
         return ResponseEntity.ok(datBanQuanLyService.findByTrangThai(trangThai));
+    }
+
+    @GetMapping("/ban-trong")
+    public List<DTOBanResponse> getDanhSachBanTrong(@RequestParam LocalDateTime thoiGianDenDuKien,
+                                                    @RequestParam Integer soNguoi,
+            @RequestParam(required = false) Integer idDatBan) {
+        return datBanQuanLyService.getDanhSachBanTrong(thoiGianDenDuKien, soNguoi, idDatBan);
+    }
+
+    @PutMapping("/{id}/xac-nhan")
+    public ResponseEntity<DTODatBanQuanLyResponse> xacNhan(@PathVariable Integer id) {
+        return ResponseEntity.ok(datBanQuanLyService.xacNhan(id));
+    }
+
+    @PutMapping("/{id}/check-in")
+    public ResponseEntity<DTODatBanQuanLyResponse> checkIn(@PathVariable Integer id) {
+        return ResponseEntity.ok(datBanQuanLyService.checkIn(id));
+    }
+
+    @PutMapping("/{id}/doi-gio")
+    public ResponseEntity<DTODatBanQuanLyResponse> doiGio(@PathVariable Integer id, @RequestBody @Valid DTODoiGioRequest request) {
+        return ResponseEntity.ok(datBanQuanLyService.doiGio(id, request));
+    }
+
+    @PutMapping("/{id}/doi-ban")
+    public ResponseEntity<DTODatBanQuanLyResponse> doiBan(@PathVariable Integer id,
+                                                          @RequestBody @Valid DTODoiBanRequest request) {
+        return ResponseEntity.ok(datBanQuanLyService.doiBan(id, request));
     }
 }

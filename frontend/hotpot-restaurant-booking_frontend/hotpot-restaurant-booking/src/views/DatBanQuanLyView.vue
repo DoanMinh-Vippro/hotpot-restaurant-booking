@@ -1,850 +1,344 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import BanApi from '@/api/BanApi'
+import { onMounted, ref } from 'vue'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
-import ComBoInDatBan from '@/components/ComBoInDatBan.vue'
+import ReservationToolbar from '@/components/DatBanQuanLy/ReservationToolbar.vue'
+import ReservationTable from '@/components/DatBanQuanLy/ReservationTable.vue'
+import ReservationDetailDialog from '@/components/DatBanQuanLy/ReservationDetailDialog.vue'
+import TaoDatBanDialog from '@/components/DatBanQuanLy/TaoDatBanDialog.vue'
+import DoiBanDialog from '@/components/DatBanQuanLy/DoiBanDialog.vue'
+import DoiGioDialog from '@/components/DatBanQuanLy/DoiGioDialog.vue'
+import XacNhanDialog from '@/components/DatBanQuanLy/XacNhanDialog.vue'
 
-type ReservationStatus = 'CHO_XAC_NHAN' | 'DA_XAC_NHAN' | 'DA_NHAN_BAN' | 'HOAN_THANH' | 'DA_HUY'
-type ViewMode = 'management' | 'walkin'
+//===============state=======================================================================
+const dsDatBan = ref([])
+const dsBanTrong = ref([])
+const selectedReservation = ref<any>(null)
+const showDetail = ref(false)
+const showAdd = ref(false)
+const showDoiBan = ref(false)
+const showDoiGio = ref(false)
+const showConfirm = ref(false)
+const showPayment = ref(false)
+const paymentData = ref<any>(null)
 
-type TabItem = {
-  key: ReservationStatus
-  label: string
-  showFilter: boolean
-}
+const filter = ref({
+  keyword: '',
 
-const router = useRouter()
-const reservations = ref<any[]>([])
-const activeTab = ref<ReservationStatus>('DA_XAC_NHAN')
-const selectedReservation = ref<any | null>(null)
-const filterDate = ref('')
-const filterMonth = ref('')
-const searchTerm = ref('')
-const sortOption = ref('newest')
-const viewMode = ref<ViewMode>('management')
-const selectedComboId = ref<number | null>(null)
-const tableDepositAmount = 100000
-const comboDepositRate = 0.3
+  trangThai: '',
 
-const tabs: TabItem[] = [
-  { key: 'DA_XAC_NHAN', label: 'Đã xác nhận', showFilter: true },
-  { key: 'CHO_XAC_NHAN', label: 'Chờ xác nhận', showFilter: false },
-  { key: 'DA_NHAN_BAN', label: 'Đã nhận bàn', showFilter: false },
-  { key: 'HOAN_THANH', label: 'Hoàn thành', showFilter: true },
-  { key: 'DA_HUY', label: 'Đã huỷ', showFilter: true },
-]
+  tuNgay: '',
 
-const statusLabels: Record<ReservationStatus, string> = {
-  CHO_XAC_NHAN: 'Chờ xác nhận',
-  DA_XAC_NHAN: 'Đã xác nhận',
-  DA_NHAN_BAN: 'Đã nhận bàn',
-  HOAN_THANH: 'Hoàn thành',
-  DA_HUY: 'Đã huỷ',
-}
-
-const statusOptions: ReservationStatus[] = ['CHO_XAC_NHAN', 'DA_XAC_NHAN', 'DA_NHAN_BAN', 'HOAN_THANH', 'DA_HUY']
-
-const walkInForm = ref({
-  tenKhachHang: '',
-  idkhachHang: null as number | null,
-  sdtKhachHang: '',
-  soNguoi: 2,
-  thoiGianDenDuKien: '',
-  soTienCoc: tableDepositAmount,
-  trangThaiCoc: 'CHUA_COC',
-  phuongThucThanhToan: 'TIEN_MAT',
-  ghiChu: '',
+  denNgay: '',
 })
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+const confirmAction = ref<Function>()
 
-const normalizeStatus = (value: any) => {
-  if (!value) return ''
-  if (typeof value === 'string') return value
-  if (typeof value === 'object' && 'name' in value) return String(value.name)
-  return String(value)
-}
-
-const formatDateValue = (value: any) => {
-  if (!value) return '—'
-  if (typeof value === 'string') return value.slice(0, 10)
-  if (value instanceof Date) return value.toISOString().slice(0, 10)
-  if (typeof value === 'object' && value.year != null) {
-    return `${value.year}-${String(value.monthValue || value.month || 1).padStart(2, '0')}-${String(value.dayOfMonth || value.day || 1).padStart(2, '0')}`
-  }
-  return String(value)
-}
-
-const currentTabLabel = computed(() => tabs.find((tab) => tab.key === activeTab.value)?.label || 'Đặt bàn')
-const showMonthFilter = computed(() => activeTab.value === 'DA_HUY')
-
-const visibleReservations = computed(() => {
-  const keyword = searchTerm.value.trim().toLowerCase()
-
-  return reservations.value
-    .filter((item) => normalizeStatus(item.trangThai) === activeTab.value)
-    .filter((item) => {
-      const dateValue = formatDateValue(item.ngayDat)
-      const monthValue = dateValue.slice(0, 7)
-      const matchesDate = !filterDate.value || dateValue === filterDate.value
-      const matchesMonth = !filterMonth.value || monthValue === filterMonth.value
-      return matchesDate && matchesMonth
-    })
-    .filter((item) => {
-      if (!keyword) return true
-      const haystack = [
-        item.tenKhachHang,
-        item.sdtKhachHang,
-        item.idDatBan,
-        item.ghiChu,
-        statusLabels[normalizeStatus(item.trangThai) as ReservationStatus],
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return haystack.includes(keyword)
-    })
-    .sort((a, b) => {
-      const aDate = a.ngayDat ? new Date(a.ngayDat).getTime() : 0
-      const bDate = b.ngayDat ? new Date(b.ngayDat).getTime() : 0
-
-      if (sortOption.value === 'newest') return bDate - aDate
-      if (sortOption.value === 'oldest') return aDate - bDate
-      if (sortOption.value === 'deposit_desc') return Number(b.soTienCoc || 0) - Number(a.soTienCoc || 0)
-      if (sortOption.value === 'deposit_asc') return Number(a.soTienCoc || 0) - Number(b.soTienCoc || 0)
-      return Number(b.soNguoi || 0) - Number(a.soNguoi || 0)
-    })
-})
-
-const syncActiveTabWithReservations = () => {
-  const currentStatus = normalizeStatus(reservations.value.find((item) => normalizeStatus(item.trangThai) === activeTab.value)?.trangThai)
-  if (currentStatus) return
-
-  const preferredStatusOrder: ReservationStatus[] = ['CHO_XAC_NHAN', 'DA_XAC_NHAN', 'DA_NHAN_BAN', 'HOAN_THANH', 'DA_HUY']
-  const preferredStatus = preferredStatusOrder.find((status) =>
-    reservations.value.some((item) => normalizeStatus(item.trangThai) === status),
-  )
-
-  if (preferredStatus) {
-    activeTab.value = preferredStatus
-  }
-}
-
+//=========================================================================================================
 const loadData = async () => {
+  const res = await DatBanQuanLyApi.getAll()
+  dsDatBan.value = res.data
+}
+
+const openDetail = async (item: any) => {
   try {
-    const response = await DatBanQuanLyApi.getAll()
-    reservations.value = Array.isArray(response?.data) ? response.data : []
-    syncActiveTabWithReservations()
+    const res = await DatBanQuanLyApi.findById(item.idDatBan)
+    selectedReservation.value = res.data
+    showDetail.value = true
   } catch (error) {
-    console.error('Lỗi khi tải danh sách đặt bàn:', error)
+    console.error('Lỗi lấy chi tiết:', error)
   }
 }
 
-const openDetail = async (reservation: any) => {
+const loadBanTrong = async (data: any) => {
   try {
-    const response = await DatBanQuanLyApi.findById(reservation.idDatBan)
-    selectedReservation.value = response?.data || reservation
+    const res = await DatBanQuanLyApi.getDanhSachBanTrong(
+      data.thoiGianDenDuKien,
+      data.soNguoi,
+      data.idDatBan,
+    )
+
+    dsBanTrong.value = res.data
+
+    console.log('BÀN TRỐNG:', dsBanTrong.value)
   } catch (error) {
-    console.error('Lỗi lấy chi tiết đặt bàn:', error)
-    selectedReservation.value = reservation
+    console.error('Lỗi lấy danh sách bàn trống:', error)
+
+    dsBanTrong.value = []
   }
 }
 
-const getAvailableStatusOptions = (reservation: any) => {
-  const currentStatus = normalizeStatus(reservation?.trangThai)
-
-  switch (currentStatus) {
-    case 'CHO_XAC_NHAN':
-      return ['CHO_XAC_NHAN', 'DA_XAC_NHAN', 'DA_HUY'] as ReservationStatus[]
-    case 'DA_XAC_NHAN':
-      return ['DA_XAC_NHAN', 'DA_NHAN_BAN', 'DA_HUY'] as ReservationStatus[]
-    case 'DA_NHAN_BAN':
-      return ['DA_NHAN_BAN', 'HOAN_THANH', 'DA_HUY'] as ReservationStatus[]
-    case 'HOAN_THANH':
-      return ['HOAN_THANH'] as ReservationStatus[]
-    case 'DA_HUY':
-      return ['DA_HUY'] as ReservationStatus[]
-    default:
-      return statusOptions
-  }
+const openCreate = () => {
+  showAdd.value = true
 }
 
-const isTerminalStatus = (reservation: any) => {
-  const currentStatus = normalizeStatus(reservation?.trangThai)
-  return currentStatus === 'HOAN_THANH' || currentStatus === 'DA_HUY'
+const closeAllDialog = () => {
+  // hàm đóng tất cả popup
+  showDetail.value = false
+  showAdd.value = false
+  showDoiBan.value = false
+  showDoiGio.value = false
+  showConfirm.value = false
+  selectedReservation.value = null
 }
 
-const changeStatus = async (reservation: any, newStatus: ReservationStatus) => {
-  const currentStatus = normalizeStatus(reservation?.trangThai)
-  if (currentStatus === newStatus) return
+const openDoiBan = async (item: any) => {
+  selectedReservation.value = item
+  showDetail.value = false
+  await loadBanTrong({
+    thoiGianDenDuKien: item.thoiGianDenDuKien,
+    soNguoi: item.soNguoi,
+    idDatBan: item.idDatBan,
+  })
+  showDoiBan.value = true
+}
 
-  const confirmed = window.confirm(`Bạn có chắc muốn đổi trạng thái đơn #${reservation.idDatBan} sang ${statusLabels[newStatus]}?`)
-  if (!confirmed) return
-
+const handleDoiBan = async (data: any) => {
+  // luu đổi bàn
   try {
-    await DatBanQuanLyApi.update(reservation.idDatBan, { trangThai: newStatus })
-
-    if (newStatus === 'DA_XAC_NHAN' && reservation.idBan) {
-      await BanApi.update(reservation.idBan, { trangThai: 'DA_DAT' })
-    }
-
-    if (newStatus === 'DA_NHAN_BAN' && reservation.idBan) {
-      await BanApi.update(reservation.idBan, { trangThai: 'DANG_SU_DUNG' })
-    }
-
-    if ((newStatus === 'HOAN_THANH' || newStatus === 'DA_HUY') && reservation.idBan) {
-      await BanApi.update(reservation.idBan, { trangThai: 'TRONG' })
-    }
-
-    pushStatusNotification(reservation, newStatus)
+    await DatBanQuanLyApi.doiBan(selectedReservation.value.idDatBan, data)
+    closeAllDialog()
     await loadData()
-    activeTab.value = newStatus
   } catch (error) {
-    console.error('Lỗi cập nhật trạng thái:', error)
-    alert('Không thể cập nhật trạng thái. Vui lòng thử lại.')
+    console.error('Lỗi đổi bàn:', error)
   }
 }
 
-const handleComboSelection = (combo: any | null) => {
-  if (!combo) {
-    selectedComboId.value = null
-    walkInForm.value.soTienCoc = tableDepositAmount
+const openDoiGio = (item: any) => {
+  selectedReservation.value = item
+  showDetail.value = false
+  showDoiGio.value = true
+}
+
+const handleDoiGio = async (data: any) => {
+  // lưu đổi giờ
+  try {
+    await DatBanQuanLyApi.doiGio(selectedReservation.value.idDatBan, data)
+
+    closeAllDialog()
+
+    await loadData()
+  } catch (error) {
+    console.error('Lỗi đổi giờ:', error)
+  }
+}
+
+const openConfirm = (item: any) => {
+  showDetail.value = false
+  selectedReservation.value = item
+  confirmTitle.value = 'Xác nhận đặt bàn'
+  confirmMessage.value = `Xác nhận đơn đặt bàn #${item.idDatBan}?`
+  confirmAction.value = async () => {
+    await DatBanQuanLyApi.xacNhan(item.idDatBan)
+    closeAllDialog()
+    await loadData()
+  }
+  showConfirm.value = true
+}
+
+const handleCreate = async (data: any) => {
+  // Không có combo -> tạo luôn
+  if (!data.dsCombo || data.dsCombo.length === 0) {
+    try {
+      await DatBanQuanLyApi.add(data)
+
+      closeAllDialog()
+
+      await loadData()
+    } catch (e) {
+      console.error(e)
+    }
+
     return
   }
 
-  selectedComboId.value = combo.idCombo ?? null
-  walkInForm.value.soTienCoc = Math.round(tableDepositAmount + Number(combo.giaCombo || 0) * comboDepositRate)
+  // Có combo -> mở popup thanh toán
+  paymentData.value = data
+
+  showPayment.value = true
 }
 
-const resetWalkInForm = () => {
-  walkInForm.value = {
-    tenKhachHang: '',
-    idkhachHang: null,
-    sdtKhachHang: '',
-    soNguoi: 2,
-    thoiGianDenDuKien: '',
-    soTienCoc: tableDepositAmount,
-    trangThaiCoc: 'CHUA_COC',
-    phuongThucThanhToan: 'TIEN_MAT',
-    ghiChu: '',
-  }
-  selectedComboId.value = null
+const handleCheckIn = async (item: any) => {
+  await DatBanQuanLyApi.checkIn(item.idDatBan)
+  closeAllDialog()
+  await loadData()
 }
 
-const submitWalkInReservation = async () => {
-  try {
-    const payload = {
-      idkhachHang: walkInForm.value.idkhachHang || null,
-      sdtKhachHang: walkInForm.value.sdtKhachHang || '',
-      soNguoi: Number(walkInForm.value.soNguoi || 1),
-      trangThai: 'CHO_XAC_NHAN',
-      ghiChu: walkInForm.value.ghiChu || (walkInForm.value.tenKhachHang ? `Khách: ${walkInForm.value.tenKhachHang}` : 'Đặt bàn tại quầy'),
-      thoiGianDenDuKien: walkInForm.value.thoiGianDenDuKien || null,
-      soTienCoc: Number(walkInForm.value.soTienCoc || 0),
-      trangThaiCoc: walkInForm.value.trangThaiCoc || 'CHUA_COC',
-      phuongThucThanhToan: walkInForm.value.phuongThucThanhToan || 'TIEN_MAT',
-      idCombo: selectedComboId.value ?? null,
-    }
-
-    await DatBanQuanLyApi.add(payload)
-    await loadData()
-    activeTab.value = 'CHO_XAC_NHAN'
-    viewMode.value = 'management'
-    resetWalkInForm()
-    alert('Đã lưu đơn đặt bàn tại quầy thành công.')
-  } catch (error) {
-    console.error('Lỗi lưu đặt bàn tại quầy:', error)
-    alert('Không thể lưu đặt bàn tại quầy. Vui lòng kiểm tra lại dữ liệu.')
-  }
+const handleHuy = async (item: any) => {
+  await DatBanQuanLyApi.delete(item.idDatBan)
+  await loadData()
 }
 
-const formatCurrency = (value: number | string | null | undefined) => {
-  const amount = Number(value || 0)
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
-}
-
-const pushStatusNotification = (reservation: any, newStatus: ReservationStatus) => {
-  try {
-    const stored = JSON.parse(localStorage.getItem('notifications') || '[]') || []
-    const entry = {
-      title: 'Cập nhật trạng thái đơn',
-      message: `Đơn #${reservation.idDatBan} chuyển sang ${statusLabels[newStatus]}.`,
-      time: new Date().toISOString(),
-      read: false,
-      targetKhachHangId: reservation.idKhachHang ?? null,
-      targetKhachHangPhone: reservation.sdtKhachHang ?? null,
-    }
-
-    stored.unshift(entry)
-    localStorage.setItem('notifications', JSON.stringify(stored))
-    window.dispatchEvent(new Event('storage'))
-  } catch (error) {
-    console.warn('Không thể ghi thông báo:', error)
-  }
-}
-
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+})
 </script>
 
 <template>
-  <div class="page-shell">
-    <div class="page-top">
-      <h2 class="page-title">Quản lý đặt bàn</h2>
+  <div class="page-container">
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1>Quản lý đặt bàn</h1>
+        <p>Quản lý đơn đặt trước, xác nhận bàn và điều chỉnh lịch đặt</p>
+      </div>
+
+      <button class="btn-create" @click="openCreate">+ Tạo đơn đặt bàn</button>
     </div>
 
-    <div class="section-switcher">
-      <button class="section-btn" :class="{ active: viewMode === 'management' }" @click="viewMode = 'management'">
-        Quản lý đặt bàn
-      </button>
-      <button class="section-btn" :class="{ active: viewMode === 'walkin' }" @click="viewMode = 'walkin'">
-        Đặt bàn tại quầy
-      </button>
-    </div>
+    <!-- Bộ lọc -->
+    <ReservationToolbar
+      v-model:keyword="filter.keyword"
+      v-model:trangThai="filter.trangThai"
+      v-model:tuNgay="filter.tuNgay"
+      v-model:denNgay="filter.denNgay"
+    />
 
-    <div v-if="viewMode === 'management'">
-      <div class="tab-bar">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          class="tab-button"
-          :class="{ active: activeTab === tab.key }"
-          @click="activeTab = tab.key"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
+    <!-- Danh sách -->
+    <ReservationTable :list="dsDatBan" @detail="openDetail" @huy="handleHuy" />
 
-      <div class="filter-row">
-        <label class="filter-field">
-          <span>Ngày</span>
-          <input v-model="filterDate" type="date" />
-        </label>
-        <label v-if="showMonthFilter" class="filter-field">
-          <span>Tháng</span>
-          <input v-model="filterMonth" type="month" />
-        </label>
-        <label class="filter-field search-field">
-          <span>Tìm kiếm</span>
-          <input v-model="searchTerm" type="text" placeholder="Tên, SĐT, mã đơn" />
-        </label>
-        <label class="filter-field">
-          <span>Sắp xếp</span>
-          <select v-model="sortOption">
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="deposit_desc">Tiền cọc giảm dần</option>
-            <option value="deposit_asc">Tiền cọc tăng dần</option>
-            <option value="guest_desc">Số người giảm dần</option>
-          </select>
-        </label>
-        <button class="clear-filter-btn" @click="filterDate = ''; filterMonth = ''; searchTerm = ''; sortOption = 'newest'">Xoá bộ lọc</button>
-      </div>
+    <!-- Chi tiết -->
+    <ReservationDetailDialog
+      :visible="showDetail"
+      :reservation="selectedReservation"
+      @close="closeAllDialog"
+      @xacNhan="openConfirm"
+      @checkIn="handleCheckIn"
+      @doiBan="openDoiBan"
+      @doiGio="openDoiGio"
+    />
 
-      <div class="table-card">
-        <div class="table-header">
-          <h3>{{ currentTabLabel }}</h3>
-          <span>{{ visibleReservations.length }} đơn</span>
-        </div>
+    <!-- Tạo đơn -->
+    <TaoDatBanDialog
+      v-if="showAdd"
+      :visible="showAdd"
+      :dsBanTrong="dsBanTrong"
+      @close="closeAllDialog"
+      @save="handleCreate"
+      @refresh="loadData"
+      @check-ban="loadBanTrong"
+    />
 
-        <div v-if="visibleReservations.length === 0" class="empty-state">
-          Không có dữ liệu trong tab này.
-        </div>
+    <!-- Đổi bàn -->
+    <DoiBanDialog
+      :visible="showDoiBan"
+      :reservation="selectedReservation"
+      :dsBanTrong="dsBanTrong"
+      @close="closeAllDialog"
+      @save="handleDoiBan"
+    />
 
-        <div v-else class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Mã</th>
-                <th>Khách hàng</th>
-                <th>Số điện thoại</th>
-                <th>Ngày đặt</th>
-                <th>Giờ đặt</th>
-                <th>Số người</th>
-                <th>Tiền cọc</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in visibleReservations" :key="item.idDatBan">
-                <td>#{{ item.idDatBan }}</td>
-                <td>{{ item.tenKhachHang || '—' }}</td>
-                <td>{{ item.sdtKhachHang || '—' }}</td>
-                <td>{{ formatDateValue(item.ngayDat) }}</td>
-                <td>{{ item.gioDat || '—' }}</td>
-                <td>{{ item.soNguoi || 0 }}</td>
-                <td>{{ formatCurrency(item.soTienCoc) }}</td>
-                <td>
-                  <template v-if="isTerminalStatus(item)">
-                    <span></span>
-                  </template>
-                  <select v-else :value="normalizeStatus(item.trangThai)" @change="(event) => changeStatus(item, (event.target as HTMLSelectElement).value as ReservationStatus)">
-                    <option v-for="status in getAvailableStatusOptions(item)" :key="status" :value="status">
-                      {{ statusLabels[status] }}
-                    </option>
-                  </select>
-                </td>
-                <td>
-                  <div class="action-group">
-                    <button class="btn btn-detail" @click="openDetail(item)">Chi tiết</button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <!-- Đổi giờ -->
+    <DoiGioDialog
+      :visible="showDoiGio"
+      :reservation="selectedReservation"
+      @close="closeAllDialog"
+      @save="handleDoiGio"
+    />
 
-    <div v-else class="walkin-card">
-      <div class="walkin-header">
-        <div>
-          <h3>Đặt bàn tại quầy</h3>
-          <p>Đơn sẽ được lưu với trạng thái chờ xác nhận và hiển thị ở tab tương ứng.</p>
-        </div>
-        <span class="walkin-badge">Khách vãng lai nếu không nhập tên</span>
-      </div>
-
-      <div class="walkin-grid">
-        <label class="field">
-          <span>Tên khách hàng</span>
-          <input v-model="walkInForm.tenKhachHang" type="text" placeholder="Nhập tên nếu có" />
-        </label>
-
-        <label class="field">
-          <span>Số điện thoại</span>
-          <input v-model="walkInForm.sdtKhachHang" type="text" placeholder="SĐT khách hàng" />
-        </label>
-
-        <label class="field">
-          <span>ID khách hàng (không bắt bu)</span>
-          <input v-model.number="walkInForm.idkhachHang" type="number" placeholder="Nếu có tài khoản" />
-        </label>
-
-        <label class="field">
-          <span>Số người</span>
-          <input v-model.number="walkInForm.soNguoi" type="number" min="1" />
-        </label>
-
-        <label class="field">
-          <span>Thời gian đến</span>
-          <input v-model="walkInForm.thoiGianDenDuKien" type="datetime-local" />
-        </label>
-
-        <label class="field">
-          <span>Tiền cọc</span>
-          <input v-model.number="walkInForm.soTienCoc" type="number" min="0" />
-        </label>
-
-        <label class="field">
-          <span>Trạng thái cọc</span>
-          <select v-model="walkInForm.trangThaiCoc">
-            <option value="CHUA_COC">Chưa cọc</option>
-            <option value="DA_COC">Đã cọc</option>
-            <option value="DA_HOAN_COC">Đã hoàn cọc</option>
-            <option value="KHONG_HOAN_COC">Không hoàn cọc</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Phương thức thanh toán</span>
-          <select v-model="walkInForm.phuongThucThanhToan">
-            <option value="TIEN_MAT">Tiền mặt</option>
-            <option value="CHUYEN_KHOAN">Chuyển khoản</option>
-            <option value="VNPAY">VNPAY</option>
-          </select>
-        </label>
-      </div>
-
-      <label class="field full-width">
-        <span>Đặt món trước</span>
-        <ComBoInDatBan v-model="selectedComboId" @selectedCombo="handleComboSelection" />
-      </label>
-
-      <label class="field full-width">
-        <span>Ghi chú</span>
-        <textarea v-model="walkInForm.ghiChu" rows="3" placeholder="Ghi chú cho nhân viên"></textarea>
-      </label>
-
-      <div class="walkin-actions">
-        <button class="btn btn-primary" @click="submitWalkInReservation">Lưu đặt bàn tại quầy</button>
-        <button class="btn btn-secondary" @click="resetWalkInForm">Đặt lại</button>
-      </div>
-    </div>
-  </div>
-
-  <div v-if="selectedReservation" class="modal-overlay" @click.self="selectedReservation = null">
-    <div class="detail-modal">
-      <div class="modal-header">
-        <h3>Chi tiết đặt bàn #{{ selectedReservation.idDatBan }}</h3>
-        <button class="close-btn" @click="selectedReservation = null">×</button>
-      </div>
-
-      <div class="detail-grid">
-        <div><span>Khách hàng</span><strong>{{ selectedReservation.tenKhachHang || '—' }}</strong></div>
-        <div><span>Số điện thoại</span><strong>{{ selectedReservation.sdtKhachHang || '—' }}</strong></div>
-        <div><span>Ngày đặt</span><strong>{{ formatDateValue(selectedReservation.ngayDat) }}</strong></div>
-        <div><span>Giờ đặt</span><strong>{{ selectedReservation.gioDat || '—' }}</strong></div>
-        <div><span>Số người</span><strong>{{ selectedReservation.soNguoi || 0 }}</strong></div>
-        <div><span>Tiền cọc</span><strong>{{ formatCurrency(selectedReservation.soTienCoc) }}</strong></div>
-        <div><span>Trạng thái</span><strong>{{ statusLabels[normalizeStatus(selectedReservation.trangThai) as ReservationStatus] || normalizeStatus(selectedReservation.trangThai) || '—' }}</strong></div>
-        <div><span>Trạng thái cọc</span><strong>{{ selectedReservation.trangThaiCoc || '—' }}</strong></div>
-        <div><span>Phương thức thanh toán</span><strong>{{ selectedReservation.phuongThucThanhToan || '—' }}</strong></div>
-        <div><span>Combo</span><strong>{{ selectedReservation.tenCombo || '—' }}</strong></div>
-        <div><span>Ghi chú</span><strong>{{ selectedReservation.ghiChu || '—' }}</strong></div>
-      </div>
-    </div>
+    <!-- Xác nhận -->
+    <XacNhanDialog
+      :visible="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      @close="closeAllDialog"
+      @confirm="confirmAction && confirmAction()"
+    />
   </div>
 </template>
 
 <style scoped>
-.page-shell {
-  padding: 18px 0 32px;
-  color: #5f3d22;
-}
+.page-container {
+  min-height: 100%;
 
-.page-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 1.2rem;
-  color: #8b5e34;
-}
-
-.back-home-btn {
-  border: 1px solid #e2cfa6;
-  background: #fff6df;
-  color: #8b5e34;
-  padding: 8px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.back-home-btn:hover {
-  background: #f2dfb0;
-}
-
-.section-switcher {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.section-btn {
-  border: 1px solid #e2cfa6;
-  background: #fff8ea;
-  color: #6b4728;
-  padding: 8px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.section-btn.active {
-  background: #d8a85c;
-  color: #3d2814;
-  border-color: #d8a85c;
-  font-weight: 700;
-}
-
-.tab-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.tab-button {
-  border: 1px solid #e2cfa6;
-  background: #fff8ea;
-  color: #6b4728;
-  padding: 8px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.tab-button.active {
-  background: #d8a85c;
-  color: #3d2814;
-  border-color: #d8a85c;
-  font-weight: 700;
-}
-
-.filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 14px;
-  align-items: flex-end;
-}
-
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: #8b5e34;
-  font-size: 0.85rem;
-}
-
-.filter-field input {
-  min-width: 150px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #e2cfa6;
-  background: #fffaf1;
-  color: #4d3422;
-}
-
-.clear-filter-btn {
-  border: 1px solid #d8b66c;
-  background: #fff3d3;
-  color: #6b4728;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.table-card {
-  background: #fffaf1;
-  border: 1px solid #e8d3a9;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
-}
-
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.table-header h3 {
-  margin: 0;
-  color: #8b5e34;
-}
-
-.table-header span {
-  color: #7c6042;
-  font-size: 0.9rem;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: #5f3d22;
-}
-
-th,
-td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #efe0be;
-  text-align: left;
-  font-size: 0.9rem;
-}
-
-th {
-  color: #8b5e34;
-  text-transform: uppercase;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-}
-
-select,
-input,
-textarea {
-  border: 1px solid #e2cfa6;
-  background: #fffdf8;
-  color: #4d3422;
-  padding: 8px 10px;
-  border-radius: 8px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-textarea {
-  min-height: 88px;
-  resize: vertical;
-}
-
-.btn {
-  border: 1px solid #d8a85c;
-  background: transparent;
-  color: #8b5e34;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.btn:hover {
-  background: #d8a85c;
-  color: #3d2814;
-}
-
-.btn-primary {
-  background: #d8a85c;
-  color: #3d2814;
-  font-weight: 700;
-}
-
-.btn-secondary {
-  border-color: #c9b07d;
-  color: #6b4728;
-}
-
-.empty-state {
   padding: 24px;
-  text-align: center;
-  color: #8f6b46;
+
+  background: #f7f3eb;
 }
 
-.walkin-card {
-  background: linear-gradient(135deg, #fff8ea 0%, #f5e3bf 100%);
-  border: 1px solid #e5c988;
-  border-radius: 18px;
-  padding: 20px;
-  box-shadow: 0 14px 32px rgba(103, 72, 32, 0.08);
-}
+/* ================= HEADER ================= */
 
-.walkin-header {
+.page-header {
   display: flex;
+
   justify-content: space-between;
+
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+
+  margin-bottom: 24px;
 }
 
-.walkin-header h3 {
-  margin: 0 0 4px;
-  color: #8b5e34;
-}
-
-.walkin-header p {
+.page-header h1 {
   margin: 0;
-  color: #7c6042;
-  font-size: 0.92rem;
+
+  font-size: 28px;
+
+  font-weight: 700;
+
+  color: #4a3824;
+
+  letter-spacing: 0.5px;
 }
 
-.walkin-badge {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(216, 168, 92, 0.18);
-  color: #8b5e34;
-  font-size: 0.8rem;
-  white-space: nowrap;
+.page-header p {
+  margin-top: 8px;
+
+  color: #8b7658;
+
+  font-size: 14px;
 }
 
-.walkin-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
+/* ================= CREATE BUTTON ================= */
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: #6b4728;
-  font-size: 0.9rem;
-}
+.btn-create {
+  background: #b9975b;
 
-.field.full-width {
-  grid-column: 1 / -1;
-  margin-top: 10px;
-}
+  color: white;
 
-.walkin-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(75, 53, 27, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 1000;
-}
-
-.detail-modal {
-  width: min(620px, 100%);
-  background: #fffaf1;
-  border: 1px solid #e4c78b;
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 16px 40px rgba(103, 72, 32, 0.16);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #8b5e34;
-}
-
-.close-btn {
   border: none;
-  background: transparent;
-  color: #7a4d24;
-  font-size: 1.3rem;
+
+  padding: 13px 24px;
+
+  border-radius: 12px;
+
+  font-weight: 600;
+
   cursor: pointer;
+
+  transition: 0.25s;
+
+  box-shadow: 0 8px 18px rgba(185, 151, 91, 0.25);
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 16px;
+.btn-create:hover {
+  background: #a27f45;
+
+  transform: translateY(-2px);
 }
 
-.detail-grid > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px;
-  border: 1px solid #efe0be;
-  border-radius: 10px;
-  background: #fff7e8;
+/* ================= CONTENT ================= */
+
+.page-container :deep(.toolbar) {
+  margin-bottom: 24px;
 }
 
-.detail-grid span {
-  color: #8f6b46;
-  font-size: 0.8rem;
+.page-container :deep(.table-container) {
+  margin-top: 24px;
 }
 
-.detail-grid strong {
-  color: #4d3422;
-  font-size: 0.94rem;
-}
+/* ================= RESPONSIVE ================= */
 
-@media (max-width: 720px) {
-  .walkin-grid,
-  .detail-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 900px) {
+  .page-header {
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 16px;
   }
 
-  .walkin-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .btn-create {
+    width: 100%;
   }
 }
 </style>

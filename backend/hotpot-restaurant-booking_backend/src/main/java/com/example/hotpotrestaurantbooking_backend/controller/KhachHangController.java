@@ -1,5 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.controller;
 
+import com.example.hotpotrestaurantbooking_backend.dto.DTOKhachHangSearchResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.KhachHangRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.KhachHangResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
@@ -47,7 +48,9 @@ public class KhachHangController {
         return ResponseEntity.noContent().build();
     }
     @GetMapping("/search")
-    public List<KhachHang> search(@RequestParam String keyword) {
-        return khachHangService.search(keyword);
+    public ResponseEntity<List<DTOKhachHangSearchResponse>> search(
+            @RequestParam String keyword) {
+
+        return ResponseEntity.ok(khachHangService.search(keyword));
     }
 }

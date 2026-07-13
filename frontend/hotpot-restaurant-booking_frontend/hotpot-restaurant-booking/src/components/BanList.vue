@@ -72,6 +72,14 @@ const formatLoaiBan = (loai: string) => {
       return loai
   }
 }
+
+const formatTrangThaiBan = (trangThai: string) => {
+  if (trangThai === 'BAO_TRI') {
+    return 'Bảo trì'
+  }
+
+  return 'Hoạt động'
+}
 </script>
 
 <template>
@@ -88,8 +96,16 @@ const formatLoaiBan = (loai: string) => {
         <!-- INFO -->
         <div class="ban-info">
           <div class="ban-name">{{ ban.tenBan }}</div>
-          <div class="ban-type">{{ formatLoaiBan(ban.loaiBan) }}</div>
-          <div class="ban-status">{{ ban.trangThai }}</div>
+
+          <div class="ban-meta">
+            <span class="ban-type">
+              {{ formatLoaiBan(ban.loaiBan) }}
+            </span>
+
+            <div class="ban-status">
+              {{ formatTrangThaiBan(ban.trangThai) }}
+            </div>
+          </div>
         </div>
 
         <!-- ACTION (chỉ delete) -->
@@ -103,76 +119,176 @@ const formatLoaiBan = (loai: string) => {
 
 <style scoped>
 .ban-wrapper {
-  padding: 12px;
+  padding: 16px;
+
   background: #fffdf8;
-  border-radius: 12px;
-  border: 1px solid #e6d2aa;
+
+  border-radius: 16px;
+
+  border: 1px solid #eee2cf;
 }
 
 .ban-grid {
   display: grid;
+
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+
+  gap: 16px;
 }
 
 .ban-card {
-  background: #fff8ea;
-  border: 1px solid #e6d2aa;
-  border-radius: 10px;
-  padding: 12px;
+  background: #fffaf3;
+
+  border: 1px solid #eadfc9;
+
+  border-radius: 16px;
+
+  padding: 18px;
+
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: 0.3s;
+
+  flex-direction: column;
+
+  gap: 16px;
+
+  transition: all 0.25s ease;
+
   cursor: pointer;
+
+  box-shadow: 0 4px 12px rgba(150, 120, 80, 0.06);
+
+  min-height: 140px;
 }
 
 .ban-card:hover {
-  border-color: #d8a85c;
+  transform: translateY(-4px);
+
+  border-color: #ddbd82;
+
+  box-shadow: 0 10px 24px rgba(150, 120, 80, 0.12);
 }
 
 .ban-card.active {
-  border-color: #d8a85c;
-  box-shadow: 0 0 8px rgba(216, 168, 92, 0.2);
+  background: #f8edda;
+
+  border-color: #d8b77a;
+
+  box-shadow: 0 10px 24px rgba(216, 183, 122, 0.2);
 }
 
 .ban-info {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
+
+  flex-direction: column;
+
+  gap: 14px;
+
+  flex: 1;
 }
 
 .ban-name {
-  color: #8b5e34;
+  font-size: 20px;
+
+  font-weight: 700;
+
+  color: #725b3c;
+}
+
+.ban-meta {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  flex-wrap: wrap;
+}
+
+.ban-type,
+.ban-status {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  white-space: nowrap;
+
+  padding: 5px 12px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+
   font-weight: 600;
 }
 
 .ban-type {
-  color: #8f6b46;
-  font-size: 17px;
-  padding: 2px 6px;
-  border: 1px solid #e6d2aa;
-  border-radius: 6px;
+  background: #f8eedc;
+
+  color: #87663a;
 }
 
 .ban-status {
-  color: #8f6b46;
-  font-size: 15px;
+  background: #edf5e9;
+
+  color: #3f7d43;
+}
+
+.ban-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  width: 100%;
 }
 
 .btn-delete {
-  background: #fff0eb;
-  border: 1px solid #f2b4a3;
-  color: #b84f3f;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 11px;
+  background: #fff3ef;
+
+  color: #c05a45;
+
+  border: 1px solid #f0c9bd;
+
+  border-radius: 10px;
+
+  padding: 7px 16px;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
   cursor: pointer;
+
+  transition: all 0.25s ease;
 }
 
 .btn-delete:hover {
-  background: #ffd8cd;
-  color: #a53b2f;
+  background: #df7560;
+
+  color: white;
+
+  border-color: #df7560;
+
+  transform: scale(1.05);
+}
+
+/* responsive */
+@media (max-width: 1200px) {
+  .ban-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .ban-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .ban-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

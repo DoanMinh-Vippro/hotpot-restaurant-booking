@@ -15,6 +15,7 @@ public class DTOBanResponse {
     private Integer idBan;
     private String tenBan;
     private LoaiBan loaiBan;
+    private Integer sucChua;
     private Integer idKhuVuc;
     private String tenKhuVuc;
     private TrangThaiBan trangThai;
