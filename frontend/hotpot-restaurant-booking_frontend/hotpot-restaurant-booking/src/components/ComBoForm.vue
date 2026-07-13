@@ -18,6 +18,7 @@ const form = reactive({
   giaCombo: '',
   hinhAnh: '',
   trangThai: 1,
+  trangThaiBan: 1, // 🌟 BỔ SUNG: Mặc định là 1 (Còn hàng)
 })
 
 // Chứa thông báo lỗi hiển thị trực tiếp dưới các ô nhập liệu
@@ -128,6 +129,7 @@ const gui = () => {
     giaCombo: Number(form.giaCombo),
     hinhAnh: form.hinhAnh.trim(),
     trangThai: form.trangThai,
+    trangThaiBan: form.trangThaiBan, // 🌟 BỔ SUNG: Truyền giá trị kho hàng đi
     fileThat: fileAnh.value 
   })
 }
@@ -147,6 +149,7 @@ defineExpose({
       form.giaCombo = ''
       form.hinhAnh = ''
       form.trangThai = 1
+      form.trangThaiBan = 1 // 🌟 Reset về Còn hàng
       return
     }
 
@@ -158,6 +161,7 @@ defineExpose({
     form.giaCombo = combo.giaCombo.toString()
     form.hinhAnh = combo.hinhAnh
     form.trangThai = combo.trangThai
+    form.trangThaiBan = combo.trangThaiBan // 🌟 Đổ dữ liệu kho từ danh sách vào form khi bấm Sửa
   },
 })
 </script>
@@ -216,11 +220,18 @@ defineExpose({
       </div>
 
       <div class="form-group">
-        <label>Trạng thái</label>
+        <label>Trạng thái kinh doanh</label>
         <select v-model.number="form.trangThai">
           <option :value="1">Còn bán</option>
           <option :value="0">Ngưng bán</option>
-          <option :value="2">Tạm hết món</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Kho hàng</label>
+        <select v-model.number="form.trangThaiBan" :disabled="form.trangThai === 0">
+          <option :value="1">Còn hàng</option>
+          <option :value="0">Hết hàng</option>
         </select>
       </div>
     </div>
@@ -232,6 +243,7 @@ defineExpose({
 </template>
 
 <style scoped>
+/* Toàn bộ phần CSS cũ của bạn được giữ nguyên 100% không đổi một dòng nào */
 .bieu-mau-panel {
   background: rgba(255, 248, 234, 0.96);
   border: 1px solid #e6d2aa;
@@ -349,5 +361,11 @@ select option {
 .is-invalid {
   border: 1px solid #c94f3a !important;
   background: rgba(255, 107, 107, 0.05) !important;
+}
+
+/* Thêm hiệu ứng mờ nhẹ khi select bị disabled (Ngưng bán) để tăng trải nghiệm */
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

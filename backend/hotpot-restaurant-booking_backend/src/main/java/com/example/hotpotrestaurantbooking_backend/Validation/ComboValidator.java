@@ -26,6 +26,10 @@ public class ComboValidator {
         if (comboRepository.existsByTenComboIgnoreCase(tenCombo.trim())) {
             throw new RuntimeException("Tên combo đã tồn tại");
         }
+
+        if (request.getTrangThai() == 0 && request.getTrangThaiBan() == 1) {
+            throw new RuntimeException("Combo đang ngừng bán, trạng thái bán phải là 'Hết hàng'");
+        }
     }
 
     public void validateUpdate(Integer idCombo, ComboRequest request) {
@@ -39,6 +43,18 @@ public class ComboValidator {
                 && !comboTrungTen.getIdCombo().equals(idCombo)) {
 
             throw new RuntimeException("Tên combo đã tồn tại");
+        }
+
+        if (request.getTrangThai() == 0 && request.getTrangThaiBan() == 1) {
+            throw new RuntimeException("Combo đang ngừng bán, trạng thái bán phải là 'Hết hàng'");
+        }
+
+        if (ValidateUtil.hasLeadingOrTrailingSpace(tenCombo)) {
+            throw new RuntimeException("Tên combo không được chứa khoảng trắng ở đầu hoặc cuối");
+        }
+
+        if (ValidateUtil.hasMultipleSpaces(tenCombo)) {
+            throw new RuntimeException("Tên combo không được chứa nhiều khoảng trắng liên tiếp");
         }
     }
 }

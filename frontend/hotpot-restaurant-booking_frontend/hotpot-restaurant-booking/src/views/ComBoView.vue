@@ -69,6 +69,12 @@ const fetchDuLieu = async () => {
     if (responseData && responseData.content) {
       danhSachCombo.value = responseData.content
       tongSoTrang.value = responseData.totalPages || 0
+      
+      // 🌟 BỔ SUNG: Cập nhật lại dữ liệu cho khu vực Preview nếu item đang xem có thay đổi sau khi fetch
+      if (comboDangChon.value) {
+        const itemMoi = danhSachCombo.value.find(cb => cb.idCombo === comboDangChon.value?.idCombo)
+        if (itemMoi) comboDangChon.value = itemMoi
+      }
     } else {
       danhSachCombo.value = Array.isArray(responseData) ? responseData : []
       tongSoTrang.value = 1
@@ -130,11 +136,13 @@ const luu = async (payload: ComboRequest) => {
       tenFileAnhCuoiCung = uploadRes.data; 
     }
 
+    // 🌟 CẬP NHẬT: Gom thêm trường trangThaiBan vào object gửi đi API
     const dataGuiDi: ComboRequest = {
       tenCombo: payload.tenCombo,
       giaCombo: payload.giaCombo,
       hinhAnh: tenFileAnhCuoiCung,
-      trangThai: payload.trangThai
+      trangThai: payload.trangThai,
+      trangThaiBan: payload.trangThaiBan // Thêm dòng này
     }
 
     if (isUpdate) {
@@ -167,6 +175,7 @@ const xoa = async (id: number) => {
 </script>
 
 <style scoped>
+/* Giữ nguyên 100% css layout chia grid 2 cột của bạn */
 .container {
   min-height: 100vh;
   padding: 20px 0 32px;

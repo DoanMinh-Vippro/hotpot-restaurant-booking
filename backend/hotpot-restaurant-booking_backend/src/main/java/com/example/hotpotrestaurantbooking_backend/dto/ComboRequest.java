@@ -31,4 +31,6 @@ public class ComboRequest {
     private String hinhAnh;
     @NotNull(message = "Trạng thái không được để trống")
     private Integer trangThai;
+    @NotNull(message = "Trạng thái bán không được để trống")
+    private Integer trangThaiBan;
 }

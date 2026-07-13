@@ -27,4 +27,8 @@ public class MonRequest {
     private Integer idDanhMuc;
     @NotNull(message = "Trạng thái không được để trống")
     private Integer trangThai;
+    @NotNull(message = "Trạng thái bán không được để trống")
+    private Integer trangThaiBan;
+    @NotBlank(message = "Hình ảnh không được để trống")
+    private String hinhAnh;
 }

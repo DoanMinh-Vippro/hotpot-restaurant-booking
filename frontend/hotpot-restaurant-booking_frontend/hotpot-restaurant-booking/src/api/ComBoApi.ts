@@ -6,6 +6,7 @@ export interface Combo {
   giaCombo: number
   hinhAnh: string
   trangThai: number
+  trangThaiBan: number
 }
 
 export interface ComboRequest {
@@ -14,6 +15,7 @@ export interface ComboRequest {
   giaCombo: number
   hinhAnh: string
   trangThai: number
+  trangThaiBan: number
   fileThat?: File | null 
 }
 

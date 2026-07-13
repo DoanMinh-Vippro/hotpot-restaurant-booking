@@ -52,9 +52,10 @@ const xoa = (id: number) => {
           <thead>
             <tr>
               <th>Hình ảnh</th>
-              <th>Tên</th>
-              <th>Giá</th>
-              <th>Trạng thái</th>
+              <th>Tên combo</th>
+              <th>Giá tiền</th>
+              <th>Trạng thái kinh doanh</th>
+              <th>Trạng thái kho</th>
               <th>Hành động</th>
             </tr>
           </thead>
@@ -69,21 +70,32 @@ const xoa = (id: number) => {
                 />
                 <span v-else class="chua-co-anh">Không có ảnh</span>
               </td>
+              
               <td class="o-chu-thuong text-dam">{{ cb.tenCombo }}</td>
               <td class="o-chu-thuong">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ</td>
-              <td class="o-chu-thuong">               
-              <span
-                :class="{
-                  'trang-thai-con': cb.trangThai === 1,
-                  'trang-thai-ngung': cb.trangThai === 0,
-                  'trang-thai-het': cb.trangThai === 2,
-                }"
-              >
-                {{
-                  cb.trangThai === 1 ? 'Còn bán' : cb.trangThai === 0 ? 'Ngưng bán' : 'Tạm hết món'
-                }}
-              </span>
-            </td>
+              
+              <td class="o-chu-thuong">              
+                <span
+                  :class="{
+                    'trang-thai-con': cb.trangThai === 1,
+                    'trang-thai-ngung': cb.trangThai === 0,
+                  }"
+                >
+                  {{ cb.trangThai === 1 ? 'Còn bán' : 'Ngưng bán' }}
+                </span>
+              </td>
+
+              <td class="o-chu-thuong">              
+                <span
+                  :class="{
+                    'trang-thai-con': cb.trangThaiBan === 1 && cb.trangThai === 1,
+                    'trang-thai-het': cb.trangThaiBan === 0 || cb.trangThai === 0,
+                  }"
+                >
+                  {{ cb.trangThai === 0 ? 'Hết hàng ' : (cb.trangThaiBan === 1 ? 'Còn hàng' : 'Hết hàng') }}
+                </span>
+              </td>
+
               <td>
                 <div class="hanh-dong-o">
                   <button class="nut-xem-ct" @click="$emit('view-detail', cb)">Xem chi tiết</button>
@@ -93,7 +105,7 @@ const xoa = (id: number) => {
               </td>
             </tr>
             <tr v-if="danhSachCombo.length === 0">
-              <td colspan="5" style="text-align: center; color: #a0a0a0; padding: 30px;">
+              <td colspan="6" style="text-align: center; color: #a0a0a0; padding: 30px;">
                 Không tìm thấy combo phù hợp.
               </td>
             </tr>

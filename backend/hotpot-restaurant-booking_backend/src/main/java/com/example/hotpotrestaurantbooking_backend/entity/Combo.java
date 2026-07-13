@@ -25,4 +25,6 @@ public class Combo {
     private String hinhAnh;
     @Column(name = "trang_thai")
     private Integer trangThai;
+    @Column(name = "trang_thai_ban_hang")
+    private Integer trangThaiBan;
 }
