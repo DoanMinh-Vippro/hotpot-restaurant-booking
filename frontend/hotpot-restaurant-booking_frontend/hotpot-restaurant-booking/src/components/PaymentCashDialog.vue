@@ -1,3 +1,25 @@
+<script setup lang="ts">
+defineProps<{
+  show: boolean
+  amount: number
+}>()
+const emit = defineEmits(['confirm', 'close'])
+</script>
+<template>
+  <div v-if="show" class="overlay">
+    <div class="dialog">
+      <h2>Thanh toán tiền mặt</h2>
+      <p>
+        Thu khách: <strong> {{ amount.toLocaleString() }} VNĐ </strong>
+      </p>
+      <p>Sau khi đã nhận đủ tiền cọc, bấm xác nhận.</p>
+      <div class="actions">
+        <button class="cancel" @click="emit('close')">Hủy</button>
+        <button class="ok" @click="emit('confirm')">Đã thu tiền</button>
+      </div>
+    </div>
+  </div>
+</template>
 <style scoped>
 .overlay {
   position: fixed;
