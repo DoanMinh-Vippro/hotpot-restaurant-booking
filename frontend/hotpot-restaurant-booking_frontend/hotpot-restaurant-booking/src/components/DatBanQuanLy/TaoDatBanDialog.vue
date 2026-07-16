@@ -55,22 +55,14 @@ const form = ref({
   idKhachHang: null as number | null,
   tenKhachHang: '',
   sdtKhachHang: '',
-
   soNguoi: 2,
-
   thoiGianDenDuKien: '',
-
   dsBan: [] as number[],
-
   dsCombo: [] as any[],
-
   soTienCoc: 0,
-
   trangThaiCoc: 'CHUA_COC',
-
   phuongThucThanhToan: 'CHUA_THANH_TOAN' as PaymentMethod,
   ghiChu: '',
-
   trangThai: 'CHO_XAC_NHAN',
 })
 // ===========================
@@ -101,23 +93,65 @@ const tongSucChuaDaChon = () => {
 }
 
 const timToHopToiUu = () => {
-  const ds = [...props.dsBanTrong].sort((a, b) => b.sucChua - a.sucChua)
+  const SO_GHE_DU_TOI_DA = 1
 
-  let ketQua: any[] | null = null
-  let tongTotNhat = Number.MAX_SAFE_INTEGER
+  // Sắp xếp tăng dần sức chứa
+  const ds = [...props.dsBanTrong].sort((a, b) => a.sucChua - b.sucChua)
+
+  const soNguoi = form.value.soNguoi
+
+  // ==================================================
+  // B1. Bàn đơn vừa đủ
+  // ==================================================
+  const banVuaDu = ds.find((b) => b.sucChua === soNguoi)
+
+  if (banVuaDu) {
+    banToiUu.value = [banVuaDu.idBan]
+    return
+  }
+
+  // ==================================================
+  // B2. Bàn đơn dư tối đa 1 ghế
+  // ==================================================
+  const banDu1 = ds.find((b) => b.sucChua > soNguoi && b.sucChua - soNguoi <= SO_GHE_DU_TOI_DA)
+
+  if (banDu1) {
+    banToiUu.value = [banDu1.idBan]
+    return
+  }
+
+  // ==================================================
+  // B3 + B4. Ghép bàn
+  // ==================================================
+
+  let ketQuaVuaDu: any[] | null = null
+
+  let ketQuaDu1: any[] | null = null
+
+  let tongDuTotNhat = Number.MAX_SAFE_INTEGER
 
   const deQuy = (index: number, toHop: any[], tong: number) => {
-    // Đã đủ chỗ
-    if (tong >= form.value.soNguoi) {
-      if (
-        ketQua == null ||
-        // Ít bàn hơn
-        toHop.length < ketQua.length ||
-        // Cùng số bàn nhưng dư ít hơn
-        (toHop.length === ketQua.length && tong < tongTotNhat)
-      ) {
-        ketQua = [...toHop]
-        tongTotNhat = tong
+    if (tong >= soNguoi) {
+      if (toHop.length >= 2) {
+        // ======================
+        // B3. Ghép vừa đủ
+        // ======================
+        if (tong === soNguoi) {
+          if (ketQuaVuaDu == null || toHop.length < ketQuaVuaDu.length) {
+            ketQuaVuaDu = [...toHop]
+          }
+        }
+
+        // ======================
+        // B4. Ghép dư tối đa 1 ghế
+        // ======================
+        else if (
+          tong - soNguoi <= SO_GHE_DU_TOI_DA &&
+          (ketQuaDu1 == null || tong < tongDuTotNhat)
+        ) {
+          ketQuaDu1 = [...toHop]
+          tongDuTotNhat = tong
+        }
       }
 
       return
@@ -125,26 +159,40 @@ const timToHopToiUu = () => {
 
     if (index >= ds.length) return
 
-    // =====================
-    // CẮT NHÁNH
-    // =====================
-
-    if (ketQua && toHop.length >= ketQua.length) {
-      return
-    }
-
-    // Chọn bàn hiện tại
     deQuy(index + 1, [...toHop, ds[index]], tong + ds[index].sucChua)
 
-    // Bỏ qua bàn hiện tại
     deQuy(index + 1, toHop, tong)
   }
 
   deQuy(0, [], 0)
 
-  banToiUu.value = ketQua?.map((b) => b.idBan) ?? []
+  if (ketQuaVuaDu) {
+    banToiUu.value = ketQuaVuaDu.map((b) => b.idBan)
+    return
+  }
 
-  console.log('TỔ HỢP TỐI ƯU', banToiUu.value)
+  if (ketQuaDu1) {
+    banToiUu.value = ketQuaDu1.map((b) => b.idBan)
+    return
+  }
+
+  // ==================================================
+  // B5. Không còn cách nào
+  // Chọn bàn đơn nhỏ nhất còn lại (không giới hạn số ghế dư)
+  // ==================================================
+  const banConLai = ds.find((b) => b.sucChua > soNguoi)
+
+  if (banConLai) {
+    banToiUu.value = [banConLai.idBan]
+    return
+  }
+
+  // ==================================================
+  // B6. Hết bàn
+  // ==================================================
+  banToiUu.value = []
+
+  console.log('Không tìm được bàn phù hợp')
 }
 
 watch(

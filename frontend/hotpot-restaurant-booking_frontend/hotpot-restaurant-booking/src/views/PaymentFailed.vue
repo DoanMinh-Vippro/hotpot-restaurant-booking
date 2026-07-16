@@ -11,9 +11,7 @@ const goHome = () => {
 <template>
   <div class="payment-page">
     <h1>❌ Thanh toán thất bại</h1>
-
     <p>Giao dịch chưa được hoàn tất.</p>
-
     <button @click="goHome">Quay lại</button>
   </div>
 </template>

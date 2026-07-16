@@ -19,26 +19,15 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DTODatBanResponse {
-
     private Integer idDatBan;
-
     private LocalDate ngayDat;
-
     private Time gioDat;
-
     private String sdtKhachHang;
-
     private List<DTOChiTietDatBanComboResponse> dsCombo;
-
     private TrangThaiDatBan trangThai;
-
     private int soNguoi;
-
     private String ghiChu;
-
     private LocalDateTime thoiGianDenDuKien;
-
     private BigDecimal soTienCoc;
-
     private PhuongThucThanhToan phuongThucThanhToan;
 }

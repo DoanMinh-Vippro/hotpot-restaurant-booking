@@ -33,6 +33,18 @@ public class DatBan {
     @JoinColumn(name = "id_khach_hang")
     private KhachHang khachHang;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_tai_khoan_tao")
+    private TaiKhoan taiKhoanTao;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_tai_khoan_xac_nhan")
+    private TaiKhoan taiKhoanXacNhan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_tai_khoan_huy")
+    private TaiKhoan taiKhoanHuy;
+
     @OneToMany(mappedBy = "datBan", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<ChiTietDatBanCombo> chiTietDatBanCombos;

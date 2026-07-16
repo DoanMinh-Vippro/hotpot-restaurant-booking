@@ -7,11 +7,13 @@ import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +39,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private final ComboRepository comboRepository;
     private final KhachHangRepository khachHangRepository;
     private final HoaDonRepository hoaDonRepository;
-    private final ChiTietDatBanBanRepository chiTietDatBanBanRepository;
+    private final TaiKhoanRepository taiKhoanRepository;
 
     private static final long THOI_GIAN_GIU_BAN = 3;
 
@@ -241,6 +243,19 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         dongBoTatCaTrangThaiBan();
     }
 
+    private TaiKhoan getCurrentTaiKhoan() {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        String username = authentication.getName();
+
+        return taiKhoanRepository.findByTenDangNhap(username)
+                .orElse(null);
+    }
     //=============================================================================
 
     @Override
@@ -340,6 +355,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         }
 
         validateDanhSachBan(d.getDsBan(), d.getThoiGianDenDuKien(), null);
+        // Ghi nhận tài khoản tạo đơn
+        db.setTaiKhoanTao(getCurrentTaiKhoan());
 
         datBanRepository.save(db);
 
@@ -456,6 +473,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
 
         datBan.setTrangThai(TrangThaiDatBan.DA_HUY);
+        // Ghi nhận tài khoản hủy đơn
+        datBan.setTaiKhoanHuy(getCurrentTaiKhoan());
         datBanRepository.save(datBan);
 
         if (datBan.getChiTietDatBanBans() != null) {
@@ -562,6 +581,9 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         }
 
         datBan.setTrangThai(TrangThaiDatBan.DA_XAC_NHAN);
+
+        // Ghi nhận tài khoản xác nhận
+        datBan.setTaiKhoanXacNhan(getCurrentTaiKhoan());
 
         datBanRepository.save(datBan);
 

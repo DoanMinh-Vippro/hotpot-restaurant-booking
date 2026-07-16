@@ -29,19 +29,45 @@ const sucChuaToiUu = () => {
 }
 
 const timToHopToiUu = () => {
+  const soNguoi = props.reservation.soNguoi
+
   const ds = props.dsBanTrong
     .filter((b) => !dsBanHienTai().includes(b.idBan))
-    .sort((a, b) => b.sucChua - a.sucChua)
+    .sort((a, b) => a.sucChua - b.sucChua)
+
+  // ===========================
+  // B1. Bàn đơn vừa đủ
+  // ===========================
+  const banDonVua = ds.find((b) => b.sucChua === soNguoi)
+
+  if (banDonVua) {
+    banToiUu.value = [banDonVua.idBan]
+    return
+  }
+
+  // ===========================
+  // B2. Bàn đơn dư tối đa 1 ghế
+  // ===========================
+  const banDonDu1 = ds.find((b) => b.sucChua === soNguoi + 1)
+
+  if (banDonDu1) {
+    banToiUu.value = [banDonDu1.idBan]
+    return
+  }
+
+  // ===========================
+  // B3 + B4. Ghép bàn
+  // ===========================
 
   let ketQua: any[] | null = null
   let tongTotNhat = Number.MAX_SAFE_INTEGER
 
   const deQuy = (index: number, toHop: any[], tong: number) => {
-    if (tong >= props.reservation.soNguoi) {
+    if (tong >= soNguoi && tong <= soNguoi + 1) {
       if (
         ketQua == null ||
-        toHop.length < ketQua.length ||
-        (toHop.length === ketQua.length && tong < tongTotNhat)
+        tong < tongTotNhat ||
+        (tong === tongTotNhat && toHop.length < ketQua.length)
       ) {
         ketQua = [...toHop]
         tongTotNhat = tong
@@ -50,9 +76,9 @@ const timToHopToiUu = () => {
       return
     }
 
-    if (index >= ds.length) return
+    if (tong > soNguoi + 1) return
 
-    if (ketQua && toHop.length >= ketQua.length) return
+    if (index >= ds.length) return
 
     deQuy(index + 1, [...toHop, ds[index]], tong + ds[index].sucChua)
 
@@ -61,7 +87,25 @@ const timToHopToiUu = () => {
 
   deQuy(0, [], 0)
 
-  banToiUu.value = ketQua?.map((b) => b.idBan) ?? []
+  if (ketQua) {
+    banToiUu.value = ketQua.map((b) => b.idBan)
+    return
+  }
+
+  // ===========================
+  // B5. Lấy bàn đơn nhỏ nhất còn lại
+  // ===========================
+  const banLonNhatConLai = ds.find((b) => b.sucChua > soNguoi)
+
+  if (banLonNhatConLai) {
+    banToiUu.value = [banLonNhatConLai.idBan]
+    return
+  }
+
+  // ===========================
+  // B6. Hết bàn
+  // ===========================
+  banToiUu.value = []
 }
 
 watch(

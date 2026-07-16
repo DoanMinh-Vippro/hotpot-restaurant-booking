@@ -30,17 +30,18 @@ public class SercurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/dat-ban-quan-ly/**").permitAll()
 
-                        // 2. Cho phép xem danh sách phân trang (không cần Token)
+                        .requestMatchers("/api/dat-ban-quan-ly/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")
+
                         .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()
 
-                        // 3. Cho phép xem ảnh tĩnh công khai từ thư mục WebConfig (không cần Token)
                         .requestMatchers("/uploads/**").permitAll()
-                        // 4 thanh toán
+
                         .requestMatchers("/sepay/webhook").permitAll()
                         .requestMatchers("/api/payment/vnpay/create").permitAll()
                         .requestMatchers("/api/payment/vnpay-return").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 // Spring Boot sẽ tự động tìm Bean JwtDecoder trong Context (đã được tạo ở JwtKeyConfig)

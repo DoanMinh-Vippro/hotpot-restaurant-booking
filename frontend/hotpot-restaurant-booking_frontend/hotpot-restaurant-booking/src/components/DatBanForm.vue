@@ -6,6 +6,11 @@ import router from '@/router/index.ts'
 import { paymentApi } from '@/api/PaymentApi.ts'
 import PaymentDialog from './PaymentDialog.vue'
 import ConfirmBanDialog from './ConfirmBanDialog.vue'
+import PopupDatBanThanhCong from './PopupDatBanThanhCong.vue'
+import { useAuthStore } from '@/stores/AuthStore'
+import VueFlatPickr from 'vue-flatpickr-component'
+import 'flatpickr/dist/flatpickr.css'
+import { Vietnamese } from 'flatpickr/dist/l10n/vn.js'
 
 type PaymentMethod = 'CHUYEN_KHOAN' | 'VNPAY' | 'CHUA_THANH_TOAN'
 
@@ -13,6 +18,77 @@ const showPayment = ref(false)
 const showConfirmBan = ref(false) // xác nhận của check bàn
 const dsBanDeXuat = ref<any[]>([])
 const checkBanResult = ref<any>(null)
+const authStore = useAuthStore() // lấy tên khách bỏ form
+const errors = ref({
+  sdtKhachHang: '',
+  soNguoi: '',
+  thoiGianDenDuKien: '',
+})
+const isResetting = ref(false)
+const datBanThanhCong = ref(false)
+
+//validate
+const validatePhone = () => {
+  const regex = /^[0][1-9][0-9]{8}$/
+  if (!formData.value.sdtKhachHang.trim()) {
+    errors.value.sdtKhachHang = 'Không được để trống số điện thoại'
+    return false
+  }
+  if (!regex.test(formData.value.sdtKhachHang)) {
+    errors.value.sdtKhachHang = 'Số điện thoại không đúng định dạng'
+    return false
+  }
+  errors.value.sdtKhachHang = ''
+  return true
+}
+
+const validateSoNguoi = () => {
+  if (!formData.value.soNguoi) {
+    errors.value.soNguoi = 'Vui lòng nhập số người'
+    return false
+  }
+
+  if (formData.value.soNguoi <= 0) {
+    errors.value.soNguoi = 'Số người phải lớn hơn 0'
+    return false
+  }
+
+  errors.value.soNguoi = ''
+  return true
+}
+
+const validateDate = () => {
+  const value = formData.value.thoiGianDenDuKien
+
+  if (!value) {
+    errors.value.thoiGianDenDuKien = 'Vui lòng chọn thời gian'
+    return false
+  }
+
+  const date = new Date(value)
+
+  const now = new Date()
+
+  if (date < now) {
+    errors.value.thoiGianDenDuKien = 'Không được chọn thời gian quá khứ'
+    return false
+  }
+
+  const hour = date.getHours()
+
+  if (!((hour >= 10 && hour < 14) || (hour >= 18 && hour <= 23))) {
+    errors.value.thoiGianDenDuKien = 'Nhà hàng chỉ phục vụ từ 10:00-14:00 và 18:00-24:00'
+    return false
+  }
+
+  errors.value.thoiGianDenDuKien = ''
+  return true
+}
+
+const validateForm = () => {
+  return validatePhone() && validateSoNguoi() && validateDate()
+}
+//=================================================================================
 
 // hàm format tiền cọc
 const formatCurrency = (value: number) => {
@@ -34,13 +110,57 @@ const formData = ref({
   sdtKhachHang: '',
   soNguoi: 0,
   ghiChu: '',
-  thoiGianDenDuKien: '',
+  thoiGianDenDuKien: null as Date | string | null,
   soTienCoc: 0,
   phuongThucThanhToan: 'CHUA_THANH_TOAN' as PaymentMethod,
 
   // Danh sách combo khách hàng đã chọn
   dsCombo: [] as any[],
 })
+const flatpickrConfig = {
+  enableTime: true,
+  time_24hr: true,
+  dateFormat: 'Y-m-d H:i',
+  minuteIncrement: 30,
+  locale: Vietnamese,
+
+  minDate: new Date(),
+
+  disable: [
+    function (date: Date) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      return date < today
+    },
+  ],
+}
+watch(
+  () => formData.value.sdtKhachHang,
+  () => {
+    if (!isResetting.value) {
+      validatePhone()
+    }
+  },
+)
+
+watch(
+  () => formData.value.soNguoi,
+  () => {
+    if (!isResetting.value) {
+      validateSoNguoi()
+    }
+  },
+)
+
+watch(
+  () => formData.value.thoiGianDenDuKien,
+  () => {
+    if (!isResetting.value) {
+      validateDate()
+    }
+  },
+)
 
 //cong de nhanh du lieu tu DatBanView
 const props = defineProps(['datBanForm'])
@@ -86,12 +206,16 @@ const chonCombo = (dsCombo: any[]) => {
 
   formData.value.soTienCoc = Math.round(tongTienCombo * TI_LE_COC)
 }
+
 //==========================================
 const checkBan = async () => {
+  if (!validateForm()) return
   try {
     const res = await DatBanApi.checkBan({
       soNguoi: formData.value.soNguoi,
-      thoiGianDenDuKien: formData.value.thoiGianDenDuKien,
+      thoiGianDenDuKien: formData.value.thoiGianDenDuKien
+        ? String(formData.value.thoiGianDenDuKien).replace(' ', 'T') + ':00'
+        : null,
     })
 
     checkBanResult.value = res.data
@@ -123,7 +247,12 @@ const createBooking = async () => {
     // Có combo => phải thanh toán tiền cọc
     if (formData.value.dsCombo.length > 0) {
       if (formData.value.phuongThucThanhToan === 'CHUYEN_KHOAN') {
-        const paymentRes = await paymentApi.createPayment(formData.value)
+        const paymentRes = await paymentApi.createPayment({
+          ...formData.value,
+          thoiGianDenDuKien: formData.value.thoiGianDenDuKien
+            ? String(formData.value.thoiGianDenDuKien).replace(' ', 'T') + ':00'
+            : null,
+        })
 
         paymentData.value = {
           qrUrl: paymentRes.data.qrUrl,
@@ -158,7 +287,7 @@ const createBooking = async () => {
               resetForm()
               emit('refresh')
 
-              alert('Đặt bàn thành công!')
+              datBanThanhCong.value = true
             }
           } catch (e) {
             console.error(e)
@@ -179,19 +308,23 @@ const createBooking = async () => {
     else {
       formData.value.soTienCoc = 0
 
-      await DatBanApi.add(formData.value)
+      await DatBanApi.add({
+        ...formData.value,
+        thoiGianDenDuKien: formData.value.thoiGianDenDuKien
+          ? String(formData.value.thoiGianDenDuKien).replace(' ', 'T') + ':00'
+          : null,
+      })
 
       resetForm()
       emit('refresh')
 
-      alert('Đặt bàn thành công!')
+      datBanThanhCong.value = true
     }
   } catch (error) {
     console.error('Lỗi:', error)
   } finally {
     isAdding.value = false
   }
-  resetForm()
 }
 
 // const update = async () => {
@@ -213,17 +346,29 @@ const createBooking = async () => {
 // }
 
 const resetForm = () => {
+  isResetting.value = true
+
   formData.value = {
     idDatBan: null,
     dsBan: [],
     sdtKhachHang: '',
     soNguoi: 0,
     ghiChu: '',
-    thoiGianDenDuKien: '',
+    thoiGianDenDuKien: null,
     soTienCoc: 0,
-    phuongThucThanhToan: 'CHUYEN_KHOAN',
+    phuongThucThanhToan: 'CHUA_THANH_TOAN',
     dsCombo: [],
   }
+
+  errors.value = {
+    sdtKhachHang: '',
+    soNguoi: '',
+    thoiGianDenDuKien: '',
+  }
+
+  setTimeout(() => {
+    isResetting.value = false
+  }, 0)
 }
 
 const closePaymentDialog = () => {
@@ -251,19 +396,42 @@ const quayLai = () => {
     <div class="form-container">
       <h3>Thông Tin Đặt Bàn</h3>
 
+      <div class="welcome-box">
+        <span class="welcome-text">
+          👋 Xin chào,
+          <span class="customer-name">
+            {{ authStore.tenKhachHang }}
+          </span>
+          ! Chúc bạn có một bữa ăn thật ngon tại nhà hàng.
+        </span>
+      </div>
+
       <div class="form-group">
         <label>SĐT Khách Hàng</label>
         <input v-model="formData.sdtKhachHang" type="text" placeholder="Nhập SĐT..." />
+        <p v-if="errors.sdtKhachHang" class="error-text">
+          {{ errors.sdtKhachHang }}
+        </p>
       </div>
 
       <div class="row">
         <div class="form-group">
           <label>Số Người</label>
           <input v-model.number="formData.soNguoi" type="number" />
+          <p v-if="errors.soNguoi" class="error-text">
+            {{ errors.soNguoi }}
+          </p>
         </div>
         <div class="form-group">
           <label>Thời Gian Đến Dự Kiến</label>
-          <input v-model="formData.thoiGianDenDuKien" type="datetime-local" />
+          <VueFlatPickr
+            v-model="formData.thoiGianDenDuKien"
+            :config="flatpickrConfig"
+            placeholder="Chọn ngày giờ đến"
+          />
+          <p v-if="errors.thoiGianDenDuKien" class="error-text">
+            {{ errors.thoiGianDenDuKien }}
+          </p>
         </div>
       </div>
 
@@ -312,6 +480,7 @@ const quayLai = () => {
     @confirm="confirmBan"
     @cancel="cancelBan"
   />
+  <PopupDatBanThanhCong :show="datBanThanhCong" @close="datBanThanhCong = false" />
 </template>
 
 <style scoped>
@@ -326,6 +495,13 @@ const quayLai = () => {
   box-shadow:
     0 30px 60px rgba(0, 0, 0, 0.45),
     inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.error-text {
+  margin-top: 6px;
+  color: #ff6b6b;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 h3 {
@@ -513,5 +689,26 @@ textarea::placeholder {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
+}
+
+.welcome-box {
+  /* css của phần tên khách chào mừng*/
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  border-left: 4px solid #d4af37;
+  background: rgba(212, 175, 55, 0.08);
+  border-radius: 10px;
+}
+
+.welcome-text {
+  color: #e8dfc3;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.customer-name {
+  color: #f2d57c;
+  font-weight: 700;
+  font-size: 17px;
 }
 </style>

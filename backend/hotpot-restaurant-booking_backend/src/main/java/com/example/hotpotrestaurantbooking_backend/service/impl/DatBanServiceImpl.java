@@ -216,6 +216,15 @@ public class DatBanServiceImpl implements DatBanService {
                 ))
                 .toList();
     }
+
+    private void validateThoiGianHoatDong(LocalDateTime thoiGianDenDuKien) {
+        LocalTime gio = thoiGianDenDuKien.toLocalTime();
+        boolean caTrua = !gio.isBefore(LocalTime.of(10, 0)) && gio.isBefore(LocalTime.of(14, 0));
+        boolean caToi = !gio.isBefore(LocalTime.of(18, 0));
+        if (!caTrua && !caToi) {
+            throw new RuntimeException("Nhà hàng chỉ nhận đặt bàn từ 10:00-14:00 và 18:00-24:00.");
+        }
+    }
         //==========================================================================================
 
     @Override
@@ -264,7 +273,7 @@ public class DatBanServiceImpl implements DatBanService {
             d.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
             d.setPhuongThucThanhToan(PhuongThucThanhToan.CHUA_THANH_TOAN);
         }
-
+        validateThoiGianHoatDong(datBan.getThoiGianDenDuKien());
         validateDsBan(datBan.getDsBan(), datBan.getThoiGianDenDuKien());
         datBanRepository.save(d);
         if(datBan.getDsBan() != null && !datBan.getDsBan().isEmpty()) {
@@ -353,8 +362,7 @@ public class DatBanServiceImpl implements DatBanService {
             setComboInfo(db, res);
             return res;
 
-        }).orElseThrow(() ->
-                new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
+        }).orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
     }
 
     @Override
@@ -393,7 +401,7 @@ public class DatBanServiceImpl implements DatBanService {
         if (d.getSoTienCoc() == null) {
             d.setSoTienCoc(BigDecimal.ZERO);
         }
-
+        validateThoiGianHoatDong(datBan.getThoiGianDenDuKien());
         validateDsBan(datBan.getDsBan(), datBan.getThoiGianDenDuKien());
         // Lưu đơn đặt bàn trước để có id_dat_ban
         datBanRepository.save(d);

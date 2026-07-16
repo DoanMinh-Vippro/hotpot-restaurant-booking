@@ -48,9 +48,7 @@ public class KhachHangController {
         return ResponseEntity.noContent().build();
     }
     @GetMapping("/search")
-    public ResponseEntity<List<DTOKhachHangSearchResponse>> search(
-            @RequestParam String keyword) {
-
+    public ResponseEntity<List<DTOKhachHangSearchResponse>> search(@RequestParam String keyword) {
         return ResponseEntity.ok(khachHangService.search(keyword));
     }
 }
