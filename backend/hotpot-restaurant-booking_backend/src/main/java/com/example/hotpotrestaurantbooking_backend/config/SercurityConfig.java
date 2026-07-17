@@ -35,7 +35,7 @@ public class SercurityConfig {
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")
 
                         .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()
-
+                        .requestMatchers("/upload").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
 
                         .requestMatchers("/sepay/webhook").permitAll()

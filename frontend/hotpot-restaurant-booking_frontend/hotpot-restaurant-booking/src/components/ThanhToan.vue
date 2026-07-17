@@ -5,6 +5,7 @@ import { onMounted, ref, computed, watch, nextTick } from 'vue'
 import GiamGiaApi from '@/api/GiamGiaApi'
 import PopupThanhToan from './PopupThanhToan.vue'
 import PopupTienMat from './PopupTienMat.vue'
+import PopupSePayQR from './PopupSePayQR.vue' // [VỊ TRÍ THÊM 1/3]: Import component tách rời
 import HoaDonApi from '@/api/HoaDonApi.ts'
 import HoaDonChiTietApi from '@/api/HoaDonChiTietApi'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
@@ -35,8 +36,8 @@ const monVuaGuiBep = ref<any[]>([])
 
 // Tự động lấy tên nhân viên dựa theo tài khoản đăng nhập
 const tenNhanVien = ref<string>(
-  localStorage.getItem('username') ||
-    JSON.parse(localStorage.getItem('user') || '{}').hoTen ||
+  localStorage.getItem('tenDangNhap') ||
+    JSON.parse(localStorage.getItem('user') || '{}').tenDangNhap ||
     'Nhân viên',
 )
 
@@ -45,6 +46,7 @@ const giamGiaDangChon = ref<number | null>(null)
 
 const phuongThucThanhToan = ref(false)
 const tienMatThanhToan = ref(false)
+const hienThiSePayQR = ref(false) // 
 const hoaDonHienTai = ref<any>(null)
 
 // ================= UTILS =================
@@ -104,19 +106,25 @@ const giamSoLuong = (item: any) => {
 }
 
 // ================= XỬ LÝ LÊN MÓN =================
-const xacNhanTungMon = (item: any) => {
-  if (item.daLen < item.soLuong) item.daLen++
+const xacNhanTungMon = async (item: any) => {
+  if (item.daLen < item.soLuong) {
+    item.daLen++
+    // Cập nhật lại trạng thái xuống DB mà không load lại làm mất state daLen
+    await xuLyHoaDon(0, 0)
+  }
 }
-const xacNhanTatCaMon = () => {
+
+const xacNhanTatCaMon = async () => {
   danhSachMonPhucVu.value.forEach((item) => {
     item.daLen = item.soLuong
   })
+  await xuLyHoaDon(0, 0)
 }
 
 // ================= POPUP =================
 const optionPay = async () => {
-  if (danhSachMonPhucVu.value.filter((i) => i.daLen > 0).length === 0) {
-    alert('Chưa có món nào được xác nhận đã lên bàn để thanh toán!')
+  if (danhSachMonPhucVu.value.length === 0) {
+    alert('Chưa có món nào được gửi vào bếp để thanh toán!')
     return
   }
   phuongThucThanhToan.value = true
@@ -132,21 +140,34 @@ const closeTienMatPopup = () => {
   tienMatThanhToan.value = false
 }
 
-// ================= COMPUTED =================
-const tongTien = computed(() =>
-  gioHang.value.reduce((tong, item) => tong + item.gia * item.soLuong, 0),
+// [VỊ TRÍ THÊM 1/3]: Các hàm kiểm soát điều hướng và hoàn tất tự động khi chuyển khoản
+const moPopupQR = async () => {
+  await xuLyHoaDon(0, 0) // Đồng bộ đẩy dữ liệu hóa đơn tạm xuống DB lấy mã HD động trước
+  phuongThucThanhToan.value = false
+  hienThiSePayQR.value = true
+}
+
+const handleChuyenKhoanThanhCong = async () => {
+  try {
+    hienThiSePayQR.value = false
+    await xuLyHoaDon(1, 1) // Cập nhật hóa đơn thành Đã thanh toán (1, 1)
+    await markReservationCompleted()
+    alert(`Bàn ${props.ban?.tenBan} đã thanh toán chuyển khoản thành công tự động!`)
+    
+    // Reset state tại client
+    hoaDonHienTai.value = null
+    gioHang.value = []
+    danhSachMonPhucVu.value = []
+    giamGiaDangChon.value = null
+  } catch (error) {
+    alert('Có lỗi xảy ra khi cập nhật trạng thái hóa đơn!')
+  }
+}
+
+// ================= COMPUTED CHI PHÍ =================
+const tongTienTamTinhCotGiua = computed(() =>
+  danhSachMonPhucVu.value.reduce((tong, item) => tong + item.gia * item.soLuong, 0),
 )
-const tongTienMonDangGoi = computed(() =>
-  danhSachMonPhucVu.value
-    .filter((item) => item.daLen < item.soLuong)
-    .reduce((tong, item) => tong + item.gia * (item.soLuong - item.daLen), 0),
-)
-const tongTienMonDaGoi = computed(() =>
-  danhSachMonPhucVu.value
-    .filter((item) => item.daLen > 0)
-    .reduce((tong, item) => tong + item.gia * item.daLen, 0),
-)
-const tongTienTamTinhCotGiua = computed(() => tongTienMonDaGoi.value)
 
 const tienGiamGia = computed(() => {
   const base = tongTienTamTinhCotGiua.value
@@ -157,6 +178,7 @@ const tienGiamGia = computed(() => {
   if (giamGia.loaiGiam === 'PHANTRAM') return (base * giamGia.giaTriGiam) / 100
   return 0
 })
+
 const tongThanhToan = computed(() => Math.max(0, tongTienTamTinhCotGiua.value - tienGiamGia.value))
 
 // ================= HÓA ĐƠN API =================
@@ -166,6 +188,7 @@ const checkHoaDonTam = async () => {
     const hd = res.data
     if (!hd) return
     hoaDonHienTai.value = hd
+
     danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => ({
       idMon: item.idMon,
       idCombo: item.idCombo,
@@ -173,7 +196,7 @@ const checkHoaDonTam = async () => {
       tenCombo: item.tenCombo,
       gia: item.donGiaHienTai ?? item.giaCombo ?? item.giaBanTaiThoiDiem ?? 0,
       soLuong: item.soLuong,
-      daLen: item.trangThaiMonAn === 'DA_LEN' ? item.soLuong : 0,
+      daLen: item.trangThaiMonAn === 'DA_LEN' ? item.soLuong : item.daLen || 0,
       loai: item.idMon ? 'MON' : 'COMBO',
       comboItems: item.comboItems ?? [],
     }))
@@ -183,11 +206,14 @@ const checkHoaDonTam = async () => {
   }
 }
 
-const addHoaDon = async (payload: any) => {
-  const res = await HoaDonApi.create(payload)
-  const idHoaDon = res.data.idHoaDon
+const saveChiTietHoaDon = async (idHoaDon: number) => {
   for (const item of danhSachMonPhucVu.value) {
     const gia = item.gia ?? 0
+    let trangThaiMonAn = 'DANG_LEN'
+    if (item.daLen === item.soLuong) {
+      trangThaiMonAn = 'DA_LEN'
+    }
+
     await HoaDonChiTietApi.add({
       maHoaDonChiTiet: `HDCT${Date.now()}${item.idMon || item.idCombo}`,
       idHoaDon,
@@ -197,29 +223,24 @@ const addHoaDon = async (payload: any) => {
       giaBanTaiThoiDiem: gia,
       tienGiamGiaMon: 0,
       thanhTien: gia * item.soLuong,
-      trangThaiMonAn: item.daLen === item.soLuong ? 'DA_LEN' : 'DANG_LEN',
+      trangThaiMonAn,
+      daLen: item.daLen,
     } as any)
   }
-  hoaDonHienTai.value = res.data
+}
+
+const addHoaDon = async (payload: any) => {
+  const res = await HoaDonApi.create(payload)
+  if (res.data) {
+    hoaDonHienTai.value = res.data
+    await saveChiTietHoaDon(res.data.idHoaDon)
+  }
 }
 
 const updateHoaDon = async (idHoaDon: number, payload: any) => {
   await HoaDonApi.update(idHoaDon, payload)
   await HoaDonChiTietApi.deleteByHoaDon(idHoaDon)
-  for (const item of danhSachMonPhucVu.value) {
-    const gia = item.gia ?? 0
-    await HoaDonChiTietApi.add({
-      maHoaDonChiTiet: `HDCT${Date.now()}${item.idMon || item.idCombo}`,
-      idHoaDon,
-      idMon: item.idMon,
-      idCombo: item.idCombo,
-      soLuong: item.soLuong,
-      giaBanTaiThoiDiem: gia,
-      tienGiamGiaMon: 0,
-      thanhTien: gia * item.soLuong,
-      trangThaiMonAn: item.daLen === item.soLuong ? 'DA_LEN' : 'DANG_LEN',
-    } as any)
-  }
+  await saveChiTietHoaDon(idHoaDon)
 }
 
 const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) => {
@@ -242,7 +263,6 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
   }
   if (hoaDonHienTai.value) {
     await updateHoaDon(hoaDonHienTai.value.idHoaDon, payload)
-    await checkHoaDonTam()
   } else {
     await addHoaDon(payload)
   }
@@ -309,60 +329,29 @@ const luuTam = async () => {
 
     gioHang.value = []
     await xuLyHoaDon(0, 0)
-
     await nextTick()
 
-    // GỌI THƯ VIỆN IN CHUẨN ĐỊNH DẠNG HOÁ ĐƠN NHIỆT K80 CĂN GIỮA
     printJS({
       printable: 'vung-phieu-in-bep',
       type: 'html',
-      header: undefined, // Fix lỗi TypeScript Configuration overload
+      header: undefined,
       targetStyles: ['*'],
       style: `
-        @page {
-          size: 80mm auto;
-          margin: 0;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-        }
+        @page { size: 80mm auto; margin: 0; }
+        body { margin: 0; padding: 0; }
         #vung-phieu-in-bep { 
           font-family: 'Courier New', Courier, monospace; 
-          color: #000000; 
-          width: 72mm;        /* Độ rộng hiển thị ruột hóa đơn */
-          margin: 0 auto;     /* Thần chú căn giữa trang giấy */
-          padding: 6mm 0;     /* Khoảng cách đệm trên dưới đầu trang */
-          box-sizing: border-box;
+          color: #000000; width: 72mm; margin: 0 auto; padding: 6mm 0; box-sizing: border-box;
         }
         .phieu-header { text-align: center; }
         .phieu-header h2 { margin: 0 0 10px 0; font-size: 19px; font-weight: bold; letter-spacing: 0.5px; }
         .phieu-header p { margin: 5px 0; font-size: 13px; text-align: left; }
-        
-        .dash-line { 
-          border: none; 
-          border-top: 1px dashed #000000 !important; 
-          margin: 12px 0; 
-          height: 0;
-          width: 100%;
-        }
-        
+        .dash-line { border: none; border-top: 1px dashed #000000 !important; margin: 12px 0; height: 0; width: 100%; }
         .phieu-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        .phieu-table th { 
-          border-bottom: 2px solid #000000 !important; 
-          font-size: 14px; 
-          font-weight: bold;
-          padding-bottom: 6px; 
-        }
+        .phieu-table th { border-bottom: 2px solid #000000 !important; font-size: 14px; font-weight: bold; padding-bottom: 6px; }
         .phieu-table td { padding: 8px 0; font-size: 15px; vertical-align: top; }
-        
         .print-item-name { font-weight: bold; }
-        .print-combo-sub { 
-          font-size: 12px; 
-          font-style: italic; 
-          padding-left: 10px; 
-          margin-top: 2px;
-        }
+        .print-combo-sub { font-size: 12px; font-style: italic; padding-left: 10px; margin-top: 2px; }
         .phieu-footer { text-align: center; margin-top: 18px; font-size: 13px; font-style: italic; }
       `,
     })
@@ -417,6 +406,7 @@ onMounted(() => {
 
 <template>
   <div class="thanh-toan-container">
+    <!-- CỘT DANH MỤC TRÁI -->
     <div class="danh-muc">
       <div class="title">Danh mục</div>
       <div
@@ -436,6 +426,7 @@ onMounted(() => {
       <div><button class="btn-quay-lai" @click="quayLai">Quay Lại</button></div>
     </div>
 
+    <!-- CỘT DANH SÁCH MÓN GIỮA -->
     <div class="danh-sach-mon">
       <div class="title">
         {{ danhMucDangChon === 'combo' ? 'Danh sách Combo' : 'Danh sách Món ăn' }}
@@ -464,28 +455,9 @@ onMounted(() => {
           </div>
         </template>
       </div>
-
-      <div class="gio-hang-footer">
-        <hr />
-        <div class="tong-tien">
-          Tổng tiền tạm tính : {{ tongTienTamTinhCotGiua.toLocaleString('vi-VN') }} đ
-        </div>
-        <div class="tong-tien">Tiền giảm giá: {{ tienGiamGia.toLocaleString('vi-VN') }} đ</div>
-        <div class="tong-tien main-total-center">
-          Tổng tiền thanh toán: {{ tongThanhToan.toLocaleString('vi-VN') }} đ
-        </div>
-        <div>
-          <select class="discount-input" v-model="giamGiaDangChon">
-            <option :value="null">Chọn mã giảm giá</option>
-            <option v-for="g in danhSachGiamGia" :key="g.idGiamGia" :value="g.idGiamGia">
-              {{ g.maGiamGia }} - {{ g.giaTriGiam }}{{ g.loaiGiam === 'PHANTRAM' ? '%' : 'Đ' }}
-            </option>
-          </select>
-        </div>
-        <button class="btn-thanh-toan" @click="optionPay">Thanh toán</button>
-      </div>
     </div>
 
+    <!-- CỘT GIỎ HÀNG PHẢI -->
     <div class="gio-hang">
       <div class="title">Giỏ hàng: {{ props.ban.tenBan }}</div>
       <div v-if="props.datBan" class="reservation-status-pill">
@@ -521,6 +493,7 @@ onMounted(() => {
       </div>
 
       <div class="gio-hang-tab-content">
+        <!-- TAB: GỌI MÓN (ĐANG NHẶT VÀO GIỎ) -->
         <div v-if="tabGioHang === 'goi-mon'" class="gio-hang-list">
           <div v-if="gioHang.length === 0" class="empty-cart">Chưa chọn món ăn nào.</div>
           <div
@@ -544,6 +517,7 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- TAB: MÓN ĐANG LÊN BẾP -->
         <div v-if="tabGioHang === 'mon-dang-len'" class="gio-hang-list">
           <div
             class="tab-action-header"
@@ -579,6 +553,7 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- TAB: MÓN ĐÃ PHỤC VỤ XONG -->
         <div v-if="tabGioHang === 'mon-da-goi'" class="gio-hang-list">
           <div v-if="!danhSachMonPhucVu.some((i) => i.daLen > 0)" class="empty-cart">
             Chưa có món nào được lên.
@@ -604,22 +579,33 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="right-sidebar-footer">
+      <!-- CỤM TÍNH TIỀN GIO-HANG-FOOTER -->
+      <div class="gio-hang-footer">
         <hr />
         <button v-if="tabGioHang === 'goi-mon'" class="btn-luu-phu" @click="luuTam()">
           🔥 Xác nhận gửi vào bếp
         </button>
-        <div class="tong-tien-dong">
-          <span>Tiền món đang gọi:</span>
-          <b>{{ tongTienMonDangGoi.toLocaleString('vi-VN') }} đ</b>
+
+        <div class="tong-tien">
+          Tạm tính: {{ tongTienTamTinhCotGiua.toLocaleString('vi-VN') }} đ
         </div>
-        <div class="tong-tien-dong main-total-right">
-          <span>Tiền món đã lên bàn:</span>
-          <b>{{ tongTienMonDaGoi.toLocaleString('vi-VN') }} đ</b>
+        <div class="tong-tien">Tiền giảm giá: {{ tienGiamGia.toLocaleString('vi-VN') }} đ</div>
+        <div class="tong-tien main-total-center">
+          Tổng tiền: {{ tongThanhToan.toLocaleString('vi-VN') }} đ
         </div>
+        <div>
+          <select class="discount-input" v-model="giamGiaDangChon">
+            <option :value="null">Chọn mã giảm giá</option>
+            <option v-for="g in danhSachGiamGia" :key="g.idGiamGia" :value="g.idGiamGia">
+              {{ g.maGiamGia }} - {{ g.giaTriGiam }}{{ g.loaiGiam === 'PHANTRAM' ? '%' : 'Đ' }}
+            </option>
+          </select>
+        </div>
+        <button class="btn-thanh-toan" @click="optionPay">Thanh toán</button>
       </div>
     </div>
 
+    <!-- VÙNG IN KHUẤT PHIẾU BẾP K80 -->
     <div style="display: none">
       <div id="vung-phieu-in-bep">
         <div class="phieu-header">
@@ -658,22 +644,37 @@ onMounted(() => {
         </table>
 
         <div class="dash-line"></div>
-
         <div class="phieu-footer">Vui lòng chế biến món theo thứ tự!</div>
       </div>
     </div>
 
+    <!-- POPUPS THANH TOÁN -->
+    <!-- [VỊ TRÍ THÊM 2/3]: Gắn sự kiện @chonChuyenKhoan để mở popup SePay QR -->
     <PopupThanhToan
       v-if="phuongThucThanhToan"
       :tongTien="tongThanhToan"
       @close="closePopup"
       @chonTienMat="popupTienMat"
+      @chonChuyenKhoan="moPopupQR"
     />
+    
     <PopupTienMat
       v-if="tienMatThanhToan"
       :tongTien="tongThanhToan"
       @close="closeTienMatPopup"
       @xacNhan="taoHoaDon"
+    />
+
+    <!-- [VỊ TRÍ THÊM 3/3]: Nhúng thẻ Component xử lý quét mã QR SePay tự động -->
+    <PopupSePayQR
+      v-if="hienThiSePayQR"
+      :show="hienThiSePayQR"
+      :idHoaDon="hoaDonHienTai?.idHoaDon"
+      :maHoaDon="hoaDonHienTai?.maHoaDon"
+      :tongTien="tongThanhToan"
+      :tenBan="props.ban?.tenBan"
+      @close="hienThiSePayQR = false"
+      @payment-success="handleChuyenKhoanThanhCong"
     />
   </div>
 </template>
@@ -801,7 +802,7 @@ onMounted(() => {
 .main-total-center {
   background: linear-gradient(135deg, #ffd86b, #d4af37) !important;
   color: #111 !important;
-  font-size: 20px !important;
+  font-size: 18px !important;
   font-weight: 800 !important;
   box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25);
 }
@@ -848,41 +849,16 @@ onMounted(() => {
   overflow-y: auto;
   padding-right: 4px;
 }
-.right-sidebar-footer {
-  flex-shrink: 0;
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 216, 107, 0.1);
-}
 .tong-tien {
   background: linear-gradient(135deg, rgba(255, 216, 107, 0.12), rgba(212, 175, 55, 0.05));
   border: 1px solid rgba(255, 216, 107, 0.15);
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px;
   color: #ffd86b;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   text-align: center;
-  margin-bottom: 10px;
-}
-.tong-tien-dong {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  background: #262626;
-  border-radius: 8px;
-  color: #b5b5b5;
-  font-size: 13px;
   margin-bottom: 8px;
-  border: 1px solid rgba(255, 216, 107, 0.05);
-}
-.tong-tien-dong b {
-  color: #ffd86b;
-}
-.main-total-right b {
-  color: #fff;
-  font-size: 15px;
 }
 .cart-item {
   display: flex;

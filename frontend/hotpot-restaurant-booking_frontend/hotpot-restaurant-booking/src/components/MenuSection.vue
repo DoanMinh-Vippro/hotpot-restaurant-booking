@@ -27,7 +27,8 @@ const totalPagesCombo = ref(0)
 // Ảnh phôi mặc định sang trọng dành cho món lẻ không có ảnh
 const anhMacDinhMonLe = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80'
 // Decorative hero image (sourced from Unsplash) to show in menu header
-const heroImage = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200'
+const heroImage =
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200'
 
 // Hàm tải danh sách Món lẻ theo trang
 const fetchMonByPage = async (pageMucTieu: number) => {
@@ -95,35 +96,33 @@ onMounted(fetchThucDonTongHop)
 
     <div class="menu-content-wrapper">
       <div class="section-header">
-          <div class="section-header-left">
-            <p class="subtitle">ẨM THỰC</p>
-            <h2>THỰC ĐƠN ĐẶC SẮC</h2>
+        <div class="section-header-left">
+          <p class="subtitle">ẨM THỰC</p>
+          <h2>THỰC ĐƠN ĐẶC SẮC</h2>
 
-            <div class="menu-tabs">
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'mon-le' }"
-            @click="activeTab = 'mon-le'"
-          >
-            Món Lẻ Thực Đơn
-          </button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'combo' }"
-            @click="activeTab = 'combo'"
-          >
-            Gói Combo Ưu Đãi
-          </button>
-            </div>
+          <div class="menu-tabs">
+            <button
+              class="tab-btn"
+              :class="{ active: activeTab === 'mon-le' }"
+              @click="activeTab = 'mon-le'"
+            >
+              Món Lẻ Thực Đơn
+            </button>
+            <button
+              class="tab-btn"
+              :class="{ active: activeTab === 'combo' }"
+              @click="activeTab = 'combo'"
+            >
+              Gói Combo Ưu Đãi
+            </button>
           </div>
+        </div>
 
-          <div class="section-header-right">
-            <div class="menu-hero">
-              <img :src="heroImage" alt="Món đặc sắc" />
-            </div>
+        <div class="section-header-right">
+          <div class="menu-hero">
+            <img :src="heroImage" alt="Món đặc sắc" />
           </div>
-        
-        
+        </div>
       </div>
 
       <div v-if="loading" class="menu-loading">
@@ -136,7 +135,7 @@ onMounted(fetchThucDonTongHop)
             <div v-for="mon in monItems" :key="mon.idMon" class="menu-card animate-fade">
               <div class="menu-img">
                 <img
-                  :src="mon.hinhAnh ? `http://localhost:8080/uploads/${mon.hinhAnh}` : dynamicImageFor(mon.tenMon, 400, 300)"
+                  :src="mon.hinhAnh ? mon.hinhAnh : dynamicImageFor(mon.tenMon, 400, 300)"
                   :alt="mon.tenMon"
                   loading="lazy"
                 />
@@ -162,11 +161,13 @@ onMounted(fetchThucDonTongHop)
                         {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }}đ
                       </div>
                     </template>
-
                   </div>
                 </div>
                 <p class="desc">
-                  {{ mon.moTa || 'Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.' }}
+                  {{
+                    mon.moTa ||
+                    'Món ăn tươi ngon đặc sản, được chế biến chuẩn vị từ đầu bếp nhà hàng.'
+                  }}
                 </p>
               </div>
             </div>
@@ -213,7 +214,7 @@ onMounted(fetchThucDonTongHop)
             <div v-for="cb in comboItems" :key="cb.idCombo" class="menu-card animate-fade">
               <div class="menu-img">
                 <img
-                  :src="cb.hinhAnh ? `http://localhost:8080/uploads/${cb.hinhAnh}` : dynamicImageFor(cb.tenCombo, 400, 300)"
+                  :src="cb.hinhAnh ? cb.hinhAnh : dynamicImageFor(cb.tenCombo, 400, 300)"
                   :alt="cb.tenCombo"
                   loading="lazy"
                 />
@@ -224,7 +225,12 @@ onMounted(fetchThucDonTongHop)
                   <div class="dots"></div>
                   <span class="price">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ</span>
                 </div>
-                <p class="desc">{{ cb.moTa || 'Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.' }}</p>
+                <p class="desc">
+                  {{
+                    cb.moTa ||
+                    'Gói ẩm thực tiết kiệm kết hợp, phù hợp đi nhóm đông người hoặc gia đình.'
+                  }}
+                </p>
               </div>
             </div>
           </div>
@@ -322,9 +328,9 @@ onMounted(fetchThucDonTongHop)
   height: 220px;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
   transform: translateY(-10px) rotate(-1deg);
-  border: 4px solid rgba(197,160,89,0.08);
+  border: 4px solid rgba(197, 160, 89, 0.08);
 }
 .menu-hero img {
   width: 100%;

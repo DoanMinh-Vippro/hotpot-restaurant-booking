@@ -5,7 +5,7 @@ import type { DanhMuc } from '../api/DanhMucApi'
 
 const props = defineProps<{
   danhSachDanhMuc: DanhMuc[]
-  danhSachMon: Mon[] 
+  danhSachMon: Mon[]
 }>()
 
 const emit = defineEmits(['submit'])
@@ -47,9 +47,9 @@ const chonAnh = (event: Event) => {
     const file = target.files[0]
     if (file) {
       fileAnh.value = file
-      form.hinhAnh = file.name 
+      form.hinhAnh = file.name
       anhPreview.value = URL.createObjectURL(file)
-      errors.hinhAnh = '' 
+      errors.hinhAnh = ''
     }
   }
 }
@@ -73,9 +73,11 @@ const validateForm = () => {
     errors.tenMon = 'Tên món không được chứa nhiều khoảng trắng liên tiếp'
     isValid = false
   } else {
-    const chuoiKhongDau = ten.trim().toLowerCase()
-      .normalize('NFD')               
-      .replace(/[\u0300-\u036f]/g, '') 
+    const chuoiKhongDau = ten
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/đ/g, 'd')
 
     if (/([a-z])\1{1,}/i.test(chuoiKhongDau)) {
@@ -83,7 +85,7 @@ const validateForm = () => {
       isValid = false
     } else {
       const tenChuanHoa = ten.trim().toLowerCase()
-      const biTrungTen = props.danhSachMon.some(m => {
+      const biTrungTen = props.danhSachMon.some((m) => {
         if (isEditMode.value && m.idMon === idMonHienTai.value) {
           return false
         }
@@ -132,19 +134,19 @@ const gui = () => {
     idDanhMuc: Number(form.idDanhMuc),
     trangThai: form.trangThai,
     trangThaiBan: form.trangThaiBan,
-    fileThat: fileAnh.value // Đẩy file ảnh vật lý ra tầng ngoài xử lý upload giống Combo
+    fileThat: fileAnh.value, // Đẩy file ảnh vật lý ra tầng ngoài xử lý upload giống Combo
   })
 }
 
 defineExpose({
   fillForm(mon?: Mon) {
-    clearErrors() 
+    clearErrors()
     fileAnh.value = null
     anhPreview.value = null
-    
+
     const fileInput = document.getElementById('mon-file-upload') as HTMLInputElement
     if (fileInput) fileInput.value = ''
-    
+
     if (!mon) {
       isEditMode.value = false
       idMonHienTai.value = null
@@ -205,10 +207,7 @@ defineExpose({
 
       <div class="khung-xem-anh" v-if="anhPreview || form.hinhAnh">
         <p class="nhan-anh">Ảnh hiển thị:</p>
-        <img
-          :src="anhPreview || `http://localhost:8080/uploads/${form.hinhAnh}`"
-          alt="Preview"
-        />
+        <img :src="anhPreview || form.hinhAnh" alt="Preview" />
       </div>
 
       <div class="form-group">
@@ -225,7 +224,11 @@ defineExpose({
 
       <div class="form-group">
         <label>Danh mục</label>
-        <select v-model="form.idDanhMuc" :class="{ 'is-invalid': errors.idDanhMuc }" @change="errors.idDanhMuc = ''">
+        <select
+          v-model="form.idDanhMuc"
+          :class="{ 'is-invalid': errors.idDanhMuc }"
+          @change="errors.idDanhMuc = ''"
+        >
           <option value="">Chọn danh mục</option>
           <option v-for="dm in danhSachDanhMuc" :key="dm.idDanhMuc" :value="dm.idDanhMuc">
             {{ dm.loaiDanhMuc }}
@@ -292,7 +295,6 @@ defineExpose({
 .tieu-de-panel p {
   margin: 0;
   color: #8f6b46;
-
 }
 
 .luoi-bieu-mau {
@@ -313,7 +315,6 @@ label {
 
 input,
 select {
-
   margin-top: 6px;
   /* border: 1px solid rgba(255,255,255,.08);
   background: rgba(255,255,255,.04);
@@ -376,7 +377,6 @@ select:focus {
 select option {
   background: #fffdf8;
   color: #5f3d22;
-
 }
 
 .nhom-nut {

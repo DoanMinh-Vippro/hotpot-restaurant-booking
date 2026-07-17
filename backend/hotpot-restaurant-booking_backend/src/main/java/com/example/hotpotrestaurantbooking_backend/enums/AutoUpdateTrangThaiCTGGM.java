@@ -12,23 +12,23 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class AutoUpdateTrangThaiCTGGM {
-//        private final ChiTietGiamGiaMonRepository repo;
-//
-//      @Scheduled(cron = "0 0 0 * * ?")
-//    public void capNhatTrangThai(){
-//            LocalDate homNay=LocalDate.now();
-//            List<ChiTietGiamGiaMon> ds= repo.findAllByTrangThai(0);
-//
-//            ds.forEach(ct ->{
-//                if (ct.getDotGiamGia() !=null
-//                && ct.getDotGiamGia().getNgayKetThuc() !=null
-//                && ct.getDotGiamGia().getNgayKetThuc().isBefore(homNay)
-//                ){
-//                    ct.setTrangThai(1);
-//                }
-//            });
-//            repo.saveAll(ds);
-//            System.out.println("Đã cập nhật trạng thái hết hạn");
-//        }
+        private final ChiTietGiamGiaMonRepository repo;
+
+      @Scheduled(cron = "0 0 0 * * ?")
+    public void capNhatTrangThai(){
+            LocalDate homNay=LocalDate.now();
+            List<ChiTietGiamGiaMon> ds= repo.findAllByTrangThai(0);
+
+            ds.forEach(ct ->{
+                if (ct.getDotGiamGia() !=null
+                && ct.getDotGiamGia().getNgayKetThuc() !=null
+                && ct.getDotGiamGia().getNgayKetThuc().isBefore(homNay)
+                ){
+                    ct.setTrangThai(1);
+                }
+            });
+            repo.saveAll(ds);
+            System.out.println("Đã cập nhật trạng thái hết hạn");
+        }
 
 }

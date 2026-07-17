@@ -153,9 +153,7 @@ const openDatBan = () => {
           <!-- Customer menu (visible to unauthenticated users and regular customers) -->
           <template v-if="!authStore.isAdmin">
             <li><a href="#about">GIỚI THIỆU</a></li>
-            <li>
-              <button class="nav-link-button" @click="router.push('/menu')">THỰC ĐƠN</button>
-            </li>
+            <li><a href="#menu">THỰC ĐƠN</a></li>
             <li><a href="#contact">LIÊN HỆ</a></li>
           </template>
 

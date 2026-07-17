@@ -126,7 +126,7 @@ onMounted(loadComboGoiY)
         @click="selectCombo(cb)"
       >
         <div class="khung-anh">
-          <img v-if="cb.hinhAnh" :src="`http://localhost:8080/uploads/${cb.hinhAnh}`" />
+          <img v-if="cb.hinhAnh" :src="cb.hinhAnh" />
 
           <div v-else class="no-img">No Image</div>
         </div>

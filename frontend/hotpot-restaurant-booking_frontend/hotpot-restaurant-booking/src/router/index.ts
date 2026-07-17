@@ -76,6 +76,11 @@ const router = createRouter({
       name: 'thucDon',
       component: () => import('../views/ThucDonView.vue'),
     },
+    //     {
+    //   path: '/menu',
+    //   name: 'menu',
+    //   component: () => import('../views/MenuView.vue'),
+    // },
     {
       path: '/ban',
       name: 'ban',
