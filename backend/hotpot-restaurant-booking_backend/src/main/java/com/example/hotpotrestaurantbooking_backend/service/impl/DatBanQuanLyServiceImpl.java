@@ -273,9 +273,14 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
     }
-
+//=================================================================
     @Override
     public DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d) {
+        return add(d, getCurrentTaiKhoan());
+    }
+
+    @Override
+    public DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d, TaiKhoan taiKhoan) {
         DatBan db = mapper.map(d, DatBan.class);
         // Khách hàng
         KhachHang khachHang;
@@ -356,7 +361,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
         validateDanhSachBan(d.getDsBan(), d.getThoiGianDenDuKien(), null);
         // Ghi nhận tài khoản tạo đơn
-        db.setTaiKhoanTao(getCurrentTaiKhoan());
+        db.setTaiKhoanTao(taiKhoan);
 
         datBanRepository.save(db);
 
@@ -365,7 +370,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         }
         return mapToResponse(db);
     }
-
+    //=============================================================
     @Override
     public DTODatBanQuanLyResponse update(Integer id, DTODatBanQuanLyRequest d) {
         return datBanRepository.findById(id)
@@ -719,6 +724,13 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         return mapToResponse(datBan);
     }
 
+    @Override
+    public List<DTODatBanQuanLyResponse> getByTrangThai(TrangThaiDatBan trangThai) {
+        return datBanRepository.findByTrangThai(trangThai)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
 
     //===========================================================================
     @Scheduled(fixedDelay = 60000)

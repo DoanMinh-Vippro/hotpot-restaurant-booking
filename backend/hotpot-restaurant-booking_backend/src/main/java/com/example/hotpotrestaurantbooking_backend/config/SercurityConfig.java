@@ -31,16 +31,26 @@ public class SercurityConfig {
 
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        .requestMatchers("/api/payment/vnpay/create").permitAll()
+                        .requestMatchers("/api/payment/vnpay-return").permitAll()
+
+                        .requestMatchers("/api/quan-ly-payment/vnpay-return").permitAll()
+
                         .requestMatchers("/api/dat-ban-quan-ly/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")
+
 
                         .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()
                         .requestMatchers("/upload").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
 
+                        .requestMatchers("/api/quan-ly-payment/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")
+
+
                         .requestMatchers("/sepay/webhook").permitAll()
-                        .requestMatchers("/api/payment/vnpay/create").permitAll()
-                        .requestMatchers("/api/payment/vnpay-return").permitAll()
+
+
 
                         .anyRequest().authenticated()
                 )

@@ -20,8 +20,11 @@ public class DatBanQuanLyController {
     private final DatBanQuanLyService datBanQuanLyService;
 
     @GetMapping
-    public ResponseEntity<List<DTODatBanQuanLyResponse>> getAll() {
-        return ResponseEntity.status(HttpStatus.OK).body(datBanQuanLyService.getAll());
+    public ResponseEntity<List<DTODatBanQuanLyResponse>> getAll(@RequestParam(required = false) TrangThaiDatBan trangThai) {
+        if (trangThai == null) {
+            return ResponseEntity.ok(datBanQuanLyService.getAll());
+        }
+        return ResponseEntity.ok(datBanQuanLyService.getByTrangThai(trangThai));
     }
 
     @GetMapping("{id}")

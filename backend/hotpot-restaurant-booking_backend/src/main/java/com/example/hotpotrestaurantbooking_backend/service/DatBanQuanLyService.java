@@ -1,6 +1,7 @@
 package com.example.hotpotrestaurantbooking_backend.service;
 
 import com.example.hotpotrestaurantbooking_backend.dto.*;
+import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 
 import java.time.LocalDateTime;
@@ -18,4 +19,6 @@ public interface DatBanQuanLyService {
     DTODatBanQuanLyResponse checkIn(Integer id);
     DTODatBanQuanLyResponse doiGio(Integer id, DTODoiGioRequest request);
     DTODatBanQuanLyResponse doiBan(Integer id, DTODoiBanRequest request);
+    List<DTODatBanQuanLyResponse> getByTrangThai(TrangThaiDatBan trangThai);
+    DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d, TaiKhoan taiKhoan);
 }

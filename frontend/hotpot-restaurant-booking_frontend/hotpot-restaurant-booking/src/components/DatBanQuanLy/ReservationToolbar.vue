@@ -8,7 +8,7 @@ const props = defineProps<{
   denNgay: string
 }>()
 
-const emit = defineEmits(['search', 'reset'])
+const emit = defineEmits(['search', 'reset', 'update:trangThai'])
 
 const filter = reactive({
   keyword: props.keyword,
@@ -37,6 +37,11 @@ const search = () => {
   emit('search', {
     ...filter,
   })
+}
+
+const changeTrangThai = () => {
+  emit('update:trangThai', filter.trangThai)
+  emit('search')
 }
 
 const reset = () => {
@@ -68,7 +73,7 @@ const reset = () => {
       <div class="field">
         <label>Trạng thái</label>
 
-        <select v-model="filter.trangThai">
+        <select v-model="filter.trangThai" @change="changeTrangThai">
           <option value="">Tất cả</option>
 
           <option value="CHO_XAC_NHAN">Chờ xác nhận</option>

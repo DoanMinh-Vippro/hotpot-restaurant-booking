@@ -36,7 +36,7 @@ const confirmAction = ref<Function>()
 
 //=========================================================================================================
 const loadData = async () => {
-  const res = await DatBanQuanLyApi.getAll()
+  const res = await DatBanQuanLyApi.getAll(filter.value.trangThai || undefined)
   dsDatBan.value = res.data
 }
 
@@ -192,6 +192,7 @@ onMounted(() => {
       v-model:trangThai="filter.trangThai"
       v-model:tuNgay="filter.tuNgay"
       v-model:denNgay="filter.denNgay"
+      @search="loadData"
     />
 
     <!-- Danh sách -->
