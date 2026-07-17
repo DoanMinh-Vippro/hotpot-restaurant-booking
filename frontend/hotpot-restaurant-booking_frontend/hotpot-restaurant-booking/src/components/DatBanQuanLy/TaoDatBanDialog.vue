@@ -2,10 +2,10 @@
 import { ref, watch } from 'vue'
 
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
-import { paymentApi } from '@/api/PaymentApi'
+import { quanLyPaymentApi } from '@/api/QuanLyPaymentApi'
 import ComBoInDatBan from '@/components/ComBoInDatBan.vue'
 import PaymentCashDialog from '@/components/PaymentCashDialog.vue'
-
+import QuanLyPaymentDialog from '@/components/DatBanQuanLy/QuanLyPaymentDialog.vue'
 import { searchKhachHang } from '@/api/khachhang'
 
 const props = defineProps<{
@@ -14,7 +14,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'refresh', 'check-ban'])
-type PaymentMethod = 'TIEN_MAT' | 'VNPAY' | 'CHUA_THANH_TOAN'
+type PaymentMethod = 'TIEN_MAT' | 'CHUYEN_KHOAN' | 'VNPAY' | 'CHUA_THANH_TOAN'
 
 const showPayment = ref(false)
 
@@ -26,31 +26,20 @@ const paymentData = ref({
   content: '',
 })
 
-const paymentTimer: ReturnType<typeof setInterval> | null = null
-
+let paymentTimer: ReturnType<typeof setInterval> | null = null
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN').format(value)
 }
-// ===========================
+
 // DANH SÁCH KHÁCH TÌM ĐƯỢC
-// ===========================
-
 const dsKhachHang = ref<any[]>([])
-
 const showDanhSachKhach = ref(false)
-
 const khachHang = ref<any>(null)
 
-// ===========================
 // COMBO
-// ===========================
-
 const selectedCombo = ref<any[]>([])
 
-// ===========================
 // FORM
-// ===========================
-
 const form = ref({
   idKhachHang: null as number | null,
   tenKhachHang: '',
@@ -65,27 +54,19 @@ const form = ref({
   ghiChu: '',
   trangThai: 'CHO_XAC_NHAN',
 })
-// ===========================
-// CHỌN COMBO
-// ===========================
 
+// CHỌN COMBO
 const handleComboSelection = (comboList: any[]) => {
   selectedCombo.value = comboList ?? []
-
   form.value.dsCombo = comboList ?? []
-
   tinhTienCoc()
 }
 
-// ===========================
 // CHỌN BÀN
-// ===========================
 const banToiUu = ref<number[]>([])
-
 const isSelectedBan = (id: number) => {
   return form.value.dsBan.includes(id)
 }
-
 const tongSucChuaDaChon = () => {
   return props.dsBanTrong
     .filter((b) => form.value.dsBan.includes(b.idBan))
@@ -97,12 +78,9 @@ const timToHopToiUu = () => {
 
   // Sắp xếp tăng dần sức chứa
   const ds = [...props.dsBanTrong].sort((a, b) => a.sucChua - b.sucChua)
-
   const soNguoi = form.value.soNguoi
 
-  // ==================================================
   // B1. Bàn đơn vừa đủ
-  // ==================================================
   const banVuaDu = ds.find((b) => b.sucChua === soNguoi)
 
   if (banVuaDu) {
@@ -110,24 +88,16 @@ const timToHopToiUu = () => {
     return
   }
 
-  // ==================================================
   // B2. Bàn đơn dư tối đa 1 ghế
-  // ==================================================
   const banDu1 = ds.find((b) => b.sucChua > soNguoi && b.sucChua - soNguoi <= SO_GHE_DU_TOI_DA)
-
   if (banDu1) {
     banToiUu.value = [banDu1.idBan]
     return
   }
 
-  // ==================================================
   // B3 + B4. Ghép bàn
-  // ==================================================
-
   let ketQuaVuaDu: any[] | null = null
-
   let ketQuaDu1: any[] | null = null
-
   let tongDuTotNhat = Number.MAX_SAFE_INTEGER
 
   const deQuy = (index: number, toHop: any[], tong: number) => {
@@ -142,9 +112,7 @@ const timToHopToiUu = () => {
           }
         }
 
-        // ======================
         // B4. Ghép dư tối đa 1 ghế
-        // ======================
         else if (
           tong - soNguoi <= SO_GHE_DU_TOI_DA &&
           (ketQuaDu1 == null || tong < tongDuTotNhat)
@@ -176,22 +144,16 @@ const timToHopToiUu = () => {
     return
   }
 
-  // ==================================================
   // B5. Không còn cách nào
   // Chọn bàn đơn nhỏ nhất còn lại (không giới hạn số ghế dư)
-  // ==================================================
   const banConLai = ds.find((b) => b.sucChua > soNguoi)
-
   if (banConLai) {
     banToiUu.value = [banConLai.idBan]
     return
   }
 
-  // ==================================================
   // B6. Hết bàn
-  // ==================================================
   banToiUu.value = []
-
   console.log('Không tìm được bàn phù hợp')
 }
 
@@ -229,17 +191,12 @@ const toggleBan = (ban: any) => {
     form.value.dsBan.push(ban.idBan)
   }
 }
-// ===========================
 // TÍNH TIỀN CỌC
-// ===========================
 const tinhTienCoc = () => {
   if (form.value.dsCombo.length === 0) {
     form.value.soTienCoc = 0
-
     form.value.trangThaiCoc = 'CHUA_COC'
-
     form.value.phuongThucThanhToan = 'CHUA_THANH_TOAN'
-
     return
   }
 
@@ -249,14 +206,10 @@ const tinhTienCoc = () => {
   )
 
   form.value.soTienCoc = Math.round(tongTienCombo * 0.3)
-
   form.value.trangThaiCoc = 'CHUA_COC'
 }
 
-// ===========================
 // KIỂM TRA BÀN
-// ===========================
-
 const checkBan = () => {
   if (!form.value.thoiGianDenDuKien) {
     alert('Vui lòng chọn thời gian đến')
@@ -277,9 +230,7 @@ const timKhachHang = async (keyword: string) => {
 
   try {
     const res = await searchKhachHang(keyword)
-
     dsKhachHang.value = res.data ?? []
-
     showDanhSachKhach.value = dsKhachHang.value.length > 0
   } catch (e) {
     dsKhachHang.value = []
@@ -314,33 +265,21 @@ watch(
 const taoPayload = () => ({
   idKhachHang: form.value.idKhachHang,
   tenKhachHang: form.value.tenKhachHang,
-
   sdtKhachHang: form.value.sdtKhachHang,
-
   soNguoi: form.value.soNguoi,
-
   thoiGianDenDuKien: form.value.thoiGianDenDuKien,
-
   dsBan: form.value.dsBan,
-
   dsCombo: form.value.dsCombo,
-
   soTienCoc: form.value.soTienCoc,
-
   trangThaiCoc: form.value.trangThaiCoc,
-
   phuongThucThanhToan: form.value.phuongThucThanhToan,
-
   ghiChu: form.value.ghiChu,
-
   trangThai: 'CHO_XAC_NHAN',
 })
 
 const taoDon = async () => {
   await DatBanQuanLyApi.add(taoPayload())
-
   close()
-
   emit('refresh')
 }
 
@@ -362,9 +301,15 @@ const datBan = async () => {
     showCashDialog.value = true
     return
   }
+  if (form.value.phuongThucThanhToan === 'CHUYEN_KHOAN') {
+    const res = await quanLyPaymentApi.createPayment(taoPayload())
+    paymentData.value = res.data
+    showPayment.value = true
+    startCheckPayment()
+    return
+  }
   if (form.value.phuongThucThanhToan === 'VNPAY') {
-    const res = await paymentApi.createVNPayPayment(taoPayload())
-
+    const res = await quanLyPaymentApi.createVNPayPayment(taoPayload())
     window.location.href = res.data.paymentUrl
 
     return
@@ -373,10 +318,31 @@ const datBan = async () => {
 
 const confirmCashPayment = async () => {
   form.value.trangThaiCoc = 'DA_COC'
-
   await taoDon()
-
   showCashDialog.value = false
+}
+
+const startCheckPayment = () => {
+  if (paymentTimer) {
+    clearInterval(paymentTimer)
+    paymentTimer = null
+  }
+
+  paymentTimer = setInterval(async () => {
+    try {
+      const res = await quanLyPaymentApi.checkPaymentStatus(paymentData.value.content)
+      if (res.data) {
+        clearInterval(paymentTimer!)
+        paymentTimer = null
+
+        showPayment.value = false
+        close()
+        emit('refresh')
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }, 3000)
 }
 
 const closeCashDialog = () => {
@@ -385,39 +351,31 @@ const closeCashDialog = () => {
 
 const resetForm = () => {
   dsKhachHang.value = []
-
   showDanhSachKhach.value = false
-
   khachHang.value = null
-
   selectedCombo.value = []
 
   form.value = {
     idKhachHang: null,
     tenKhachHang: '',
     sdtKhachHang: '',
-
     soNguoi: 2,
-
     thoiGianDenDuKien: '',
-
     dsBan: [],
-
     dsCombo: [],
-
     soTienCoc: 0,
-
     trangThaiCoc: 'CHUA_COC',
-
     phuongThucThanhToan: 'CHUA_THANH_TOAN',
-
     ghiChu: '',
-
     trangThai: 'CHO_XAC_NHAN',
   }
 }
 
 const close = () => {
+  if (paymentTimer) {
+    clearInterval(paymentTimer)
+    paymentTimer = null
+  }
   resetForm()
   showCashDialog.value = false
   showPayment.value = false
@@ -454,7 +412,7 @@ watch(
             <h3>Khách hàng</h3>
 
             <div class="field">
-              <label>Số điện thoại</label>
+              <label>Tìm kiếm khách hàng</label>
               <div class="search-box">
                 <input v-model="form.sdtKhachHang" placeholder="Nhập số điện thoại..." />
 
@@ -641,6 +599,13 @@ watch(
     :amount="form.soTienCoc"
     @confirm="confirmCashPayment"
     @close="closeCashDialog"
+  />
+  <QuanLyPaymentDialog
+    :show="showPayment"
+    :qrUrl="paymentData.qrUrl"
+    :amount="paymentData.amount"
+    :content="paymentData.content"
+    @close="close"
   />
 </template>
 

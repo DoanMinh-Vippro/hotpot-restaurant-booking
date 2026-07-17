@@ -2,8 +2,12 @@ import ApiClient from './ApiClient'
 
 const DatBanQuanLyApi = {
   // Danh sách
-  getAll() {
-    return ApiClient.get('/api/dat-ban-quan-ly')
+  getAll(trangThai?: string) {
+    return ApiClient.get('/api/dat-ban-quan-ly', {
+      params: {
+        trangThai,
+      },
+    })
   },
 
   // Chi tiết
