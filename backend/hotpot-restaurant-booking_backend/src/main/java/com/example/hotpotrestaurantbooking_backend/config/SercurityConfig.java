@@ -39,13 +39,18 @@ public class SercurityConfig {
                         .requestMatchers("/api/dat-ban-quan-ly/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")
 
+
+                        .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()
+                        .requestMatchers("/upload").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
+
                         .requestMatchers("/api/quan-ly-payment/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")
 
+
                         .requestMatchers("/sepay/webhook").permitAll()
 
-                        .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()
-                        .requestMatchers("/uploads/**").permitAll()
+
 
                         .anyRequest().authenticated()
                 )

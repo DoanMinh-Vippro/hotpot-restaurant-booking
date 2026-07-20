@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/AuthStore'
 import ApiClient from './ApiClient'
 
 export interface Combo {
@@ -67,10 +68,20 @@ class ComboApi {
   uploadImage(file: File) {
     const formData = new FormData()
     formData.append('file', file)
-    return ApiClient.post('/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-  }
+    // 2. Lấy token trực tiếp từ kho lưu trữ Pinia giống như cách ApiClient đang hoạt động
+    const authStore = useAuthStore()
+    const headers: any = { 
+      'Content-Type': 'multipart/form-data' 
+    }
+    
+    // Nếu có token thì ép đè thẳng vào headers cấu hình của request này
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+
+    return ApiClient.post('/upload', formData, { headers })
 }
+}
+
 
 export default new ComboApi()

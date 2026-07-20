@@ -10,14 +10,7 @@ defineProps<{
   danhSachDanhMuc: DanhMuc[]
 }>()
 
-const emit = defineEmits([
-  'edit',
-  'delete',
-  'add',
-  'search',
-  'reset',
-  'go-to-category',
-])
+const emit = defineEmits(['edit', 'delete', 'add', 'search', 'reset', 'go-to-category'])
 
 const searchTenMon = ref('')
 const searchLoaiDanhMuc = ref('')
@@ -42,7 +35,6 @@ const xoa = (id: number) => {
 
 <template>
   <div class="khu-vuc-danh-sach">
-    
     <div class="bo-loc-panel">
       <input
         v-model="searchTenMon"
@@ -90,31 +82,26 @@ const xoa = (id: number) => {
           </thead>
 
           <tbody>
-            <tr
-              v-for="mon in danhSachMon"
-              :key="mon.idMon"
-            >
+            <tr v-for="mon in danhSachMon" :key="mon.idMon">
               <td class="o-anh">
-                <img
-                  v-if="mon.hinhAnh"
-                  :src="`http://localhost:8080/uploads/${mon.hinhAnh}`"
-                  class="img-mon"
-                />
+                <img v-if="mon.hinhAnh" :src="mon.hinhAnh" class="img-mon" />
                 <span v-else class="chua-co-anh">Không có ảnh</span>
               </td>
 
               <td class="o-chu-thuong text-dam">{{ mon.tenMon }}</td>
-              
+
               <td class="o-chu-thuong">
                 <template v-if="mon.soTienDuocGiam > 0">
-                  <div class="gia-goc">{{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ</div>
+                  <div class="gia-goc">
+                    {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ
+                  </div>
                   <div class="gia-giam">{{ Number(mon.giaSauGiam).toLocaleString('vi-VN') }} đ</div>
                 </template>
                 <template v-else>
                   {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ
                 </template>
               </td>
-              
+
               <td class="o-chu-thuong">{{ mon.tenChuongTrinhGiamGia || '---' }}</td>
               <td class="o-chu-thuong">{{ mon.loaiDanhMuc }}</td>
 
@@ -125,8 +112,20 @@ const xoa = (id: number) => {
               </td>
 
               <td class="o-chu-thuong">
-                <span :class="(mon.trangThaiBan === 0 || mon.trangThai === 1) ? 'trang-thai-het' : 'trang-thai-con'">
-                  {{ mon.trangThai === 1 ? 'Hết hàng ' : (mon.trangThaiBan === 1 ? 'Còn hàng' : 'Hết hàng') }}
+                <span
+                  :class="
+                    mon.trangThaiBan === 0 || mon.trangThai === 1
+                      ? 'trang-thai-het'
+                      : 'trang-thai-con'
+                  "
+                >
+                  {{
+                    mon.trangThai === 1
+                      ? 'Hết hàng '
+                      : mon.trangThaiBan === 1
+                        ? 'Còn hàng'
+                        : 'Hết hàng'
+                  }}
                 </span>
               </td>
 
@@ -137,7 +136,7 @@ const xoa = (id: number) => {
                 </div>
               </td>
             </tr>
-            
+
             <tr v-if="danhSachMon.length === 0">
               <td colspan="8" style="text-align: center; color: #a0a0a0; padding: 20px">
                 Không tìm thấy món ăn nào phù hợp.
@@ -228,7 +227,6 @@ const xoa = (id: number) => {
   border-radius: 24px;
   padding: 24px;
   box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
-
 }
 
 .tieu-de-panel {
@@ -258,7 +256,6 @@ table {
   border-collapse: collapse;
 
   color: #5f3d22;
-
 }
 
 th {
@@ -269,18 +266,15 @@ th {
 
   padding: 12px;
   color: #8b5e34;
-
 }
 
 td {
   padding: 14px;
 
-
   text-align: left;
   vertical-align: middle;
 
   border-bottom: 1px solid #efe0c1;
-
 }
 
 tr.active {
@@ -391,6 +385,4 @@ button:hover {
   padding: 30px;
   color: #8b5e34;
 }
-
 </style>
-
