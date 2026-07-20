@@ -20,4 +20,6 @@ public class VNPayConfig {
     @Value("${vnp.returnUrl}")
     private String returnUrl;
 
+    @Value("${vnp.returnUrl.manager}")
+    private String managerReturnUrl;
 }

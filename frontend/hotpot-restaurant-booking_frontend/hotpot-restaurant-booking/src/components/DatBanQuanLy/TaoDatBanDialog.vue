@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import { quanLyPaymentApi } from '@/api/QuanLyPaymentApi'
 import ComBoInDatBan from '@/components/ComBoInDatBan.vue'
 import PaymentCashDialog from '@/components/PaymentCashDialog.vue'
 import QuanLyPaymentDialog from '@/components/DatBanQuanLy/QuanLyPaymentDialog.vue'
 import { searchKhachHang } from '@/api/khachhang'
+import { validateDatBanQuanLy } from './ValidateDatBanQuanLy'
 
 const props = defineProps<{
   visible: boolean
@@ -283,24 +283,28 @@ const taoDon = async () => {
   emit('refresh')
 }
 
+const errors = ref<Record<string, string>>({})
+
 const datBan = async () => {
-  if (!form.value.sdtKhachHang) {
-    alert('Chưa nhập số điện thoại')
+  errors.value = {}
+
+  const error = validateDatBanQuanLy(form.value, props.dsBanTrong)
+
+  if (error) {
+    errors.value[error.field] = error.message
     return
   }
 
-  if (form.value.dsBan.length === 0) {
-    alert('Chưa có bàn')
-    return
-  }
   if (form.value.soTienCoc === 0) {
     await taoDon()
     return
   }
+
   if (form.value.phuongThucThanhToan === 'TIEN_MAT') {
     showCashDialog.value = true
     return
   }
+
   if (form.value.phuongThucThanhToan === 'CHUYEN_KHOAN') {
     const res = await quanLyPaymentApi.createPayment(taoPayload())
     paymentData.value = res.data
@@ -308,10 +312,10 @@ const datBan = async () => {
     startCheckPayment()
     return
   }
+
   if (form.value.phuongThucThanhToan === 'VNPAY') {
     const res = await quanLyPaymentApi.createVNPayPayment(taoPayload())
     window.location.href = res.data.paymentUrl
-
     return
   }
 }
@@ -400,6 +404,31 @@ watch(
     }
   },
 )
+watch(
+  () => form.value.sdtKhachHang,
+  () => delete errors.value.sdtKhachHang,
+)
+watch(
+  () => form.value.tenKhachHang,
+  () => delete errors.value.tenKhachHang,
+)
+watch(
+  () => form.value.soNguoi,
+  () => delete errors.value.soNguoi,
+)
+watch(
+  () => form.value.thoiGianDenDuKien,
+  () => delete errors.value.thoiGianDenDuKien,
+)
+watch(
+  () => form.value.ghiChu,
+  () => delete errors.value.ghiChu,
+)
+watch(
+  () => form.value.dsBan,
+  () => delete errors.value.dsBan,
+  { deep: true },
+)
 </script>
 
 <template>
@@ -412,10 +441,12 @@ watch(
             <h3>Khách hàng</h3>
 
             <div class="field">
-              <label>Tìm kiếm khách hàng</label>
+              <label>Số ddienj thoại</label>
               <div class="search-box">
-                <input v-model="form.sdtKhachHang" placeholder="Nhập số điện thoại..." />
-
+                <input v-model="form.sdtKhachHang" placeholder="Nhập hoặc tìm số điện thoại..." />
+                <small v-if="errors.sdtKhachHang" class="error-text">
+                  {{ errors.sdtKhachHang }}
+                </small>
                 <div v-if="showDanhSachKhach" class="search-result">
                   <div
                     v-for="kh in dsKhachHang"
@@ -433,15 +464,19 @@ watch(
             <div class="row">
               <div class="field">
                 <label>Tên khách</label>
-
                 <input v-model="form.tenKhachHang" placeholder="Nhập tên khách" />
+                <small v-if="errors.tenKhachHang" class="error-text">
+                  {{ errors.tenKhachHang }}
+                </small>
               </div>
 
-              <div class="field">
+              <!-- <div class="field">
                 <label>Số điện thoại</label>
 
                 <input v-model="form.sdtKhachHang" placeholder="Nhập số điện thoại" />
-
+                <small v-if="errors.sdtKhachHang" class="error-text">
+                  {{ errors.sdtKhachHang }}
+                </small>
                 <div v-if="showDanhSachKhach" class="search-result">
                   <div
                     v-for="kh in dsKhachHang"
@@ -454,7 +489,7 @@ watch(
                     <span>{{ kh.soDienThoai }}</span>
                   </div>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
 
@@ -468,14 +503,18 @@ watch(
             <div class="row">
               <div class="field">
                 <label>Số người</label>
-
                 <input type="number" min="1" v-model.number="form.soNguoi" />
+                <small v-if="errors.soNguoi" class="error-text">
+                  {{ errors.soNguoi }}
+                </small>
               </div>
 
               <div class="field flex2">
                 <label>Thời gian đến</label>
-
                 <input type="datetime-local" v-model="form.thoiGianDenDuKien" />
+                <small v-if="errors.thoiGianDenDuKien" class="error-text">
+                  {{ errors.thoiGianDenDuKien }}
+                </small>
               </div>
             </div>
           </div>
@@ -521,6 +560,9 @@ watch(
                 </div>
               </div>
             </div>
+            <small v-if="errors.dsBan" class="error-text">
+              {{ errors.dsBan }}
+            </small>
           </div>
         </div>
 
@@ -546,8 +588,10 @@ watch(
 
             <div class="field">
               <label>Tiền cọc</label>
-
               <input :value="formatCurrency(form.soTienCoc)" readonly />
+              <small v-if="errors.soTienCoc" class="error-text">
+                {{ errors.soTienCoc }}
+              </small>
             </div>
 
             <div class="field">
@@ -582,6 +626,9 @@ watch(
                 rows="6"
                 placeholder="Nhập ghi chú cho đơn đặt bàn..."
               />
+              <small v-if="errors.ghiChu" class="error-text">
+                {{ errors.ghiChu }}
+              </small>
             </div>
           </div>
         </div>
@@ -1052,5 +1099,12 @@ watch(
   .table-grid {
     grid-template-columns: 1fr;
   }
+}
+.error-text {
+  display: block;
+  margin-top: 4px;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 500;
 }
 </style>

@@ -165,7 +165,7 @@ public class QuanLyPaymentServiceImpl implements QuanLyPaymentService {
         vnpParams.put("vnp_OrderInfo", txnRef);
         vnpParams.put("vnp_OrderType", "other");
         vnpParams.put("vnp_Locale", "vn");
-        vnpParams.put("vnp_ReturnUrl", vnPayConfig.getReturnUrl());
+        vnpParams.put("vnp_ReturnUrl", vnPayConfig.getManagerReturnUrl());
         vnpParams.put("vnp_IpAddr", "127.0.0.1");
         vnpParams.put("vnp_CreateDate", createDate);
         vnpParams.put("vnp_ExpireDate", expireDate);
@@ -219,23 +219,16 @@ public class QuanLyPaymentServiceImpl implements QuanLyPaymentService {
             throw new RuntimeException("Không tìm thấy dữ liệu đặt bàn.");
         }
 
-        TaiKhoan taiKhoan = taiKhoanRepository.findById(
-                pendingBooking.getIdTaiKhoan()
-        ).orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+        TaiKhoan taiKhoan = taiKhoanRepository.findById(pendingBooking.getIdTaiKhoan())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
-        DTODatBanQuanLyResponse response =
-                datBanQuanLyService.add(
-                        pendingBooking.getBooking(),
-                        taiKhoan
-                );
-
+        DTODatBanQuanLyResponse response = datBanQuanLyService.add(pendingBooking.getBooking(), taiKhoan);
         DatBan datBan = datBanRepository.findById(response.getIdDatBan())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn đặt bàn"));
 
         datBan.setSoTienCoc(
-                BigDecimal.valueOf(
-                        Double.parseDouble(params.get("vnp_Amount")) / 100
-                ).setScale(0, RoundingMode.HALF_UP)
+                BigDecimal.valueOf(Double.parseDouble(params.get("vnp_Amount")) / 100)
+                        .setScale(0, RoundingMode.HALF_UP)
         );
 
         datBanRepository.save(datBan);

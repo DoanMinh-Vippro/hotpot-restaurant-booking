@@ -42,14 +42,12 @@ public class QuanLyPaymentController {
     }
 
     @GetMapping("/vnpay-return")
-    public void vnPayReturn(
-            @RequestParam Map<String, String> params,
-            HttpServletResponse response) throws IOException {
-
+    public void vnPayReturn(@RequestParam Map<String, String> params, HttpServletResponse response) throws IOException {
         try {
             quanLyPaymentService.handleVNPayReturn(params);
             response.sendRedirect("http://localhost:5173/payment-success");
         } catch (Exception e) {
+            e.printStackTrace();
             response.sendRedirect("http://localhost:5173/payment-failed");
         }
     }

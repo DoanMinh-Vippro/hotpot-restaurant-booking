@@ -299,7 +299,12 @@ const createBooking = async () => {
           }
         }, 2000)
       } else if (formData.value.phuongThucThanhToan === 'VNPAY') {
-        const res = await paymentApi.createVNPayPayment(formData.value)
+        const res = await paymentApi.createVNPayPayment({
+          ...formData.value,
+          thoiGianDenDuKien: formData.value.thoiGianDenDuKien
+            ? String(formData.value.thoiGianDenDuKien).replace(' ', 'T') + ':00'
+            : null,
+        })
 
         window.location.href = res.data.paymentUrl
       }

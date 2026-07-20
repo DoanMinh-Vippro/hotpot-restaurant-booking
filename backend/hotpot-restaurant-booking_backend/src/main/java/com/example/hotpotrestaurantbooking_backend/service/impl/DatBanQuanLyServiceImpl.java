@@ -47,7 +47,6 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private EntityManager entityManager;
 
     private DTODatBanQuanLyResponse mapToResponse(DatBan d) {
-
         DTODatBanQuanLyResponse response = mapper.map(d, DTODatBanQuanLyResponse.class);
 
         // Khách hàng
@@ -162,6 +161,44 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                     throw new IllegalArgumentException("Bàn " + chiTiet.getBan().getTenBan() + " đã được đặt trong khoảng thời gian này.");
                 }
             }
+        }
+    }
+
+    private void validateThoiGianHoatDong(LocalDateTime thoiGianDenDuKien) {
+
+        LocalTime gio = thoiGianDenDuKien.toLocalTime();
+
+        boolean caTrua =
+                !gio.isBefore(LocalTime.of(10, 0))
+                        && gio.isBefore(LocalTime.of(14, 0));
+
+        boolean caToi =
+                !gio.isBefore(LocalTime.of(18, 0))
+                        && gio.isBefore(LocalTime.MAX);
+
+        if (!caTrua && !caToi) {
+            throw new RuntimeException(
+                    "Nhà hàng nhận đơn đặt bàn chỉ từ 10:00-14:00 và 18:00-24:00."
+            );
+        }
+    }
+
+    private void validateSucChuaBan(List<Integer> dsBan, Integer soNguoi) {
+
+        if (dsBan == null || dsBan.isEmpty()) {
+            return;
+        }
+
+        int tongSucChua = dsBan.stream()
+                .map(id -> banRepository.findById(id)
+                        .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy bàn")))
+                .mapToInt(b -> b.getLoaiBan().getSucChua())
+                .sum();
+
+        if (tongSucChua < soNguoi) {
+            throw new IllegalArgumentException(
+                    "Tổng sức chứa của các bàn được chọn không đủ phục vụ " + soNguoi + " khách."
+            );
         }
     }
 
@@ -359,11 +396,14 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             db.setSoTienCoc(BigDecimal.ZERO);
         }
 
+        validateThoiGianHoatDong(d.getThoiGianDenDuKien());
+        validateSucChuaBan(d.getDsBan(), d.getSoNguoi());
         validateDanhSachBan(d.getDsBan(), d.getThoiGianDenDuKien(), null);
         // Ghi nhận tài khoản tạo đơn
         db.setTaiKhoanTao(taiKhoan);
 
-        datBanRepository.save(db);
+        db = datBanRepository.saveAndFlush(db);
+//        datBanRepository.save(db);
 
         for (ChiTietDatBanBan ct: db.getChiTietDatBanBans()) {
             capNhatTrangThaiBan(ct.getBan().getIdBan());
@@ -457,7 +497,9 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
                     if (d.getPhuongThucThanhToan() != null) db.setPhuongThucThanhToan(d.getPhuongThucThanhToan());
 
-
+                    validateThoiGianHoatDong(d.getThoiGianDenDuKien());
+                    validateSucChuaBan(d.getDsBan(), d.getSoNguoi());
+                    validateDanhSachBan(d.getDsBan(), d.getThoiGianDenDuKien(), null);
                     datBanRepository.save(db);
 
                     for (Integer idBan : dsBanCu) {
