@@ -47,21 +47,54 @@ const totalPages = computed(() => {
 })
 
 // Load dữ liệu
+const normalizeCustomerIdentity = (source: any) => ({
+  khachHangId: source?.khachHangId ?? source?.idKhachHang ?? source?.id ?? source?.customerId ?? null,
+  tenKhachHang: source?.tenKhachHang ?? source?.hoTen ?? source?.name ?? source?.fullName ?? null,
+  soDienThoai: source?.soDienThoai ?? source?.phone ?? source?.sdt ?? null,
+  email: source?.email ?? source?.mail ?? null,
+  diaChi: source?.diaChi ?? source?.address ?? null,
+  gioiTinh: source?.gioiTinh ?? source?.gender ?? null,
+  maKhachHang: source?.maKhachHang ?? source?.ma ?? source?.customerCode ?? null,
+})
+
+const matchesCustomerRecord = (record: any, identity: any) => {
+  const normalizePhone = (value: any) => (value ? String(value).replace(/\D/g, '') : '')
+  const normalizeText = (value: any) => (value ? String(value).toLowerCase() : '')
+
+  const recordId = record?.idKhachHang ?? record?.id ?? record?.khachHangId ?? record?.customerId ?? null
+  if (identity.khachHangId && recordId && Number(recordId) === Number(identity.khachHangId)) return true
+
+  const phone = normalizePhone(identity.soDienThoai)
+  const recordPhone = normalizePhone(record?.sdtKhachHang ?? record?.soDienThoai ?? record?.phone ?? record?.sdt)
+  if (phone && recordPhone && (recordPhone === phone || recordPhone.endsWith(phone) || phone.endsWith(recordPhone))) return true
+
+  const code = normalizeText(identity.maKhachHang)
+  const recordCode = normalizeText(record?.maKhachHang ?? record?.customerCode ?? record?.ma)
+  if (code && recordCode && (recordCode === code || code.includes(recordCode) || recordCode.includes(code))) return true
+
+  const name = normalizeText(identity.tenKhachHang)
+  const recordName = normalizeText(record?.tenKhachHang ?? record?.hoTen ?? record?.customerName ?? record?.name)
+  if (name && recordName && (recordName.includes(name) || name.includes(recordName))) return true
+
+  return false
+}
+
 const loadCustomerInfo = async () => {
   try {
-    if (!authStore.customerInfo.khachHangId) {
-      console.error('Khách hàng ID không tồn tại')
-      return
+    const identity = normalizeCustomerIdentity(authStore.customerInfo)
+    const res = await getAllKhachHang()
+    const allCustomers = res.data || []
+
+    let foundCustomer = identity.khachHangId
+      ? allCustomers.find((kh: any) => Number(kh.idKhachHang) === Number(identity.khachHangId))
+      : null
+
+    if (!foundCustomer) {
+      foundCustomer = allCustomers.find((kh: any) => matchesCustomerRecord(kh, identity)) || null
     }
-    
-    // Lấy từ localStorage/store hoặc từ API nếu chưa có
-    if (!customerInfo.value) {
-      const res = await getAllKhachHang()
-      const allCustomers = res.data || []
-      customerInfo.value = allCustomers.find((kh: any) => kh.idKhachHang === authStore.customerInfo.khachHangId)
-    }
-    
-    // Cập nhật form từ store info (thông tin khi vừa đăng ký)
+
+    customerInfo.value = foundCustomer || null
+
     formData.value = {
       tenKhachHang: authStore.customerInfo.tenKhachHang || customerInfo.value?.tenKhachHang || '',
       soDienThoai: authStore.customerInfo.soDienThoai || customerInfo.value?.soDienThoai || '',
@@ -76,13 +109,23 @@ const loadCustomerInfo = async () => {
 
 const loadInvoiceHistory = async () => {
   try {
-    if (!authStore.customerInfo.khachHangId) {
-      console.error('Khách hàng ID không tồn tại')
-      return
+    const identity = normalizeCustomerIdentity(authStore.customerInfo)
+    let invoices: any[] = []
+
+    if (identity.khachHangId) {
+      try {
+        const res = await HoaDonApi.getByKhachHangId(Number(identity.khachHangId))
+        invoices = res.data || []
+      } catch (error) {
+        console.warn('Không lấy được hóa đơn qua khách hàng ID, thử lọc từ toàn bộ dữ liệu:', error)
+      }
     }
-    
-    const res = await HoaDonApi.getByKhachHangId(authStore.customerInfo.khachHangId)
-    const invoices = res.data || []
+
+    if (invoices.length === 0) {
+      const res = await HoaDonApi.getDanhSach()
+      invoices = (res.data || []).filter((invoice: any) => matchesCustomerRecord(invoice, identity))
+    }
+
     invoiceHistory.value = invoices
     currentPage.value = 1
 
@@ -108,29 +151,35 @@ const loadInvoiceHistory = async () => {
 const loadBookingHistory = async () => {
   bookingLoading.value = true
   try {
-    if (!authStore.customerInfo.khachHangId) {
+    const identity = normalizeCustomerIdentity(authStore.customerInfo)
+    const custId = identity.khachHangId
+    const custPhoneRaw = identity.soDienThoai || ''
+    const custPhone = String(custPhoneRaw).replace(/\D/g, '')
+    const custCode = (identity.maKhachHang || '').toString()
+    const custName = (identity.tenKhachHang || '').toLowerCase()
+
+    if (!custId && !custPhone && !custCode && !custName) {
       customerBookings.value = []
       return
     }
+
     const res = await DatBanQuanLyApi.getAll()
     const all = Array.isArray(res?.data) ? res.data : []
-    const custId = authStore.customerInfo.khachHangId
-    const custPhoneRaw = (authStore.customerInfo.soDienThoai || '')
-    const custPhone = custPhoneRaw.replace(/\D/g, '')
-    const custCode = (authStore.customerInfo.maKhachHang || '').toString()
-    const custName = (authStore.customerInfo.tenKhachHang || '').toLowerCase()
 
     const normalizePhone = (p: any) => (p ? String(p).replace(/\D/g, '') : '')
+    const normalizeText = (value: any) => (value ? String(value).toLowerCase() : '')
 
     customerBookings.value = all.filter((b: any) => {
-      // Prefer explicit id match
-      if (b.idKhachHang && custId && Number(b.idKhachHang) === Number(custId)) return true
-      // Fallback to phone match for online/guest bookings (normalize digits)
+      if (custId && b.idKhachHang && Number(b.idKhachHang) === Number(custId)) return true
+
       const bPhone = normalizePhone(b.sdtKhachHang)
-      if (custPhone && bPhone && bPhone.endsWith(custPhone)) return true
-      // Fallback to customer code or name
-      if (custCode && (String(b.maKhachHang) === custCode)) return true
-      if (custName && String(b.tenKhachHang || '').toLowerCase().includes(custName)) return true
+      if (custPhone && bPhone && (bPhone === custPhone || bPhone.endsWith(custPhone) || custPhone.endsWith(bPhone))) return true
+
+      if (custCode && (normalizeText(b.maKhachHang) === normalizeText(custCode) || normalizeText(b.customerCode) === normalizeText(custCode))) return true
+
+      const bookingName = normalizeText(b.tenKhachHang || b.hoTen || b.customerName)
+      if (custName && bookingName && (bookingName.includes(custName) || custName.includes(bookingName))) return true
+
       return false
     })
   } catch (err) {
@@ -148,6 +197,10 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const refreshHistory = async () => {
+  await loadData()
 }
 
 onMounted(() => {
@@ -353,6 +406,9 @@ const exportInvoicePdf = (invoice: HoaDon) => {
           @click="activeProfileTab = 'invoices'"
         >
           Lịch sử hoá đơn
+        </button>
+        <button class="profile-tab refresh-btn" @click="refreshHistory">
+          🔄 Tải lại
         </button>
         <button
           :class="['profile-tab', { active: activeProfileTab === 'bookings' }]"

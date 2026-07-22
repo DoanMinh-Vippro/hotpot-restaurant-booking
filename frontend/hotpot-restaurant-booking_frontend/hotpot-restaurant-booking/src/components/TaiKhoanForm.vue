@@ -1,68 +1,78 @@
 <script setup lang="ts">
 import TaiKhoanApi from '@/api/TaiKhoanApi';
-import { ref, watch } from 'vue';
-const selected= ref(null)
-const formData= ref({
-    id: null,
-    maTaiKhoan:"",
-    tenDangNhap:"",
-    matKhau:"",
-    trangThai: true,
-     idChucVu: 1
+import { computed, ref, watch } from 'vue';
+const formData = ref({
+  id: null,
+  maTaiKhoan: "",
+  tenDangNhap: "",
+  matKhau: "",
+  trangThai: true,
+  idChucVu: 1,
 })
-const emit = defineEmits(['refresh'])
-const add= async ()=>{
-    try{
-     await TaiKhoanApi.add(formData.value)
-    alert('Them thanh cong!')
-    emit('refresh')
-    formData.value={
-        id: null,
-    maTaiKhoan:"",
-    tenDangNhap:"",
-    matKhau:"",
+const resetForm = () => {
+  formData.value = {
+    id: null,
+    maTaiKhoan: "",
+    tenDangNhap: "",
+    matKhau: "",
     trangThai: true,
-     idChucVu: 1
-    }
-    }catch (error){
-        console.error('them that bai:', error)
-    };
+    idChucVu: 1,
+  }
+}
+const emit = defineEmits(['refresh'])
+const props = defineProps<{
+  formData?: any
+}>()
+const mode = computed(() => {
+  return formData.value.id ? 'edit' : 'create'
+})
+const add = async () => {
+  try {
+    await TaiKhoanApi.add(formData.value)
+    alert('Thêm tài khoản thành công!')
+    emit('refresh')
+    resetForm()
+  } catch (error) {
+    console.error('Thêm thất bại:', error)
+  }
 }
 const update = async () => {
   try {
     if (!formData.value.id) {
-      alert("Chưa chọn tài khoản!")
+      alert('Chưa chọn tài khoản!')
       return
     }
 
-    console.log("UPDATE DATA:", formData.value)
+    console.log('UPDATE DATA:', formData.value)
 
-    await TaiKhoanApi.update(
-      formData.value.id,
-      formData.value
-    )
-
+    await TaiKhoanApi.update(formData.value.id, formData.value)
     alert('Cập nhật thành công!')
     emit('refresh')
-
   } catch (error: any) {
-    console.log("UPDATE ERROR:", error)
-    console.log("SERVER:", error?.response?.data)
+    console.log('UPDATE ERROR:', error)
+    console.log('SERVER:', error?.response?.data)
   }
 }
-const props = defineProps(['formData']);
-watch(() => props.formData, (newVal) => {
-  if (!newVal) return;
+watch(
+  () => props.formData,
+  (newVal) => {
+    if (!newVal) {
+      resetForm()
+      return
+    }
 
-  formData.value = {
-    id: newVal.id ?? null,
-    maTaiKhoan: newVal.maTaiKhoan ?? "",
-    tenDangNhap: newVal.tenDangNhap ?? "",
-    matKhau: newVal.matKhau ?? "",
-    trangThai: newVal.trangThai ?? true,
-    idChucVu: newVal.idChucVu ?? 1   // 🔥 thêm
-  };
-}, { immediate: true });
+    formData.value = {
+      id: newVal.id ?? null,
+      maTaiKhoan: newVal.maTaiKhoan ?? "",
+      tenDangNhap: newVal.tenDangNhap ?? "",
+      matKhau: newVal.matKhau ?? "",
+      trangThai: newVal.trangThai ?? true,
+      idChucVu: newVal.idChucVu ?? 1,
+    }
+  },
+  { immediate: true },
+)
+
 </script>
 <template>
     <div class="form-container">
@@ -103,8 +113,10 @@ watch(() => props.formData, (newVal) => {
   </select>
 </div>
     </div>
-         <button @click.prevent="add()">ADD</button>
-    <button @click.prevent="update()">UPDATE</button>
+    <div class="button-row">
+      <button v-if="mode === 'create'" class="btn-add" @click.prevent="add()">Thêm tài khoản</button>
+      <button v-if="mode === 'edit'" class="btn-update" @click.prevent="update()">Cập nhật tài khoản</button>
+    </div>
 </template>
 <style scoped>
 .form-container {

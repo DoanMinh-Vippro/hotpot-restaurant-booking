@@ -2,12 +2,15 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTONhanVienRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTONhanVienResponse;
+import com.example.hotpotrestaurantbooking_backend.entity.ChucVu;
 import com.example.hotpotrestaurantbooking_backend.entity.NhanVien;
+import com.example.hotpotrestaurantbooking_backend.entity.TaiKhoan;
 import com.example.hotpotrestaurantbooking_backend.repository.ChucVuRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.NhanVienRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.TaiKhoanRespository;
 import com.example.hotpotrestaurantbooking_backend.service.NhanVienService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,7 +26,34 @@ public class NhanVienServiceImpl implements NhanVienService {
     @Autowired
     private TaiKhoanRespository taiKhoanRepo;
 
-  private NhanVien toEntity(DTONhanVienRequest req){
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private NhanVien toEntity(DTONhanVienRequest req){
+        ChucVu chucVu = chucVuRepo.findById(req.getIdChucVu())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chức vụ"));
+
+        TaiKhoan taiKhoan = null;
+        if (req.getIdTaiKhoan() != null) {
+            taiKhoan = taiKhoanRepo.findById(req.getIdTaiKhoan())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+        } else if (req.getTenDangNhap() != null && req.getMatKhau() != null) {
+            if (taiKhoanRepo.existsByTenDangNhap(req.getTenDangNhap())) {
+                throw new RuntimeException("Tên đăng nhập đã tồn tại");
+            }
+            TaiKhoan newAccount = new TaiKhoan();
+            newAccount.setTenDangNhap(req.getTenDangNhap());
+            newAccount.setMatKhau(passwordEncoder.encode(req.getMatKhau()));
+            newAccount.setTrangThai(true);
+            newAccount.setChucVu(chucVu);
+            taiKhoanRepo.save(newAccount);
+            newAccount.setMaTaiKhoan(String.format("TK%03d", newAccount.getIdTaiKhoan()));
+            taiKhoanRepo.save(newAccount);
+            taiKhoan = newAccount;
+        } else {
+            throw new RuntimeException("Cần chọn tài khoản hoặc nhập thông tin đăng nhập để tạo tài khoản mới");
+        }
+
         return NhanVien.builder()
                 .maNhanVien(req.getMaNhanVien())
                 .tenNhanVien(req.getTenNhanVien())
@@ -32,12 +62,8 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .email(req.getEmail())
                 .diaChi(req.getDiaChi())
                 .trangThai(req.getTrangThai())
-
-                .chucVu(chucVuRepo.findById(req.getIdChucVu())
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy chức vụ")))
-
-                .taiKhoan(taiKhoanRepo.findById(req.getIdTaiKhoan())
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản")))
+                .chucVu(chucVu)
+                .taiKhoan(taiKhoan)
                 .build();
     }
 
@@ -120,11 +146,32 @@ public class NhanVienServiceImpl implements NhanVienService {
                             .orElseThrow(() -> new RuntimeException("Không tìm thấy chức vụ"))
             );
 
-        if (request.getIdTaiKhoan() != null)
+        if (request.getIdTaiKhoan() != null) {
             old.setTaiKhoan(
                     taiKhoanRepo.findById(request.getIdTaiKhoan())
                             .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"))
             );
+        } else if (old.getTaiKhoan() == null && request.getTenDangNhap() != null && request.getMatKhau() != null) {
+            if (taiKhoanRepo.existsByTenDangNhap(request.getTenDangNhap())) {
+                throw new RuntimeException("Tên đăng nhập đã tồn tại");
+            }
+            TaiKhoan newAccount = new TaiKhoan();
+            newAccount.setTenDangNhap(request.getTenDangNhap());
+            newAccount.setMatKhau(passwordEncoder.encode(request.getMatKhau()));
+            newAccount.setTrangThai(true);
+            newAccount.setChucVu(old.getChucVu());
+            taiKhoanRepo.save(newAccount);
+            newAccount.setMaTaiKhoan(String.format("TK%03d", newAccount.getIdTaiKhoan()));
+            taiKhoanRepo.save(newAccount);
+            old.setTaiKhoan(newAccount);
+        } else if (old.getTaiKhoan() != null) {
+            TaiKhoan currentAccount = old.getTaiKhoan();
+            if (request.getTenDangNhap() != null)
+                currentAccount.setTenDangNhap(request.getTenDangNhap());
+            if (request.getMatKhau() != null)
+                currentAccount.setMatKhau(passwordEncoder.encode(request.getMatKhau()));
+            taiKhoanRepo.save(currentAccount);
+        }
 
         return toResponse(repository.save(old));
     }

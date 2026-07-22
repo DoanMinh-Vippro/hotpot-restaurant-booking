@@ -4,19 +4,42 @@ import { useRouter } from 'vue-router'
 import TaiKhoanApi from '@/api/TaiKhoanApi'
 import NhanVienApi from '@/api/NhanVienApi'
 import ChucVuApi from '@/api/ChucVuApi'
-import { getAllKhachHang, getKhachHangByTaiKhoanId } from '@/api/khachhang'
+import { createKhachHang, getAllKhachHang, getKhachHangByTaiKhoanId } from '@/api/khachhang'
 import HoaDonApi from '@/api/HoaDonApi'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import type { HoaDonChiTiet } from '@/api/HoaDonApi'
 const router = useRouter()
-// Tab state (1: ADMIN, 2: NHÂN VIÊN, 3: KHÁCH HÀNG, 4: CHỨC VỤ)
-const activeTab = ref(1)
+// Tab state (1: ADMIN, 2: NHÂN VIÊN, 3: KHÁCH HÀNG, 4: CHỨC VỤ, custom roles: 1000+id)
+const activeTab = ref<number | string>(1)
+const roleViewTab = ref<number | string>(1)
 const loading = ref(true)
 // Data states
 const accounts = ref<any[]>([])
 const employees = ref<any[]>([])
 const customers = ref<any[]>([])
 const roles = ref<any[]>([])
+const showCreateAccountModal = ref(false)
+const accountFormErrors = ref<Record<string, string>>({})
+const createAccountForm = ref({
+  id: null as number | null,
+  tenDangNhap: '',
+  matKhau: '',
+  trangThai: true,
+  idChucVu: 3,
+  hoTen: '',
+  soDienThoai: '',
+  email: '',
+  diaChi: '',
+  gioiTinh: true,
+})
+const showRoleModal = ref(false)
+const roleForm = ref({
+  id: null as number | null,
+  maChucVu: '',
+  tenChucVu: '',
+})
+const roleFormMode = ref<'create' | 'edit'>('create')
+const roleTabBase = 1000
 // Search & Sort states for each tab
 const searchAdmin = ref('')
 const sortAdmin = ref('id_desc')
@@ -50,6 +73,199 @@ const loadCustomerBookings = async (khachHangId: number) => {
     bookingLoading.value = false
   }
 }
+
+const clearCreateAccountError = (field: string) => {
+  if (accountFormErrors.value[field]) {
+    delete accountFormErrors.value[field]
+  }
+}
+
+const validateCreateAccountForm = () => {
+  accountFormErrors.value = {}
+  const form = createAccountForm.value
+  const username = form.tenDangNhap.trim()
+  const password = form.matKhau.trim()
+  const fullName = form.hoTen.trim()
+  const phone = form.soDienThoai.trim()
+  const email = form.email.trim()
+  const address = form.diaChi.trim()
+
+  if (!username) {
+    accountFormErrors.value.tenDangNhap = 'Tên đăng nhập không được để trống'
+  } else if (username.length < 3) {
+    accountFormErrors.value.tenDangNhap = 'Tên đăng nhập tối thiểu 3 ký tự'
+  }
+
+  if (!password) {
+    accountFormErrors.value.matKhau = 'Mật khẩu không được để trống'
+  } else if (password.length < 6) {
+    accountFormErrors.value.matKhau = 'Mật khẩu tối thiểu 6 ký tự'
+  }
+
+  if (!fullName) {
+    accountFormErrors.value.hoTen = 'Họ và tên không được để trống'
+  }
+
+  if (!phone) {
+    accountFormErrors.value.soDienThoai = 'Số điện thoại không được để trống'
+  } else if (!/^[0-9]{9,11}$/.test(phone)) {
+    accountFormErrors.value.soDienThoai = 'Số điện thoại phải là 9-11 chữ số'
+  }
+
+  if (!email) {
+    accountFormErrors.value.email = 'Email không được để trống'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    accountFormErrors.value.email = 'Email không hợp lệ'
+  }
+
+  if (!address) {
+    accountFormErrors.value.diaChi = 'Địa chỉ không được để trống'
+  }
+
+  return Object.keys(accountFormErrors.value).length === 0
+}
+
+const resetCreateAccountForm = () => {
+  accountFormErrors.value = {}
+  createAccountForm.value = {
+    id: null,
+    tenDangNhap: '',
+    matKhau: '',
+    trangThai: true,
+    idChucVu: 3,
+    hoTen: '',
+    soDienThoai: '',
+    email: '',
+    diaChi: '',
+    gioiTinh: true,
+  }
+}
+
+const openCreateAccountModal = () => {
+  resetCreateAccountForm()
+  showCreateAccountModal.value = true
+}
+
+const submitCreateAccount = async () => {
+  if (!validateCreateAccountForm()) {
+    return
+  }
+
+  const form = createAccountForm.value
+  const roleId = Number(form.idChucVu)
+
+  try {
+    if (roleId === 3) {
+      await createKhachHang({
+        tenKhachHang: form.hoTen.trim(),
+        gioiTinh: form.gioiTinh,
+        diaChi: form.diaChi.trim(),
+        soDienThoai: form.soDienThoai.trim(),
+        email: form.email.trim(),
+        trangThai: form.trangThai,
+        taiKhoan: {
+          tenDangNhap: form.tenDangNhap.trim(),
+          matKhau: form.matKhau,
+          trangThai: form.trangThai,
+          chucVu: { idChucVu: roleId },
+        },
+      })
+    } else {
+      await NhanVienApi.add({
+        maNhanVien: `NV${Date.now().toString().slice(-6)}`,
+        tenNhanVien: form.hoTen.trim(),
+        gioiTinh: form.gioiTinh,
+        soDienThoai: form.soDienThoai.trim(),
+        email: form.email.trim(),
+        diaChi: form.diaChi.trim(),
+        trangThai: form.trangThai,
+        idChucVu: roleId,
+        tenDangNhap: form.tenDangNhap.trim(),
+        matKhau: form.matKhau,
+      })
+    }
+
+    alert('Thêm tài khoản mới thành công! Mã tài khoản sẽ tự sinh bởi hệ thống.')
+    showCreateAccountModal.value = false
+    await loadData()
+  } catch (error) {
+    console.error('Thêm tài khoản mới thất bại:', error)
+    alert('Không thể thêm tài khoản mới. Vui lòng kiểm tra lại dữ liệu.')
+  }
+}
+
+const resetRoleForm = () => {
+  roleForm.value = {
+    id: null,
+    maChucVu: '',
+    tenChucVu: '',
+  }
+  roleFormMode.value = 'create'
+}
+
+const openRoleForm = (role?: any) => {
+  if (role) {
+    roleForm.value = {
+      id: role.id,
+      maChucVu: role.maChucVu || '',
+      tenChucVu: role.tenChucVu || '',
+    }
+    roleFormMode.value = 'edit'
+  } else {
+    resetRoleForm()
+  }
+  showRoleModal.value = true
+}
+
+const submitRole = async () => {
+  if (!roleForm.value.maChucVu.trim() || !roleForm.value.tenChucVu.trim()) {
+    alert('Vui lòng nhập mã chức vụ và tên chức vụ.')
+    return
+  }
+
+  try {
+    if (roleFormMode.value === 'create') {
+      await ChucVuApi.add({
+        maChucVu: roleForm.value.maChucVu.trim(),
+        tenChucVu: roleForm.value.tenChucVu.trim(),
+      })
+      alert('Thêm chức vụ mới thành công!')
+    } else {
+      await ChucVuApi.update(Number(roleForm.value.id), {
+        maChucVu: roleForm.value.maChucVu.trim(),
+        tenChucVu: roleForm.value.tenChucVu.trim(),
+      })
+      alert('Cập nhật chức vụ thành công!')
+    }
+
+    showRoleModal.value = false
+    await loadData()
+  } catch (error) {
+    console.error('Lưu chức vụ thất bại:', error)
+    alert('Không thể lưu chức vụ. Vui lòng kiểm tra lại dữ liệu.')
+  }
+}
+
+const deleteRole = async (role: any) => {
+  if ([1, 2, 3].includes(Number(role.id))) {
+    alert('Không thể xóa các chức vụ mặc định của hệ thống.')
+    return
+  }
+
+  if (!confirm(`Bạn có chắc chắn muốn xóa chức vụ "${role.tenChucVu}"?`)) {
+    return
+  }
+
+  try {
+    await ChucVuApi.delete(Number(role.id))
+    alert('Xóa chức vụ thành công!')
+    await loadData()
+  } catch (error) {
+    console.error('Xóa chức vụ thất bại:', error)
+    alert('Không thể xóa chức vụ này.')
+  }
+}
+
 // Convert helper
 const toBoolean = (val: any) => {
   if (val === true || val === 1 || val === '1') return true
@@ -300,9 +516,35 @@ const filteredCustomers = computed(() => {
   })
   return mappedList
 })
-// --- Tab 4: CHỨC VỤ COMPUTED ---
-const filteredRoles = computed(() => {
-  let list = [...accounts.value]
+const customRoleTabs = computed(() => {
+  return roles.value
+    .filter((role: any) => ![1, 2, 3].includes(Number(role.id)))
+    .map((role: any) => ({
+      ...role,
+      tabKey: roleTabBase + Number(role.id),
+    }))
+})
+
+const activeRoleInfo = computed(() => {
+  if (typeof roleViewTab.value === 'number' && roleViewTab.value >= roleTabBase) {
+    const roleId = roleViewTab.value - roleTabBase
+    return roles.value.find((role: any) => String(role.id) === String(roleId)) || null
+  }
+
+  if (typeof roleViewTab.value === 'number' && [1, 2, 3].includes(roleViewTab.value)) {
+    const roleId = roleViewTab.value
+    return roles.value.find((role: any) => String(role.id) === String(roleId)) || null
+  }
+
+  return null
+})
+
+const filteredRoleAccounts = computed(() => {
+  const role = activeRoleInfo.value
+  if (!role) return []
+  const roleId = Number(role.id)
+  let list = accounts.value.filter((acc: any) => String(acc.idChucVu) === String(roleId))
+
   if (searchRole.value.trim()) {
     const q = searchRole.value.toLowerCase()
     list = list.filter(
@@ -312,8 +554,8 @@ const filteredRoles = computed(() => {
         (acc.tenChucVu || '').toLowerCase().includes(q),
     )
   }
-  // Sort
-  list = [...list].sort((a: any, b: any) => {
+
+  return [...list].sort((a: any, b: any) => {
     if (sortRole.value === 'id_desc') return b.id - a.id
     if (sortRole.value === 'id_asc') return a.id - b.id
     if (sortRole.value === 'username_asc')
@@ -322,7 +564,28 @@ const filteredRoles = computed(() => {
       return (b.tenDangNhap || '').localeCompare(a.tenDangNhap || '')
     return 0
   })
-  return list
+})
+
+const filteredRoles = computed(() => {
+  let list = [...roles.value]
+  if (searchRole.value.trim()) {
+    const q = searchRole.value.toLowerCase()
+    list = list.filter(
+      (role: any) =>
+        (role.maChucVu || '').toLowerCase().includes(q) ||
+        (role.tenChucVu || '').toLowerCase().includes(q),
+    )
+  }
+
+  return [...list].sort((a: any, b: any) => {
+    if (sortRole.value === 'id_desc') return b.id - a.id
+    if (sortRole.value === 'id_asc') return a.id - b.id
+    if (sortRole.value === 'name_asc')
+      return (a.tenChucVu || '').localeCompare(b.tenChucVu || '')
+    if (sortRole.value === 'name_desc')
+      return (b.tenChucVu || '').localeCompare(a.tenChucVu || '')
+    return 0
+  })
 })
 // Detail viewers
 const viewAdminDetail = (acc: any) => {
@@ -508,49 +771,6 @@ const handleToggleLock = async (item: any) => {
     }
   }
 }
-// Role change update & auto-jump tab logic (Tab 4)
-const handleRoleChange = async (acc: any, newRoleId: number) => {
-  if (acc.idChucVu === newRoleId) return
-
-  const roleName = newRoleId === 1 ? 'ADMIN' : newRoleId === 2 ? 'STAFF' : 'USER'
-
-  if (
-    confirm(
-      `Bạn có chắc chắn muốn chuyển chức vụ của tài khoản "${acc.tenDangNhap}" sang "${roleName}"?`,
-    )
-  ) {
-    try {
-      await TaiKhoanApi.update(acc.id, {
-        idChucVu: newRoleId,
-      })
-
-      alert(`Phân chức vụ cho tài khoản "${acc.tenDangNhap}" thành công!`)
-
-      // Refresh data after role change so staff profile is available immediately
-      await loadData()
-      if (newRoleId === 2) {
-        await refreshEmployeeForAccount(acc.id)
-      }
-
-      // Auto-jump to the target tab
-      if (newRoleId === 1) {
-        activeTab.value = 1 // Switch to ADMIN Tab
-      } else if (newRoleId === 2) {
-        activeTab.value = 2 // Switch to Staff Tab
-      } else if (newRoleId === 3) {
-        activeTab.value = 3 // Switch to Customer Tab
-      }
-
-      await loadData()
-    } catch (error) {
-      console.error('Lỗi khi phân chức vụ:', error)
-      alert('Không thể cập nhật chức vụ!')
-    }
-  } else {
-    // Reset the select element to current value by reloading data or trigger local reset
-    await loadData()
-  }
-}
 const handleDeleteAccount = async (id: number) => {
   if (confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) {
     try {
@@ -569,6 +789,7 @@ const handleDeleteAccount = async (id: number) => {
     <!-- Page Header -->
     <div class="page-header-wrapper">
       <h2>👤 QUẢN LÝ TÀI KHOẢN HỆ THỐNG</h2>
+      <button class="btn-add-account" @click="openCreateAccountModal">➕ THÊM TÀI KHOẢN</button>
     </div>
 
     <hr class="line-break" />
@@ -793,69 +1014,196 @@ const handleDeleteAccount = async (id: number) => {
       </div>
       <!-- ================= TAB 4: CHỨC VỤ ================= -->
       <div v-if="activeTab === 4" class="tab-pane">
-        <div class="filters-row">
-          <div class="search-box">
-            <input
-              v-model="searchRole"
-              type="text"
-              placeholder="Tìm tên đăng nhập hoặc chức vụ..."
-            />
-          </div>
-          <div class="sort-box">
-            <label>Sắp xếp:</label>
-            <select v-model="sortRole" class="select-classic">
-              <option value="id_desc">Mới nhất (Default)</option>
-              <option value="id_asc">Cũ nhất</option>
-              <option value="username_asc">Tên đăng nhập (A-Z)</option>
-              <option value="username_desc">Tên đăng nhập (Z-A)</option>
+        <div class="role-management-panel">
+          <div class="role-toolbar">
+            <label>Chọn chức vụ để xem tài khoản</label>
+            <select v-model="roleViewTab" class="select-classic">
+              <option :value="1">👑 Admin</option>
+              <option :value="2">💼 Nhân viên</option>
+              <option :value="3">👥 Khách hàng</option>
+              <option v-for="role in customRoleTabs" :key="role.id" :value="role.tabKey">
+                🧩 {{ role.tenChucVu }}
+              </option>
             </select>
+            <button class="role-tab-btn add" @click="openRoleForm()">＋ THÊM CHỨC VỤ</button>
           </div>
-        </div>
-        <div class="table-container">
-          <table class="table-classic">
-            <thead>
-              <tr>
-                <th style="width: 80px; text-align: center">ID</th>
-                <th style="width: 150px">Mã Tài Khoản</th>
-                <th>Tên Đăng Nhập</th>
-                <th>Chức Vụ Hiện Tại</th>
-                <th style="width: 250px; text-align: center">Phân / Nâng Cấp Chức Vụ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="acc in filteredRoles" :key="acc.id">
-                <td style="text-align: center; color: #888">{{ acc.id }}</td>
-                <td style="font-weight: bold; color: #aaa">{{ acc.maTaiKhoan }}</td>
-                <td class="highlight-text">{{ acc.tenDangNhap }}</td>
-                <td>
-                  <span class="role-badge" :class="acc.tenChucVu?.toLowerCase()">
-                    {{ acc.tenChucVu || 'Chưa phân quyền' }}
-                  </span>
-                </td>
-                <td style="text-align: center">
-                  <select
-                    :value="acc.idChucVu || 3"
-                    class="role-select"
-                    @change="
-                      handleRoleChange(acc, Number(($event.target as HTMLSelectElement).value))
-                    "
-                  >
-                    <option :value="1">👑 ADMIN</option>
-                    <option :value="2">💼 STAFF (Nhân viên)</option>
-                    <option :value="3">👥 USER (Khách hàng)</option>
-                  </select>
-                </td>
-              </tr>
-              <tr v-if="filteredRoles.length === 0">
-                <td colspan="5" style="text-align: center; color: #999; padding: 30px 0">
-                  📭 Không tìm thấy tài khoản nào.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+          <div class="filters-row" style="margin-top: 16px">
+            <div class="search-box">
+              <input v-model="searchRole" type="text" placeholder="Tìm chức vụ hoặc mã chức vụ..." />
+            </div>
+            <div class="sort-box">
+              <label>Sắp xếp:</label>
+              <select v-model="sortRole" class="select-classic">
+                <option value="id_desc">Mới nhất (Default)</option>
+                <option value="id_asc">Cũ nhất</option>
+                <option value="name_asc">Tên chức vụ (A-Z)</option>
+                <option value="name_desc">Tên chức vụ (Z-A)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="role-panel-content">
+            <div class="role-list-card">
+              <div class="role-card-header">
+                <h4>Danh sách chức vụ</h4>
+                <span>{{ filteredRoles.length }} mục</span>
+              </div>
+              <div v-for="role in filteredRoles" :key="role.id" class="role-item">
+                <div>
+                  <div class="role-item-title">{{ role.tenChucVu }}</div>
+                  <div class="role-item-sub">{{ role.maChucVu }}</div>
+                </div>
+                <div class="role-item-actions">
+                  <button class="btn-action view" @click="openRoleForm(role)">Sửa</button>
+                  <button class="btn-action delete" @click="deleteRole(role)">Xóa</button>
+                </div>
+              </div>
+              <div v-if="filteredRoles.length === 0" class="no-profile-text">
+                📭 Chưa có chức vụ nào phù hợp.
+              </div>
+            </div>
+
+            <div class="role-account-card">
+              <div class="role-card-header">
+                <h4>{{ activeRoleInfo?.tenChucVu || 'Chọn chức vụ' }}</h4>
+                <span>{{ filteredRoleAccounts.length }} tài khoản</span>
+              </div>
+              <div v-if="activeRoleInfo" class="table-container">
+                <table class="table-classic">
+                  <thead>
+                    <tr>
+                      <th style="width: 80px; text-align: center">ID</th>
+                      <th>Mã tài khoản</th>
+                      <th>Tên đăng nhập</th>
+                      <th>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="acc in filteredRoleAccounts" :key="acc.id">
+                      <td style="text-align: center; color: #888">{{ acc.id }}</td>
+                      <td style="font-weight: bold; color: #8b5e34">{{ acc.maTaiKhoan }}</td>
+                      <td class="highlight-text">{{ acc.tenDangNhap }}</td>
+                      <td>
+                        <span :class="acc.trangThai ? 'status-green' : 'status-red'">
+                          {{ acc.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr v-if="filteredRoleAccounts.length === 0">
+                      <td colspan="4" style="text-align: center; color: #999; padding: 24px 0">
+                        📭 Chưa có tài khoản nào thuộc chức vụ này.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="no-profile-text">
+                Chọn một tab chức vụ để xem tài khoản tương ứng.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+    <div v-if="showCreateAccountModal" class="modal-overlay" @click.self="showCreateAccountModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>➕ THÊM TÀI KHOẢN MỚI</h3>
+          <span class="close-btn" @click="showCreateAccountModal = false">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div class="modal-form-grid">
+            <div class="modal-form-field">
+              <label>Tên đăng nhập</label>
+              <input v-model="createAccountForm.tenDangNhap" type="text" placeholder="Nhập tên đăng nhập" :class="{ 'is-error': accountFormErrors.tenDangNhap }" @input="clearCreateAccountError('tenDangNhap')" />
+              <span v-if="accountFormErrors.tenDangNhap" class="form-error-message">{{ accountFormErrors.tenDangNhap }}</span>
+            </div>
+            <div class="modal-form-field">
+              <label>Mật khẩu</label>
+              <input v-model="createAccountForm.matKhau" type="password" placeholder="Nhập mật khẩu" :class="{ 'is-error': accountFormErrors.matKhau }" @input="clearCreateAccountError('matKhau')" />
+              <span v-if="accountFormErrors.matKhau" class="form-error-message">{{ accountFormErrors.matKhau }}</span>
+            </div>
+            <div class="modal-form-field">
+              <label>Chức vụ</label>
+              <select v-model.number="createAccountForm.idChucVu" class="select-classic">
+                <option v-for="role in roles" :key="role.id" :value="Number(role.id)">
+                  {{ role.tenChucVu }}
+                </option>
+              </select>
+            </div>
+            <div class="modal-form-field">
+              <label>Trạng thái</label>
+              <select v-model="createAccountForm.trangThai" class="select-classic">
+                <option :value="true">Hoạt động</option>
+                <option :value="false">Ngừng hoạt động</option>
+              </select>
+            </div>
+            <div class="modal-form-field">
+              <label>Họ và tên</label>
+              <input v-model="createAccountForm.hoTen" type="text" placeholder="Nhập họ và tên" :class="{ 'is-error': accountFormErrors.hoTen }" @input="clearCreateAccountError('hoTen')" />
+              <span v-if="accountFormErrors.hoTen" class="form-error-message">{{ accountFormErrors.hoTen }}</span>
+            </div>
+            <div class="modal-form-field">
+              <label>Số điện thoại</label>
+              <input v-model="createAccountForm.soDienThoai" type="text" placeholder="Nhập số điện thoại" :class="{ 'is-error': accountFormErrors.soDienThoai }" @input="clearCreateAccountError('soDienThoai')" />
+              <span v-if="accountFormErrors.soDienThoai" class="form-error-message">{{ accountFormErrors.soDienThoai }}</span>
+            </div>
+            <div class="modal-form-field">
+              <label>Email</label>
+              <input v-model="createAccountForm.email" type="email" placeholder="Nhập email" :class="{ 'is-error': accountFormErrors.email }" @input="clearCreateAccountError('email')" />
+              <span v-if="accountFormErrors.email" class="form-error-message">{{ accountFormErrors.email }}</span>
+            </div>
+            <div class="modal-form-field">
+              <label>Địa chỉ</label>
+              <input v-model="createAccountForm.diaChi" type="text" placeholder="Nhập địa chỉ" :class="{ 'is-error': accountFormErrors.diaChi }" @input="clearCreateAccountError('diaChi')" />
+              <span v-if="accountFormErrors.diaChi" class="form-error-message">{{ accountFormErrors.diaChi }}</span>
+            </div>
+            <div class="modal-form-field">
+              <label>Giới tính</label>
+              <select v-model="createAccountForm.gioiTinh" class="select-classic">
+                <option :value="true">Nam</option>
+                <option :value="false">Nữ</option>
+              </select>
+            </div>
+            <div class="modal-form-field full-width">
+              <label>Mã tài khoản</label>
+              <input type="text" value="Sẽ được hệ thống tự sinh" disabled />
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-gray" @click="showCreateAccountModal = false">Hủy</button>
+            <button class="btn-action view" @click="submitCreateAccount">Lưu tài khoản</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showRoleModal" class="modal-overlay" @click.self="showRoleModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>{{ roleFormMode === 'create' ? '➕ THÊM CHỨC VỤ' : '✏️ SỬA CHỨC VỤ' }}</h3>
+          <span class="close-btn" @click="showRoleModal = false">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div class="modal-form-grid">
+            <div class="modal-form-field">
+              <label>Mã chức vụ</label>
+              <input v-model="roleForm.maChucVu" type="text" placeholder="Nhập mã chức vụ" />
+            </div>
+            <div class="modal-form-field">
+              <label>Tên chức vụ</label>
+              <input v-model="roleForm.tenChucVu" type="text" placeholder="Nhập tên chức vụ" />
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-gray" @click="showRoleModal = false">Hủy</button>
+            <button class="btn-action view" @click="submitRole">Lưu chức vụ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ================= DETAIL MODAL POPUP ================= -->
     <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
       <div class="modal-content">
@@ -1290,6 +1638,19 @@ h2 {
   color: #8b5e34;
   margin: 0;
 }
+.btn-add-account {
+  background: linear-gradient(135deg, #8b5e34, #c98b3e);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btn-add-account:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
 .line-break {
   border: 0;
   border-top: 1px solid #e6d2aa;
@@ -1297,10 +1658,12 @@ h2 {
 }
 .tabs-navigation {
   display: flex;
+  flex-wrap: nowrap;
   gap: 10px;
   margin-bottom: 20px;
   border-bottom: 2px solid #e6d2aa;
   padding-bottom: 10px;
+  overflow-x: auto;
 }
 .tab-btn {
   background-color: #fff8ea;
@@ -1312,6 +1675,7 @@ h2 {
   cursor: pointer;
   font-size: 14px;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 .tab-btn:hover {
   color: #3d2814;
@@ -1492,6 +1856,122 @@ h2 {
 }
 .role-select:focus {
   box-shadow: 0 0 5px rgba(216, 168, 92, 0.35);
+}
+.role-management-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.role-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.role-toolbar label {
+  color: #8b5e34;
+  font-weight: bold;
+  font-size: 13px;
+}
+.role-tab-btn {
+  background: #fffaf1;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.role-tab-btn.active {
+  background: linear-gradient(135deg, #d8a85c, #f1cf87);
+  color: #3d2814;
+}
+.role-tab-btn.add {
+  border-style: dashed;
+}
+.role-panel-content {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) 1fr;
+  gap: 16px;
+}
+.role-list-card,
+.role-account-card {
+  background: rgba(255, 248, 234, 0.95);
+  border: 1px solid #e6d2aa;
+  border-radius: 12px;
+  padding: 16px;
+}
+.role-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.role-card-header h4 {
+  margin: 0;
+  color: #8b5e34;
+}
+.role-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #efe0c1;
+}
+.role-item:last-child {
+  border-bottom: none;
+}
+.role-item-title {
+  font-weight: bold;
+  color: #5f3d22;
+}
+.role-item-sub {
+  font-size: 12px;
+  color: #8f6b46;
+}
+.role-item-actions {
+  display: flex;
+  gap: 6px;
+}
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.modal-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.modal-form-field label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #8b5e34;
+}
+.modal-form-field.full-width {
+  grid-column: 1 / -1;
+}
+.modal-form-field input,
+.modal-form-field select {
+  background: #fffaf1;
+  border: 1px solid #e6d2aa;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #5f3d22;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.btn-gray {
+  background: #efe0c1;
+  color: #5f3d22;
+  border: 1px solid #e6d2aa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 .modal-overlay {
   position: fixed;

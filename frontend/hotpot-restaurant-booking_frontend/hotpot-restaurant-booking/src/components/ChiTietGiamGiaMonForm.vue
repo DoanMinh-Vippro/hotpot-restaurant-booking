@@ -263,16 +263,17 @@ defineExpose({
       </div>
 
       <div class="form-group">
-        <label>Mức giảm</label>
+        <label>{{ form.loaiGiam === 'TIEN' ? 'Số tiền giảm (VNĐ)' : 'Mức giảm (%)' }}</label>
         <input
           v-model="form.mucGiam"
           type="number"
-          min="1"
-          max="100"
-          :placeholder="form.loaiGiam === 'TIEN'?'Nhập số tiền giảm...':'Nhập phần trăm giảm...'"
+          min="0"
+          :max="form.loaiGiam === 'TIEN' ? undefined : 100"
+          :placeholder="form.loaiGiam === 'TIEN' ? 'Nhập số tiền giảm...' : 'Nhập phần trăm giảm... (0-100)'"
           :class="{ 'is-invalid': errors.mucGiam }"
           @input="errors.mucGiam = ''"
         />
+        <span class="help-text" v-if="form.loaiGiam === 'PHANTRAM'">Giá trị từ 0% đến 100%</span>
         <span class="error-text" v-if="errors.mucGiam">{{ errors.mucGiam }}</span>
       </div>
 

@@ -28,6 +28,7 @@ const bieu_mau = reactive({
 const loi_val = reactive<Record<string, string>>({})
 
 const nhan_gui = computed(() => (props.che_do_bieu_mau === 'create' ? 'Tạo mới' : 'Cập nhật'))
+const la_phan_tram = computed(() => bieu_mau.loaiGiam === 'PHẦN TRĂM')
 
 const kiem_tra_bieu_mau = () => {
   Object.keys(loi_val).forEach((key) => delete loi_val[key])
@@ -59,7 +60,10 @@ const kiem_tra_bieu_mau = () => {
     loi_val.giaTriGiam = 'Giá trị giảm không được để trống'
     valid = false
   } else if (Number.isNaN(giaTriGiam) || giaTriGiam <= 0) {
-    loi_val.giaTriGiam = 'Giá trị giảm phải lớn hơn 0'
+    loi_val.giaTriGiam = la_phan_tram.value ? 'Giá trị phần trăm phải lớn hơn 0' : 'Giá trị giảm phải lớn hơn 0'
+    valid = false
+  } else if (la_phan_tram.value && (giaTriGiam < 0 || giaTriGiam > 100)) {
+    loi_val.giaTriGiam = 'Giá trị phần trăm phải từ 0 đến 100'
     valid = false
   }
 
@@ -71,7 +75,7 @@ const kiem_tra_bieu_mau = () => {
     valid = false
   }
 
-  if (!Number.isNaN(giaTriGiam) && !Number.isNaN(giaTriToiDa) && giaTriToiDa < giaTriGiam) {
+  if (!la_phan_tram.value && !Number.isNaN(giaTriGiam) && !Number.isNaN(giaTriToiDa) && giaTriToiDa < giaTriGiam) {
     loi_val.giaTriGiamToiDa = 'Giá trị giảm tối đa phải lớn hơn hoặc bằng giá trị giảm'
     valid = false
   }
@@ -163,14 +167,16 @@ defineExpose({
       </label>
 
       <label>
-        Giá trị giảm
-        <input v-model="bieu_mau.giaTriGiam" type="number" min="0" step="0.01" />
+        {{ la_phan_tram ? 'Giá trị giảm (%)' : 'Giá trị giảm (VNĐ)' }}
+        <input v-model="bieu_mau.giaTriGiam" type="number" min="0" step="0.01" :placeholder="la_phan_tram ? '0 - 100' : 'Nhập số tiền giảm'" />
+        <span class="ghi-chu-truong">{{ la_phan_tram ? 'Khoảng từ 0 đến 100%' : 'Giá trị theo đơn vị VNĐ' }}</span>
         <span class="loi-truong" v-if="loi_val.giaTriGiam">{{ loi_val.giaTriGiam }}</span>
       </label>
 
       <label>
-        Giá trị giảm tối đa
-        <input v-model="bieu_mau.giaTriGiamToiDa" type="number" min="0" step="0.01" />
+        Giá trị giảm tối đa (VNĐ)
+        <input v-model="bieu_mau.giaTriGiamToiDa" type="number" min="0" step="0.01" placeholder="Nhập số tiền tối đa" />
+        <span class="ghi-chu-truong">Dù là giảm theo phần trăm hay giá trị, mức giảm tối đa luôn là số tiền VNĐ.</span>
         <span class="loi-truong" v-if="loi_val.giaTriGiamToiDa">{{ loi_val.giaTriGiamToiDa }}</span>
       </label>
 
@@ -274,6 +280,12 @@ input::placeholder {
 
 select {
   cursor: pointer;
+}
+
+.ghi-chu-truong {
+  margin-top: 4px;
+  color: #8f6b46;
+  font-size: 0.78rem;
 }
 
 .loi-truong {

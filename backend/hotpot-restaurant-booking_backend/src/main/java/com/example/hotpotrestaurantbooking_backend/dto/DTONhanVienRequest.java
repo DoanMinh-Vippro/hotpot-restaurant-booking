@@ -17,6 +17,8 @@ public class DTONhanVienRequest {
     private String email;
     private Integer idChucVu;
     private Integer idTaiKhoan;
+    private String tenDangNhap;
+    private String matKhau;
     private String diaChi;
     private Boolean trangThai;
 }
