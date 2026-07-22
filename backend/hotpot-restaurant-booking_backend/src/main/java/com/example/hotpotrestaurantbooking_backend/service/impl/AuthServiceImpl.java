@@ -40,6 +40,11 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("tên đăng nhập đã tồn tại");
         }
         TaiKhoan tk = mapper.map(request, TaiKhoan.class);
+        if (request.getIdChucVu() != null) {
+            ChucVu cv = new ChucVu();
+            cv.setIdChucVu(request.getIdChucVu());
+            tk.setChucVu(cv);
+        }
         // Mã hóa mật khẩu trước khi lưu
         tk.setMatKhau(passwordEncoder.encode(request.getMatKhau()));
         tk.setTrangThai(true);
