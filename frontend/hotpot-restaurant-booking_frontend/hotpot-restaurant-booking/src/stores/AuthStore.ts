@@ -39,6 +39,7 @@ interface CustomerInfo {
 interface AuthState {
   token: string | null
   userRole: string | null
+  accountName: string | null
   customerInfo: CustomerInfo
 }
 
@@ -75,6 +76,7 @@ export const useAuthStore = defineStore('auth', {
     return {
       token: savedRole ? savedToken : null,
       userRole: savedRole,
+      accountName: localStorage.getItem('tenDangNhap') || null,
       customerInfo: {
         khachHangId: localStorage.getItem('khachHangId') ? parseInt(localStorage.getItem('khachHangId')!) : null,
         tenKhachHang: localStorage.getItem('tenKhachHang'),
@@ -88,10 +90,15 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    login(token: string, customerInfo?: Partial<CustomerInfo>) {
+    login(token: string, customerInfo?: Partial<CustomerInfo>, accountName?: string) {
       this.token = token
       localStorage.setItem('token', token)
       this.decodeToken(token)
+      this.accountName = accountName || localStorage.getItem('tenDangNhap') || null
+
+      if (accountName) {
+        localStorage.setItem('tenDangNhap', accountName)
+      }
 
       if (hasCustomerInfo(customerInfo)) {
         this.setCustomerInfo(customerInfo)
@@ -150,6 +157,7 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.token = null
       this.userRole = null
+      this.accountName = null
       this.customerInfo = {
         khachHangId: null,
         tenKhachHang: null,
@@ -160,6 +168,7 @@ export const useAuthStore = defineStore('auth', {
         maKhachHang: null
       }
       localStorage.removeItem('token')
+      localStorage.removeItem('tenDangNhap')
       localStorage.removeItem('khachHangId')
       localStorage.removeItem('tenKhachHang')
       localStorage.removeItem('soDienThoai')
@@ -172,7 +181,14 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAuthenticated: (state) => !!state.token,
-    isAdmin: (state) => state.userRole === 'ROLE_ADMIN' || state.userRole === 'ROLE_STAFF',
+    isAdmin: (state) => {
+      const role = String(state.userRole || '').toUpperCase()
+      return ['ROLE_ADMIN', 'ADMIN', 'ROLE_STAFF', 'STAFF', 'CASHIER', 'ROLE_CASHIER'].includes(role)
+    },
+    isShiftManager: (state) => {
+      const role = String(state.userRole || '').toUpperCase()
+      return ['ROLE_ADMIN', 'ADMIN', 'ROLE_STAFF', 'STAFF', 'CASHIER', 'ROLE_CASHIER'].includes(role)
+    },
     isUser: (state) => state.userRole === 'ROLE_USER',
     khachHangId: (state) => state.customerInfo.khachHangId,
     tenKhachHang: (state) => state.customerInfo.tenKhachHang,

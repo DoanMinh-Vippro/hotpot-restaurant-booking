@@ -1,5 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { jwtDecode } from 'jwt-decode'
 import HomeView from '@/views/HomeView.vue'
+
+const getStoredRole = (): string => {
+  const token = localStorage.getItem('token')
+  if (!token) return ''
+
+  try {
+    const decoded = jwtDecode<{ scope?: string }>(token)
+    return String(decoded.scope || '').toUpperCase()
+  } catch {
+    return ''
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -141,7 +154,30 @@ const router = createRouter({
       name: 'payment-failed',
       component: () => import('@/views/PaymentFailed.vue'),
     },
+    {
+      path: '/shift-management',
+      name: 'shift-management',
+      component: () => import('@/views/ShiftManagementView.vue'),
+    },
   ],
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.name !== 'shift-management') {
+    next()
+    return
+  }
+
+  const role = getStoredRole()
+  const isAllowedShiftManager = ['ROLE_ADMIN', 'ADMIN', 'ROLE_STAFF', 'STAFF', 'CASHIER'].includes(role)
+
+  if (!isAllowedShiftManager) {
+    alert('Bạn không có quyền truy cập trang này')
+    next(false)
+    return
+  }
+
+  next()
 })
 
 export default router
