@@ -88,4 +88,10 @@ public interface ChiTietGiamGiaMonRepository extends JpaRepository<ChiTietGiamGi
 
     List<ChiTietGiamGiaMon> findByMon_IdMon(Integer idMon);
     List<ChiTietGiamGiaMon> findAllByTrangThai(Integer trangThai);
+    boolean existsByDotGiamGia_IdDotGiamGiaAndMon_IdMon(Integer idDotGiamGia, Integer idMon);
+    // Check món đã có ở BẤT KỲ đợt giảm giá nào chưa
+    boolean existsByMon_IdMon(Integer idMon);
+
+    // Check món đã có ở đợt khác chưa (khi sửa, trừ id bản ghi hiện tại)
+    boolean existsByMon_IdMonAndIdChiTietGiamGiaMonNot(Integer idMon, Integer idChiTietGiamGiaMon);
 }

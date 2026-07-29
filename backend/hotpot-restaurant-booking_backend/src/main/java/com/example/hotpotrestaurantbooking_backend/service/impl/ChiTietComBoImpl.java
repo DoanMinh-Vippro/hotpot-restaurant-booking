@@ -51,30 +51,91 @@ public class ChiTietComBoImpl implements ChiTietComBoService {
     @Override
     public void addCTCB(ChiTietComboRequest req){
         validator.validateAdd(req);
-        ChiTietCombo ctcb=new ChiTietCombo();
-        BeanUtils.copyProperties(req, ctcb);
+
         Combo cb = repo2.findById(req.getIdCombo())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Combo"));
-        ctcb.setCombo(cb);
-        Mon m = repo3.findById(req.getIdMon())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Món"));
-        ctcb.setMon(m);
-        repo.save(ctcb);
+
+        List<Integer> listIdMon = req.getDanhSachIdMon();
+
+        // Nếu gửi lên mảng danh sách nhiều món (Checkbox từ Modal FE)
+        if (listIdMon != null && !listIdMon.isEmpty()) {
+            for (Integer idMon : listIdMon) {
+                Mon m = repo3.findById(idMon)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy Món có ID: " + idMon));
+
+                ChiTietCombo ctcb = new ChiTietCombo();
+                ctcb.setSoLuong(req.getSoLuong());
+                ctcb.setMoTa(req.getMoTa());
+                ctcb.setCombo(cb);
+                ctcb.setMon(m);
+
+                repo.save(ctcb);
+            }
+        }
+        //  Fallback trường hợp gửi 1 món lẻ
+        else if (req.getIdMon() != null) {
+            Mon m = repo3.findById(req.getIdMon())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Món"));
+
+            ChiTietCombo ctcb = new ChiTietCombo();
+            ctcb.setSoLuong(req.getSoLuong());
+            ctcb.setMoTa(req.getMoTa());
+            ctcb.setCombo(cb);
+            ctcb.setMon(m);
+
+            repo.save(ctcb);
+        }
     }
     @Override
     public void updateCTCB(Integer idChiTietCombo,
-                           ChiTietComboRequest req){
-        validator.validateUpdate(idChiTietCombo,req);
-        ChiTietCombo ctcb=repo.findById(idChiTietCombo)
-                .orElseThrow(()-> new RuntimeException("Không tìm thấy thông tin chi tiết của combo này"));
-        ctcb.setSoLuong(req.getSoLuong());
+                           ChiTietComboRequest req) {
+        validator.validateUpdate(idChiTietCombo, req);
+        ChiTietCombo ctcb = repo.findById(idChiTietCombo)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin chi tiết của combo này"));
+
         Combo cb = repo2.findById(req.getIdCombo())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Combo"));
-        ctcb.setCombo(cb);
-        Mon m = repo3.findById(req.getIdMon())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Món"));
-        ctcb.setMon(m);
-        ctcb.setMoTa(req.getMoTa());
-        repo.save(ctcb);
+
+        List<Integer> listIdMon = req.getDanhSachIdMon();
+
+        if (listIdMon != null && !listIdMon.isEmpty()) {
+            // 1. Cập nhật bản ghi hiện tại với món đầu tiên trong danh sách
+            Integer idMonDauTien = listIdMon.get(0);
+            Mon mDauTien = repo3.findById(idMonDauTien)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Món có ID: " + idMonDauTien));
+
+            ctcb.setSoLuong(req.getSoLuong());
+            ctcb.setCombo(cb);
+            ctcb.setMon(mDauTien);
+            ctcb.setMoTa(req.getMoTa());
+            repo.save(ctcb);
+
+            // 2. Nếu chọn thêm các món khác chưa có trong combo -> Thêm mới bản ghi ChiTietCombo cho các món đó
+            for (int i = 1; i < listIdMon.size(); i++) {
+                Integer idMonTiepTheo = listIdMon.get(i);
+
+                // Nếu món này chưa có trong combo thì mới thêm
+                if (!repo.existsByCombo_IdComboAndMon_IdMon(req.getIdCombo(), idMonTiepTheo)) {
+                    Mon mTiepTheo = repo3.findById(idMonTiepTheo)
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy Món có ID: " + idMonTiepTheo));
+
+                    ChiTietCombo ctcbMoi = new ChiTietCombo();
+                    ctcbMoi.setSoLuong(req.getSoLuong());
+                    ctcbMoi.setMoTa(req.getMoTa());
+                    ctcbMoi.setCombo(cb);
+                    ctcbMoi.setMon(mTiepTheo);
+
+                    repo.save(ctcbMoi);
+                }
+            }
+        } else if (req.getIdMon() != null) {
+            Mon m = repo3.findById(req.getIdMon())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Món"));
+            ctcb.setSoLuong(req.getSoLuong());
+            ctcb.setCombo(cb);
+            ctcb.setMon(m);
+            ctcb.setMoTa(req.getMoTa());
+            repo.save(ctcb);
+        }
     }
 }

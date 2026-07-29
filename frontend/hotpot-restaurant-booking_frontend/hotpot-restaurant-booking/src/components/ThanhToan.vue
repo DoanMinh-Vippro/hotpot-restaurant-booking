@@ -46,7 +46,7 @@ const giamGiaDangChon = ref<number | null>(null)
 
 const phuongThucThanhToan = ref(false)
 const tienMatThanhToan = ref(false)
-const hienThiSePayQR = ref(false) // 
+const hienThiSePayQR = ref(false) //
 const hoaDonHienTai = ref<any>(null)
 
 // ================= UTILS =================
@@ -83,7 +83,7 @@ const themVaoGio = (item: any, loai: string) => {
       idCombo: item.idCombo ?? null,
       tenMon: item.tenMon ?? null,
       tenCombo: item.tenCombo ?? null,
-      gia: loai === 'MON' ? item.giaSauGiam : (item.giaCombo ?? 0),
+      gia: item.giaSauGiam ?? (loai === 'MON' ? item.gia : item.giaCombo) ?? 0,
       soLuong: 1,
       loai,
       comboItems: item.comboItems ?? [],
@@ -153,7 +153,7 @@ const handleChuyenKhoanThanhCong = async () => {
     await xuLyHoaDon(1, 1) // Cập nhật hóa đơn thành Đã thanh toán (1, 1)
     await markReservationCompleted()
     alert(`Bàn ${props.ban?.tenBan} đã thanh toán chuyển khoản thành công tự động!`)
-    
+
     // Reset state tại client
     hoaDonHienTai.value = null
     gioHang.value = []
@@ -194,7 +194,7 @@ const checkHoaDonTam = async () => {
       idCombo: item.idCombo,
       tenMon: item.tenMon,
       tenCombo: item.tenCombo,
-      gia: item.donGiaHienTai ?? item.giaCombo ?? item.giaBanTaiThoiDiem ?? 0,
+      gia: Number(item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0),
       soLuong: item.soLuong,
       daLen: item.trangThaiMonAn === 'DA_LEN' ? item.soLuong : item.daLen || 0,
       loai: item.idMon ? 'MON' : 'COMBO',
@@ -657,7 +657,7 @@ onMounted(() => {
       @chonTienMat="popupTienMat"
       @chonChuyenKhoan="moPopupQR"
     />
-    
+
     <PopupTienMat
       v-if="tienMatThanhToan"
       :tongTien="tongThanhToan"
@@ -683,15 +683,19 @@ onMounted(() => {
 * {
   box-sizing: border-box;
 }
+
+
 .thanh-toan-container {
   display: flex;
   gap: 20px;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - 100px); 
   padding: 20px;
   overflow: hidden;
   background: rgba(255, 248, 234, 0.96);
 }
+
+
 .danh-muc,
 .danh-sach-mon,
 .gio-hang {
@@ -702,17 +706,80 @@ onMounted(() => {
   box-shadow:
     0 8px 25px rgba(0, 0, 0, 0.4),
     0 0 12px rgba(212, 175, 55, 0.08);
-  min-height: 0;
-  overflow: hidden;
-}
-.danh-muc {
-  width: 20%;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
+
+.danh-muc {
+  width: 20%;
+}
+
+.danh-sach-mon {
+  width: 50%;
+}
+
+.gio-hang {
+  width: 30%;
+}
+
 .danh-muc > div:last-child {
   margin-top: auto;
 }
+
+/* --- CỘT GIỮA: DANH SÁCH MÓN --- */
+.food-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  padding-bottom: 15px;
+  align-content: start;
+}
+
+/* --- CỘT PHẢI: GIỎ HÀNG --- */
+.gio-hang-tabs {
+  display: flex;
+  background: #242424;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  flex-shrink: 0;
+}
+
+.gio-hang-list-wrapper {
+  flex: 1;
+  min-height: 0; /* Bắt buộc để child flex container co giãn cuộn được */
+  display: flex;
+  flex-direction: column;
+}
+
+.gio-hang-tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gio-hang-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.gio-hang-footer {
+  flex-shrink: 0; /* Giữ cố định cụm tính tiền & thanh toán dưới đáy */
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 216, 107, 0.15);
+}
+
+/* Các style nút bấm & card giữ nguyên */
 .btn-quay-lai {
   width: 100%;
   padding: 14px;
@@ -747,22 +814,6 @@ onMounted(() => {
   border-left: 4px solid #ffd86b;
   transform: translateX(4px);
 }
-.danh-sach-mon {
-  width: 50%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.food-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 6px;
-  padding-bottom: 15px;
-}
 .food-card {
   height: 120px;
   background: linear-gradient(145deg, #363636, #292929);
@@ -793,34 +844,6 @@ onMounted(() => {
   font-weight: 600;
   cursor: not-allowed;
 }
-.gio-hang-footer {
-  flex-shrink: 0;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 216, 107, 0.15);
-}
-.main-total-center {
-  background: linear-gradient(135deg, #ffd86b, #d4af37) !important;
-  color: #111 !important;
-  font-size: 18px !important;
-  font-weight: 800 !important;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25);
-}
-.gio-hang {
-  width: 30%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.gio-hang-tabs {
-  display: flex;
-  background: #242424;
-  border-radius: 10px;
-  padding: 4px;
-  margin-bottom: 12px;
-  border: 1px solid rgba(212, 175, 55, 0.15);
-  flex-shrink: 0;
-}
 .tab-item {
   flex: 1;
   text-align: center;
@@ -837,18 +860,6 @@ onMounted(() => {
   color: #111;
   font-weight: 700;
 }
-.gio-hang-tab-content {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.gio-hang-list {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 4px;
-}
 .tong-tien {
   background: linear-gradient(135deg, rgba(255, 216, 107, 0.12), rgba(212, 175, 55, 0.05));
   border: 1px solid rgba(255, 216, 107, 0.15);
@@ -859,6 +870,13 @@ onMounted(() => {
   font-weight: 700;
   text-align: center;
   margin-bottom: 8px;
+}
+.main-total-center {
+  background: linear-gradient(135deg, #ffd86b, #d4af37) !important;
+  color: #111 !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25);
 }
 .cart-item {
   display: flex;
