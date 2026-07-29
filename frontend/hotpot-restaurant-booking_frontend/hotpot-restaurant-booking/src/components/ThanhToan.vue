@@ -10,6 +10,8 @@ import HoaDonApi from '@/api/HoaDonApi.ts'
 import HoaDonChiTietApi from '@/api/HoaDonChiTietApi'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import BanApi from '@/api/BanApi'
+import { useShiftStore } from '@/stores/ShiftStore'
+import { useAuthStore } from '@/stores/AuthStore'
 import printJS from 'print-js'
 
 // ================= PROPS =================
@@ -20,6 +22,8 @@ const props = defineProps<{
 
 // ================= EMIT =================
 const emit = defineEmits(['quayLai'])
+const shiftStore = useShiftStore()
+const authStore = useAuthStore()
 const quayLai = () => {
   emit('quayLai')
 }
@@ -36,8 +40,8 @@ const monVuaGuiBep = ref<any[]>([])
 
 // Tự động lấy tên nhân viên dựa theo tài khoản đăng nhập
 const tenNhanVien = ref<string>(
-  localStorage.getItem('tenDangNhap') ||
-    JSON.parse(localStorage.getItem('user') || '{}').tenDangNhap ||
+  authStore.accountName ||
+    localStorage.getItem('tenDangNhap') ||
     'Nhân viên',
 )
 
@@ -366,6 +370,25 @@ const taoHoaDon = async () => {
   try {
     await xuLyHoaDon(1, 1)
     await markReservationCompleted()
+
+    if (shiftStore.currentShift?.isOpen) {
+      shiftStore.syncBillFromPos({
+        id: String(hoaDonHienTai.value?.idHoaDon || Date.now()),
+        code: hoaDonHienTai.value?.maHoaDon || `HD${Date.now()}`,
+        customer: props.datBan?.tenKhachHang || 'Khách hàng',
+        total: Number(tongThanhToan.value || 0),
+        gross: Number(tongTienTamTinhCotGiua.value || 0),
+        discount: Number(tienGiamGia.value || 0),
+        paymentMethod: Number(hoaDonHienTai.value?.phuongThucThanhToan) === 2 ? 'transfer' : 'cash',
+        status: 'paid',
+        createdAt: new Date().toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        createdAtTimestamp: Date.now(),
+      })
+    }
+
     alert('Thanh toán thành công!')
     hoaDonHienTai.value = null
     gioHang.value = []
