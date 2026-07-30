@@ -36,8 +36,37 @@ const confirmAction = ref<Function>()
 
 //=========================================================================================================
 const loadData = async () => {
-  const res = await DatBanQuanLyApi.getAll(filter.value.trangThai || undefined)
+  let res
+
+  // Ưu tiên tìm theo từ khóa
+  if (filter.value.keyword.trim()) {
+    res = await DatBanQuanLyApi.searchByKeyword(filter.value.keyword.trim())
+  }
+  // Sau đó mới đến lọc theo thời gian
+  else if (filter.value.tuNgay && filter.value.denNgay) {
+    res = await DatBanQuanLyApi.findByThoiGian(filter.value.tuNgay, filter.value.denNgay)
+  }
+  // Cuối cùng là trạng thái hoặc tất cả
+  else {
+    res = await DatBanQuanLyApi.getAll(filter.value.trangThai || undefined)
+  }
+
   dsDatBan.value = res.data
+}
+
+const loadToday = async () => {
+  const today = new Date().toISOString().substring(0, 10)
+  filter.value.tuNgay = today
+  filter.value.denNgay = today
+  await loadData()
+}
+
+const handleSearch = async (data: any) => {
+  filter.value = {
+    ...data,
+  }
+
+  await loadData()
 }
 
 const openDetail = async (item: any) => {
@@ -192,7 +221,8 @@ onMounted(() => {
       v-model:trangThai="filter.trangThai"
       v-model:tuNgay="filter.tuNgay"
       v-model:denNgay="filter.denNgay"
-      @search="loadData"
+      @search="handleSearch"
+      @today="loadToday"
     />
 
     <!-- Danh sách -->

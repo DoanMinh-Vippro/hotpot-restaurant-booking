@@ -24,7 +24,7 @@ public class DTODatBanQuanLyRequest {
     private List<Integer> dsBan;
 
     private List<DTOChiTietDatBanComboRequest> dsCombo;
-
+    private List<DTOChiTietDatBanMonRequest> dsMon;
     private Integer idKhachHang;
 
     @Size(max = 100, message = "Tên khách hàng tối đa 100 ký tự")

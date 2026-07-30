@@ -24,6 +24,7 @@ public class DTODatBanRequest {
 
 
         private List<DTOChiTietDatBanComboRequest> dsCombo;
+        private List<DTOChiTietDatBanMonRequest> dsMon;
         private List<Integer> dsBan;
 
         @NotNull(message = "số người không được bỏ trống")

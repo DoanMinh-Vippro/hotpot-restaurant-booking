@@ -4,9 +4,11 @@ import com.example.hotpotrestaurantbooking_backend.dto.*;
 import com.example.hotpotrestaurantbooking_backend.entity.*;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -40,6 +42,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private final KhachHangRepository khachHangRepository;
     private final HoaDonRepository hoaDonRepository;
     private final TaiKhoanRepository taiKhoanRepository;
+    private final MonRepository monRepository;
+    private final ChiTietDatBanMonRepository chiTietDatBanMonRepository;
 
     private static final long THOI_GIAN_GIU_BAN = 3;
 
@@ -96,6 +100,24 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             );
         } else {
             response.setDsCombo(new ArrayList<>());
+        }
+
+        // Danh sách món
+        if (d.getChiTietDatBanMons() != null) {
+            response.setDsMon(
+                    d.getChiTietDatBanMons()
+                            .stream()
+                            .filter(ct -> ct.getMon() != null)
+                            .map(ct -> new DTOChiTietDatBanMonResponse(
+                                    ct.getIdChiTietDatBanMon(),
+                                    ct.getMon().getIdMon(),
+                                    ct.getMon().getTenMon(),
+                                    ct.getSoLuong()
+                            ))
+                            .toList()
+            );
+        } else {
+            response.setDsMon(new ArrayList<>());
         }
 
         // Thông tin đơn
@@ -293,11 +315,39 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         return taiKhoanRepository.findByTenDangNhap(username)
                 .orElse(null);
     }
+
+    private void autoHuyDonQuaHan() {
+
+        LocalDateTime now = LocalDateTime.now();
+
+        List<DatBan> dsQuaHan = datBanRepository.findByTrangThai(TrangThaiDatBan.CHO_XAC_NHAN);
+
+        for (DatBan db : dsQuaHan) {
+
+            if (db.getThoiGianDenDuKien() == null) {
+                continue;
+            }
+
+            if (db.getThoiGianDenDuKien().plusMinutes(15).isBefore(now)) {
+
+                db.setTrangThai(TrangThaiDatBan.DA_HUY);
+
+                if (db.getChiTietDatBanBans() != null) {
+                    for (ChiTietDatBanBan ct : db.getChiTietDatBanBans()) {
+                        capNhatTrangThaiBan(ct.getBan().getIdBan());
+                    }
+                }
+            }
+        }
+
+        datBanRepository.saveAll(dsQuaHan);
+    }
     //=============================================================================
 
     @Override
     public List<DTODatBanQuanLyResponse> getAll() {
-        return datBanRepository.findAll()
+        autoHuyDonQuaHan();
+        return datBanRepository.findAll(Sort.by(Sort.Direction.DESC, "idDatBan"))
                 .stream()
                 .filter(this::isVisibleReservation)
                 .map(this::mapToResponse)
@@ -319,6 +369,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     @Override
     public DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d, TaiKhoan taiKhoan) {
         DatBan db = mapper.map(d, DatBan.class);
+        db.setIdDatBan(null); // tránh model map láo map cả id đã tồn taại khi thêm
+
         // Khách hàng
         KhachHang khachHang;
         if (d.getIdKhachHang() != null) {
@@ -388,12 +440,34 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
             db.setChiTietDatBanCombos(dsCombo);
         }
+        // Danh sách món
+        if (d.getDsMon() != null && !d.getDsMon().isEmpty()) {
+
+            List<ChiTietDatBanMon> dsMon = new ArrayList<>();
+
+            for (DTOChiTietDatBanMonRequest item : d.getDsMon()) {
+
+                Mon mon = monRepository.findById(item.getIdMon())
+                        .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy món"));
+
+                ChiTietDatBanMon ct = new ChiTietDatBanMon();
+                ct.setDatBan(db);
+                ct.setMon(mon);
+                ct.setSoLuong(item.getSoLuong());
+
+                dsMon.add(ct);
+            }
+
+            db.setChiTietDatBanMons(dsMon);
+        }
 
         db.setNgayDat(LocalDate.now());
         db.setGioDat(Time.valueOf(LocalTime.now()));
 
         if (db.getSoTienCoc() == null) {
             db.setSoTienCoc(BigDecimal.ZERO);
+        }else{
+            db.setTrangThaiCoc(TrangThaiDatBanCoc.DA_COC);
         }
 
         validateThoiGianHoatDong(d.getThoiGianDenDuKien());
@@ -401,6 +475,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         validateDanhSachBan(d.getDsBan(), d.getThoiGianDenDuKien(), null);
         // Ghi nhận tài khoản tạo đơn
         db.setTaiKhoanTao(taiKhoan);
+
 
         db = datBanRepository.saveAndFlush(db);
 //        datBanRepository.save(db);
@@ -410,6 +485,23 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         }
         return mapToResponse(db);
     }
+
+    @Override
+    public List<DTODatBanQuanLyResponse> findByThoiGian(LocalDateTime tuNgay, LocalDateTime denNgay) {
+        return datBanRepository.findByThoiGianDenDuKienBetween(tuNgay, denNgay)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    public List<DTODatBanQuanLyResponse> searchByKeyword(String keyword) {
+        return datBanRepository.searchByKeyword(keyword)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     //=============================================================
     @Override
     public DTODatBanQuanLyResponse update(Integer id, DTODatBanQuanLyRequest d) {
@@ -470,6 +562,32 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                         });
 
                         db.setChiTietDatBanCombos(chiTietDatBanCombos);
+                    }
+                    if (d.getDsMon() != null) {
+
+                        if (db.getChiTietDatBanMons() == null) {
+                            db.setChiTietDatBanMons(new ArrayList<>());
+                        } else {
+                            db.getChiTietDatBanMons().clear();
+                        }
+
+                        List<ChiTietDatBanMon> chiTietDatBanMons = new ArrayList<>();
+
+                        d.getDsMon().forEach(item -> {
+
+                            Mon mon = monRepository.findById(item.getIdMon())
+                                    .orElseThrow(() ->
+                                            new CustomResourceNotFoundException("Không tìm thấy món"));
+
+                            ChiTietDatBanMon chiTiet = new ChiTietDatBanMon();
+                            chiTiet.setDatBan(db);
+                            chiTiet.setMon(mon);
+                            chiTiet.setSoLuong(item.getSoLuong());
+
+                            chiTietDatBanMons.add(chiTiet);
+                        });
+
+                        db.setChiTietDatBanMons(chiTietDatBanMons);
                     }
 
                     if (d.getIdKhachHang() != null) {
@@ -535,6 +653,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
     @Override
     public List<DTODatBanQuanLyResponse> findByTrangThai(TrangThaiDatBan trangThai) {
+        autoHuyDonQuaHan();
         return datBanRepository.findByTrangThai(trangThai)
                 .stream()
                 .filter(this::isVisibleReservation)
@@ -768,6 +887,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
     @Override
     public List<DTODatBanQuanLyResponse> getByTrangThai(TrangThaiDatBan trangThai) {
+        autoHuyDonQuaHan();
         return datBanRepository.findByTrangThai(trangThai)
                 .stream()
                 .map(this::mapToResponse)

@@ -10,4 +10,8 @@ import java.util.List;
 public interface BanRepository extends JpaRepository<Ban, Integer> {
     List<Ban> findByKhuVuc_IdKhuVuc(Integer idKhuVuc);
     List<Ban> findByTrangThai(TrangThaiBan trangThai);
+    List<Ban> findByTrangThaiIn(List<TrangThaiBan> trangThai);
+    List<Ban> findByTrangThaiInOrderByKhuVuc_IdKhuVucAscTenBanAsc(
+            List<TrangThaiBan> trangThai
+    );
 }

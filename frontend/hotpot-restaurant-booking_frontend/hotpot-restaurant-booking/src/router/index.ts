@@ -141,6 +141,11 @@ const router = createRouter({
       name: 'payment-failed',
       component: () => import('@/views/PaymentFailed.vue'),
     },
+    {
+      path: '/order',
+      name: 'order',
+      component: () => import('@/views/OrderView.vue'),
+    },
   ],
 })
 

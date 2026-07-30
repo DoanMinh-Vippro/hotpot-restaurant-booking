@@ -31,6 +31,8 @@ public class DatBanServiceImpl implements DatBanService {
     private final ComboRepository comboRepository;
     private final ChiTietDatBanComboRepository chiTietDatBanComboRepository;
     private final ChiTietDatBanBanRepository chiTietDatBanBanRepository;
+    private final MonRepository monRepository;
+    private final ChiTietDatBanMonRepository chiTietDatBanMonRepository;
     private final KhachHangRepository khachHangRepository;
     private final BanRepository banRepository;
     private int tongSucChuaTotNhat;
@@ -55,6 +57,27 @@ public class DatBanServiceImpl implements DatBanService {
         }
 
         res.setDsCombo(danhSachCombo);
+    }
+    private void setMonInfo(DatBan db, DTODatBanResponse res) {
+
+        List<DTOChiTietDatBanMonResponse> dsMon = List.of();
+
+        try {
+            dsMon = chiTietDatBanMonRepository
+                    .findByDatBan_IdDatBan(db.getIdDatBan())
+                    .stream()
+                    .map(ct -> new DTOChiTietDatBanMonResponse(
+                            ct.getIdChiTietDatBanMon(),
+                            ct.getMon().getIdMon(),
+                            ct.getMon().getTenMon(),
+                            ct.getSoLuong()
+                    ))
+                    .toList();
+        } catch (DataAccessException ex) {
+            dsMon = List.of();
+        }
+
+        res.setDsMon(dsMon);
     }
 
     private void validateDsBan(List<Integer> dsBan, LocalDateTime thoiGianDenDuKien) {
@@ -232,6 +255,7 @@ public class DatBanServiceImpl implements DatBanService {
         return datBanRepository.findAll().stream().map(db -> {
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
+            setMonInfo(db, res);
             return res;
         }).toList();
     }
@@ -241,6 +265,7 @@ public class DatBanServiceImpl implements DatBanService {
         return datBanRepository.findById(id).map(db -> {
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
+            setMonInfo(db, res);
             return res;
         }).orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay don dat ban"));
     }
@@ -305,9 +330,26 @@ public class DatBanServiceImpl implements DatBanService {
             d.setSoTienCoc(BigDecimal.ZERO);
             datBanRepository.save(d);
         }
+        if (datBan.getDsMon() != null && !datBan.getDsMon().isEmpty()) {
+
+            for (DTOChiTietDatBanMonRequest item : datBan.getDsMon()) {
+
+                Mon mon = monRepository.findById(item.getIdMon())
+                        .orElseThrow(() ->
+                                new CustomResourceNotFoundException("Món không tồn tại"));
+
+                ChiTietDatBanMon ct = new ChiTietDatBanMon();
+                ct.setDatBan(d);
+                ct.setMon(mon);
+                ct.setSoLuong(item.getSoLuong());
+
+                chiTietDatBanMonRepository.save(ct);
+            }
+        }
 
         DTODatBanResponse res = mapper.map(d, DTODatBanResponse.class);
         setComboInfo(d, res);
+        setMonInfo(d, res);
 
         return res;
     }
@@ -339,6 +381,24 @@ public class DatBanServiceImpl implements DatBanService {
             // Xóa toàn bộ combo cũ của đơn đặt bàn
             chiTietDatBanComboRepository.deleteByDatBan_IdDatBan(db.getIdDatBan());
 
+            chiTietDatBanMonRepository.deleteByDatBan_IdDatBan(db.getIdDatBan());
+            if (datBan.getDsMon() != null && !datBan.getDsMon().isEmpty()) {
+
+                for (DTOChiTietDatBanMonRequest item : datBan.getDsMon()) {
+
+                    Mon mon = monRepository.findById(item.getIdMon())
+                            .orElseThrow(() ->
+                                    new CustomResourceNotFoundException("Món không tồn tại"));
+
+                    ChiTietDatBanMon ct = new ChiTietDatBanMon();
+                    ct.setDatBan(db);
+                    ct.setMon(mon);
+                    ct.setSoLuong(item.getSoLuong());
+
+                    chiTietDatBanMonRepository.save(ct);
+                }
+            }
+
             // Thêm lại danh sách combo mới
             if (datBan.getDsCombo() != null && !datBan.getDsCombo().isEmpty()) {
 
@@ -360,6 +420,7 @@ public class DatBanServiceImpl implements DatBanService {
 
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
+            setMonInfo(db, res);
             return res;
 
         }).orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
@@ -367,6 +428,10 @@ public class DatBanServiceImpl implements DatBanService {
 
     @Override
     public void delete(Integer id) {
+        chiTietDatBanMonRepository.deleteByDatBan_IdDatBan(id);
+        chiTietDatBanComboRepository.deleteByDatBan_IdDatBan(id);
+        chiTietDatBanBanRepository.deleteByDatBan_IdDatBan(id);
+
         datBanRepository.deleteById(id);
     }
 
@@ -375,6 +440,7 @@ public class DatBanServiceImpl implements DatBanService {
         return datBanRepository.findByKhachHang_IdKhachHang(id).stream().map(db -> {
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
+            setMonInfo(db, res);
             return res;
         }).toList();
     }
@@ -433,6 +499,22 @@ public class DatBanServiceImpl implements DatBanService {
                 ct.setSoLuong(item.getSoLuong());
 
                 chiTietDatBanComboRepository.save(ct);
+            }
+        }
+        if (datBan.getDsMon() != null && !datBan.getDsMon().isEmpty()) {
+
+            for (DTOChiTietDatBanMonRequest item : datBan.getDsMon()) {
+
+                Mon mon = monRepository.findById(item.getIdMon())
+                        .orElseThrow(() ->
+                                new CustomResourceNotFoundException("Món không tồn tại"));
+
+                ChiTietDatBanMon ct = new ChiTietDatBanMon();
+                ct.setDatBan(d);
+                ct.setMon(mon);
+                ct.setSoLuong(item.getSoLuong());
+
+                chiTietDatBanMonRepository.save(ct);
             }
         }
 

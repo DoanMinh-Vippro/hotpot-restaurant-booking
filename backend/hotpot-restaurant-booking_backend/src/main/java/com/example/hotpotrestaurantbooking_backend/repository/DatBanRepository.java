@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -51,4 +52,26 @@ and d.trangThai in :trangThai
     List<DatBan> findByIdBanAndTrangThai(Integer idBan, List<TrangThaiDatBan> trangThai);
 
 
+    @Query("""
+SELECT d
+FROM DatBan d
+WHERE (:tuNgay IS NULL OR d.thoiGianDenDuKien >= :tuNgay)
+AND (:denNgay IS NULL OR d.thoiGianDenDuKien <= :denNgay)
+ORDER BY d.thoiGianDenDuKien DESC
+""")
+    List<DatBan> findByThoiGianDenDuKienBetween(
+            LocalDateTime tuNgay,
+            LocalDateTime denNgay
+    );
+
+    @Query("""
+SELECT d
+FROM DatBan d
+LEFT JOIN d.khachHang k
+WHERE
+      LOWER(k.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%'))
+   OR d.sdtKhachHang LIKE CONCAT('%', :keyword, '%')
+ORDER BY d.thoiGianDenDuKien DESC
+""")
+    List<DatBan> searchByKeyword(String keyword);
 }

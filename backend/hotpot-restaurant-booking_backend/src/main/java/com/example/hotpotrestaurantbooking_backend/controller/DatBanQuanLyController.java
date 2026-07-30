@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -79,5 +81,16 @@ public class DatBanQuanLyController {
     public ResponseEntity<DTODatBanQuanLyResponse> doiBan(@PathVariable Integer id,
                                                           @RequestBody @Valid DTODoiBanRequest request) {
         return ResponseEntity.ok(datBanQuanLyService.doiBan(id, request));
+    }
+
+    @GetMapping("/thoi-gian")
+    public ResponseEntity<List<DTODatBanQuanLyResponse>> findByThoiGian(@RequestParam LocalDate tuNgay,
+                                                                        @RequestParam LocalDate denNgay) {
+        return ResponseEntity.ok(datBanQuanLyService.findByThoiGian(tuNgay.atStartOfDay(), denNgay.atTime(LocalTime.MAX)));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<DTODatBanQuanLyResponse>> searchByKeyword(@RequestParam String keyword) {
+        return ResponseEntity.ok(datBanQuanLyService.searchByKeyword(keyword));
     }
 }

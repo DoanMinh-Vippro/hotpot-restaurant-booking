@@ -40,7 +40,7 @@ public class QuanLyPaymentServiceImpl implements QuanLyPaymentService {
     private final TaiKhoanRepository taiKhoanRepository;
 
 
-    private static final String PREFIX = "QLDATBAN_";
+    private static final String PREFIX = "QLDATBAN";
 
     private final Map<String, PendingQuanLyBooking> pendingBookings = new ConcurrentHashMap<>();
 
@@ -60,6 +60,10 @@ public class QuanLyPaymentServiceImpl implements QuanLyPaymentService {
                 new PendingQuanLyBooking(idTaiKhoan, dto);
 
         pendingBookings.put(content, pendingBooking);
+        System.out.println("========== QL CREATE PAYMENT ==========");
+        System.out.println("Content = " + content);
+        System.out.println("Map size = " + pendingBookings.size());
+        System.out.println("Keys = " + pendingBookings.keySet());
 
         String qrUrl =
                 "https://qr.sepay.vn/img?"
@@ -85,11 +89,22 @@ public class QuanLyPaymentServiceImpl implements QuanLyPaymentService {
             return;
         }
 
-        PendingQuanLyBooking pendingBooking = pendingBookings.get(payload.getContent());
+        System.out.println("========== QL WEBHOOK ==========");
+        System.out.println("Content webhook = [" + payload.getContent() + "]");
+        System.out.println("Map size = " + pendingBookings.size());
+        System.out.println("Keys = " + pendingBookings.keySet());
 
-        if (pendingBooking == null) {
+        String key = pendingBookings.keySet()
+                .stream()
+                .filter(payload.getContent()::contains)
+                .findFirst()
+                .orElse(null);
+
+        if (key == null) {
             throw new RuntimeException("Không tìm thấy dữ liệu đặt bàn.");
         }
+
+        PendingQuanLyBooking pendingBooking = pendingBookings.get(key);
 
         TaiKhoan taiKhoan = taiKhoanRepository.findById(pendingBooking.getIdTaiKhoan())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
@@ -106,12 +121,12 @@ public class QuanLyPaymentServiceImpl implements QuanLyPaymentService {
 
         transaction.setReferenceCode(payload.getReferenceCode());
         transaction.setAmount(payload.getTransferAmount());
-        transaction.setContent(payload.getContent());
+        transaction.setContent(key);
         transaction.setIdDatBan(datBan.getIdDatBan());
         transaction.setCreatedAt(LocalDateTime.now());
 
         transactionRepository.save(transaction);
-        pendingBookings.remove(payload.getContent());
+        pendingBookings.remove(key);
         System.out.println("========== QL SEPAY SUCCESS ==========");
         System.out.println("DatBan ID = " + datBan.getIdDatBan());
     }

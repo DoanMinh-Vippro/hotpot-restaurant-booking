@@ -40,7 +40,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final DatBanService datBanService;
     private final VNPayConfig vnPayConfig;
 
-    private static final String PREFIX = "DATBAN_";
+    private static final String PREFIX = "DATBAN";
 
     private final Map<String, PendingBooking> pendingBookings = new ConcurrentHashMap<>();
     private final KhachHangRepository khachHangRepository;
@@ -72,6 +72,10 @@ public class PaymentServiceImpl implements PaymentService {
         );
 
         pendingBookings.put(content, pendingBooking);
+        System.out.println("========== CREATE PAYMENT ==========");
+        System.out.println("Content = [" + content + "]");
+        System.out.println("Map size = " + pendingBookings.size());
+        System.out.println("Keys = " + pendingBookings.keySet());
 
         String qrUrl =
                 "https://qr.sepay.vn/img?"
@@ -90,7 +94,6 @@ public class PaymentServiceImpl implements PaymentService {
 
     // =========================
     // 2. WEBHOOK SEPAY (CHƯA SỬA)
-    // =========================
     @Transactional
     @Override
     public void handleWebhook(DTOSepayWebhook payload) {
@@ -104,7 +107,24 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         // Lấy dữ liệu đặt bàn đang chờ thanh toán
-        PendingBooking pendingBooking = pendingBookings.get(payload.getContent());
+        System.out.println("========== WEBHOOK ==========");
+        System.out.println("Content webhook = [" + payload.getContent() + "]");
+        System.out.println("Map size = " + pendingBookings.size());
+        System.out.println("Keys = " + pendingBookings.keySet());
+
+        String key = pendingBookings.keySet()
+                .stream()
+                .filter(payload.getContent()::contains)
+                .findFirst()
+                .orElse(null);
+
+        if (key == null) {
+            throw new RuntimeException("Không tìm thấy dữ liệu đặt bàn đang chờ thanh toán.");
+        }
+
+        PendingBooking pendingBooking = pendingBookings.get(key);
+
+
 
         if (pendingBooking == null) {
             throw new RuntimeException("Không tìm thấy dữ liệu đặt bàn đang chờ thanh toán.");
@@ -128,14 +148,16 @@ public class PaymentServiceImpl implements PaymentService {
         Transaction transaction = new Transaction();
         transaction.setReferenceCode(payload.getReferenceCode());
         transaction.setAmount(payload.getTransferAmount());
-        transaction.setContent(payload.getContent());
+//        transaction.setContent(payload.getContent());
+        transaction.setContent(key);
         transaction.setIdDatBan(datBan.getIdDatBan());
         transaction.setCreatedAt(LocalDateTime.now());
 
         transactionRepository.save(transaction);
 
         // Xóa dữ liệu tạm
-        pendingBookings.remove(payload.getContent());
+//        pendingBookings.remove(payload.getContent());
+        pendingBookings.remove(key);
 
         System.out.println("========== SEPAY SUCCESS ==========");
         System.out.println("DatBan ID = " + datBan.getIdDatBan());

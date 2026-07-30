@@ -18,7 +18,7 @@ public class SePayController {
 
         System.out.println("WEBHOOK HIT: " + payload.getContent());
 
-        if (payload.getContent().startsWith("QLDATBAN_")) {
+        if (payload.getContent().startsWith("QLDATBAN")) {
             quanLyPaymentService.handleWebhook(payload);
         } else {
             paymentService.handleWebhook(payload);

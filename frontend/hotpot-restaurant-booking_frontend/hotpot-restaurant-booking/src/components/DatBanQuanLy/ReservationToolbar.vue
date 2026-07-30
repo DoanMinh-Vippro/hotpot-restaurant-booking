@@ -8,7 +8,7 @@ const props = defineProps<{
   denNgay: string
 }>()
 
-const emit = defineEmits(['search', 'reset', 'update:trangThai'])
+const emit = defineEmits(['search', 'reset', 'update:trangThai', 'today'])
 
 const filter = reactive({
   keyword: props.keyword,
@@ -41,19 +41,17 @@ const search = () => {
 
 const changeTrangThai = () => {
   emit('update:trangThai', filter.trangThai)
-  emit('search')
 }
 
 const reset = () => {
   filter.keyword = ''
-
   filter.trangThai = ''
-
   filter.tuNgay = ''
-
   filter.denNgay = ''
-
   emit('reset')
+}
+const today = () => {
+  emit('today')
 }
 </script>
 
@@ -75,15 +73,10 @@ const reset = () => {
 
         <select v-model="filter.trangThai" @change="changeTrangThai">
           <option value="">Tất cả</option>
-
           <option value="CHO_XAC_NHAN">Chờ xác nhận</option>
-
           <option value="DA_XAC_NHAN">Đã xác nhận</option>
-
-          <option value="DA_NHAN_BAN">Đã nhận bàn</option>
-
-          <option value="HOAN_THANH">Hoàn thành</option>
-
+          <!-- <option value="DA_NHAN_BAN">Đã nhận bàn</option> -->
+          <!-- <option value="HOAN_THANH">Hoàn thành</option> -->
           <option value="DA_HUY">Đã hủy</option>
         </select>
       </div>
@@ -102,6 +95,8 @@ const reset = () => {
     </div>
 
     <div class="toolbar-footer">
+      <button class="btn today" @click="today">Đơn hôm nay</button>
+
       <button class="btn reset" @click="reset">Đặt lại</button>
 
       <button class="btn search" @click="search">Tìm kiếm</button>
@@ -138,6 +133,15 @@ const reset = () => {
   grid-template-columns: repeat(2, 1fr);
 
   gap: 20px;
+}
+
+.today {
+  background: #4caf50;
+  color: white;
+}
+
+.today:hover {
+  background: #43a047;
 }
 
 .field {

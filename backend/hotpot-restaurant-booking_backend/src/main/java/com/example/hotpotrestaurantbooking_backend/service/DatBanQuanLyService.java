@@ -21,4 +21,6 @@ public interface DatBanQuanLyService {
     DTODatBanQuanLyResponse doiBan(Integer id, DTODoiBanRequest request);
     List<DTODatBanQuanLyResponse> getByTrangThai(TrangThaiDatBan trangThai);
     DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d, TaiKhoan taiKhoan);
+    List<DTODatBanQuanLyResponse> findByThoiGian(LocalDateTime tuNgay, LocalDateTime denNgay);
+    List<DTODatBanQuanLyResponse> searchByKeyword(String keyword);
 }

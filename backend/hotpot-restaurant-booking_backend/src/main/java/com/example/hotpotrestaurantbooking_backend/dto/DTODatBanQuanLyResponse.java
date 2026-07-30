@@ -28,6 +28,7 @@ public class DTODatBanQuanLyResponse {
     private Time gioDat;
     private String sdtKhachHang;
     private List<DTOChiTietDatBanComboResponse> dsCombo;
+    private List<DTOChiTietDatBanMonResponse> dsMon;
     private Integer soNguoi;
     private TrangThaiDatBan trangThai;
     private String ghiChu;

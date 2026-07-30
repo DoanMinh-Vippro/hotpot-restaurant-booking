@@ -1,109 +1,97 @@
 <script setup lang="ts">
 import { onMounted, ref, onBeforeUnmount } from 'vue'
-import ComBoApi from '@/api/ComBoApi'
-import type { Combo } from '@/api/ComBoApi'
+import MonApi from '@/api/MonApi'
+import type { Mon } from '@/api/MonApi'
 
-interface ComboDatBan {
-  idCombo: number
-  tenCombo: string
-  giaCombo: number
+interface MonDatBan {
+  idMon: number
+  tenMon: string
+  donGiaHienTai: number
   soLuong: number
 }
 
-// v-model có thể là mảng combo hoặc id combo đơn giản tùy nơi dùng
 const props = defineProps<{
-  modelValue: ComboDatBan[] | number | null
+  modelValue: MonDatBan[]
 }>()
 
-const emit = defineEmits(['update:modelValue', 'selectedCombo'])
+const emit = defineEmits(['update:modelValue', 'selectedMon'])
 
-const danhSachCombo = ref<Combo[]>([])
+const danhSachMon = ref<Mon[]>([])
 const loading = ref(false)
 const gridRef = ref<HTMLElement | null>(null)
 let wheelHandler: ((e: WheelEvent) => void) | null = null
 
-// load danh sách combo
-const loadComboGoiY = async () => {
+const loadMon = async () => {
   loading.value = true
 
   try {
-    const res = await ComBoApi.hienThiComBo()
-    // Chỉ lấy combo đang kinh doanh (trangThai === 1)
-    danhSachCombo.value = (res.data || []).filter((cb: Combo) => cb.trangThai === 1)
+    const res = await MonApi.hienThiMon()
+
+    danhSachMon.value = (res.data || []).filter(
+      (mon: Mon) => mon.trangThai === 1 && mon.trangThaiBan === 1,
+    )
   } catch (error) {
-    console.error('Không thể tải danh sách combo:', error)
+    console.error('Không thể tải danh sách món:', error)
   } finally {
     loading.value = false
   }
 }
 
-// chọn hoặc bỏ chọn combo
-const getSelectedItems = () => {
-  if (Array.isArray(props.modelValue)) return props.modelValue
-  return []
-}
+const getSelectedItems = () => props.modelValue || []
 
-const selectCombo = (combo: Combo) => {
-  if (combo.trangThaiBan === 0) {
-    alert(`Combo "${combo.tenCombo}" hiện đã hết hàng, vui lòng chọn combo khác!`)
+const selectMon = (mon: Mon) => {
+  if (mon.trangThaiBan === 0) {
+    alert(`Món "${mon.tenMon}" hiện đã hết hàng!`)
     return
   }
 
-  const dsCombo = [...getSelectedItems()]
+  const dsMon = [...getSelectedItems()]
 
-  const index = dsCombo.findIndex((item) => item.idCombo === combo.idCombo)
+  const index = dsMon.findIndex((item) => item.idMon === mon.idMon)
 
-  // Nếu đã có thì tăng số lượng
   if (index >= 0) {
-    const currentItem = dsCombo[index]
-    if (currentItem) {
-      currentItem.soLuong++
-    }
+    const current = dsMon[index]
+    if (current) current.soLuong++
   } else {
-    // Nếu chưa có thì thêm mới
-    dsCombo.push({
-      idCombo: combo.idCombo,
-      tenCombo: combo.tenCombo,
-      giaCombo: Number(combo.giaCombo),
+    dsMon.push({
+      idMon: mon.idMon,
+      tenMon: mon.tenMon,
+      donGiaHienTai: Number(mon.donGiaHienTai),
       soLuong: 1,
     })
   }
 
-  emit('update:modelValue', dsCombo)
-
-  emit('selectedCombo', dsCombo)
+  emit('update:modelValue', dsMon)
+  emit('selectedMon', dsMon)
 }
 
-// giảm số lượng combo
-const giamSoLuong = (idCombo: number) => {
-  const dsCombo = [...getSelectedItems()]
+const giamSoLuong = (idMon: number) => {
+  const dsMon = [...getSelectedItems()]
 
-  const index = dsCombo.findIndex((item) => item.idCombo === idCombo)
+  const index = dsMon.findIndex((item) => item.idMon === idMon)
 
   if (index >= 0) {
-    const currentItem = dsCombo[index]
-    if (currentItem) {
-      if (currentItem.soLuong > 1) {
-        currentItem.soLuong--
+    const current = dsMon[index]
+
+    if (current) {
+      if (current.soLuong > 1) {
+        current.soLuong--
       } else {
-        dsCombo.splice(index, 1)
+        dsMon.splice(index, 1)
       }
     }
   }
 
-  emit('update:modelValue', dsCombo)
-
-  emit('selectedCombo', dsCombo)
+  emit('update:modelValue', dsMon)
+  emit('selectedMon', dsMon)
 }
 
-// xóa toàn bộ combo
 const xoaTatCa = () => {
   emit('update:modelValue', [])
-
-  emit('selectedCombo', [])
+  emit('selectedMon', [])
 }
-onMounted(async () => {
-  await loadComboGoiY()
+onMounted(() => {
+  loadMon()
 
   if (!gridRef.value) return
 
@@ -127,7 +115,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="combo-select-box">
     <div class="combo-header">
-      <span> 🍱 Gói Combo Ưu Đãi </span>
+      <span>🍲 Món đặt trước</span>
 
       <button v-if="getSelectedItems().length > 0" @click="xoaTatCa">Bỏ chọn</button>
     </div>
@@ -136,31 +124,31 @@ onBeforeUnmount(() => {
 
     <div v-else ref="gridRef" class="luoi-combo-mini">
       <div
-        v-for="cb in danhSachCombo"
-        :key="cb.idCombo"
+        v-for="mon in danhSachMon"
+        :key="mon.idMon"
         class="card-combo-mini"
-        @click="selectCombo(cb)"
+        @click="selectMon(mon)"
       >
         <div class="khung-anh">
-          <img v-if="cb.hinhAnh" :src="cb.hinhAnh" />
+          <img v-if="mon.hinhAnh" :src="mon.hinhAnh" />
 
           <div v-else class="no-img">No Image</div>
         </div>
 
         <div class="chi-tiet">
           <h4 class="ten">
-            {{ cb.tenCombo }}
+            {{ mon.tenMon }}
           </h4>
 
-          <span class="gia"> {{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ </span>
+          <span class="gia"> {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ </span>
 
-          <div v-if="getSelectedItems().some((item) => item.idCombo === cb.idCombo)">
+          <div v-if="getSelectedItems().some((item) => item.idMon === mon.idMon)">
             <span>
               SL:
-              {{ getSelectedItems().find((item) => item.idCombo === cb.idCombo)?.soLuong }}
+              {{ getSelectedItems().find((item) => item.idMon === mon.idMon)?.soLuong }}
             </span>
 
-            <button @click.stop="giamSoLuong(cb.idCombo)">-</button>
+            <button @click.stop="giamSoLuong(mon.idMon)">-</button>
           </div>
         </div>
       </div>
@@ -177,7 +165,6 @@ onBeforeUnmount(() => {
   margin-top: 5px;
 }
 
-/* Header */
 .combo-header {
   display: flex;
   justify-content: space-between;
@@ -195,7 +182,6 @@ onBeforeUnmount(() => {
   letter-spacing: 0.5px;
 }
 
-/* nút bỏ chọn */
 .combo-header button {
   background: transparent;
   color: #ff6b6b;
@@ -212,7 +198,7 @@ onBeforeUnmount(() => {
   color: white;
 }
 
-/* ================= DANH SÁCH COMBO ================= */
+/* ===== Danh sách món ===== */
 
 .luoi-combo-mini {
   display: flex;
@@ -224,6 +210,8 @@ onBeforeUnmount(() => {
   padding-bottom: 6px;
   scroll-behavior: smooth;
 }
+
+/* Scroll ngang */
 
 .luoi-combo-mini::-webkit-scrollbar {
   height: 6px;
@@ -238,7 +226,7 @@ onBeforeUnmount(() => {
   background: transparent;
 }
 
-/* ================= CARD ================= */
+/* Card */
 
 .card-combo-mini {
   flex: 0 0 145px;
@@ -248,8 +236,8 @@ onBeforeUnmount(() => {
   background: #1a1a1a;
   border: 2px solid transparent;
   border-radius: 8px;
-
   overflow: hidden;
+
   display: flex;
   flex-direction: column;
 
@@ -262,13 +250,6 @@ onBeforeUnmount(() => {
   transform: translateY(-2px);
 }
 
-/* Khi được chọn */
-.card-combo-mini.active {
-  border-color: #ff8c00;
-  background: #292019;
-}
-
-/* Ảnh */
 .khung-anh {
   width: 100%;
   height: 80px;
@@ -282,7 +263,9 @@ onBeforeUnmount(() => {
 }
 
 .no-img {
+  width: 100%;
   height: 100%;
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -291,7 +274,6 @@ onBeforeUnmount(() => {
   color: #555;
 }
 
-/* Nội dung */
 .chi-tiet {
   padding: 8px;
   display: flex;
@@ -301,7 +283,7 @@ onBeforeUnmount(() => {
 
 .ten {
   margin: 0;
-  color: white;
+  color: #fff;
   font-size: 12px;
   font-weight: 600;
 
@@ -316,7 +298,6 @@ onBeforeUnmount(() => {
   font-weight: bold;
 }
 
-/* Khu vực số lượng */
 .chi-tiet > div {
   display: flex;
   justify-content: space-between;
@@ -331,13 +312,12 @@ onBeforeUnmount(() => {
   font-size: 16px;
 }
 
-/* Nút giảm số lượng */
 .chi-tiet button {
   width: 25px;
   height: 25px;
 
-  border-radius: 50%;
   border: none;
+  border-radius: 50%;
 
   background: #c5a059;
   color: #111;
@@ -346,8 +326,8 @@ onBeforeUnmount(() => {
   cursor: pointer;
 
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
 
   transition: 0.2s;
 }
@@ -357,9 +337,7 @@ onBeforeUnmount(() => {
   transform: scale(1.1);
 }
 
-/* Loading */
-.loading-text,
-.trong-text {
+.loading-text {
   text-align: center;
   font-size: 12px;
   color: #888;

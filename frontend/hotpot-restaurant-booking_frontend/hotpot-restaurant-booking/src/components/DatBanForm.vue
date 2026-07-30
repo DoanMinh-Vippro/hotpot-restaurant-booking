@@ -2,7 +2,7 @@
 import DatBanApi from '@/api/DatBanApi'
 import { ref, watch } from 'vue'
 import ComBoInDatBan from './ComBoInDatBan.vue'
-import router from '@/router/index.ts'
+import MonInDatBan from './MonInDatBan.vue'
 import { paymentApi } from '@/api/PaymentApi.ts'
 import PaymentDialog from './PaymentDialog.vue'
 import ConfirmBanDialog from './ConfirmBanDialog.vue'
@@ -116,6 +116,7 @@ const formData = ref({
 
   // Danh sách combo khách hàng đã chọn
   dsCombo: [] as any[],
+  dsMon: [] as any[],
 })
 const flatpickrConfig = {
   enableTime: true,
@@ -178,6 +179,7 @@ watch(
       formData.value = {
         ...newData,
         dsCombo: newData.dsCombo || [],
+        dsMon: newData.dsMon || [],
         phuongThucThanhToan: newData.phuongThucThanhToan as PaymentMethod,
       }
     }
@@ -188,23 +190,37 @@ watch(
 // bien dung de bao cho table load lai bang
 const emit = defineEmits(['refresh'])
 
-//hàm xử lý tiền cọc khi chọn combo
+//hàm xử lý tiền cọc khi chọn combo và món
 const TI_LE_COC = 0.3
 
-const chonCombo = (dsCombo: any[]) => {
-  formData.value.dsCombo = dsCombo
+const tinhTienCoc = () => {
+  const tongTienCombo = formData.value.dsCombo.reduce(
+    (tong, item) => tong + item.giaCombo * item.soLuong,
+    0,
+  )
 
-  if (dsCombo.length === 0) {
+  const tongTienMon = formData.value.dsMon.reduce(
+    (tong, item) => tong + item.donGiaHienTai * item.soLuong,
+    0,
+  )
+
+  const tongTien = tongTienCombo + tongTienMon
+
+  if (tongTien === 0) {
     formData.value.soTienCoc = 0
     formData.value.phuongThucThanhToan = 'CHUA_THANH_TOAN'
     return
   }
 
-  const tongTienCombo = dsCombo.reduce((tong, item) => {
-    return tong + item.giaCombo * item.soLuong
-  }, 0)
-
-  formData.value.soTienCoc = Math.round(tongTienCombo * TI_LE_COC)
+  formData.value.soTienCoc = Math.round(tongTien * TI_LE_COC)
+}
+const chonCombo = (dsCombo: any[]) => {
+  formData.value.dsCombo = dsCombo
+  tinhTienCoc()
+}
+const chonMon = (dsMon: any[]) => {
+  formData.value.dsMon = dsMon
+  tinhTienCoc()
 }
 
 //==========================================
@@ -245,7 +261,7 @@ const createBooking = async () => {
 
   try {
     // Có combo => phải thanh toán tiền cọc
-    if (formData.value.dsCombo.length > 0) {
+    if (formData.value.dsCombo.length > 0 || formData.value.dsMon.length > 0) {
       if (formData.value.phuongThucThanhToan === 'CHUYEN_KHOAN') {
         const paymentRes = await paymentApi.createPayment({
           ...formData.value,
@@ -363,6 +379,7 @@ const resetForm = () => {
     soTienCoc: 0,
     phuongThucThanhToan: 'CHUA_THANH_TOAN',
     dsCombo: [],
+    dsMon: [],
   }
 
   errors.value = {
@@ -390,10 +407,6 @@ const closePaymentDialog = () => {
     paymentTimer = null
   }
 }
-
-const quayLai = () => {
-  router.push('/')
-}
 </script>
 
 <template>
@@ -413,7 +426,9 @@ const quayLai = () => {
 
       <div class="form-group">
         <label>SĐT Khách Hàng</label>
+
         <input v-model="formData.sdtKhachHang" type="text" placeholder="Nhập SĐT..." />
+
         <p v-if="errors.sdtKhachHang" class="error-text">
           {{ errors.sdtKhachHang }}
         </p>
@@ -422,18 +437,23 @@ const quayLai = () => {
       <div class="row">
         <div class="form-group">
           <label>Số Người</label>
+
           <input v-model.number="formData.soNguoi" type="number" />
+
           <p v-if="errors.soNguoi" class="error-text">
             {{ errors.soNguoi }}
           </p>
         </div>
+
         <div class="form-group">
           <label>Thời Gian Đến Dự Kiến</label>
+
           <VueFlatPickr
             v-model="formData.thoiGianDenDuKien"
             :config="flatpickrConfig"
             placeholder="Chọn ngày giờ đến"
           />
+
           <p v-if="errors.thoiGianDenDuKien" class="error-text">
             {{ errors.thoiGianDenDuKien }}
           </p>
@@ -443,20 +463,25 @@ const quayLai = () => {
       <div class="row">
         <div class="form-group">
           <label>Phương Thức Thanh Toán</label>
+
           <select v-model="formData.phuongThucThanhToan" :disabled="formData.soTienCoc === 0">
             <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+
             <option value="VNPAY">VNPAY</option>
           </select>
         </div>
+
         <div class="form-group">
           <label>Tiền Cọc</label>
+
           <input :value="`${formatCurrency(formData.soTienCoc)} VNĐ`" type="text" readonly />
         </div>
       </div>
 
       <div class="form-group">
         <label>Ghi Chú</label>
-        <textarea v-model="formData.ghiChu" rows="2"></textarea>
+
+        <textarea v-model="formData.ghiChu" rows="2" />
       </div>
 
       <div class="button-group">
@@ -465,13 +490,13 @@ const quayLai = () => {
     </div>
 
     <div class="combo-section">
-      <ComBoInDatBan v-model="formData.dsCombo" @selectedCombo="chonCombo" />
-
-      <div class="go-home">
-        <button class="btn-back" @click.prevent="quayLai()">Trở về trang chủ</button>
+      <div class="menu-wrapper">
+        <ComBoInDatBan v-model="formData.dsCombo" @selectedCombo="chonCombo" />
+        <MonInDatBan v-model="formData.dsMon" @selectedMon="chonMon" />
       </div>
     </div>
   </div>
+
   <PaymentDialog
     :show="showPayment"
     :qr-url="paymentData.qrUrl"
@@ -479,12 +504,14 @@ const quayLai = () => {
     :content="paymentData.content"
     @close="closePaymentDialog"
   />
+
   <ConfirmBanDialog
     :show="showConfirmBan"
     :result="checkBanResult"
     @confirm="confirmBan"
     @cancel="cancelBan"
   />
+
   <PopupDatBanThanhCong :show="datBanThanhCong" @close="datBanThanhCong = false" />
 </template>
 
@@ -661,30 +688,6 @@ input[type='datetime-local']::-webkit-calendar-picker-indicator {
   }
 }
 
-.go-home {
-  margin-top: 25px;
-}
-
-.btn-back {
-  width: 100%;
-  height: 52px;
-  border-radius: 12px;
-  background: #202020;
-  color: #f0d782;
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  transition: 0.25s;
-}
-
-.btn-back:hover {
-  background: #111;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-}
-
-.btn-back:active {
-  transform: translateY(0);
-}
-
 input::placeholder,
 textarea::placeholder {
   color: #777;
@@ -715,5 +718,57 @@ textarea::placeholder {
   color: #f2d57c;
   font-weight: 700;
   font-size: 17px;
+}
+.menu-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.tong-coc-box {
+  background: #1a1a1a;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.tong-coc-box .dong {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tong-coc-box span {
+  color: #cfcfcf;
+  font-size: 14px;
+}
+
+.tong-coc-box strong {
+  color: #d4af37;
+  font-size: 18px;
+  font-weight: 700;
+}
+.mon-select-box {
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 0;
+}
+
+.mon-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-left: 3px solid #c5a059;
+  padding-left: 8px;
+}
+
+.mon-header span {
+  color: #c5a059;
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 </style>

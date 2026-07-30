@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import { quanLyPaymentApi } from '@/api/QuanLyPaymentApi'
 import ComBoInDatBan from '@/components/ComBoInDatBan.vue'
+import MonInDatBan from '@/components/MonInDatBan.vue'
 import PaymentCashDialog from '@/components/PaymentCashDialog.vue'
 import QuanLyPaymentDialog from '@/components/DatBanQuanLy/QuanLyPaymentDialog.vue'
 import { searchKhachHang } from '@/api/khachhang'
@@ -36,9 +37,9 @@ const dsKhachHang = ref<any[]>([])
 const showDanhSachKhach = ref(false)
 const khachHang = ref<any>(null)
 
-// COMBO
+// COMBO và Món
 const selectedCombo = ref<any[]>([])
-
+const selectedMon = ref<any[]>([])
 // FORM
 const form = ref({
   idKhachHang: null as number | null,
@@ -48,6 +49,7 @@ const form = ref({
   thoiGianDenDuKien: '',
   dsBan: [] as number[],
   dsCombo: [] as any[],
+  dsMon: [] as any[],
   soTienCoc: 0,
   trangThaiCoc: 'CHUA_COC',
   phuongThucThanhToan: 'CHUA_THANH_TOAN' as PaymentMethod,
@@ -55,10 +57,15 @@ const form = ref({
   trangThai: 'CHO_XAC_NHAN',
 })
 
-// CHỌN COMBO
+// CHỌN COMBO và MÓN
 const handleComboSelection = (comboList: any[]) => {
   selectedCombo.value = comboList ?? []
   form.value.dsCombo = comboList ?? []
+  tinhTienCoc()
+}
+const handleMonSelection = (monList: any[]) => {
+  selectedMon.value = monList ?? []
+  form.value.dsMon = monList ?? []
   tinhTienCoc()
 }
 
@@ -193,19 +200,22 @@ const toggleBan = (ban: any) => {
 }
 // TÍNH TIỀN CỌC
 const tinhTienCoc = () => {
-  if (form.value.dsCombo.length === 0) {
+  const tongTienCombo = form.value.dsCombo.reduce(
+    (tong, combo) => tong + Number(combo.giaCombo) * Number(combo.soLuong ?? 1),
+    0,
+  )
+  const tongTienMon = form.value.dsMon.reduce(
+    (tong, mon) => tong + Number(mon.donGiaHienTai) * Number(mon.soLuong ?? 1),
+    0,
+  )
+  const tongTien = tongTienCombo + tongTienMon
+  if (tongTien <= 0) {
     form.value.soTienCoc = 0
     form.value.trangThaiCoc = 'CHUA_COC'
     form.value.phuongThucThanhToan = 'CHUA_THANH_TOAN'
     return
   }
-
-  const tongTienCombo = form.value.dsCombo.reduce(
-    (tong, combo) => tong + Number(combo.giaCombo) * Number(combo.soLuong ?? 1),
-    0,
-  )
-
-  form.value.soTienCoc = Math.round(tongTienCombo * 0.3)
+  form.value.soTienCoc = Math.round(tongTien * 0.3)
   form.value.trangThaiCoc = 'CHUA_COC'
 }
 
@@ -270,6 +280,7 @@ const taoPayload = () => ({
   thoiGianDenDuKien: form.value.thoiGianDenDuKien,
   dsBan: form.value.dsBan,
   dsCombo: form.value.dsCombo,
+  dsMon: form.value.dsMon,
   soTienCoc: form.value.soTienCoc,
   trangThaiCoc: form.value.trangThaiCoc,
   phuongThucThanhToan: form.value.phuongThucThanhToan,
@@ -358,6 +369,7 @@ const resetForm = () => {
   showDanhSachKhach.value = false
   khachHang.value = null
   selectedCombo.value = []
+  selectedMon.value = []
 
   form.value = {
     idKhachHang: null,
@@ -367,6 +379,7 @@ const resetForm = () => {
     thoiGianDenDuKien: '',
     dsBan: [],
     dsCombo: [],
+    dsMon: [],
     soTienCoc: 0,
     trangThaiCoc: 'CHUA_COC',
     phuongThucThanhToan: 'CHUA_THANH_TOAN',
@@ -441,7 +454,7 @@ watch(
             <h3>Khách hàng</h3>
 
             <div class="field">
-              <label>Số ddienj thoại</label>
+              <label>Số điện thoại</label>
               <div class="search-box">
                 <input v-model="form.sdtKhachHang" placeholder="Nhập hoặc tìm số điện thoại..." />
                 <small v-if="errors.sdtKhachHang" class="error-text">
@@ -579,6 +592,18 @@ watch(
             <ComBoInDatBan v-model="selectedCombo" @selectedCombo="handleComboSelection" />
           </div>
 
+          <!-- ================= MÓN ================= -->
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Món ăn</h3>
+
+              <span>{{ selectedMon.length }} đã chọn</span>
+            </div>
+
+            <MonInDatBan v-model="selectedMon" @selectedMon="handleMonSelection" />
+          </div>
+
           <!-- ================= THANH TOÁN CỌC ================= -->
 
           <div class="card">
@@ -608,8 +633,8 @@ watch(
               </select>
             </div>
 
-            <div v-if="form.soTienCoc === 0" class="info-text">
-              Không chọn combo thì không cần đặt cọc.
+            <div v-if="form.dsCombo.length === 0 && form.dsMon.length === 0" class="info-text">
+              Không chọn món hoặc combo thì không cần cọc.
             </div>
           </div>
 

@@ -24,6 +24,7 @@ public class DTODatBanResponse {
     private Time gioDat;
     private String sdtKhachHang;
     private List<DTOChiTietDatBanComboResponse> dsCombo;
+    private List<DTOChiTietDatBanMonResponse> dsMon;
     private TrangThaiDatBan trangThai;
     private int soNguoi;
     private String ghiChu;

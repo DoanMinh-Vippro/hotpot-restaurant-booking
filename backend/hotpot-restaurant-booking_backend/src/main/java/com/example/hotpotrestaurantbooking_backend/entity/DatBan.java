@@ -51,6 +51,10 @@ public class DatBan {
 
     @OneToMany(mappedBy = "datBan", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
+    private List<ChiTietDatBanMon> chiTietDatBanMons;
+
+    @OneToMany(mappedBy = "datBan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<ChiTietDatBanBan> chiTietDatBanBans;
 
     private LocalDate ngayDat;

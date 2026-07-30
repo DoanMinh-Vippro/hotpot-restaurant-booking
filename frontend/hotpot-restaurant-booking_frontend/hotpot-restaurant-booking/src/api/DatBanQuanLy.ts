@@ -65,6 +65,24 @@ const DatBanQuanLyApi = {
       },
     })
   },
+
+  // Lọc theo thời gian
+  findByThoiGian(tuNgay: string, denNgay: string) {
+    return ApiClient.get('/api/dat-ban-quan-ly/thoi-gian', {
+      params: {
+        tuNgay,
+        denNgay,
+      },
+    })
+  },
+  // 🔍 Tìm theo tên khách hoặc SĐT
+  searchByKeyword(keyword: string) {
+    return ApiClient.get('/api/dat-ban-quan-ly/search', {
+      params: {
+        keyword,
+      },
+    })
+  },
 }
 
 export default DatBanQuanLyApi
