@@ -31,13 +31,14 @@ const handleSubmit = async () => {
             maKhachHang: res.data.maKhachHang,
           }
         : undefined,
+      username.value,
     )
 
     const roleName = String(res.data?.role || '').toUpperCase()
-    const isAdminRole = authStore.isAdmin || ['ADMIN', 'STAFF', 'ROLE_ADMIN', 'ROLE_STAFF'].includes(roleName)
+    const isAdminRole = authStore.isAdmin || ['ADMIN', 'STAFF', 'ROLE_ADMIN', 'ROLE_STAFF', 'CASHIER', 'ROLE_CASHIER'].includes(roleName)
 
     alert('Đăng nhập thành công!')
-    router.replace(isAdminRole ? '/dat-ban-quan-ly' : '/')
+    router.replace({ path: isAdminRole ? '/dat-ban-quan-ly' : '/' })
   } catch (error: any) {
     console.error(error)
     const errMsg = error?.response?.data?.message || 'Đăng nhập thất bại, vui lòng kiểm tra lại tài khoản!'

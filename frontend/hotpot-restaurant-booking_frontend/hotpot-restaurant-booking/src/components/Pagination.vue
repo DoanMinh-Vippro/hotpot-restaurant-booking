@@ -12,14 +12,14 @@ const chuyenTrang = (trangMucTieu: number) => {
 </script>
 
 <template>
-  <div class="thanh-phan-trang" >
+  <div class="thanh-phan-trang">
     <button :disabled="pageNo === 0" @click="chuyenTrang(0)" class="nut-trang">«</button>
     <button :disabled="pageNo === 0" @click="chuyenTrang(pageNo - 1)" class="nut-trang">◀</button>
     
-    <span class="nhan-trang">Trang <b>{{ pageNo + 1 }}</b> / {{ totalPages }}</span>
+    <span class="nhan-trang">Trang <b>{{ pageNo + 1 }}</b> / {{ totalPages || 1 }}</span>
 
-    <button :disabled="pageNo >= totalPages - 1" @click="chuyenTrang(pageNo + 1)" class="nut-trang">▶</button>
-    <button :disabled="pageNo >= totalPages - 1" @click="chuyenTrang(totalPages - 1)" class="nut-trang">»</button>
+    <button :disabled="pageNo >= totalPages - 1 || totalPages === 0" @click="chuyenTrang(pageNo + 1)" class="nut-trang">▶</button>
+    <button :disabled="pageNo >= totalPages - 1 || totalPages === 0" @click="chuyenTrang(totalPages - 1)" class="nut-trang">»</button>
   </div>
 </template>
 
@@ -31,35 +31,45 @@ const chuyenTrang = (trangMucTieu: number) => {
   gap: 10px;
   margin-top: 14px;
   padding: 12px 20px;
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 16px;
   user-select: none;
+  box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
+
 .nut-trang {
   padding: 8px 14px;
-  background: rgba(248, 212, 106, 0.08);
-  color: #f8d46a;
-  border: 1px solid rgba(248, 212, 106, 0.15);
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
+
 .nut-trang:disabled {
-  background: rgba(255, 255, 255, 0.01);
-  border-color: rgba(255, 255, 255, 0.03);
-  color: #555;
+  background: #fffdf8;
+  border-color: #efe0c1;
+  color: #d1bba2;
   cursor: not-allowed;
 }
+
 .nut-trang:not(:disabled):hover {
-  background: #f8d46a;
-  color: #1a1410;
-  box-shadow: 0 0 12px rgba(248, 212, 106, 0.2);
+  background: #d8a85c;
+  color: #3d2814;
+  border-color: #d8a85c;
+  box-shadow: 0 4px 12px rgba(216, 168, 92, 0.25);
 }
+
 .nhan-trang {
-  color: #c7c7c7;
-  font-size: 13px;
+  color: #8f6b46;
+  font-size: 14px;
 }
-.nhan-trang b { color: #f8d46a; }
+
+.nhan-trang b { 
+  color: #8b5e34; 
+  font-weight: 700;
+}
 </style>

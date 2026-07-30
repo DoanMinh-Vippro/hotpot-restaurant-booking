@@ -13,6 +13,13 @@
         @reset="xuLyLamMoi"
         @go-to-category="() => $router.push('/danhmuc')" 
       />
+
+      <!-- 📄 BỔ SUNG COMPONENT PHÂN TRANG GIONG VIEW COMBO -->
+      <Pagination 
+        :page-no="trangHienTai"
+        :total-pages="tongSoTrang"
+        @change-page="chuyenTrang"
+      />
     </div>
 
     <div class="cot-bieu-mau">
@@ -35,6 +42,7 @@ import DanhMucApi, { type DanhMuc } from '../api/DanhMucApi'
 import MonTable from '../components/MonTable.vue'
 import MonForm from '../components/MonForm.vue'
 import MonPreview from '../components/MonPreview.vue'
+import Pagination from '../components/Pagination.vue' // Import Pagination component
 
 // Quản lý trạng thái và danh sách dữ liệu
 const loading = ref(false)
@@ -46,11 +54,14 @@ const selectedId = ref<number | null>(null)
 const monDaChon = ref<Mon | undefined>(undefined)
 const formRef = ref<any>(null)
 
-// Bộ lọc tìm kiếm
+// Bộ lọc tìm kiếm & Phân trang đồng bộ với Combo
 const filterData = ref({
   tenMon: '',
   loaiDanhMuc: ''
 })
+const trangHienTai = ref(0)
+const kichThuocTrang = ref(5)
+const tongSoTrang = ref(0)
 
 // Các hàm fetch dữ liệu từ API
 const taiDanhSachDanhMuc = async () => {
@@ -70,21 +81,36 @@ const taiDanhSachMon = async () => {
       undefined,
       undefined,
       filterData.value.loaiDanhMuc,
-      0,
-      100 
+      trangHienTai.value,
+      kichThuocTrang.value 
     )
-    danhSachMon.value = res.data.content || res.data
-    
 
-    if (monDaChon.value) {
-      const itemMoi = danhSachMon.value.find(m => m.idMon === monDaChon.value?.idMon)
-      if (itemMoi) monDaChon.value = itemMoi
+    const responseData = res.data as any
+
+    if (responseData && responseData.content) {
+      danhSachMon.value = responseData.content
+      tongSoTrang.value = responseData.totalPages || 0
+
+      // Cập nhật lại dữ liệu cho khu vực Preview nếu item đang chọn bị thay đổi sau khi fetch lại
+      if (monDaChon.value) {
+        const itemMoi = danhSachMon.value.find(m => m.idMon === monDaChon.value?.idMon)
+        if (itemMoi) monDaChon.value = itemMoi
+      }
+    } else {
+      danhSachMon.value = Array.isArray(responseData) ? responseData : []
+      tongSoTrang.value = 1
     }
   } catch (error) {
     console.error('Lỗi tải danh sách món ăn:', error)
   } finally {
     loading.value = false
   }
+}
+
+// Chuyển trang khi bấm nút phân trang
+const chuyenTrang = async (trangMucTieu: number) => {
+  trangHienTai.value = trangMucTieu
+  await taiDanhSachMon()
 }
 
 // Điều hướng trạng thái Form
@@ -104,12 +130,14 @@ const chuyenSangThemMoi = () => {
 const xuLyTimKiem = (payload: { tenMon: string; loaiDanhMuc: string }) => {
   filterData.value.tenMon = payload.tenMon
   filterData.value.loaiDanhMuc = payload.loaiDanhMuc
+  trangHienTai.value = 0 // Reset về trang 1
   taiDanhSachMon()
 }
 
 const xuLyLamMoi = () => {
   filterData.value.tenMon = ''
   filterData.value.loaiDanhMuc = ''
+  trangHienTai.value = 0 // Reset về trang 1
   taiDanhSachMon()
 }
 
@@ -148,7 +176,6 @@ const xuLySubmitForm = async (payload: any) => {
     await taiDanhSachMon()
 
   } catch (error: any) {
-    // Bắt lỗi Spring Boot Validation / Business Logic thông qua ApiClient
     const beErrorMsg = error.response?.data?.message || error.response?.data || `Có lỗi khi ${actionName}!`;
     alert(beErrorMsg);
   } finally {
@@ -156,7 +183,7 @@ const xuLySubmitForm = async (payload: any) => {
   }
 }
 
-// Ngưng bán món ăn (Xóa mềm) giống Combo
+// Ngưng bán món ăn (Xóa mềm)
 const xuLyXoaMon = async (idMon: number) => {
   if (confirm('Bạn có chắc chắn muốn ngưng bán món ăn này không?')) {
     try {
@@ -179,39 +206,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
-
 .trang-quan-ly-mon {
-  display: flex;
-}
-.container {
   min-height: 100vh;
   padding: 20px 0 32px;
   background: transparent;
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;
-  box-sizing: border-box;
+  align-items: start;
 }
 
-.cot-danh-sach {
-  flex: 2;
+.cot-danh-sach, .cot-bieu-mau {
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 
-.cot-bieu-mau {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .trang-quan-ly-mon {
-    flex-direction: column;
-  }
-  .cot-danh-sach, .cot-bieu-mau {
-    flex: 1;
+    grid-template-columns: 1fr;
   }
 }
 </style>

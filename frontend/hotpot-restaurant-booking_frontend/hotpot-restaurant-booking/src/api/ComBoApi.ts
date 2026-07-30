@@ -4,8 +4,11 @@ import ApiClient from './ApiClient'
 export interface Combo {
   idCombo: number
   tenCombo: string
-  giaCombo: number
   hinhAnh: string
+  giaCombo: number
+  giaSauGiam: number
+  soTienDuocGiam: number
+  tenChuongTrinhGiamGia: string
   trangThai: number
   trangThaiBan: number
 }
@@ -13,28 +16,29 @@ export interface Combo {
 export interface ComboRequest {
   idCombo?: number
   tenCombo: string
-  giaCombo: number
   hinhAnh: string
+  giaCombo: number
   trangThai: number
   trangThaiBan: number
-  fileThat?: File | null 
 }
 
 class ComboApi {
-
   hienThiComBo() {
     return ApiClient.get<Combo[]>('/hienThiComBo')
   }
 
   detailComBo(tenCombo: string) {
     return ApiClient.get<Combo>('/detailComBo', {
-      params: { tenCombo }
+      params: { tenCombo },
     })
   }
 
   phanTrangComBo(pageNo = 0, pageSize = 5) {
     return ApiClient.get<any>('/phanTrangComBo', {
-      params: { pageNo, pageSize }
+      params: {
+        pageNo,
+        pageSize,
+      },
     })
   }
 
@@ -44,8 +48,8 @@ class ComboApi {
       params: {
         tenCombo: params.tenCombo?.trim() || undefined,
         pageNo: params.pageNo ?? 0,
-        pageSize: params.pageSize ?? 5
-      }
+        pageSize: params.pageSize ?? 5,
+      },
     })
   }
 
@@ -55,13 +59,13 @@ class ComboApi {
 
   updateComBo(idCombo: number, data: ComboRequest) {
     return ApiClient.put('/updateComBo', data, {
-      params: { idCombo }
+      params: { idCombo },
     })
   }
 
   deleteComBo(idCombo: number) {
     return ApiClient.delete('/deleteComBo', {
-      params: { idCombo }
+      params: { idCombo },
     })
   }
 
@@ -80,8 +84,7 @@ class ComboApi {
     }
 
     return ApiClient.post('/upload', formData, { headers })
+  }
 }
-}
-
 
 export default new ComboApi()

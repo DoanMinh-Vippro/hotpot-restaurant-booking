@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -21,125 +23,104 @@ public class ChiTietGiamGiaMonValidator {
     // ====== ADD ======
     public void validateAdd(ChiTietGiamGiaMonRequest request) {
 
-        Integer idMon = request.getIdMon();
         Integer idDotGiamGia = request.getIdDotGiamGia();
-        var mucGiam = request.getMucGiam();
+        BigDecimal mucGiam = request.getMucGiam();
 
-        // ====== check tồn tại FK ======
-        if (!monRepository.existsById(idMon)) {
-            throw new RuntimeException("Món không tồn tại");
-        }
-
-        if (!dotGiamGiaRepository.existsById(idDotGiamGia)) {
+        // 1. Check Đợt giảm giá FK
+        if (idDotGiamGia == null || !dotGiamGiaRepository.existsById(idDotGiamGia)) {
             throw new RuntimeException("Đợt giảm giá không tồn tại");
         }
 
-        // ====== check duplicate (1 món không được trùng trong 1 đợt giảm giá) ======
-        if (chiTietRepository.existsByMon_IdMonAndDotGiamGia_IdDotGiamGia(
-                idMon,
-                idDotGiamGia
-        )) {
-            throw new RuntimeException("Món này đã được áp dụng trong đợt giảm giá này");
+        // 2. Gom danh sách ID món cần validate (hỗ trợ cả mảng lẫn 1 món lẻ)
+        List<Integer> listMonId = new ArrayList<>();
+        if (request.getDanhSachMonId() != null && !request.getDanhSachMonId().isEmpty()) {
+            listMonId.addAll(request.getDanhSachMonId());
+        } else if (request.getIdMon() != null) {
+            listMonId.add(request.getIdMon());
+        } else {
+            throw new RuntimeException("Vui lòng chọn ít nhất một món ăn");
         }
 
-        // ====== check mức giảm ======
-        if (mucGiam == null) {
-            throw new RuntimeException("Mức giảm không được để trống");
-        }
-
-        if (mucGiam.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Mức giảm phải lớn hơn 0");
-        }
-        // ====== check loại giảm ======
-
-        if (ValidateUtil.isBlank(request.getLoaiGiam())) {
-            throw new RuntimeException("Loại giảm không được để trống");
-        }
+        // 3. Validate Mức giảm & Loại giảm cơ bản
+        validateCommonInfo(mucGiam, request.getLoaiGiam());
 
         String loaiGiam = request.getLoaiGiam().trim().toUpperCase();
 
-        if (!loaiGiam.equals("TIEN")
-                && !loaiGiam.equals("PHANTRAM")) {
+        // 4. Lặp qua từng món để validate logic kinh doanh & check trùng toàn hệ thống
+        for (Integer idMon : listMonId) {
+            Mon mon = monRepository.findById(idMon)
+                    .orElseThrow(() -> new RuntimeException("Món ăn có ID: " + idMon + " không tồn tại"));
 
-            throw new RuntimeException(
-                    "Loại giảm chỉ được là TIEN hoặc PHANTRAM");
+            // 🔥 CHECK TRÙNG: 1 Món chỉ được dùng duy nhất 1 chương trình giảm giá trên toàn hệ thống
+            if (chiTietRepository.existsByMon_IdMon(idMon)) {
+                throw new RuntimeException("Món [" + mon.getTenMon() + "] đã được áp dụng trong một chương trình giảm giá khác rồi!");
+            }
+
+            // Check tiền giảm không lớn hơn giá món hiện tại
+            if (loaiGiam.equals("TIEN") && mucGiam.compareTo(mon.getDonGiaHienTai()) > 0) {
+                throw new RuntimeException("Số tiền giảm không được lớn hơn giá trị món [" + mon.getTenMon() + "]");
+            }
         }
-
-// ====== check giá món ======
-
-        Mon mon = monRepository.findById(idMon)
-                .orElseThrow(() ->
-                        new RuntimeException("Không tìm thấy món"));
-
-        if (loaiGiam.equals("PHANTRAM")
-                && mucGiam.compareTo(BigDecimal.valueOf(100)) > 0) {
-
-            throw new RuntimeException(
-                    "Phần trăm giảm không được vượt quá 100%");
-        }
-
-        if (loaiGiam.equals("TIEN")
-                && mucGiam.compareTo(mon.getDonGiaHienTai()) > 0) {
-
-            throw new RuntimeException(
-                    "Số tiền giảm không được lớn hơn giá món");
-        }
-
     }
 
     // ====== UPDATE ======
     public void validateUpdate(Integer idChiTiet, ChiTietGiamGiaMonRequest request) {
 
-        Integer idMon = request.getIdMon();
         Integer idDotGiamGia = request.getIdDotGiamGia();
-        var mucGiam = request.getMucGiam();
+        BigDecimal mucGiam = request.getMucGiam();
 
-        ChiTietGiamGiaMon exist =
-                chiTietRepository.findByMon_IdMonAndDotGiamGia_IdDotGiamGia(
-                        idMon,
-                        idDotGiamGia
-                );
-
-        if (exist != null && !exist.getIdChiTietGiamGiaMon().equals(idChiTiet)) {
-            throw new RuntimeException("Món này đã được áp dụng trong đợt giảm giá này");
+        if (idDotGiamGia == null || !dotGiamGiaRepository.existsById(idDotGiamGia)) {
+            throw new RuntimeException("Đợt giảm giá không tồn tại");
         }
 
+        // Với Update, lấy ra món cần sửa
+        Integer idMon = request.getIdMon();
+        if (idMon == null && request.getDanhSachMonId() != null && !request.getDanhSachMonId().isEmpty()) {
+            idMon = request.getDanhSachMonId().get(0);
+        }
+
+        if (idMon == null) {
+            throw new RuntimeException("Món ăn không được để trống");
+        }
+
+        Mon mon = monRepository.findById(idMon)
+                .orElseThrow(() -> new RuntimeException("Món ăn không tồn tại"));
+
+        // 🔥 CHECK TRÙNG KHI UPDATE: Bỏ qua ID bản ghi hiện tại đang sửa
+        boolean isExist = chiTietRepository.existsByMon_IdMonAndIdChiTietGiamGiaMonNot(idMon, idChiTiet);
+        if (isExist) {
+            throw new RuntimeException("Món [" + mon.getTenMon() + "] đã đang nằm trong một mã giảm giá khác!");
+        }
+
+        validateCommonInfo(mucGiam, request.getLoaiGiam());
+
+        String loaiGiam = request.getLoaiGiam().trim().toUpperCase();
+        if (loaiGiam.equals("TIEN") && mucGiam.compareTo(mon.getDonGiaHienTai()) > 0) {
+            throw new RuntimeException("Số tiền giảm không được lớn hơn giá trị món [" + mon.getTenMon() + "]");
+        }
+    }
+
+    // ====== HÀM CHUNG VALIDATE MỨC GIẢM VÀ LOẠI GIẢM ======
+    private void validateCommonInfo(BigDecimal mucGiam, String rawLoaiGiam) {
         if (mucGiam == null) {
             throw new RuntimeException("Mức giảm không được để trống");
         }
 
-        if (mucGiam.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+        if (mucGiam.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Mức giảm phải lớn hơn 0");
         }
-        if (ValidateUtil.isBlank(request.getLoaiGiam())) {
+
+        if (ValidateUtil.isBlank(rawLoaiGiam)) {
             throw new RuntimeException("Loại giảm không được để trống");
         }
 
-        String loaiGiam = request.getLoaiGiam().trim().toUpperCase();
-
-        if (!loaiGiam.equals("TIEN")
-                && !loaiGiam.equals("PHANTRAM")) {
-
-            throw new RuntimeException(
-                    "Loại giảm chỉ được là TIEN hoặc PHANTRAM");
+        String loaiGiam = rawLoaiGiam.trim().toUpperCase();
+        if (!loaiGiam.equals("TIEN") && !loaiGiam.equals("PHANTRAM")) {
+            throw new RuntimeException("Loại giảm chỉ được là TIEN hoặc PHANTRAM");
         }
 
-        Mon mon = monRepository.findById(idMon)
-                .orElseThrow(() ->
-                        new RuntimeException("Không tìm thấy món"));
-
-        if (loaiGiam.equals("PHANTRAM")
-                && mucGiam.compareTo(BigDecimal.valueOf(100)) > 0) {
-
-            throw new RuntimeException(
-                    "Phần trăm giảm không được vượt quá 100%");
-        }
-
-        if (loaiGiam.equals("TIEN")
-                && mucGiam.compareTo(mon.getDonGiaHienTai()) > 0) {
-
-            throw new RuntimeException(
-                    "Số tiền giảm không được lớn hơn giá món");
+        if (loaiGiam.equals("PHANTRAM") && mucGiam.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new RuntimeException("Phần trăm giảm không được vượt quá 100%");
         }
     }
 }

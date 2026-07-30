@@ -8,7 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const adminRouteNames = ['thucDon', 'hoa-don', 'ban-hang', 'giam-gia', 'ban', 'dat-ban-quan-ly', 'tai-khoan', 'thong-ke', 'khu-vuc', 'coc']
+const adminRouteNames = ['thucDon', 'hoa-don', 'ban-hang', 'giam-gia', 'ban', 'dat-ban-quan-ly', 'tai-khoan', 'thong-ke', 'khu-vuc', 'coc', 'shift-management']
 
 const menuItems = [
   { label: 'Quản lý thực đơn', routeName: 'thucDon', icon: '🍜' },
@@ -17,6 +17,7 @@ const menuItems = [
   { label: 'Giảm giá', routeName: 'giam-gia', icon: '🏷️' },
   { label: 'Bàn', routeName: 'ban', icon: '🪑' },
   { label: 'Đặt bàn quản lý', routeName: 'dat-ban-quan-ly', icon: '📋' },
+  { label: 'Quản lý ca', routeName: 'shift-management', icon: '🕒' },
   { label: 'Quản lý tài khoản', routeName: 'tai-khoan', icon: '👤' },
   { label: 'Thống kê', routeName: 'thong-ke', icon: '📈' },
   { label: 'Khu vực', routeName: 'khu-vuc', icon: '📍' },

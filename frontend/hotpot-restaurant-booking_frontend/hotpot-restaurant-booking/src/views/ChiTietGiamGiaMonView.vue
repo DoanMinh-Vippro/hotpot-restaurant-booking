@@ -42,6 +42,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ChiTietGiamGiaMonApi from '../api/ChiTietGiamGiaMonApi'
+import ChiTietGiamGiaComboApi from '../api/ChiTietGiamGiaCombo.ts'
 import DotGiamGiaApi from '../api/DotGiamGiaApi'
 
 import Form from '../components/ChiTietGiamGiaMonForm.vue'
@@ -68,27 +69,109 @@ const trangHienTai = ref(0)
 const kichThuocTrang = ref(5) 
 const tongSoTrang = ref(0)
 
+// Helper bóc tách tên / ID an toàn từ nhiều cấu trúc API Backend
+const layIdKhoiItem = (item: any, propId: string, nestedProp: string): number | null => {
+  const val = item[propId] ?? item[nestedProp]?.[propId]
+  return val ? Number(val) : null
+}
+
+const layTenKhoiItem = (item: any, propTen: string, nestedProp: string): string => {
+  return item[propTen] ?? item[nestedProp]?.[propTen] ?? ''
+}
+
+// ---------------------------------------------------------
+// 🔥 FETCH CẢ MÓN VÀ COMBO RỒI GOM NHÓM DỮ LIỆU THÀNH 1 DÒNG
+// ---------------------------------------------------------
 const fetchDuLieu = async () => {
   try {
-    const res = await ChiTietGiamGiaMonApi.search(
-      bieuThucTenChuongTrinh.value,
-      bieuThucTenMon.value,
-      undefined, 
-      undefined,
-      bieuThucLoaiGiam.value, 
-      trangHienTai.value,
-      kichThuocTrang.value
-    )
+    // 1. Lấy toàn bộ danh sách Món và Combo (Không truyền phân trang xuống Backend để tránh bị xé lẻ)
+    const [resMon, resCombo] = await Promise.allSettled([
+      ChiTietGiamGiaMonApi.search(
+        bieuThucTenChuongTrinh.value,
+        bieuThucTenMon.value,
+        undefined, 
+        undefined,
+        bieuThucLoaiGiam.value, 
+        0,
+        1000 // Lấy danh sách đủ lớn để Client tự gộp & phân trang
+      ),
+      ChiTietGiamGiaComboApi.timKiemCTGGC(
+        bieuThucTenChuongTrinh.value,
+        bieuThucTenMon.value,
+        undefined,
+        undefined,
+        bieuThucLoaiGiam.value,
+        0,
+        1000
+      )
+    ])
     
-    const responseData = res.data as any
-    
-    if (responseData && responseData.content) {
-      danhSach.value = responseData.content
-      tongSoTrang.value = responseData.totalPages || 0
-    } else {
-      danhSach.value = Array.isArray(responseData) ? responseData : []
-      tongSoTrang.value = 1
+    let rawListMon: any[] = []
+    let rawListCombo: any[] = []
+
+    // 2. Bóc tách dữ liệu Món
+    if (resMon.status === 'fulfilled') {
+      const responseData = resMon.value.data as any
+      rawListMon = responseData?.content || (Array.isArray(responseData) ? responseData : [])
     }
+
+    // 3. Bóc tách dữ liệu Combo
+    if (resCombo.status === 'fulfilled') {
+      const responseDataCombo = resCombo.value.data as any
+      rawListCombo = responseDataCombo?.content || (Array.isArray(responseDataCombo) ? responseDataCombo : [])
+    }
+
+    // 4. Gom nhóm & Ghép toàn bộ Món + Combo vào 1 Mảng chung
+    const mapGomNhom = new Map<string, ChiTietGiamGiaMon>()
+
+    rawListMon.forEach((item: any) => {
+      const idChiTiet = item.idChiTietGiamGiaMon ?? item.id
+      const monId = layIdKhoiItem(item, 'idMon', 'mon')
+      const monTen = layTenKhoiItem(item, 'tenMon', 'mon')
+      const keyGomNhom = idChiTiet ? `MON_${idChiTiet}` : `MON_TMP_${Math.random()}`
+
+      mapGomNhom.set(keyGomNhom, {
+        ...item,
+        idChiTietGiamGiaMon: idChiTiet,
+        tenChuongTrinh: item.tenChuongTrinh || item.dotGiamGia?.tenChuongTrinh || 'Chương trình',
+        danhSachMon: (monId || monTen) ? [{ idMon: monId || 0, tenMon: monTen || 'Món ăn' }] : (item.danhSachMon || []),
+        danhSachCombo: [],
+        danhSachDanhMuc: []
+      })
+    })
+
+    rawListCombo.forEach((item: any) => {
+      const idChiTiet = item.idChiTietGiamGiaCombo ?? item.idChiTietGiamGiaMon ?? item.id
+      const comboId = layIdKhoiItem(item, 'idCombo', 'combo')
+      const comboTen = layTenKhoiItem(item, 'tenCombo', 'combo')
+      const keyGomNhom = idChiTiet ? `COMBO_${idChiTiet}` : `COMBO_TMP_${Math.random()}`
+
+      mapGomNhom.set(keyGomNhom, {
+        ...item,
+        idChiTietGiamGiaMon: idChiTiet,
+        tenChuongTrinh: item.tenChuongTrinh || item.dotGiamGia?.tenChuongTrinh || 'Chương trình',
+        danhSachMon: [],
+        danhSachCombo: (comboId || comboTen) ? [{ idCombo: comboId || 0, tenCombo: comboTen || 'Combo' }] : (item.danhSachCombo || []),
+        danhSachDanhMuc: []
+      })
+    })
+
+    const tatCaDuLieu = Array.from(mapGomNhom.values())
+
+    // 💥 5. BƯỚC TÍNH PHÂN TRANG CHUẨN ĐÉT 5 ITEM / TRANG
+    tongSoTrang.value = Math.ceil(tatCaDuLieu.length / kichThuocTrang.value) || 1
+
+    // Kiểm tra nếu trang hiện tại vượt quá tổng số trang thì lùi về trang cuối
+    if (trangHienTai.value >= tongSoTrang.value) {
+      trangHienTai.value = Math.max(0, tongSoTrang.value - 1)
+    }
+
+    const viTriBatDau = trangHienTai.value * kichThuocTrang.value
+    const viTriKetThuc = viTriBatDau + kichThuocTrang.value
+
+    // Cắt đúng 5 phần tử hiển thị lên Bảng
+    danhSach.value = tatCaDuLieu.slice(viTriBatDau, viTriKetThuc)
+
   } catch (error) {
     console.error("Lỗi khi tải danh sách chi tiết giảm giá phân trang:", error)
   }
@@ -157,20 +240,31 @@ const sua = (item: ChiTietGiamGiaMon) => {
   formRef.value?.fillForm(item)
 }
 
-const luu = async (payload: ChiTietGiamGiaMonRequest) => {
+const luu = async (payload: any) => {
   const isUpdate = selectedId.value !== null
   const tenHanhDong = isUpdate ? 'cập nhật' : 'thêm mới'
 
   if (!confirm(`Bạn có chắc chắn muốn ${tenHanhDong} mục giảm giá này?`)) return
 
   try {
-    if (isUpdate && selectedId.value) {
-      await ChiTietGiamGiaMonApi.update(selectedId.value, payload)
+    const isCombo = payload.idCombo || (payload.danhSachComboId && payload.danhSachComboId.length > 0)
+    // 🔥 Phân nhánh gọi API tùy thuộc vào đối tượng người dùng đang thao tác
+    if (isCombo) {
+      if (isUpdate && selectedId.value) {
+        await ChiTietGiamGiaComboApi.updateCTGGC(selectedId.value, payload)
+      } else {
+        await ChiTietGiamGiaComboApi.addCTGGC(payload)
+      }
     } else {
-      await ChiTietGiamGiaMonApi.add(payload)
+      // Mặc định là Món ăn
+      if (isUpdate && selectedId.value) {
+        await ChiTietGiamGiaMonApi.update(selectedId.value, payload)
+      } else {
+        await ChiTietGiamGiaMonApi.add(payload)
+      }
     }
 
-    alert(`${isUpdate ? 'Cập nhật' : 'Thêm mới'} chi tiết giảm giá món thành công!`)
+    alert(`${isUpdate ? 'Cập nhật' : 'Thêm mới'} chi tiết giảm giá thành công!`)
     themMoi()
     await fetchDuLieu()
   } catch (error: any) {
@@ -180,8 +274,15 @@ const luu = async (payload: ChiTietGiamGiaMonRequest) => {
 }
 
 const xoa = async (id: number) => {
-  if (selectedId.value === id) themMoi()
-  await fetchDuLieu()
+  try {
+    await ChiTietGiamGiaMonApi.delete(id)
+    alert("Xoá/ngừng áp dụng chi tiết giảm giá thành công!")
+    if (selectedId.value === id) themMoi()
+    await fetchDuLieu()
+  } catch (error: any) {
+    const lỗiTừBackend = error.response?.data?.message || error.response?.data || "Không thể xoá chi tiết giảm giá này!";
+    alert(lỗiTừBackend)
+  }
 }
 </script>
 

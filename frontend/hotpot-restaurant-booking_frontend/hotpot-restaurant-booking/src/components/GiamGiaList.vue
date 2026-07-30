@@ -17,13 +17,13 @@ const emit = defineEmits<{
   'update:timKiemQuery': [value: string]
 }>()
 
-const formatCurrency = (value: number | string | null) => {
-  const numeric = Number(value ?? 0)
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(numeric)
+const formatGiaTriGiam = (discount: GiamGia) => {
+  const numeric = Number(discount.giaTriGiam ?? 0)
+  if (discount.loaiGiam === 'PHẦN TRĂM') {
+    return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`
+  }
+
+  return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 0 })} đ`
 }
 
 const handleSelect = (discount: GiamGia) => {
@@ -89,7 +89,7 @@ const updateSearch = (e: Event) => {
           >
             <td>{{ discount.maGiamGia }}</td>
             <td>{{ discount.loaiGiam }}</td>
-            <td>{{ formatCurrency(discount.giaTriGiam) }}</td>
+            <td>{{ formatGiaTriGiam(discount) }}</td>
             <td>{{ discount.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}</td>
             <td class="hanh-dong">
               <button type="button" class="nut-van-ban" @click="handleSelect(discount)">Sửa</button>

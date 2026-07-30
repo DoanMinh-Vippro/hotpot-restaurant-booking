@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import ChucVuApi from '@/api/ChucVuApi';
-import { ref, watch } from 'vue';
-const selected= ref(null)
-const formData= ref({
+import { computed, ref, watch } from 'vue';
+const selected = ref(null)
+const formData = ref({
     id: null,
-    maChucVu:"",
-    tenChucVu:"",
+    maChucVu: "",
+    tenChucVu: "",
 })
 const emit = defineEmits(['refresh']) 
 const add= async ()=>{
@@ -44,30 +44,45 @@ const update = async () => {
     console.log("SERVER:", error?.response?.data)
   }
 }
-const props = defineProps(['formData']);
+const props = defineProps<{
+  formData: any
+  mode?: 'create' | 'edit'
+}>()
+
+const mode = computed(() => props.mode || (props.formData?.id ? 'edit' : 'create'))
+
 watch(() => props.formData, (newTableData) => {
-  if (newTableData) {
+  if (!newTableData) {
     formData.value = {
-      ...newTableData
+      id: null,
+      maChucVu: '',
+      tenChucVu: '',
     };
+    return;
   }
+
+  formData.value = {
+    ...newTableData
+  };
 }, { immediate: true });
 </script>
 <template>
     <div class="form-container">
-        <div>
-        <label>Mã tài khoản: </label>
-        <input type="text" v-model="formData.maChucVu">
+        <div class="form-field">
+        <label>Mã chức vụ</label>
+        <input type="text" v-model="formData.maChucVu" placeholder="Nhập mã chức vụ" />
         </div>
 
-        <div>
-        <label>Tên đăng nhập: </label>
-        <input type="text" v-model="formData.tenChucVu">
+        <div class="form-field">
+        <label>Tên chức vụ</label>
+        <input type="text" v-model="formData.tenChucVu" placeholder="Nhập tên chức vụ" />
         </div>
 
+      <div class="button-row">
+         <button v-if="mode === 'create'" class="btn-primary" @click.prevent="add()">Thêm chức vụ</button>
+         <button v-if="mode === 'edit'" class="btn-secondary" @click.prevent="update()">Cập nhật chức vụ</button>
+      </div>
     </div>
-         <button @click.prevent="add()">ADD</button> 
-    <button @click.prevent="update()">UPDATE</button>
 </template>
 <style scoped>
 .form-container {
@@ -85,11 +100,40 @@ watch(() => props.formData, (newTableData) => {
 }
 
 /* mỗi input block */
-.form-container > div {
+.form-field {
   margin-bottom: 18px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.form-container .button-row {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.btn-primary,
+.btn-secondary {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #f1c56c, #d8a85c);
+  color: #3d2814;
+}
+.btn-primary:hover {
+  filter: brightness(0.95);
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8f1d7;
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 /* label */
@@ -121,42 +165,58 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
-/* button container */
-button {
-  width: 48%;
-  padding: 11px;
-  margin-top: 12px;
-  margin-right: 4%;
-  border: none;
-  border-radius: 10px;
+/* label */
+label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: #88b7ff;
+  text-transform: uppercase;
+}
 
-  font-weight: 700;
+input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f6f7fb;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
+button.btn-primary,
+button.btn-secondary {
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: none;
   cursor: pointer;
-  transition: 0.2s ease;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  transition: all 0.2s ease;
 }
 
-/* ADD */
-button:first-of-type {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: white;
+button.btn-primary {
+  background: linear-gradient(135deg, #f1c56c, #d8a85c);
+  color: #3d2814;
 }
 
-/* UPDATE */
-button:last-of-type {
-  background: linear-gradient(135deg, #f59e0b, #ea580c);
-  color: white;
+button.btn-primary:hover {
+  filter: brightness(0.95);
 }
 
-/* hover effect */
-button:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
+button.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8f1d7;
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* active click */
-button:active {
-  transform: scale(0.98);
+button.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 </style>

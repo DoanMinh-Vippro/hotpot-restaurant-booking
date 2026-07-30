@@ -142,12 +142,14 @@ const timToHopToiUu = () => {
   deQuy(0, [], 0)
 
   if (ketQuaVuaDu) {
-    banToiUu.value = ketQuaVuaDu.map((b) => b.idBan)
+    const candidate: any[] = ketQuaVuaDu ? [...ketQuaVuaDu] : []
+    banToiUu.value = candidate.map((b: any) => b.idBan)
     return
   }
 
   if (ketQuaDu1) {
-    banToiUu.value = ketQuaDu1.map((b) => b.idBan)
+    const candidate: any[] = ketQuaDu1 ? [...ketQuaDu1] : []
+    banToiUu.value = candidate.map((b: any) => b.idBan)
     return
   }
 
