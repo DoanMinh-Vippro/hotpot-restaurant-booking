@@ -1,3 +1,4 @@
+<!-- src/views/BanHang.vue -->
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import BanApi from '@/api/BanApi'
@@ -9,11 +10,14 @@ import DatBanPopupCheck from '@/components/DatBanPopupCheck.vue'
 import ThanhToan from '@/components/ThanhToan.vue'
 import HoaDonApi from '@/api/HoaDonApi'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import AllBillsView from '@/components/AllBillsView.vue'
 
 // ======================== STATE ========================
 const manHinhHienTai = ref('danhSachBan')
 const showPopup = ref(false)
 const showPopupDaXacNhan = ref(false)
+const showAllBills = ref(false)
+const soLuongHoaDon = ref(0)
 
 const danhSachBan = ref<any[]>([])
 const danhSachKhuVuc = ref<any[]>([])
@@ -38,6 +42,20 @@ const danhSachChuaXepBan = computed(() => {
 })
 
 // ======================== METHODS ========================
+const loadSoLuongHoaDon = async () => {
+  try {
+    // Lấy danh sách tất cả hóa đơn
+    const res = await HoaDonApi.getDanhSach()
+    if (res?.data) {
+      // Lọc hóa đơn có trangThaiHoaDon = 0 (đang hoạt động)
+      const hoaDonDangHoatDong = res.data.filter((hd: any) => hd.trangThaiHoaDon === 0)
+      soLuongHoaDon.value = hoaDonDangHoatDong.length
+    }
+  } catch (error) {
+    console.error('Không thể tải số lượng hóa đơn:', error)
+  }
+}
+
 const chuyenManHinhThanhToan = async () => {
   showPopup.value = false
   if (banDangChon.value) {
@@ -171,10 +189,22 @@ const layThuTrongTuan = () => {
   return thu[new Date().getDay()]
 }
 
+const handleViewBill = (hoaDon: any) => {
+  showAllBills.value = false
+  // Chuyển sang màn hình thanh toán với hóa đơn được chọn
+  datBanDangChon.value = null
+  banDangChon.value = danhSachBan.value.find(b => b.idBan === hoaDon.idBan)
+  manHinhHienTai.value = 'thanhToan'
+}
+
 // ======================== HOOKS ========================
 onMounted(async () => {
   await loadBan()
   await loadKhuVuc()
+  await loadSoLuongHoaDon()
+  
+  // Tự động refresh số lượng hóa đơn mỗi 30s
+  setInterval(loadSoLuongHoaDon, 30000)
 })
 </script>
 
@@ -191,6 +221,13 @@ onMounted(async () => {
           </div>
         </div>
         <div class="header-right">
+          <!-- Nút xem tất cả hóa đơn -->
+          <button class="btn-bills" @click="showAllBills = true">
+            <span class="btn-icon">📋</span>
+            Tất cả hóa đơn
+            <span class="badge" v-if="soLuongHoaDon > 0">{{ soLuongHoaDon }}</span>
+          </button>
+          
           <!-- Thống kê nhanh -->
           <div class="stats-badge">
             <span class="stat-item">
@@ -344,6 +381,17 @@ onMounted(async () => {
       :datBan="datBanDangChon"
       @quayLai="quayVeDanhSachBan"
     />
+
+    <!-- MODAL TẤT CẢ HÓA ĐƠN -->
+    <div v-if="showAllBills" class="modal-overlay" @click.self="showAllBills = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>📊 Tất cả hóa đơn đang hoạt động</h3>
+          <button class="btn-close" @click="showAllBills = false">✕</button>
+        </div>
+        <AllBillsView @viewBill="handleViewBill" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -383,6 +431,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, #8B6B4A, #5F3D22);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
 }
 
@@ -407,6 +456,12 @@ onMounted(async () => {
   padding: 2px 12px;
   border-radius: 20px;
   font-size: 14px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .stats-badge {
@@ -440,6 +495,119 @@ onMounted(async () => {
 
 .stat-dot.free {
   background: #4CAF50;
+}
+
+/* ========== BUTTON BILLS ========== */
+.btn-bills {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 12px;
+  background: white;
+  color: #4a3520;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.btn-bills:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(139, 107, 74, 0.2);
+  background: #faf6f0;
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.badge {
+  background: #8B6B4A;
+  color: white;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ========== MODAL ========== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 1000px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #faf6f0;
+  border-radius: 16px 16px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #4a3520;
+}
+
+.btn-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a3520;
+}
+
+.btn-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: rotate(90deg);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ========== BAN GRID ========== */
@@ -634,17 +802,6 @@ onMounted(async () => {
   animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -756,6 +913,15 @@ onMounted(async () => {
     gap: 12px;
   }
 
+  .header-right {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .btn-bills {
+    flex: 1;
+  }
+
   .page-title {
     font-size: 20px;
   }
@@ -794,6 +960,11 @@ onMounted(async () => {
   .ban-mini-item {
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .modal-content {
+    max-height: 95vh;
+    border-radius: 12px;
   }
 }
 
