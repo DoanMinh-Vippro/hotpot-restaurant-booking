@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed, watch } from 'vue'
 
 import type { ChiTietComBo, ChiTietComBoRequest } from '../api/ChiTietComBoApi'
 import type { Mon } from '../api/MonApi'
@@ -8,7 +8,6 @@ import type { Combo } from '../api/ComBoApi'
 import MonApi from '../api/MonApi'
 import ComboApi from '../api/ComBoApi'
 
-// Nhận danh sách chi tiết combo hiện tại từ view cha để validate chống trùng món trong cùng 1 combo
 const props = defineProps<{
   danhSach: ChiTietComBo[]
 }>()
@@ -18,18 +17,20 @@ const emit = defineEmits(['submit'])
 const danhSachMon = ref<Mon[]>([])
 const danhSachCombo = ref<Combo[]>([])
 
-// Biến cờ nhận biết trạng thái Form
-const isEditMode = ref(false)
+// Trạng thái modal
+const isShowMonModal = ref(false)
+const tuKhoaTimMon = ref('')
+
+// Lưu trữ ID để phân biệt Thêm/Sửa
 const idChiTietComboHienTai = ref<number | null>(null)
 
 const form = reactive({
-  soLuong: 1 as number | string, // Cho phép nhận chuỗi rỗng tạm thời khi xóa ô nhập liệu trên giao diện
-  idMon: '' as number | '',
+  soLuong: 1 as number | string,
+  danhSachIdMon: [] as number[], // Mảng chứa danh sách ID món ăn được chọn
   idCombo: '' as number | '',
   moTa: '',
 })
 
-// Trạng thái lưu trữ thông báo lỗi validate hiển thị lên giao diện
 const errors = reactive({
   soLuong: '',
   idMon: '',
@@ -37,13 +38,49 @@ const errors = reactive({
   moTa: '',
 })
 
-// Xóa sạch thông báo lỗi cũ khi người dùng thao tác lại
+// Hiển thị tên món ăn đã chọn lên giao diện nút bấm
+const nhanHienThiMon = computed(() => {
+  if (form.danhSachIdMon.length === 0) return ''
+  
+  if (form.danhSachIdMon.length === 1) {
+    const mon = danhSachMon.value.find(m => Number(m.idMon) === Number(form.danhSachIdMon[0]))
+    return mon ? mon.tenMon : '1 món đã chọn'
+  }
+
+  const firstMon = danhSachMon.value.find(m => Number(m.idMon) === Number(form.danhSachIdMon[0]))
+  const firstName = firstMon ? firstMon.tenMon : 'Món'
+  return `${firstName} (+${form.danhSachIdMon.length - 1} món khác)`
+})
+
+// Lọc danh sách món ăn theo từ khóa tìm kiếm
+const danhSachMonDaLoc = computed(() => {
+  if (!tuKhoaTimMon.value.trim()) return danhSachMon.value
+  return danhSachMon.value.filter(m => 
+    m.tenMon.toLowerCase().includes(tuKhoaTimMon.value.toLowerCase().trim())
+  )
+})
+
+// Reset lỗi
 const clearErrors = () => {
   errors.soLuong = ''
   errors.idMon = ''
   errors.idCombo = ''
   errors.moTa = ''
 }
+
+// Bật/Tắt modal
+const openMonModal = () => {
+  isShowMonModal.value = true
+}
+
+const closeMonModal = () => {
+  isShowMonModal.value = false
+}
+
+// Lắng nghe sự thay đổi của idCombo để xóa lỗi khi người dùng chọn lại
+watch(() => form.idCombo, () => {
+  if (form.idCombo) errors.idCombo = ''
+})
 
 onMounted(async () => {
   try {
@@ -54,60 +91,91 @@ onMounted(async () => {
     danhSachMon.value = Array.isArray(monRes.data) ? monRes.data : (monRes.data as any).content || []
     danhSachCombo.value = Array.isArray(comboRes.data) ? comboRes.data : (comboRes.data as any).content || []
   } catch (error) {
-    console.error("Lỗi khi tải dữ liệu cấu hình:", error)
+    console.error("Lỗi khi tải dữ liệu:", error)
   }
 })
 
-// Hàm xử lý Validate nâng cao
+// Bật/tắt chọn món ăn trong Modal
+const toggleChonMon = (idMon: number) => {
+  const index = form.danhSachIdMon.indexOf(idMon)
+  if (index > -1) {
+    form.danhSachIdMon.splice(index, 1)
+  } else {
+    form.danhSachIdMon.push(idMon)
+  }
+  errors.idMon = ''
+}
+
+// Chọn hoặc bỏ chọn tất cả món đang hiển thị
+const chonTatCa = () => {
+  const tatCaIds = danhSachMonDaLoc.value.map(m => m.idMon)
+  const tatCaDaChon = tatCaIds.every(id => form.danhSachIdMon.includes(id))
+
+  if (tatCaDaChon) {
+    form.danhSachIdMon = form.danhSachIdMon.filter(id => !tatCaIds.includes(id))
+  } else {
+    const setMoi = new Set([...form.danhSachIdMon, ...tatCaIds])
+    form.danhSachIdMon = Array.from(setMoi)
+  }
+  errors.idMon = ''
+}
+
 const validateForm = () => {
   clearErrors()
   let isValid = true
 
-  // 1. Validate Combo
+  // Validate Combo
   if (!form.idCombo) {
-    errors.idCombo = "Vui lòng chọn gói Combo"
+    errors.idCombo = "Vui lòng chọn combo"
     isValid = false
   }
 
-  // 2. Validate Món Ăn
-  if (!form.idMon) {
-    errors.idMon = "Vui lòng chọn món ăn muốn đưa vào Combo"
+  // Validate Món ăn
+  if (form.danhSachIdMon.length === 0) {
+    errors.idMon = "Vui lòng chọn ít nhất 1 món ăn"
     isValid = false
   }
 
-  // 3. Kiểm tra trùng lặp: Nếu đã chọn cả Combo và Món, tiến hành quét xem món này đã tồn tại trong Combo chưa
-  if (form.idCombo && form.idMon) {
-    const biTrungCap = props.danhSach.some(item => {
-      const itemComboId = (item as any).idCombo ?? (item as any).combo?.idCombo;
-      const itemMonId = (item as any).idMon ?? (item as any).mon?.idMon;
+  // Check trùng món trong cùng combo (CHỈ ÁP DỤNG KHI THÊM MỚI TINH)
+  if (form.idCombo && form.danhSachIdMon.length > 0 && !idChiTietComboHienTai.value) {
+    const monTrung = form.danhSachIdMon.filter(idMonSelected => {
+      return props.danhSach.some(item => {
+        const itemComboId = (item as any).idCombo ?? (item as any).combo?.idCombo
+        
+        // Kiểm tra xem combo đã tồn tại chưa
+        if (Number(itemComboId) !== Number(form.idCombo)) return false
 
-      if (isEditMode.value && item.idChiTietCombo === idChiTietComboHienTai.value) {
-        return false
-      }
+        // Kiểm tra trong danh sách món gom nhóm
+        if (item.danhSachMon && Array.isArray(item.danhSachMon)) {
+          return item.danhSachMon.some(m => Number(m.idMon) === Number(idMonSelected))
+        }
 
-      return Number(itemComboId) === Number(form.idCombo) && Number(itemMonId) === Number(form.idMon)
+        // Kiểm tra với dữ liệu đơn
+        const itemMonId = (item as any).idMon ?? (item as any).mon?.idMon
+        return Number(itemMonId) === Number(idMonSelected)
+      })
     })
 
-    if (biTrungCap) {
-      errors.idMon = "Món ăn này đã có sẵn trong Combo này rồi. Vui lòng chọn món khác hoặc nhấn nút 'Sửa' dòng cũ để tăng số lượng."
+    if (monTrung.length > 0) {
+      errors.idMon = `Có món ăn đã tồn tại sẵn trong Combo này rồi!`
       isValid = false
     }
   }
 
-  // 4. Validate Số Lượng (SỬA ĐỂ TRÁNH LỖI TS2367: Chuyển đổi toString để kiểm tra chuỗi rỗng an toàn)
-  const chuoiSoLuong = form.soLuong !== null && form.soLuong !== undefined ? form.soLuong.toString().trim() : '';
+  // Validate Số lượng
+  const chuoiSoLuong = form.soLuong !== null && form.soLuong !== undefined ? form.soLuong.toString().trim() : ''
   if (chuoiSoLuong === '') {
     errors.soLuong = "Số lượng không được để trống"
     isValid = false
   } else if (isNaN(Number(form.soLuong)) || Number(form.soLuong) <= 0) {
-    errors.soLuong = "Số lượng món ăn cấu thành phải lớn hơn 0"
+    errors.soLuong = "Số lượng phải là số lớn hơn 0"
     isValid = false
   }
 
-  // 5. Validate Mô Tả
+  // Validate Mô tả
   const mTa = form.moTa || ''
   if (mTa !== mTa.trim()) {
-    errors.moTa = "Mô tả không được chứa khoảng trắng dư thừa ở đầu hoặc cuối"
+    errors.moTa = "Mô tả không được chứa khoảng trắng ở đầu hoặc cuối"
     isValid = false
   } else if (/\s{2,}/.test(mTa)) {
     errors.moTa = "Mô tả không được chứa nhiều khoảng trắng liên tiếp"
@@ -121,8 +189,10 @@ const gui = () => {
   if (!validateForm()) return
 
   emit('submit', {
+    idChiTietCombo: idChiTietComboHienTai.value || undefined,
     soLuong: Number(form.soLuong),
-    idMon: form.idMon as number,
+    danhSachIdMon: form.danhSachIdMon,
+    idMon: form.danhSachIdMon[0],
     idCombo: form.idCombo as number,
     moTa: form.moTa.trim(),
   } as ChiTietComBoRequest)
@@ -130,43 +200,45 @@ const gui = () => {
 
 defineExpose({
   fillForm(item?: any) {
-    clearErrors() 
+    clearErrors()
     
+    // 1. Không có item -> Reset về chế độ Thêm mới
     if (!item) {
-      isEditMode.value = false
       idChiTietComboHienTai.value = null
       form.soLuong = 1
-      form.idMon = ''
+      form.danhSachIdMon = []
       form.idCombo = ''
       form.moTa = ''
       return
     }
 
-    // Xử lý an toàn bằng cách bóc tách giá trị cụ thể, tránh dùng toán tử so sánh trực tiếp đối tượng lồng với undefined
-    const checkIdCombo = item.idCombo ?? null;
-    const checkIdChiTiet = item.idChiTietCombo ?? null;
-    const checkSoLuong = item.soLuong ?? null;
+    const checkIdCombo = item.idCombo ?? item.combo?.idCombo ?? null
+    const checkIdChiTiet = item.idChiTietCombo ?? null
+    const checkSoLuong = item.soLuong ?? null
 
+    // 2. Click chọn Combo từ bảng danh sách
     if (checkIdCombo !== null && checkIdChiTiet === null && checkSoLuong === null) {
-      isEditMode.value = false
       idChiTietComboHienTai.value = null
       form.soLuong = 1
-      form.idMon = ''
+      form.danhSachIdMon = []
       form.idCombo = Number(checkIdCombo)
       form.moTa = ''
       return
     }
 
-    // Thiết lập dữ liệu và bật chế độ Cập nhật (Sửa dòng)
-    isEditMode.value = true
+    // 3. Chế độ Cập nhật (Sửa thông tin)
     idChiTietComboHienTai.value = item.idChiTietCombo
-
     form.soLuong = Number(item.soLuong)
     form.moTa = item.moTa || ''
-
-    // Cơ chế bóc tách dữ liệu phẳng hoặc thực thể lồng của JPA Hibernate trả về khi nhấn nút Sửa
-    form.idMon = item.idMon ?? item.mon?.idMon ?? ''
     form.idCombo = item.idCombo ?? item.combo?.idCombo ?? ''
+    
+    // Nạp chính xác danh sách các ID món đã thuộc về Combo vào Modal Checkbox
+    if (item.danhSachMon && Array.isArray(item.danhSachMon)) {
+      form.danhSachIdMon = item.danhSachMon.map((m: any) => Number(m.idMon))
+    } else {
+      const idMonSingle = item.idMon ?? item.mon?.idMon
+      form.danhSachIdMon = idMonSingle ? [Number(idMonSingle)] : []
+    }
   },
 })
 </script>
@@ -175,13 +247,14 @@ defineExpose({
   <section class="bieu-mau-panel">
     <div class="tieu-de-panel">
       <h2>Thông tin Chi Tiết Combo</h2>
-      <p>{{ isEditMode ? 'Cập nhật thành phần trong Combo' : 'Thêm mới món ăn cấu thành Combo' }}</p>
+      <p>{{ idChiTietComboHienTai ? 'Cập nhật món ăn trong Combo' : 'Thêm mới các món cấu thành Combo' }}</p>
     </div>
 
     <div class="luoi-bieu-mau">
+      <!-- Select Combo -->
       <div class="form-group">
-        <label>Combo gói</label>
-        <select v-model="form.idCombo" :class="{ 'is-invalid': errors.idCombo }" @change="errors.idCombo = ''">
+        <label>Combo</label>
+        <select v-model="form.idCombo" :class="{ 'is-invalid': errors.idCombo }">
           <option value="">-- Chọn combo --</option>
           <option
             v-for="c in danhSachCombo"
@@ -194,23 +267,24 @@ defineExpose({
         <span class="error-text" v-if="errors.idCombo">{{ errors.idCombo }}</span>
       </div>
 
+      <!-- Button mở Modal chọn món -->
       <div class="form-group">
-        <label>Món ăn áp dụng</label>
-        <select v-model="form.idMon" :class="{ 'is-invalid': errors.idMon }" @change="errors.idMon = ''">
-          <option value="">-- Chọn món --</option>
-          <option
-            v-for="m in danhSachMon"
-            :key="m.idMon"
-            :value="m.idMon"
-          >
-            {{ m.tenMon }}
-          </option>
-        </select>
+        <label>Món ăn</label>
+        <button 
+          type="button" 
+          class="nut-chon-mon" 
+          :class="{ 'is-invalid': errors.idMon, 'da-chon': form.danhSachIdMon.length > 0 }"
+          @click="openMonModal"
+        >
+          <span>{{ nhanHienThiMon || '-- Nhấp để chọn món ăn --' }}</span>
+          <span class="icon-moti">📋</span>
+        </button>
         <span class="error-text" v-if="errors.idMon">{{ errors.idMon }}</span>
       </div>
 
+      <!-- Số lượng -->
       <div class="form-group">
-        <label>Số lượng thành phần</label>
+        <label>Số lượng</label>
         <input 
           v-model.number="form.soLuong" 
           type="number" 
@@ -222,12 +296,13 @@ defineExpose({
         <span class="error-text" v-if="errors.soLuong">{{ errors.soLuong }}</span>
       </div>
 
+      <!-- Mô tả -->
       <div class="form-group">
-        <label>Mô tả ghi chú</label>
+        <label>Mô tả</label>
         <input 
           v-model="form.moTa" 
           type="text" 
-          placeholder="Nhập mô tả không bắt buộc..." 
+          placeholder="Nhập mô tả..." 
           :class="{ 'is-invalid': errors.moTa }"
           @input="errors.moTa = ''"
         />
@@ -240,6 +315,60 @@ defineExpose({
         Lưu thông tin
       </button>
     </div>
+
+    <!-- Modal Chọn Món Ăn -->
+    <Teleport to="body">
+      <div v-if="isShowMonModal" class="modal-overlay" @click.self="closeMonModal">
+        <div class="modal-container">
+          <div class="modal-header">
+            <h3>Chọn món ăn</h3>
+            <button class="nut-dong" @click="closeMonModal">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="thanh-cong-cu-modal">
+              <input 
+                v-model="tuKhoaTimMon" 
+                type="text" 
+                class="input-tim-mon" 
+                placeholder="🔍 Tìm nhanh tên món..." 
+              />
+              <button type="button" class="nut-chon-tat-ca" @click="chonTatCa">
+                Chọn/Bỏ tất cả
+              </button>
+            </div>
+
+            <div class="danh-sach-mon-scroll">
+              <label 
+                v-for="m in danhSachMonDaLoc" 
+                :key="m.idMon"
+                class="the-mon-checkbox"
+                :class="{ active: form.danhSachIdMon.includes(m.idMon) }"
+              >
+                <div class="khung-trai">
+                  <input 
+                    type="checkbox" 
+                    :value="m.idMon"
+                    :checked="form.danhSachIdMon.includes(m.idMon)"
+                    @change="toggleChonMon(m.idMon)"
+                  />
+                  <span class="ten-mon">{{ m.tenMon }}</span>
+                </div>
+              </label>
+
+              <div v-if="danhSachMonDaLoc.length === 0" class="khong-co-data">
+                Không tìm thấy món ăn phù hợp.
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <span class="thong-ke-da-chon">Đã chọn: <strong>{{ form.danhSachIdMon.length }}</strong> món</span>
+              <button type="button" class="nut-xac-nhan" @click="closeMonModal">Xác nhận</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </section>
 </template>
 
@@ -276,20 +405,43 @@ label {
 }
 
 input,
-select {
+select,
+.nut-chon-mon {
   margin-top: 6px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   color: white;
   outline: none;
   box-sizing: border-box;
   width: 100%;
+  text-align: left;
+  font-size: 14px;
 }
 
 input:focus,
 select:focus {
+  border-color: #f8d46a;
+}
+
+.nut-chon-mon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  color: #8E8E93;
+  transition: all 0.2s ease;
+}
+
+.nut-chon-mon.da-chon {
+  color: #f8d46a;
+  font-weight: 600;
+  border-color: rgba(248, 212, 106, 0.3);
+}
+
+.nut-chon-mon:hover {
+  background: rgba(255, 255, 255, 0.08);
   border-color: #f8d46a;
 }
 
@@ -307,6 +459,7 @@ select:focus {
   font-weight: 600;
   cursor: pointer;
 }
+
 select option {
   background: #151515;
   color: #ffffff;
@@ -322,5 +475,178 @@ select option {
 .is-invalid {
   border: 1px solid #ff6b6b !important;
   background: rgba(255, 107, 107, 0.05) !important;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-container {
+  background: #181818;
+  border: 1px solid rgba(248, 212, 106, 0.2);
+  width: 90%;
+  max-width: 500px;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: popIn 0.2s ease-out;
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #f8d46a;
+  font-size: 18px;
+}
+
+.nut-dong {
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.thanh-cong-cu-modal {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.input-tim-mon {
+  flex: 1;
+  margin-top: 0;
+}
+
+.nut-chon-tat-ca {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d8d8d8;
+  border-radius: 12px;
+  padding: 0 12px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nut-chon-tat-ca:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.danh-sach-mon-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.danh-sach-mon-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.danh-sach-mon-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.the-mon-checkbox {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e0e0e0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.khung-trai {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.the-mon-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #f8d46a;
+  cursor: pointer;
+}
+
+.the-mon-checkbox:hover {
+  background: rgba(248, 212, 106, 0.08);
+}
+
+.the-mon-checkbox.active {
+  background: rgba(248, 212, 106, 0.15);
+  border-color: rgba(248, 212, 106, 0.4);
+  color: #f8d46a;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.thong-ke-da-chon {
+  color: #c7c7c7;
+  font-size: 14px;
+}
+
+.thong-ke-da-chon strong {
+  color: #f8d46a;
+}
+
+.nut-xac-nhan {
+  background: #f8d46a;
+  color: #1a1410;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.khong-co-data {
+  text-align: center;
+  color: #8e8e93;
+  padding: 20px 0;
 }
 </style>

@@ -4,6 +4,8 @@ import type { Combo } from '../api/ComBoApi'
 
 defineProps<{
   danhSachCombo: Combo[]
+  loading?: boolean
+  selectedId?: number | null
 }>()
 
 const emit = defineEmits(['edit', 'delete', 'add', 'search', 'reset', 'view-detail'])
@@ -42,17 +44,23 @@ const xoa = (id: number) => {
 
     <section class="danh-sach-panel">
       <div class="tieu-de-panel">
-        <h2>Danh sách combo</h2>
-        <button @click="$emit('add')">Thêm combo</button>
+        <div>
+          <h2>Danh sách combo</h2>
+          <p>Quản lý các combo món ăn hiện có.</p>
+        </div>
+        <button class="nut-phu" type="button" @click="$emit('add')">Thêm combo</button>
       </div>
 
-      <div class="bang-bao-boc">
+      <div v-if="loading" class="trang-thai-tai">Đang tải dữ liệu combo...</div>
+
+      <div v-else class="bang-bao-boc">
         <table>
           <thead>
             <tr>
               <th>Hình ảnh</th>
               <th>Tên combo</th>
-              <th>Giá tiền</th>
+              <th>Giá</th>
+              <th>Khuyến mãi</th>
               <th>Trạng thái kinh doanh</th>
               <th>Trạng thái kho</th>
               <th>Hành động</th>
@@ -60,14 +68,35 @@ const xoa = (id: number) => {
           </thead>
 
           <tbody>
-            <tr v-for="cb in danhSachCombo" :key="cb.idCombo">
+            <tr 
+              v-for="cb in danhSachCombo" 
+              :key="cb.idCombo"
+              :class="{ active: selectedId === cb.idCombo }"
+            >
               <td class="o-anh">
                 <img v-if="cb.hinhAnh" :src="cb.hinhAnh" class="img-combo" />
                 <span v-else class="chua-co-anh">Không có ảnh</span>
               </td>
 
               <td class="o-chu-thuong text-dam">{{ cb.tenCombo }}</td>
-              <td class="o-chu-thuong">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ</td>
+
+              <!-- HIỂN THỊ GIÁ TIỀN GIỐNG FILE MÓN -->
+              <td class="o-chu-thuong">
+                <template v-if="cb.soTienDuocGiam && cb.soTienDuocGiam > 0">
+                  <div class="gia-goc">
+                    {{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ
+                  </div>
+                  <div class="gia-giam">
+                    {{ Number(cb.giaSauGiam).toLocaleString('vi-VN') }} đ
+                  </div>
+                </template>
+                <template v-else>
+                  {{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ
+                </template>
+              </td>
+
+              <!-- CỘT KHUYẾN MÃI -->
+              <td class="o-chu-thuong">{{ cb.tenChuongTrinhGiamGia || '---' }}</td>
 
               <td class="o-chu-thuong">
                 <span
@@ -82,10 +111,11 @@ const xoa = (id: number) => {
 
               <td class="o-chu-thuong">
                 <span
-                  :class="{
-                    'trang-thai-con': cb.trangThaiBan === 1 && cb.trangThai === 1,
-                    'trang-thai-het': cb.trangThaiBan === 0 || cb.trangThai === 0,
-                  }"
+                  :class="
+                    cb.trangThaiBan === 0 || cb.trangThai === 0
+                      ? 'trang-thai-het'
+                      : 'trang-thai-con'
+                  "
                 >
                   {{
                     cb.trangThai === 0
@@ -101,12 +131,13 @@ const xoa = (id: number) => {
                 <div class="hanh-dong-o">
                   <button class="nut-xem-ct" @click="$emit('view-detail', cb)">Xem chi tiết</button>
                   <button class="nut-sua" @click="$emit('edit', cb)">Sửa</button>
-                  <button class="nut-xoa" @click="xoa(cb.idCombo!)">Xóa</button>
+                  <button class="nut-xoa" @click="xoa(cb.idCombo!)">Ngưng bán</button>
                 </div>
               </td>
             </tr>
+
             <tr v-if="danhSachCombo.length === 0">
-              <td colspan="6" style="text-align: center; color: #a0a0a0; padding: 30px">
+              <td colspan="7" style="text-align: center; color: #a0a0a0; padding: 20px">
                 Không tìm thấy combo phù hợp.
               </td>
             </tr>
@@ -175,8 +206,7 @@ const xoa = (id: number) => {
   background: rgba(255, 248, 234, 0.96);
   border: 1px solid #e6d2aa;
   border-radius: 24px;
-  padding: 26px;
-  color: #5f3d22;
+  padding: 24px;
   box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
 }
 
@@ -189,6 +219,12 @@ const xoa = (id: number) => {
 
 .tieu-de-panel h2 {
   color: #8b5e34;
+  margin: 0;
+}
+
+.tieu-de-panel p {
+  color: #8f6b46;
+  margin: 4px 0 0;
 }
 
 .bang-bao-boc {
@@ -199,30 +235,26 @@ const xoa = (id: number) => {
 table {
   width: 100%;
   border-collapse: collapse;
+  color: #5f3d22;
 }
 
 th {
-  color: #8b5e34;
-  padding: 14px;
-  border-bottom: 1px solid #efe0c1;
   text-align: left;
+  border-bottom: 1px solid #efe0c1;
   font-weight: 600;
+  padding: 12px;
+  color: #8b5e34;
 }
 
 td {
   padding: 14px;
-  border-bottom: 1px solid #efe0c1;
   text-align: left;
   vertical-align: middle;
+  border-bottom: 1px solid #efe0c1;
 }
 
-.o-chu-thuong {
-  line-height: 60px;
-  white-space: nowrap;
-}
-
-.text-dam {
-  font-weight: 600;
+tr.active {
+  background: rgba(216, 168, 92, 0.14);
 }
 
 .o-anh {
@@ -241,9 +273,18 @@ img.img-combo {
 
 .chua-co-anh {
   font-size: 13px;
-  color: #8f6b46;
+  color: #a0a0a0;
   display: block;
   line-height: 60px;
+}
+
+.o-chu-thuong {
+  line-height: 60px;
+  white-space: nowrap;
+}
+
+.text-dam {
+  font-weight: 600;
 }
 
 .hanh-dong-o {
@@ -271,9 +312,9 @@ button:hover {
   opacity: 0.85;
 }
 
-.tieu-de-panel button {
-  background: #d8a85c;
-  color: #3d2814;
+.nut-phu {
+  background: #f8d46a;
+  color: #1a1410;
   padding: 10px 16px;
   font-weight: 600;
   border-radius: 16px;
@@ -285,23 +326,44 @@ button:hover {
 }
 
 .nut-sua {
-  background: #fff3d3;
+  background: rgba(248, 212, 106, 0.15);
   color: #8b5e34;
 }
 
 .nut-xoa {
-  background: #fff0eb;
-  color: #b84f3f;
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
 }
 
 .trang-thai-con {
-  color: #2e7d32;
+  color: #52c41a;
 }
 
 .trang-thai-ngung {
-  color: #c94f3a;
+  color: #ff4d4f;
 }
+
 .trang-thai-het {
-  color: #c77b1a;
+  color: #fa8c16;
+}
+
+/* STYLE HIỂN THỊ GIÁ GỐC VÀ GIÁ GIẢM ĐỒNG BỘ MÓN ÁN */
+.gia-goc {
+  text-decoration: line-through;
+  color: #888;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.gia-giam {
+  color: #ff4d4f;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.trang-thai-tai {
+  text-align: center;
+  padding: 30px;
+  color: #8b5e34;
 }
 </style>

@@ -223,7 +223,23 @@ onMounted(fetchThucDonTongHop)
                 <div class="header">
                   <span class="name tags-combo">{{ cb.tenCombo }}</span>
                   <div class="dots"></div>
-                  <span class="price">{{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ</span>
+                  <div class="price-box">
+                    <template v-if="cb.soTienDuocGiam > 0">
+                      <div class="gia-goc">
+                        {{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ
+                      </div>
+
+                      <div class="gia-giam">
+                        {{ Number(cb.giaSauGiam).toLocaleString('vi-VN') }}đ
+                      </div>
+                    </template>
+
+                    <template v-else>
+                      <div class="gia-thuong">
+                        {{ Number(cb.giaCombo).toLocaleString('vi-VN') }}đ
+                      </div>
+                    </template>
+                  </div>
                 </div>
                 <p class="desc">
                   {{

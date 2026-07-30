@@ -64,9 +64,12 @@ const formRef = ref()
 const bieuThucTenCombo = ref('')
 const bieuThucTenMon = ref('')
 const trangHienTai = ref(0)
-const kichThuocTrang = ref(5) 
+const kichThuocTrang = ref(50) 
 const tongSoTrang = ref(0)
 
+// ---------------------------------------------------------
+// 🔥 FETCH VÀ GOM NHÓM DỮ LIỆU THÀNH 1 DÒNG DUY NHẤT
+// ---------------------------------------------------------
 const fetchDuLieu = async () => {
   try {
     const res = await ChiTietComBoApi.searchCTCB(
@@ -79,14 +82,68 @@ const fetchDuLieu = async () => {
     )
     
     const responseData = res.data as any
+    let rawList: any[] = []
     
     if (responseData && responseData.content) {
-      danhSach.value = responseData.content
+      rawList = responseData.content
       tongSoTrang.value = responseData.totalPages || 0
     } else {
-      danhSach.value = Array.isArray(responseData) ? responseData : []
+      rawList = Array.isArray(responseData) ? responseData : []
       tongSoTrang.value = 1
     }
+
+    // MAP GOM NHÓM CHUẨN ĐỂ KHÔNG BỊ PHÂN TÁCH DÒNG
+    const mapGomNhom = new Map<string | number, ChiTietComBo>()
+
+    rawList.forEach((item: any) => {
+      // Bóc tách linh hoạt ID Combo và Tên Combo từ nhiều kiểu response
+      const rawComboId = item.idCombo ?? item.combo?.idCombo
+      const rawComboTen = item.tenCombo ?? item.combo?.tenCombo ?? 'Combo'
+
+      // Key gom nhóm chuẩn (Ép về Number để không lệch String/Number)
+      const keyCombo = rawComboId ? Number(rawComboId) : rawComboTen
+
+      // Bóc tách món ăn
+      const monId = item.idMon ?? item.mon?.idMon
+      const monTen = item.tenMon ?? item.mon?.tenMon
+
+      if (!mapGomNhom.has(keyCombo)) {
+        mapGomNhom.set(keyCombo, {
+          ...item,
+          idCombo: rawComboId ? Number(rawComboId) : item.idCombo,
+          tenCombo: rawComboTen,
+          danhSachMon: (monId || monTen) ? [
+            {
+              idMon: monId ? Number(monId) : 0,
+              tenMon: monTen || 'Món ăn',
+              soLuong: item.soLuong
+            }
+          ] : []
+        })
+      } else {
+        const existingCombo = mapGomNhom.get(keyCombo)!
+        
+        if (!existingCombo.danhSachMon) {
+          existingCombo.danhSachMon = []
+        }
+
+        const isExisted = existingCombo.danhSachMon.some(m => {
+          if (monId && m.idMon) return Number(m.idMon) === Number(monId)
+          return m.tenMon === monTen
+        })
+
+        if (!isExisted && (monId || monTen)) {
+          existingCombo.danhSachMon.push({
+            idMon: monId ? Number(monId) : 0,
+            tenMon: monTen || 'Món ăn',
+            soLuong: item.soLuong
+          })
+        }
+      }
+    })
+
+    danhSach.value = Array.from(mapGomNhom.values())
+
   } catch (error) {
     console.error("Lỗi khi tải danh sách chi tiết combo phân trang:", error)
   }
@@ -162,8 +219,10 @@ const luu = async (payload: ChiTietComBoRequest) => {
 
   try {
     if (isUpdate && selectedId.value) {
+      // Gọi đúng tên hàm API gốc
       await ChiTietComBoApi.updateCTCB(selectedId.value, payload)
     } else {
+      // Gọi đúng tên hàm API gốc
       await ChiTietComBoApi.addCTCB(payload)
     }
 
@@ -177,8 +236,16 @@ const luu = async (payload: ChiTietComBoRequest) => {
 }
 
 const xoa = async (id: number) => {
-  if (selectedId.value === id) themMoi()
-  await fetchDuLieu()
+  try {
+    // Gọi đúng tên hàm API gốc
+    await ChiTietComBoApi.deleteCTCB(id)
+    alert("Ngưng chi tiết combo thành công!")
+    if (selectedId.value === id) themMoi()
+    await fetchDuLieu()
+  } catch (error: any) {
+    const lỗiTừBackend = error.response?.data?.message || error.response?.data || "Không thể xoá chi tiết combo này!";
+    alert(lỗiTừBackend)
+  }
 }
 </script>
 

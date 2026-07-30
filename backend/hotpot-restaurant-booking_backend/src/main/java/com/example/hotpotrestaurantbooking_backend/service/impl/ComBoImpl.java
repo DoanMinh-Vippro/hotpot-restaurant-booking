@@ -6,6 +6,7 @@ import com.example.hotpotrestaurantbooking_backend.dto.ComboResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.Combo;
 import com.example.hotpotrestaurantbooking_backend.repository.ComboRepository;
 import com.example.hotpotrestaurantbooking_backend.service.ComBoService;
+import com.example.hotpotrestaurantbooking_backend.service.TinhTienService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -22,28 +23,47 @@ public class ComBoImpl implements ComBoService {
     private ComboRepository repo;
     @Autowired
     private ComboValidator comboValidator;
+    @Autowired
+    private TinhTienService tienService;
 
     @Override
     public List<ComboResponse> hienThiComBo(){
-        return repo.hienThiComBo();
+        List<ComboResponse> list = repo.hienThiComBo();
+        list.forEach(tienService::ganThongTinGiamGiaCombo);
+        return list;
     }
     @Override
     public ComboResponse detailComBo(String tenCombo){
-        return repo.detailComBo(tenCombo);
+        ComboResponse response = repo.detailComBo(tenCombo);
+        if (response != null) {
+            tienService.ganThongTinGiamGiaCombo(response);
+        }
+        return response;
     }
     @Override
     public Page<ComboResponse> phanTrangComBo(Integer pageNo, Integer pageSize){
-        Pageable pageable= PageRequest.of(pageNo,pageSize);
-        return repo.phanTrangComBo(pageable);
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        Page<ComboResponse> page = repo.phanTrangComBo(pageable);
+        page.getContent().forEach(tienService::ganThongTinGiamGiaCombo);
+        return page;
     }
     @Override
     public Page<ComboResponse>timKiemComBo(String tenCombo, BigDecimal giaMin, BigDecimal giaMax, Integer pageNo, Integer pageSize){
         Pageable pageable= PageRequest.of(pageNo,pageSize);
+        // 🛠️ XỬ LÝ NỐI CHUỖI TÌM KIẾM Ở TẦNG JAVA ĐỂ GIỮ NGUYÊN VẸN ĐỊNH DẠNG NVARCHAR
         String tenComboSearch = (tenCombo != null && !tenCombo.trim().isEmpty())
                 ? "%" + tenCombo.trim() + "%"
                 : null;
 
-        return repo.timKiemComBo(tenComboSearch, giaMin, giaMax, pageable);
+        Page<ComboResponse> page = repo.timKiemComBo(
+                tenComboSearch, // Truyền chuỗi đã bọc sẵn %
+                giaMin,
+                giaMax,
+                pageable
+        );
+
+        page.getContent().forEach(tienService::ganThongTinGiamGiaCombo);
+        return page;
     }
     @Override
     public void addComBo(ComboRequest req){

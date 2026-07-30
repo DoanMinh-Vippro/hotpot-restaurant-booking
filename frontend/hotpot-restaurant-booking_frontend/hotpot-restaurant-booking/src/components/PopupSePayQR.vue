@@ -14,8 +14,8 @@ const emit = defineEmits(['close', 'payment-success'])
 
 // Cấu hình tài khoản ngân hàng nhận tiền của Nhà hàng (Khớp với cấu hình Backend)
 const BANK_INFO = {
-  ACCOUNT_NO: '88801032006',
-  BANK_NAME: 'MBBank'
+  ACCOUNT_NO: '80000739235',
+  BANK_NAME: 'MSB'
 }
 
 const sepayQrUrl = ref('')
@@ -24,7 +24,8 @@ let pollingTimer: any = null
 onMounted(() => {
   // Tạo link mã QR động chuẩn VietQR thông qua API của SePay
   // Tự động gán: Số tiền cần thanh toán & Nội dung chuyển khoản là mã hóa đơn động của bàn
-  sepayQrUrl.value = `https://qr.sepay.vn/img?acc=${BANK_INFO.ACCOUNT_NO}&bank=${BANK_INFO.BANK_NAME}&amount=${props.tongTien}&des=${props.maHoaDon}`
+  // sepayQrUrl.value = `https://qr.sepay.vn/img?acc=${BANK_INFO.ACCOUNT_NO}&bank=${BANK_INFO.BANK_NAME}&amount=${props.tongTien}&des=${props.maHoaDon}`
+  sepayQrUrl.value = `https://qr.sepay.vn/img?acc=${BANK_INFO.ACCOUNT_NO}&bank=${BANK_INFO.BANK_NAME}&amount=2000&des=${props.maHoaDon}`
   
   // Kích hoạt cơ chế kiểm tra ngầm trạng thái hóa đơn định kỳ mỗi 3 giây
   startPollingStatus()

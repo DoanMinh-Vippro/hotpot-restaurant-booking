@@ -9,12 +9,19 @@ export interface ChiTietComBo {
   hinhAnh: string
   trangThai: number
   moTa: string
+  // Bổ sung danh sách món thuộc Combo (dùng khi BE gom nhóm dữ liệu)
+  danhSachMon?: Array<{
+    idMon: number
+    tenMon: string
+    soLuong?: number
+  }>
 }
 
 export interface ChiTietComBoRequest {
   idChiTietCombo?: number
   soLuong: number
-  idMon: number
+  idMon?: number          // Fallback trường hợp gửi lẻ 1 món
+  danhSachIdMon?: number[] // Mảng danh sách ID món ăn chọn từ Checkbox Modal
   idCombo: number
   moTa: string
 }
