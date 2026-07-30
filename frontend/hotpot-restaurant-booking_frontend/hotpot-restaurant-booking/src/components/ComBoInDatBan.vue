@@ -6,7 +6,7 @@ import type { Combo } from '@/api/ComBoApi'
 interface ComboDatBan {
   idCombo: number
   tenCombo: string
-  giaCombo: number
+  giaSauGiam: number
   soLuong: number
 }
 
@@ -64,7 +64,7 @@ const selectCombo = (combo: Combo) => {
     dsCombo.push({
       idCombo: combo.idCombo,
       tenCombo: combo.tenCombo,
-      giaCombo: Number(combo.giaCombo),
+      giaSauGiam: Number(combo.giaSauGiam),
       soLuong: 1,
     })
   }
@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
             {{ cb.tenCombo }}
           </h4>
 
-          <span class="gia"> {{ Number(cb.giaCombo).toLocaleString('vi-VN') }} đ </span>
+          <span class="gia"> {{ Number(cb.giaSauGiam).toLocaleString('vi-VN') }} đ </span>
 
           <div v-if="getSelectedItems().some((item) => item.idCombo === cb.idCombo)">
             <span>

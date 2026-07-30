@@ -1,4 +1,6 @@
 import apiClient from './ApiClient'
+import ComBoApi from './ComBoApi'
+import MonApi from './MonApi'
 
 export default {
   getBan() {
@@ -17,8 +19,18 @@ export default {
     return apiClient.get(`/api/order/hoa-don/${idHoaDon}/chi-tiet`)
   },
 
-  getMenu() {
-    return apiClient.get('/api/order/menu')
+  async getMenu() {
+    const [resMon, resCombo] = await Promise.all([
+      MonApi.hienThiMon(),
+      ComBoApi.hienThiComBo(),
+    ])
+
+    return {
+      data: {
+        dsMon: resMon.data || [],
+        dsCombo: resCombo.data || [],
+      },
+    }
   },
 
   themMon(data: any) {

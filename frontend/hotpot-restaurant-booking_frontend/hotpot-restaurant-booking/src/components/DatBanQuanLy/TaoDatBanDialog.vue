@@ -203,11 +203,11 @@ const toggleBan = (ban: any) => {
 // TÍNH TIỀN CỌC
 const tinhTienCoc = () => {
   const tongTienCombo = form.value.dsCombo.reduce(
-    (tong, combo) => tong + Number(combo.giaCombo) * Number(combo.soLuong ?? 1),
+    (tong, combo) => tong + Number(combo.giaSauGiam) * Number(combo.soLuong ?? 1),
     0,
   )
   const tongTienMon = form.value.dsMon.reduce(
-    (tong, mon) => tong + Number(mon.donGiaHienTai) * Number(mon.soLuong ?? 1),
+    (tong, mon) => tong + Number(mon.giaSauGiam) * Number(mon.soLuong ?? 1),
     0,
   )
   const tongTien = tongTienCombo + tongTienMon
