@@ -6,7 +6,7 @@ import type { Mon } from '@/api/MonApi'
 interface MonDatBan {
   idMon: number
   tenMon: string
-  donGiaHienTai: number
+  giaSauGiam: number
   soLuong: number
 }
 
@@ -28,7 +28,7 @@ const loadMon = async () => {
     const res = await MonApi.hienThiMon()
 
     danhSachMon.value = (res.data || []).filter(
-      (mon: Mon) => mon.trangThai === 1 && mon.trangThaiBan === 1,
+      (mon: Mon) => mon.trangThai === 0
     )
   } catch (error) {
     console.error('Không thể tải danh sách món:', error)
@@ -56,7 +56,7 @@ const selectMon = (mon: Mon) => {
     dsMon.push({
       idMon: mon.idMon,
       tenMon: mon.tenMon,
-      donGiaHienTai: Number(mon.donGiaHienTai),
+      giaSauGiam: Number(mon.giaSauGiam),
       soLuong: 1,
     })
   }
@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
             {{ mon.tenMon }}
           </h4>
 
-          <span class="gia"> {{ Number(mon.donGiaHienTai).toLocaleString('vi-VN') }} đ </span>
+          <span class="gia"> {{ Number(mon.giaSauGiam).toLocaleString('vi-VN') }} đ </span>
 
           <div v-if="getSelectedItems().some((item) => item.idMon === mon.idMon)">
             <span>

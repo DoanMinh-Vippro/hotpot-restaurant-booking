@@ -195,12 +195,12 @@ const TI_LE_COC = 0.3
 
 const tinhTienCoc = () => {
   const tongTienCombo = formData.value.dsCombo.reduce(
-    (tong, item) => tong + item.giaCombo * item.soLuong,
+    (tong, item) => tong + item.giaSauGiam * item.soLuong,
     0,
   )
 
   const tongTienMon = formData.value.dsMon.reduce(
-    (tong, item) => tong + item.donGiaHienTai * item.soLuong,
+    (tong, item) => tong + item.giaSauGiam * item.soLuong,
     0,
   )
 
