@@ -12,12 +12,27 @@ import HoaDonApi from '@/api/HoaDonApi'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import AllBillsView from '@/components/AllBillsView.vue'
 
+interface CheckedInReservation {
+  idDatBan: number
+  idBan?: number
+  tenKhachHang?: string
+  sdtKhachHang?: string
+  soNguoi?: number
+  trangThai?: string
+  thoiGianDenDuKien?: string
+  ngayDat?: string
+  gioDat?: string
+  soTienCoc?: number
+  dsBan?: Array<{ idBan: number; tenBan: string }>
+}
+
 // ======================== STATE ========================
 const manHinhHienTai = ref('danhSachBan')
 const showPopup = ref(false)
 const showPopupDaXacNhan = ref(false)
 const showAllBills = ref(false)
 const soLuongHoaDon = ref(0)
+const checkedInReservations = ref<CheckedInReservation[]>([])
 
 const danhSachBan = ref<any[]>([])
 const danhSachKhuVuc = ref<any[]>([])
@@ -44,15 +59,21 @@ const danhSachChuaXepBan = computed(() => {
 // ======================== METHODS ========================
 const loadSoLuongHoaDon = async () => {
   try {
-    // Lấy danh sách tất cả hóa đơn
-    const res = await HoaDonApi.getDanhSach()
-    if (res?.data) {
-      // Lọc hóa đơn có trangThaiHoaDon = 0 (đang hoạt động)
-      const hoaDonDangHoatDong = res.data.filter((hd: any) => hd.trangThaiHoaDon === 0)
-      soLuongHoaDon.value = hoaDonDangHoatDong.length
+    const [reservationRes] = await Promise.all([
+      DatBanQuanLyApi.getAll('DA_NHAN_BAN'),
+    ])
+
+    if (reservationRes?.data) {
+      checkedInReservations.value = reservationRes.data.filter((item: any) => item?.trangThai === 'DA_NHAN_BAN')
+      soLuongHoaDon.value = checkedInReservations.value.length
+    } else {
+      soLuongHoaDon.value = 0
+      checkedInReservations.value = []
     }
   } catch (error) {
-    console.error('Không thể tải số lượng hóa đơn:', error)
+    console.error('Không thể tải đơn đã check-in:', error)
+    soLuongHoaDon.value = 0
+    checkedInReservations.value = []
   }
 }
 
@@ -210,6 +231,14 @@ onMounted(async () => {
 
 <template>
   <div class="ban-hang-view">
+    <div class="page-actions">
+      <button class="btn-bills" type="button" @click="showAllBills = true">
+        <span class="btn-icon">📋</span>
+        Tất cả hóa đơn
+        <span class="badge" v-if="soLuongHoaDon > 0">{{ soLuongHoaDon }}</span>
+      </button>
+    </div>
+
     <template v-if="manHinhHienTai === 'danhSachBan'">
       <!-- HEADER: TIÊU ĐỀ + NGÀY THÁNG -->
       <div class="header-section">
@@ -221,13 +250,6 @@ onMounted(async () => {
           </div>
         </div>
         <div class="header-right">
-          <!-- Nút xem tất cả hóa đơn -->
-          <button class="btn-bills" @click="showAllBills = true">
-            <span class="btn-icon">📋</span>
-            Tất cả hóa đơn
-            <span class="badge" v-if="soLuongHoaDon > 0">{{ soLuongHoaDon }}</span>
-          </button>
-          
           <!-- Thống kê nhanh -->
           <div class="stats-badge">
             <span class="stat-item">
@@ -407,6 +429,12 @@ onMounted(async () => {
 }
 
 /* ========== HEADER ========== */
+.page-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
 .header-section {
   display: flex;
   justify-content: space-between;

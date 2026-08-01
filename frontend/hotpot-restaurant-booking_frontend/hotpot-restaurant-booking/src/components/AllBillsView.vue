@@ -1,7 +1,7 @@
 <!-- src/components/AllBillsView.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import HoaDonApi from '@/api/HoaDonApi'
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import BanApi from '@/api/BanApi'
 import { getAllKhuVuc } from '@/api/khuvuc'
 
@@ -62,14 +62,15 @@ const tongDoanhThu = computed(() => {
 const loadHoaDon = async () => {
   isLoading.value = true
   try {
-    // Lấy danh sách tất cả hóa đơn
-    const res = await HoaDonApi.getDanhSach()
+    const res = await DatBanQuanLyApi.getAll('DA_NHAN_BAN')
     if (res?.data) {
-      // Lọc hóa đơn có trangThaiHoaDon = 0 (đang hoạt động)
-      danhSachHoaDon.value = res.data.filter((hd: any) => hd.trangThaiHoaDon === 0)
+      danhSachHoaDon.value = res.data.filter((item: any) => item?.trangThai === 'DA_NHAN_BAN')
+    } else {
+      danhSachHoaDon.value = []
     }
   } catch (error) {
-    console.error('Không thể tải hóa đơn:', error)
+    console.error('Không thể tải đơn check-in:', error)
+    danhSachHoaDon.value = []
   } finally {
     isLoading.value = false
   }
@@ -97,22 +98,25 @@ const refreshData = async () => {
   await Promise.all([loadHoaDon(), loadBan(), loadKhuVuc()])
 }
 
-const getBanName = (idBan: number) => {
+const getBanName = (idBan: number | null | undefined) => {
+  if (!idBan) return 'Chưa có bàn'
   const ban = danhSachBan.value.find(b => b.idBan === idBan)
   return ban?.tenBan || `Bàn #${idBan}`
 }
 
-const getKhuVucName = (idBan: number) => {
+const getKhuVucName = (idBan: number | null | undefined) => {
+  if (!idBan) return 'Không xác định'
   const ban = danhSachBan.value.find(b => b.idBan === idBan)
   const kv = danhSachKhuVuc.value.find(k => k.idKhuVuc === ban?.idKhuVuc)
   return kv?.tenKhuVuc || 'Không xác định'
 }
 
-const formatCurrency = (amount: number) => {
+const formatCurrency = (amount: number | string | null | undefined) => {
+  const numericAmount = Number(amount || 0)
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
-  }).format(amount || 0)
+  }).format(numericAmount)
 }
 
 const formatTime = (dateString: string | number[] | null) => {
@@ -185,7 +189,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="stat-item">
         <span class="stat-value">{{ danhSachHoaDon.length }}</span>
-        <span class="stat-label">Tổng hóa đơn</span>
+        <span class="stat-label">Đơn đã check-in</span>
       </div>
     </div>
 
@@ -226,7 +230,7 @@ onBeforeUnmount(() => {
       
       <div v-else-if="filteredHoaDon.length === 0" class="empty-state">
         <span class="empty-icon">🎉</span>
-        <p>Không có hóa đơn nào đang hoạt động</p>
+        <p>Không có đơn nào đã check-in</p>
       </div>
       
       <div v-else class="bill-cards">
@@ -237,24 +241,24 @@ onBeforeUnmount(() => {
         >
           <div class="bill-card-header">
             <div class="bill-info-left">
-              <span class="bill-ban">{{ getBanName(hd.idBan) }}</span>
-              <span class="bill-khuvuc">{{ getKhuVucName(hd.idBan) }}</span>
+              <span class="bill-ban">{{ getBanName(hd.dsBan?.[0]?.idBan || hd.idBan) }}</span>
+              <span class="bill-khuvuc">{{ getKhuVucName(hd.dsBan?.[0]?.idBan || hd.idBan) }}</span>
             </div>
-            <span class="bill-time">{{ formatTime(hd.thoiGianXuat) }}</span>
+            <span class="bill-time">{{ formatTime(hd.thoiGianDenDuKien || hd.ngayDat) }}</span>
           </div>
           
           <div class="bill-card-body">
             <div class="bill-details">
               <span class="bill-customer">👤 {{ hd.tenKhachHang || 'Khách lẻ' }}</span>
-              <span class="bill-code">📝 {{ hd.maHoaDon || 'HD-' + hd.idHoaDon }}</span>
+              <span class="bill-code">📝 Đơn #{{ hd.idDatBan }}</span>
             </div>
             <div class="bill-total">
-              <span class="total-amount">{{ formatCurrency(Number(hd.tongTien || 0)) }}</span>
+              <span class="total-amount">{{ formatCurrency(hd.soTienCoc || 0) }}</span>
             </div>
           </div>
           
           <div class="bill-card-footer">
-            <span class="bill-items">🍲 {{ hd.chiTiet?.length || 0 }} món</span>
+            <span class="bill-items">👥 {{ hd.soNguoi || 0 }} người</span>
             <button class="btn-view" @click="$emit('viewBill', hd)">
               Xem chi tiết →
             </button>

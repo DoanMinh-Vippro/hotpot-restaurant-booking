@@ -17,3 +17,4 @@ export const getTienCocByKhachHang = (khachHangId: number) => {
 export const getTongTienDaThu = () => {
   return ApiClient.get(`${API_URL}/tong-tien-da-thu`)
 }
+//cd frontend\hotpot-restaurant-booking_frontend\hotpot-restaurant-booking
