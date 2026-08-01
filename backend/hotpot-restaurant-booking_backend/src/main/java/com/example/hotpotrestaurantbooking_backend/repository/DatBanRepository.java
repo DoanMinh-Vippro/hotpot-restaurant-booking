@@ -74,4 +74,28 @@ WHERE
 ORDER BY d.thoiGianDenDuKien DESC
 """)
     List<DatBan> searchByKeyword(String keyword);
+
+    @Query("""
+SELECT d
+FROM DatBan d
+LEFT JOIN d.khachHang k
+WHERE
+(:keyword IS NULL OR
+ LOWER(k.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%'))
+ OR d.sdtKhachHang LIKE CONCAT('%', :keyword, '%'))
+
+AND (:trangThai IS NULL OR d.trangThai = :trangThai)
+
+AND (:tuNgay IS NULL OR d.thoiGianDenDuKien >= :tuNgay)
+
+AND (:denNgay IS NULL OR d.thoiGianDenDuKien <= :denNgay)
+
+ORDER BY d.thoiGianDenDuKien DESC
+""")
+    List<DatBan> search(
+            String keyword,
+            TrangThaiDatBan trangThai,
+            LocalDateTime tuNgay,
+            LocalDateTime denNgay
+    );
 }

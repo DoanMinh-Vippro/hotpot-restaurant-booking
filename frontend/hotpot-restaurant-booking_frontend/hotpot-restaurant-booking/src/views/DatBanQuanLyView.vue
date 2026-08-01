@@ -36,20 +36,12 @@ const confirmAction = ref<Function>()
 
 //=========================================================================================================
 const loadData = async () => {
-  let res
-
-  // Ưu tiên tìm theo từ khóa
-  if (filter.value.keyword.trim()) {
-    res = await DatBanQuanLyApi.searchByKeyword(filter.value.keyword.trim())
-  }
-  // Sau đó mới đến lọc theo thời gian
-  else if (filter.value.tuNgay && filter.value.denNgay) {
-    res = await DatBanQuanLyApi.findByThoiGian(filter.value.tuNgay, filter.value.denNgay)
-  }
-  // Cuối cùng là trạng thái hoặc tất cả
-  else {
-    res = await DatBanQuanLyApi.getAll(filter.value.trangThai || undefined)
-  }
+  const res = await DatBanQuanLyApi.search({
+    keyword: filter.value.keyword || undefined,
+    trangThai: filter.value.trangThai || undefined,
+    tuNgay: filter.value.tuNgay || undefined,
+    denNgay: filter.value.denNgay || undefined,
+  })
 
   dsDatBan.value = res.data
 }
@@ -193,9 +185,17 @@ const handleCheckIn = async (item: any) => {
   await loadData()
 }
 
-const handleHuy = async (item: any) => {
-  await DatBanQuanLyApi.delete(item.idDatBan)
-  await loadData()
+const handleHuy = (item: any) => {
+  showDetail.value = false
+  selectedReservation.value = item
+  confirmTitle.value = 'Huỷ đơn đặt bàn'
+  confirmMessage.value = `Bạn có chắc muốn huỷ đơn #${item.idDatBan} không?`
+  confirmAction.value = async () => {
+    await DatBanQuanLyApi.delete(item.idDatBan)
+    closeAllDialog()
+    await loadData()
+  }
+  showConfirm.value = true
 }
 
 onMounted(() => {
