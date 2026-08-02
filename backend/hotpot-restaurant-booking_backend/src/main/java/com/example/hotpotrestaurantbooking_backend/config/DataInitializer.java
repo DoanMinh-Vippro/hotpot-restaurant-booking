@@ -20,7 +20,7 @@ public class DataInitializer {
     public CommandLineRunner initData() {
         return args -> {
             // Tìm user 'admin'
-            Optional<TaiKhoan> adminOpt = taiKhoanRepository.findByTenDangNhap("Khachhang01");
+            Optional<TaiKhoan> adminOpt = taiKhoanRepository.findByTenDangNhap("admin");
 
             if (adminOpt.isPresent()) {
                 TaiKhoan admin = adminOpt.get();

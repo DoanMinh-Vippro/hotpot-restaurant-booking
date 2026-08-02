@@ -20,10 +20,7 @@ export default {
   },
 
   async getMenu() {
-    const [resMon, resCombo] = await Promise.all([
-      MonApi.hienThiMon(),
-      ComBoApi.hienThiComBo(),
-    ])
+    const [resMon, resCombo] = await Promise.all([MonApi.hienThiMon(), ComBoApi.hienThiComBo()])
 
     return {
       data: {
