@@ -114,9 +114,9 @@ const loadBan = async () => {
     const reservation = reservationByBanId.get(Number(ban.idBan))
     let nextStatus = ban.trangThai
 
-    if (reservation?.trangThai === 'DA_XAC_NHAN') {
+    if (reservation?.trangThai === 'DA_XAC_NHAN' && (ban.trangThai === 'TRONG' || ban.trangThai === 'DA_DAT')) {
       nextStatus = 'DA_DAT'
-    } else if (reservation?.trangThai === 'DA_NHAN_BAN') {
+    } else if (reservation?.trangThai === 'DA_NHAN_BAN' && (ban.trangThai === 'TRONG' || ban.trangThai === 'DANG_SU_DUNG')) {
       nextStatus = 'DANG_SU_DUNG'
     } else if (['HOAN_THANH', 'DA_HUY'].includes(reservation?.trangThai)) {
       nextStatus = 'TRONG'
@@ -372,9 +372,6 @@ onMounted(async () => {
               >
                 <span class="ban-mini-name">{{ ban.tenBan }}</span>
                 <span class="ban-mini-status trong">Trống</span>
-                <button class="btn-xep-ban" @click="handleSelectBan(ban); moPopupDatBan(ban)">
-                  Sắp bàn →
-                </button>
               </div>
             </div>
           </div>

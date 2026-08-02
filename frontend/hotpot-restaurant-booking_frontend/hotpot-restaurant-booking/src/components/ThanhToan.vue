@@ -28,6 +28,15 @@ const quayLai = () => {
   emit('quayLai')
 }
 
+const hoanTatThanhToan = async () => {
+  try {
+    await markReservationCompleted()
+    emit('quayLai')
+  } catch (error) {
+    console.error('Không thể cập nhật trạng thái bàn sau thanh toán:', error)
+  }
+}
+
 // ================= STATE =================
 const danhSachCombo = ref<any[]>([])
 const danhSachMonAn = ref<any[]>([])
@@ -156,6 +165,7 @@ const handleChuyenKhoanThanhCong = async () => {
     hienThiSePayQR.value = false
     await xuLyHoaDon(1, 1) // Cập nhật hóa đơn thành Đã thanh toán (1, 1)
     await markReservationCompleted()
+    emit('quayLai')
     alert(`Bàn ${props.ban?.tenBan} đã thanh toán chuyển khoản thành công tự động!`)
 
     // Reset state tại client
@@ -188,6 +198,19 @@ const tongThanhToan = computed(() => Math.max(0, tongTienTamTinhCotGiua.value - 
 // ================= HÓA ĐƠN API =================
 const checkHoaDonTam = async () => {
   try {
+    const reservationItems = props.datBan?.idDatBan
+      ? buildReservationItems(props.datBan)
+      : []
+
+    if (reservationItems.length > 0) {
+      gioHang.value = []
+      danhSachMonPhucVu.value = reservationItems
+      tabGioHang.value = 'mon-da-goi'
+      hoaDonHienTai.value = null
+      giamGiaDangChon.value = null
+      return
+    }
+
     const res = await HoaDonApi.findByBanAndStatus(props.ban.idBan, 0)
     const hd = res.data
     if (!hd) return
@@ -279,15 +302,65 @@ const normalizeReservationStatus = (value: any) => {
   return String(value)
 }
 
+const buildReservationItems = (db: any) => {
+  const reservationItems: any[] = []
+  const comboMap = new Map(danhSachCombo.value.map((item: any) => [Number(item.idCombo), item]))
+  const monMap = new Map(danhSachMonAn.value.map((item: any) => [Number(item.idMon), item]))
+
+  const pushItem = (item: any, loai: 'MON' | 'COMBO') => {
+    if (!item) return
+
+    const resolvedItem = loai === 'COMBO'
+      ? comboMap.get(Number(item.idCombo)) ?? null
+      : monMap.get(Number(item.idMon)) ?? null
+
+    const gia = Number(
+      resolvedItem?.giaSauGiam ??
+        resolvedItem?.gia ??
+        resolvedItem?.giaCombo ??
+        item.giaSauGiam ??
+        item.gia ??
+        item.giaCombo ??
+        0,
+    )
+
+    reservationItems.push({
+      idMon: loai === 'MON' ? Number(item.idMon) ?? null : null,
+      idCombo: loai === 'COMBO' ? Number(item.idCombo) ?? null : null,
+      tenMon: item.tenMon ?? resolvedItem?.tenMon ?? null,
+      tenCombo: item.tenCombo ?? resolvedItem?.tenCombo ?? null,
+      gia,
+      soLuong: Number(item.soLuong ?? 1),
+      daLen: Number(item.soLuong ?? 1),
+      loai,
+      comboItems: resolvedItem?.comboItems ?? [],
+    })
+  }
+
+  if (Array.isArray(db?.dsCombo)) {
+    db.dsCombo.forEach((item: any) => pushItem(item, 'COMBO'))
+  }
+
+  if (Array.isArray(db?.dsMon)) {
+    db.dsMon.forEach((item: any) => pushItem(item, 'MON'))
+  }
+
+  return reservationItems
+}
+
 const syncReservationToSeated = async () => {
   if (!props.datBan?.idDatBan) return
   const currentStatus = normalizeReservationStatus(props.datBan?.trangThai)
   if (currentStatus !== 'DA_XAC_NHAN' && currentStatus !== 'DA_NHAN_BAN') return
   try {
     if (props.ban?.idBan) {
-      await BanApi.update(props.ban.idBan, {
+      const payload = {
+        loaiBan: props.ban?.loaiBan ?? null,
+        tenBan: props.ban?.tenBan ?? null,
+        idKhuVuc: props.ban?.idKhuVuc ?? null,
         trangThai: currentStatus === 'DA_NHAN_BAN' ? 'DANG_SU_DUNG' : 'DA_DAT',
-      })
+      }
+      await BanApi.update(props.ban.idBan, payload)
     }
   } catch (error) {
     console.error(error)
@@ -295,17 +368,32 @@ const syncReservationToSeated = async () => {
 }
 
 const markReservationCompleted = async () => {
-  if (!props.datBan?.idDatBan) return
-  try {
-    await DatBanQuanLyApi.update(props.datBan.idDatBan, {
-      ...props.datBan,
-      trangThai: 'HOAN_THANH',
-    })
-    if (props.ban?.idBan) {
-      await BanApi.update(props.ban.idBan, { trangThai: 'TRONG' })
+  const reservationId = props.datBan?.idDatBan
+  const banId = props.ban?.idBan
+
+  if (reservationId) {
+    try {
+      await DatBanQuanLyApi.update(reservationId, {
+        ...props.datBan,
+        trangThai: 'HOAN_THANH',
+      })
+    } catch (error) {
+      console.warn('Không thể cập nhật đơn đặt bàn sau thanh toán:', error)
     }
-  } catch (error) {
-    console.error(error)
+  }
+
+  if (banId) {
+    try {
+      const payload = {
+        loaiBan: props.ban?.loaiBan ?? null,
+        tenBan: props.ban?.tenBan ?? null,
+        idKhuVuc: props.ban?.idKhuVuc ?? null,
+        trangThai: 'TRONG',
+      }
+      await BanApi.update(banId, payload)
+    } catch (error) {
+      console.warn('Không thể cập nhật trạng thái bàn sau thanh toán:', error)
+    }
   }
 }
 
@@ -370,6 +458,7 @@ const taoHoaDon = async () => {
   try {
     await xuLyHoaDon(1, 1)
     await markReservationCompleted()
+    emit('quayLai')
 
     if (shiftStore.currentShift?.isOpen) {
       shiftStore.syncBillFromPos({
@@ -404,17 +493,27 @@ watch(
   () => props.datBan,
   async (db) => {
     if (!db) return
-    gioHang.value = []
-    if (db.idCombo) {
-      gioHang.value.push({
-        idCombo: db.idCombo,
-        tenCombo: db.tenCombo,
-        gia: db.giaCombo ?? 0,
-        soLuong: 1,
-        loai: 'COMBO',
-        comboItems: db.comboItems ?? [],
-      })
+
+    const reservationItems = buildReservationItems(db)
+
+    if (reservationItems.length > 0) {
+      gioHang.value = []
+      danhSachMonPhucVu.value = reservationItems
+      tabGioHang.value = 'mon-da-goi'
+    } else if (db.idCombo) {
+      gioHang.value = [
+        {
+          idCombo: db.idCombo,
+          tenCombo: db.tenCombo,
+          gia: db.giaCombo ?? 0,
+          soLuong: 1,
+          loai: 'COMBO',
+          comboItems: db.comboItems ?? [],
+        },
+      ]
+      danhSachMonPhucVu.value = []
     }
+
     await syncReservationToSeated()
   },
   { immediate: true },

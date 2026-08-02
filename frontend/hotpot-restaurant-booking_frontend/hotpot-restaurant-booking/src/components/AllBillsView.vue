@@ -1,7 +1,7 @@
 <!-- src/components/AllBillsView.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import HoaDonApi from '@/api/HoaDonApi'
 import BanApi from '@/api/BanApi'
 import { getAllKhuVuc } from '@/api/khuvuc'
 
@@ -16,37 +16,40 @@ const sortBy = ref('thoiGian')
 // ======================== COMPUTED ========================
 const filteredHoaDon = computed(() => {
   let list = [...danhSachHoaDon.value]
-  
+
   if (searchKeyword.value.trim()) {
     const keyword = searchKeyword.value.trim().toLowerCase()
-    list = list.filter(hd => {
-      const ban = danhSachBan.value.find(b => b.idBan === hd.idBan)
-      return ban?.tenBan?.toLowerCase().includes(keyword) ||
-             hd.maHoaDon?.toLowerCase().includes(keyword) ||
-             hd.tenKhachHang?.toLowerCase().includes(keyword)
+    list = list.filter((hd) => {
+      const ban = danhSachBan.value.find((b) => Number(b.idBan) === Number(hd.idBan ?? hd.ban?.idBan))
+      return (
+        ban?.tenBan?.toLowerCase().includes(keyword) ||
+        hd.maHoaDon?.toLowerCase().includes(keyword) ||
+        hd.tenKhachHang?.toLowerCase().includes(keyword) ||
+        hd.idHoaDon?.toString().includes(keyword)
+      )
     })
   }
-  
+
   if (selectedKhuVuc.value) {
-    list = list.filter(hd => {
-      const ban = danhSachBan.value.find(b => b.idBan === hd.idBan)
+    list = list.filter((hd) => {
+      const ban = danhSachBan.value.find((b) => Number(b.idBan) === Number(hd.idBan ?? hd.ban?.idBan))
       return ban?.idKhuVuc === selectedKhuVuc.value
     })
   }
-  
+
   list.sort((a, b) => {
     if (sortBy.value === 'thoiGian') {
-      return new Date(b.thoiGianXuat).getTime() - new Date(a.thoiGianXuat).getTime()
+      return new Date(b.thoiGianXuat || 0).getTime() - new Date(a.thoiGianXuat || 0).getTime()
     } else if (sortBy.value === 'tongTien') {
       return Number(b.tongTien || 0) - Number(a.tongTien || 0)
     } else if (sortBy.value === 'tenBan') {
-      const banA = danhSachBan.value.find(b => b.idBan === a.idBan)
-      const banB = danhSachBan.value.find(b => b.idBan === b.idBan)
+      const banA = danhSachBan.value.find((b) => Number(b.idBan) === Number(a.idBan ?? a.ban?.idBan))
+      const banB = danhSachBan.value.find((b) => Number(b.idBan) === Number(b.idBan ?? b.ban?.idBan))
       return (banA?.tenBan || '').localeCompare(banB?.tenBan || '')
     }
     return 0
   })
-  
+
   return list
 })
 
@@ -62,14 +65,27 @@ const tongDoanhThu = computed(() => {
 const loadHoaDon = async () => {
   isLoading.value = true
   try {
-    const res = await DatBanQuanLyApi.getAll('DA_NHAN_BAN')
-    if (res?.data) {
-      danhSachHoaDon.value = res.data.filter((item: any) => item?.trangThai === 'DA_NHAN_BAN')
-    } else {
-      danhSachHoaDon.value = []
-    }
+    const res = await HoaDonApi.getDanhSach()
+    const invoices = Array.isArray(res?.data) ? res.data : []
+
+    danhSachHoaDon.value = invoices.filter((item: any) => {
+      const ban = danhSachBan.value.find((b: any) => Number(b.idBan) === Number(item.idBan ?? item.ban?.idBan))
+      const invoiceStatus = Number(item?.trangThaiHoaDon ?? item?.trangThai ?? 0)
+      const paymentStatus = Number(item?.trangThaiThanhToan ?? 0)
+      const tableStatus = String(ban?.trangThai ?? item?.ban?.trangThai ?? '').toUpperCase()
+
+      const isInvoiceActive = invoiceStatus === 0 || paymentStatus === 0 || invoiceStatus === null || paymentStatus === null
+      const isTableOccupied =
+        tableStatus === 'DANG_SU_DUNG' ||
+        tableStatus === 'DA_DAT' ||
+        tableStatus === 'DA_NHAN_BAN' ||
+        Number(ban?.trangThai) === 1 ||
+        Number(item?.trangThaiThanhToan ?? 0) === 0
+
+      return item.idBan != null && (isInvoiceActive || isTableOccupied)
+    })
   } catch (error) {
-    console.error('Không thể tải đơn check-in:', error)
+    console.error('Không thể tải hóa đơn đang hoạt động:', error)
     danhSachHoaDon.value = []
   } finally {
     isLoading.value = false
@@ -95,19 +111,20 @@ const loadKhuVuc = async () => {
 }
 
 const refreshData = async () => {
-  await Promise.all([loadHoaDon(), loadBan(), loadKhuVuc()])
+  await Promise.all([loadBan(), loadKhuVuc()])
+  await loadHoaDon()
 }
 
 const getBanName = (idBan: number | null | undefined) => {
   if (!idBan) return 'Chưa có bàn'
-  const ban = danhSachBan.value.find(b => b.idBan === idBan)
+  const ban = danhSachBan.value.find(b => Number(b.idBan) === Number(idBan))
   return ban?.tenBan || `Bàn #${idBan}`
 }
 
 const getKhuVucName = (idBan: number | null | undefined) => {
   if (!idBan) return 'Không xác định'
-  const ban = danhSachBan.value.find(b => b.idBan === idBan)
-  const kv = danhSachKhuVuc.value.find(k => k.idKhuVuc === ban?.idKhuVuc)
+  const ban = danhSachBan.value.find(b => Number(b.idBan) === Number(idBan))
+  const kv = danhSachKhuVuc.value.find(k => Number(k.idKhuVuc) === Number(ban?.idKhuVuc))
   return kv?.tenKhuVuc || 'Không xác định'
 }
 
@@ -189,7 +206,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="stat-item">
         <span class="stat-value">{{ danhSachHoaDon.length }}</span>
-        <span class="stat-label">Đơn đã check-in</span>
+        <span class="stat-label">Đơn đang hoạt động</span>
       </div>
     </div>
 
@@ -230,7 +247,7 @@ onBeforeUnmount(() => {
       
       <div v-else-if="filteredHoaDon.length === 0" class="empty-state">
         <span class="empty-icon">🎉</span>
-        <p>Không có đơn nào đã check-in</p>
+        <p>Không có đơn hàng đang hoạt động</p>
       </div>
       
       <div v-else class="bill-cards">
