@@ -18,31 +18,31 @@ import java.util.List;
 public class BanController {
     private final BanService banService;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF')")
     @GetMapping
     public ResponseEntity<List<DTOBanResponse>> getAll(){
         return ResponseEntity.status(HttpStatus.OK).body(banService.getAll());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF')")
     @GetMapping("{id}")
     public ResponseEntity<DTOBanResponse> findById(@PathVariable Integer id){
         return ResponseEntity.status(HttpStatus.OK).body(banService.findById(id));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF')")
     @PostMapping
     public ResponseEntity<DTOBanResponse> add(@Valid @RequestBody DTOBanRequest request){
         return ResponseEntity.status(HttpStatus.CREATED).body(banService.add(request));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF')")
     @PutMapping("{id}")
     public ResponseEntity<DTOBanResponse> update(@PathVariable Integer id, @Valid @RequestBody DTOBanRequest request){
         return ResponseEntity.status(HttpStatus.OK).body(banService.update(id,request));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF')")
     @DeleteMapping("{id}")
     public ResponseEntity<Void> deleteById(@PathVariable Integer id){
         banService.delete(id);
