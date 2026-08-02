@@ -19,7 +19,7 @@ import Hero from '../components/HeroSection.vue'
     <Contact />
 
     <footer class="simple-copyright">
-      <p>© 2026 CÁI BANG RESTO - Thiết kế bởi nx_duxng</p>
+      <p>© 2026 CÁI BANG RESTO</p>
     </footer>
   </div>
 </template>

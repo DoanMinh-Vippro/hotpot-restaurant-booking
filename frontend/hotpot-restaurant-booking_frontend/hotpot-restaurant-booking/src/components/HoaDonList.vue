@@ -189,7 +189,7 @@ const filteredHoaDons = computed(() => {
   background: rgba(255, 248, 234, 0.96);
   backdrop-filter: blur(10px);
   border-radius: 16px;
-  padding: 18px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 220px);
@@ -216,11 +216,12 @@ const filteredHoaDons = computed(() => {
 .o-tim-kiem {
   width: 100%;
   margin-bottom: 14px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   border-radius: 10px;
   border: 1px solid #e6d2aa;
   background: #fffdf8;
   color: #5f3d22;
+  font-size: 0.9rem;
 }
 .o-tim-kiem::placeholder {
   color: #8f6b46;
@@ -228,17 +229,18 @@ const filteredHoaDons = computed(() => {
 .hang-hoa-don {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  min-height: 76px;
+  min-height: 72px;
   border-radius: 10px;
   margin-bottom: 10px;
-  padding: 14px;
+  padding: 12px 13px;
   text-align: left;
   background: #fff8ea;
   border: 1px solid #e6d2aa;
   color: #5f3d22;
   cursor: pointer;
+  font-size: 0.9rem;
 }
 .hang-hoa-don.active {
   border-color: #d8a85c;
@@ -250,8 +252,9 @@ const filteredHoaDons = computed(() => {
   display: block;
 }
 .hang-hoa-don small {
-  margin-top: 6px;
+  margin-top: 4px;
   color: #8f6b46;
+  font-size: 0.75rem;
 }
 .hang-phai {
   text-align: right;

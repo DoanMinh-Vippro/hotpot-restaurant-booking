@@ -28,6 +28,7 @@ const invoiceDetailItems = ref<HoaDonChiTiet[]>([])
 const detailLoading = ref(false)
 const showHistoryDetailModal = ref(false)
 const selectedHistoryEntry = ref<ShiftHistoryEntry | null>(null)
+const editingTransactionId = ref<number | null>(null)
 
 const moneyFormatter = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -60,6 +61,8 @@ const historyEntries = computed(() => {
     return timeA - timeB
   })
 })
+const getEntryCashInShift = (entry?: ShiftHistoryEntry | null) =>
+  Number(entry?.summary?.cashSales || 0) + Number(entry?.summary?.cashIncome || 0) - Number(entry?.summary?.cashExpense || 0)
 const employeeName = computed(() => {
   const fromShift = shiftSession.value?.employeeName?.trim()
   const fromAuth = authStore.accountName?.trim()
@@ -178,27 +181,31 @@ const normalizeShiftBill = (invoice: HoaDon): ShiftInvoice => {
   }
 }
 
+const getEffectiveShiftAllocationStart = () => {
+  const currentShiftStart = new Date(shiftStore.currentShift?.startTime || shiftStore.currentShift?.openedAt || Date.now()).getTime()
+  const historyTimeline = [...(shiftStore.history || [])]
+    .map((entry) => {
+      const closedAt = toTimestamp(entry.closedAt || entry.endTime)
+      return closedAt !== null ? closedAt : null
+    })
+    .filter((value): value is number => value !== null)
+    .sort((a, b) => b - a)
+
+  const latestClosedBoundary = historyTimeline[0] ?? currentShiftStart
+  return Number.isFinite(latestClosedBoundary) ? latestClosedBoundary : currentShiftStart
+}
+
 const loadShiftBillsFromServer = async () => {
   if (!shiftStore.currentShift?.startTime || !shiftStore.currentShift.isOpen) return
 
   refreshingBills.value = true
   try {
-    const shiftStartTime = new Date(shiftStore.currentShift.startTime || shiftStore.currentShift.openedAt).getTime()
-    const latestClosedShift = [...(shiftStore.history || [])]
-      .filter((entry) => entry.endTime || entry.closedAt)
-      .sort((a, b) => {
-        const timeA = new Date(b.closedAt || b.endTime || b.openedAt).getTime()
-        const timeB = new Date(a.closedAt || a.endTime || a.openedAt).getTime()
-        return timeA - timeB
-      })[0]
+    const shiftStartTime = getEffectiveShiftAllocationStart()
+    const shiftEndTime = Date.now()
 
-    const previousClosedAt = latestClosedShift
-      ? new Date(latestClosedShift.closedAt || latestClosedShift.endTime || latestClosedShift.openedAt).getTime()
-      : null
-
-    const effectiveLowerBound = previousClosedAt && !Number.isNaN(previousClosedAt)
-      ? previousClosedAt
-      : shiftStartTime
+    if (!Number.isFinite(shiftStartTime)) {
+      return
+    }
 
     const res = await HoaDonApi.getDanhSach()
     const invoices = Array.isArray(res.data) ? res.data : []
@@ -206,7 +213,7 @@ const loadShiftBillsFromServer = async () => {
     const serverBills: ShiftInvoice[] = invoices
       .filter((invoice: HoaDon) => {
         const invoiceTime = getInvoiceTimestamp(invoice)
-        return invoiceTime !== null && invoiceTime >= effectiveLowerBound
+        return invoiceTime !== null && invoiceTime >= shiftStartTime && invoiceTime <= shiftEndTime
       })
       .map((invoice: HoaDon) => normalizeShiftBill(invoice))
 
@@ -259,7 +266,31 @@ const openShift = () => {
   void loadShiftBillsFromServer()
 }
 
-const addTransaction = () => {
+const resetTransactionForm = () => {
+  editingTransactionId.value = null
+  transactionForm.value = {
+    type: 'income',
+    paymentMethod: 'cash',
+    amount: '',
+    reason: '',
+  }
+}
+
+const startEditTransaction = (item: { id: number; type: 'income' | 'expense'; amount: number; reason: string; paymentMethod: 'cash' | 'transfer' }) => {
+  editingTransactionId.value = item.id
+  transactionForm.value = {
+    type: item.type,
+    paymentMethod: item.paymentMethod,
+    amount: String(item.amount),
+    reason: item.reason,
+  }
+}
+
+const cancelEditTransaction = () => {
+  resetTransactionForm()
+}
+
+const saveTransaction = () => {
   const amount = Number(transactionForm.value.amount)
 
   if (!transactionForm.value.reason.trim() || !transactionForm.value.amount || Number.isNaN(amount) || amount <= 0) {
@@ -267,18 +298,32 @@ const addTransaction = () => {
     return
   }
 
-  shiftStore.addCashTransaction({
-    type: transactionForm.value.type,
-    amount,
-    reason: transactionForm.value.reason.trim(),
-    paymentMethod: transactionForm.value.paymentMethod,
-  })
+  if (editingTransactionId.value !== null) {
+    shiftStore.updateExpenseTransaction({
+      id: editingTransactionId.value,
+      type: transactionForm.value.type,
+      amount,
+      reason: transactionForm.value.reason.trim(),
+      paymentMethod: transactionForm.value.paymentMethod,
+    })
+  } else {
+    shiftStore.addCashTransaction({
+      type: transactionForm.value.type,
+      amount,
+      reason: transactionForm.value.reason.trim(),
+      paymentMethod: transactionForm.value.paymentMethod,
+    })
+  }
 
-  transactionForm.value = {
-    type: 'income',
-    paymentMethod: 'cash',
-    amount: '',
-    reason: '',
+  resetTransactionForm()
+}
+
+const removeTransaction = (id: number) => {
+  if (!window.confirm('Bạn có chắc muốn xóa khoản thu/chi này khỏi ca hiện tại?')) return
+
+  shiftStore.deleteExpenseTransaction(id)
+  if (editingTransactionId.value === id) {
+    resetTransactionForm()
   }
 }
 
@@ -384,10 +429,14 @@ onMounted(() => {
               <thead>
                 <tr>
                   <th>Mã ca</th>
-                  <th>Tên nhân viên mở</th>
-                  <th>Thời gian mở - đóng</th>
+                  <th>Nhân viên mở ca</th>
+                  <th>Thời gian mở → đóng</th>
                   <th>Số dư đầu ca</th>
+                  <th>Doanh thu Gross</th>
+                  <th>Giảm giá</th>
                   <th>Doanh thu NET</th>
+                  <th>Tiền mặt / Chuyển khoản</th>
+                  <th>Tiền mặt cuối ca</th>
                   <th>Hành động</th>
                 </tr>
               </thead>
@@ -397,7 +446,17 @@ onMounted(() => {
                   <td>{{ entry.employeeName }}</td>
                   <td>{{ formatShiftRange(entry.startTime, entry.endTime || entry.closedAt) }}</td>
                   <td>{{ moneyFormatter.format(entry.openingCash) }}</td>
+                  <td>{{ moneyFormatter.format(entry.summary?.gross ?? 0) }}</td>
+                  <td>{{ moneyFormatter.format(entry.summary?.discount ?? 0) }}</td>
                   <td>{{ moneyFormatter.format(entry.summary?.revenue ?? 0) }}</td>
+                  <td>
+                    <div class="inline-stack">
+                      <span>{{ moneyFormatter.format(entry.summary?.cashSales ?? 0) }}</span>
+                      <span class="subtle-label">/</span>
+                      <span>{{ moneyFormatter.format(entry.summary?.transferSales ?? 0) }}</span>
+                    </div>
+                  </td>
+                  <td>{{ moneyFormatter.format(entry.summary?.endingCash ?? 0) }}</td>
                   <td>
                     <button class="btn-link" @click="openHistoryDetail(entry)">Xem chi tiết</button>
                   </td>
@@ -441,7 +500,7 @@ onMounted(() => {
 
         <div v-else-if="activeTab === 'transactions'" class="tab-content transaction-layout">
           <div class="form-card">
-            <h3>Thêm khoản thu/chi phát sinh</h3>
+            <h3>{{ editingTransactionId !== null ? 'Cập nhật khoản thu/chi phát sinh' : 'Thêm khoản thu/chi phát sinh' }}</h3>
             <div class="form-grid">
               <select v-model="transactionForm.type">
                 <option value="income">Thu</option>
@@ -454,7 +513,10 @@ onMounted(() => {
               <input v-model="transactionForm.amount" type="number" min="0" placeholder="Nhập số tiền" />
               <input v-model="transactionForm.reason" type="text" placeholder="Nhập lý do" />
             </div>
-            <button class="btn-primary" @click="addTransaction">Lưu giao dịch</button>
+            <div class="modal-actions split">
+              <button class="btn-primary" @click="saveTransaction">{{ editingTransactionId !== null ? 'Cập nhật' : 'Lưu giao dịch' }}</button>
+              <button v-if="editingTransactionId !== null" class="btn-secondary" @click="cancelEditTransaction">Hủy</button>
+            </div>
           </div>
 
           <div class="table-card">
@@ -465,6 +527,7 @@ onMounted(() => {
                   <th>Số tiền</th>
                   <th>Lý do</th>
                   <th>Thời gian</th>
+                  <th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
@@ -475,6 +538,16 @@ onMounted(() => {
                   <td>{{ moneyFormatter.format(item.amount) }}</td>
                   <td>{{ item.reason }} <span class="payment-method-tag">{{ item.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản' }}</span></td>
                   <td>{{ item.createdAt }}</td>
+                  <td>
+                    <div class="transaction-actions">
+                      <button class="action-btn" @click="startEditTransaction(item)" title="Sửa">
+                        ✎
+                      </button>
+                      <button class="action-btn danger" @click="removeTransaction(item.id)" title="Xóa">
+                        🗑
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -640,39 +713,152 @@ onMounted(() => {
           <button class="close-btn" @click="closeHistoryDetailModal">×</button>
         </div>
 
-        <div class="history-detail-card">
-          <div class="metric-row">
-            <span>Nhân viên mở ca</span>
-            <strong>{{ selectedHistoryEntry?.employeeName }}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Thời gian mở</span>
-            <strong>{{ selectedHistoryEntry?.startTime ? formatDate(selectedHistoryEntry.startTime) : '---' }}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Thời gian đóng</span>
-            <strong>{{ selectedHistoryEntry?.endTime || selectedHistoryEntry?.closedAt ? formatDate(selectedHistoryEntry?.endTime || selectedHistoryEntry?.closedAt || selectedHistoryEntry.startTime) : '---' }}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Số dư đầu ca</span>
-            <strong>{{ moneyFormatter.format(selectedHistoryEntry?.openingCash || 0) }}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Doanh thu NET</span>
-            <strong>{{ moneyFormatter.format(selectedHistoryEntry?.summary?.revenue || 0) }}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Tổng thu</span>
-            <strong>{{ moneyFormatter.format(selectedHistoryEntry?.summary?.totalIncome || 0) }}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Tổng chi</span>
-            <strong>{{ moneyFormatter.format(selectedHistoryEntry?.summary?.totalExpense || 0) }}</strong>
-          </div>
-          <div class="metric-row handover-row">
-            <span>Tiền mặt cuối ca</span>
-            <strong>{{ moneyFormatter.format(selectedHistoryEntry?.summary?.endingCash || 0) }}</strong>
-          </div>
+        <div v-if="selectedHistoryEntry" class="history-detail-card">
+          <section class="report-section">
+            <div class="section-title">THÔNG TIN CHUNG</div>
+            <div class="section-body">
+              <div class="metric-row">
+                <span>Mã ca</span>
+                <strong>{{ selectedHistoryEntry.shiftId }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Nhân viên mở ca</span>
+                <strong>{{ selectedHistoryEntry.employeeName }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Thời gian mở - đóng</span>
+                <strong>{{ formatShiftRange(selectedHistoryEntry.startTime, selectedHistoryEntry.endTime || selectedHistoryEntry.closedAt) }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Số dư đầu ca</span>
+                <strong>{{ moneyFormatter.format(selectedHistoryEntry.openingCash || 0) }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="report-section">
+            <div class="section-title">KHỐI DOANH THU CHI TIẾT</div>
+            <div class="section-body">
+              <div class="metric-row">
+                <span>Doanh thu Gross</span>
+                <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.gross || 0) }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Tổng giảm giá</span>
+                <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.discount || 0) }}</strong>
+              </div>
+              <div class="metric-row net-row">
+                <span>Doanh thu NET</span>
+                <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.revenue || 0) }}</strong>
+              </div>
+              <div class="payment-split">
+                <div class="payment-pill">
+                  <span>+ Tiền mặt trong ca</span>
+                  <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.cashSales || 0) }}</strong>
+                </div>
+                <div class="payment-pill">
+                  <span>+ Chuyển khoản trong ca</span>
+                  <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.transferSales || 0) }}</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="report-section">
+            <div class="section-title">KHỐI THU - CHI KHÁC (INCOME / EXPENSE)</div>
+            <div class="income-expense-grid">
+              <div class="mini-card">
+                <div class="mini-title">THU</div>
+                <div class="mini-meta">
+                  <span>Số lượng</span>
+                  <strong>{{ (selectedHistoryEntry.expenses || []).filter((item) => item.type === 'income').length }}</strong>
+                </div>
+                <div class="mini-meta">
+                  <span>Tiền mặt</span>
+                  <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.cashIncome || 0) }}</strong>
+                </div>
+                <div class="mini-meta">
+                  <span>Chuyển khoản</span>
+                  <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.transferIncome || 0) }}</strong>
+                </div>
+                <ul class="mini-list">
+                  <li v-for="item in (selectedHistoryEntry.expenses || []).filter((entry) => entry.type === 'income')" :key="item.id">
+                    <span>{{ item.reason }}</span>
+                    <strong>{{ moneyFormatter.format(item.amount) }}</strong>
+                  </li>
+                </ul>
+              </div>
+              <div class="mini-card">
+                <div class="mini-title">CHI</div>
+                <div class="mini-meta">
+                  <span>Số lượng</span>
+                  <strong>{{ (selectedHistoryEntry.expenses || []).filter((item) => item.type === 'expense').length }}</strong>
+                </div>
+                <div class="mini-meta">
+                  <span>Tiền mặt</span>
+                  <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.cashExpense || 0) }}</strong>
+                </div>
+                <div class="mini-meta">
+                  <span>Chuyển khoản</span>
+                  <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.transferExpense || 0) }}</strong>
+                </div>
+                <ul class="mini-list">
+                  <li v-for="item in (selectedHistoryEntry.expenses || []).filter((entry) => entry.type === 'expense')" :key="item.id">
+                    <span>{{ item.reason }}</span>
+                    <strong>{{ moneyFormatter.format(item.amount) }}</strong>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="report-section handover-section">
+            <div class="section-title">KHỐI BÀN GIAO CA (HANDOVER)</div>
+            <div class="section-body">
+              <div class="metric-row">
+                <span>Số dư đầu ca</span>
+                <strong>{{ moneyFormatter.format(selectedHistoryEntry.openingCash || 0) }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Tiền mặt trong ca</span>
+                <strong>{{ moneyFormatter.format(getEntryCashInShift(selectedHistoryEntry)) }}</strong>
+              </div>
+              <div class="metric-row handover-row">
+                <span>Tiền mặt cuối ca</span>
+                <strong>{{ moneyFormatter.format(selectedHistoryEntry.summary?.endingCash || 0) }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="report-section">
+            <div class="section-title">DANH SÁCH HÓA ĐƠN ĐÃ GÁN VÀO CA</div>
+            <div class="table-card nested-table-card">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mã hóa đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Thời gian</th>
+                    <th>Tổng tiền</th>
+                    <th>Phương thức</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="bill in selectedHistoryEntry.bills || []" :key="bill.id">
+                    <td>{{ bill.code }}</td>
+                    <td>{{ bill.customer }}</td>
+                    <td>{{ bill.createdAt }}</td>
+                    <td>{{ moneyFormatter.format(bill.total) }}</td>
+                    <td>{{ bill.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản' }}</td>
+                    <td>
+                      <span :class="['status-badge', bill.status]">{{ bill.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -908,6 +1094,28 @@ table {
   border-collapse: collapse;
 }
 
+.transaction-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-btn {
+  border: 1px solid #d9b27c;
+  background: #fff7ea;
+  color: #7b4b1f;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.action-btn.danger {
+  border-color: #b87162;
+  color: #8c3d2f;
+}
+
 th,
 td {
   border-bottom: 1px solid #ebd4ab;
@@ -981,20 +1189,25 @@ select {
   place-items: center;
   padding: 16px;
   z-index: 1000;
+  align-items: flex-start;
 }
 
 .modal-card {
   width: min(460px, 100%);
+  max-width: 100%;
   padding: 18px;
+  box-sizing: border-box;
 }
 
 .modal-card.wide {
-  width: min(640px, 100%);
+  width: min(1000px, 94vw);
+  max-width: 1000px;
 }
 
 .detail-modal-card {
   max-height: min(88vh, 920px);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .modal-header {
@@ -1034,6 +1247,8 @@ select {
   align-items: center;
   gap: 8px;
   margin-top: 14px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .report-layout {
@@ -1160,19 +1375,31 @@ select {
 }
 
 .report-checkbox {
-  margin-top: 8px;
-  padding: 10px 12px;
+  margin-top: 6px;
+  padding: 7px 10px;
   width: fit-content;
+  max-width: 100%;
   border: 1px solid #d7ad72;
   border-radius: 10px;
   background: #f7eedc;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 6px;
+  box-sizing: border-box;
+  align-self: flex-start;
 }
 
 .report-checkbox input {
   margin: 0;
+  flex: 0 0 auto;
+}
+
+.report-checkbox span {
+  white-space: nowrap;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: #6f4928;
 }
 
 .payment-method-tag {

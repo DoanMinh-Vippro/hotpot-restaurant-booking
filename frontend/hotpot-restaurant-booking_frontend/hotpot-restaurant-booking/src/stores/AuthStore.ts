@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { jwtDecode } from 'jwt-decode'
+import { getPermissionsForRole } from '@/utils/rolePermissions'
 
 interface JwtPayload {
   scope: string
@@ -9,6 +10,25 @@ interface JwtPayload {
 const isTokenExpired = (decoded: JwtPayload): boolean => {
   if (!decoded.exp) return false
   return Date.now() >= decoded.exp * 1000
+}
+
+const loadPermissions = (): string[] => {
+  try {
+    const stored = localStorage.getItem('permissions')
+    if (!stored) return []
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+const savePermissions = (permissions: string[]) => {
+  try {
+    localStorage.setItem('permissions', JSON.stringify(permissions))
+  } catch {
+    // ignore failure
+  }
 }
 
 const decodeUserRoleFromToken = (token: string | null): string | null => {
@@ -41,6 +61,7 @@ interface AuthState {
   userRole: string | null
   accountName: string | null
   customerInfo: CustomerInfo
+  permissions: string[]
 }
 
 const initialCustomerInfo: CustomerInfo = {
@@ -61,6 +82,13 @@ const clearStoredCustomerInfo = () => {
   localStorage.removeItem('diaChi')
   localStorage.removeItem('gioiTinh')
   localStorage.removeItem('maKhachHang')
+  localStorage.removeItem('permissions')
+}
+
+const clearStoredAuthInfo = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('tenDangNhap')
+  localStorage.removeItem('permissions')
 }
 
 const hasCustomerInfo = (info?: Partial<CustomerInfo>): info is Partial<CustomerInfo> => {
@@ -86,6 +114,7 @@ export const useAuthStore = defineStore('auth', {
         gioiTinh: localStorage.getItem('gioiTinh') ? JSON.parse(localStorage.getItem('gioiTinh')!) : null,
         maKhachHang: localStorage.getItem('maKhachHang')
       },
+      permissions: loadPermissions(),
     }
   },
 
@@ -105,6 +134,13 @@ export const useAuthStore = defineStore('auth', {
       } else {
         this.customerInfo = { ...initialCustomerInfo }
         clearStoredCustomerInfo()
+      }
+
+      if (customerInfo && Array.isArray((customerInfo as any).permissions)) {
+        this.permissions = (customerInfo as any).permissions
+        savePermissions(this.permissions)
+      } else if (!this.permissions.length) {
+        this.permissions = []
       }
     },
 
@@ -143,12 +179,22 @@ export const useAuthStore = defineStore('auth', {
         this.customerInfo.maKhachHang = info.maKhachHang
         localStorage.setItem('maKhachHang', info.maKhachHang || '')
       }
+
+      if ((info as any).permissions !== undefined) {
+        const perms = Array.isArray((info as any).permissions) ? (info as any).permissions : []
+        this.permissions = perms
+        savePermissions(perms)
+      }
     },
 
     decodeToken(token: string) {
       try {
         const decoded = jwtDecode<JwtPayload>(token)
         this.userRole = decoded.scope || null
+        if (this.userRole) {
+          const storedPermissions = getPermissionsForRole(this.userRole)
+          this.permissions = storedPermissions
+        }
       } catch {
         this.logout()
       }
@@ -158,6 +204,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null
       this.userRole = null
       this.accountName = null
+      this.permissions = []
       this.customerInfo = {
         khachHangId: null,
         tenKhachHang: null,
@@ -169,6 +216,7 @@ export const useAuthStore = defineStore('auth', {
       }
       localStorage.removeItem('token')
       localStorage.removeItem('tenDangNhap')
+      localStorage.removeItem('permissions')
       localStorage.removeItem('khachHangId')
       localStorage.removeItem('tenKhachHang')
       localStorage.removeItem('soDienThoai')
@@ -183,13 +231,19 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (state) => !!state.token,
     isAdmin: (state) => {
       const role = String(state.userRole || '').toUpperCase()
-      return ['ROLE_ADMIN', 'ADMIN', 'ROLE_STAFF', 'STAFF', 'CASHIER', 'ROLE_CASHIER'].includes(role)
+      return [
+        'ROLE_ADMIN',
+        'ADMIN',
+        'ROLE_STAFF',
+        'STAFF',
+        'CASHIER',
+        'ROLE_CASHIER',
+      ].includes(role)
     },
-    isShiftManager: (state) => {
+    isUser: (state) => {
       const role = String(state.userRole || '').toUpperCase()
-      return ['ROLE_ADMIN', 'ADMIN', 'ROLE_STAFF', 'STAFF', 'CASHIER', 'ROLE_CASHIER'].includes(role)
+      return role === 'USER' || role === 'ROLE_USER'
     },
-    isUser: (state) => state.userRole === 'ROLE_USER',
     khachHangId: (state) => state.customerInfo.khachHangId,
     tenKhachHang: (state) => state.customerInfo.tenKhachHang,
   },

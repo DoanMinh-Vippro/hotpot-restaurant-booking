@@ -487,16 +487,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     }
 
     @Override
-    public List<DTODatBanQuanLyResponse> findByThoiGian(LocalDateTime tuNgay, LocalDateTime denNgay) {
-        return datBanRepository.findByThoiGianDenDuKienBetween(tuNgay, denNgay)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    @Override
-    public List<DTODatBanQuanLyResponse> searchByKeyword(String keyword) {
-        return datBanRepository.searchByKeyword(keyword)
+    public List<DTODatBanQuanLyResponse> search(String keyword, TrangThaiDatBan trangThai, LocalDateTime tuNgay, LocalDateTime denNgay) {
+        return datBanRepository.search(keyword, trangThai, tuNgay, denNgay)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -649,16 +641,6 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 }
             }
         }
-    }
-
-    @Override
-    public List<DTODatBanQuanLyResponse> findByTrangThai(TrangThaiDatBan trangThai) {
-        autoHuyDonQuaHan();
-        return datBanRepository.findByTrangThai(trangThai)
-                .stream()
-                .filter(this::isVisibleReservation)
-                .map(this::mapToResponse)
-                .toList();
     }
 
     @Override
@@ -884,16 +866,6 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
         return mapToResponse(datBan);
     }
-
-    @Override
-    public List<DTODatBanQuanLyResponse> getByTrangThai(TrangThaiDatBan trangThai) {
-        autoHuyDonQuaHan();
-        return datBanRepository.findByTrangThai(trangThai)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
     //===========================================================================
     @Scheduled(fixedDelay = 60000)
     public void autoCancelOverdueReservations() {

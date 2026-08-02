@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
+import { useAuthStore } from '@/stores/AuthStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -92,6 +93,11 @@ const router = createRouter({
       component: () => import('@/views/DatBanQuanLyView.vue'),
     },
     {
+      path: '/shift-management',
+      name: 'shift-management',
+      component: () => import('@/views/ShiftManagementView.vue'),
+    },
+    {
       path: '/khach-hang',
       name: 'khach-hang',
       redirect: { name: 'thucDon' },
@@ -147,6 +153,52 @@ const router = createRouter({
       component: () => import('@/views/OrderView.vue'),
     },
   ],
+})
+
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+  const authRoutes = ['auth', 'register']
+  const internalPages = [
+    'thucDon',
+    'hoa-don',
+    'ban-hang',
+    'giam-gia',
+    'ban',
+    'dat-ban-quan-ly',
+    'shift-management',
+    'tai-khoan',
+    'thong-ke',
+    'khu-vuc',
+    'coc',
+    'order',
+  ]
+
+  const isAuthenticated = authStore.isAuthenticated
+  const isUser = authStore.isUser
+
+  if (authRoutes.includes(to.name as string)) {
+    next()
+    return
+  }
+
+  if (!isAuthenticated) {
+    next({ name: 'auth' })
+    return
+  }
+
+  if (isUser) {
+    if (internalPages.includes(to.name as string)) {
+      next({ name: 'home' })
+      return
+    }
+  } else {
+    if (!internalPages.includes(to.name as string) && to.name !== 'home') {
+      next({ name: 'dat-ban-quan-ly' })
+      return
+    }
+  }
+
+  next()
 })
 
 export default router

@@ -11,20 +11,31 @@ const authStore = useAuthStore()
 const adminRouteNames = ['thucDon', 'hoa-don', 'ban-hang', 'giam-gia', 'ban', 'dat-ban-quan-ly', 'tai-khoan', 'thong-ke', 'khu-vuc', 'coc', 'shift-management']
 
 const menuItems = [
-  { label: 'Quản lý thực đơn', routeName: 'thucDon', icon: '🍜' },
-  { label: 'Hóa đơn', routeName: 'hoa-don', icon: '🧾' },
-  { label: 'Bán hàng', routeName: 'ban-hang', icon: '🛒' },
-  { label: 'Giảm giá', routeName: 'giam-gia', icon: '🏷️' },
-  { label: 'Bàn', routeName: 'ban', icon: '🪑' },
-  { label: 'Đặt bàn quản lý', routeName: 'dat-ban-quan-ly', icon: '📋' },
-  { label: 'Quản lý ca', routeName: 'shift-management', icon: '🕒' },
-  { label: 'Quản lý tài khoản', routeName: 'tai-khoan', icon: '👤' },
-  { label: 'Thống kê', routeName: 'thong-ke', icon: '📈' },
-  { label: 'Khu vực', routeName: 'khu-vuc', icon: '📍' },
-  { label: 'Tiền cọc', routeName: 'coc', icon: '💳' },
+  { label: 'Quản lý thực đơn', routeName: 'thucDon', permission: 'menu', icon: '🍜' },
+  { label: 'Hóa đơn', routeName: 'hoa-don', permission: 'invoice', icon: '🧾' },
+  { label: 'Bán hàng', routeName: 'ban-hang', permission: 'pos', icon: '🛒' },
+  { label: 'Giảm giá', routeName: 'giam-gia', permission: 'discount', icon: '🏷️' },
+  { label: 'Bàn', routeName: 'ban', permission: 'table', icon: '🪑' },
+  { label: 'Đặt bàn quản lý', routeName: 'dat-ban-quan-ly', permission: 'reservation', icon: '📋' },
+  { label: 'Quản lý ca', routeName: 'shift-management', permission: 'shift', icon: '🕒' },
+  { label: 'Quản lý tài khoản', routeName: 'tai-khoan', permission: 'account', icon: '👤' },
+  { label: 'Thống kê', routeName: 'thong-ke', permission: 'statistics', icon: '📈' },
+  { label: 'Khu vực', routeName: 'khu-vuc', permission: 'area', icon: '📍' },
+  { label: 'Tiền cọc', routeName: 'coc', permission: 'deposit', icon: '💳' },
 ]
 
-const isAdminLayout = computed(() => authStore.isAdmin && adminRouteNames.includes(String(route.name)))
+const permittedMenuItems = computed(() => {
+  if (!authStore.isAuthenticated || authStore.isUser) return []
+  if (!authStore.permissions.length) return menuItems
+  return menuItems.filter((item) => authStore.permissions.includes(item.permission))
+})
+
+const isAdminLayout = computed(
+  () =>
+    authStore.isAuthenticated &&
+    !authStore.isUser &&
+    !['auth', 'register', 'home'].includes(String(route.name)),
+)
 
 const goTo = (routeName: string) => {
   router.push({ name: routeName })
@@ -43,7 +54,7 @@ const goTo = (routeName: string) => {
 
       <nav class="sidebar-nav">
         <button
-          v-for="item in menuItems"
+          v-for="item in permittedMenuItems"
           :key="item.routeName"
           class="nav-item"
           :class="{ active: route.name === item.routeName }"

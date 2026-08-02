@@ -1,11 +1,25 @@
 <script setup lang="ts">
 import type { HoaDon, HoaDonChiTiet } from '../api/HoaDonApi'
 
-defineProps<{
+const props = defineProps<{
   selectedHoaDon: HoaDon | undefined
   chiTiets: HoaDonChiTiet[]
   loading: boolean
 }>()
+
+const getCurrentOperatorName = () =>
+  localStorage.getItem('tenDangNhap')?.trim() || 'Admin'
+
+const normalizeInvoiceEmployee = (invoice?: HoaDon) =>
+  invoice?.tenNhanVien?.trim() || getCurrentOperatorName()
+
+const normalizeOrderItem = (item: HoaDonChiTiet) => ({
+  ...item,
+  orderedBy: item.orderedBy?.trim() || getCurrentOperatorName(),
+  orderedAt: item.orderedAt || new Date().toISOString(),
+})
+
+const detailItems = () => (props.chiTiets || []).map(normalizeOrderItem)
 
 const formatCurrency = (value: number | string | null) =>
   new Intl.NumberFormat('vi-VN', {
@@ -92,7 +106,7 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
         </div>
         <div>
           <span>Nhân viên</span>
-          <strong>{{ selectedHoaDon.tenNhanVien ?? 'Chưa có' }}</strong>
+          <strong>{{ normalizeInvoiceEmployee(selectedHoaDon) }}</strong>
         </div>
         <div>
           <span>Thanh toán</span>
@@ -131,6 +145,16 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
         </div>
 
         <table>
+          <colgroup>
+            <col style="width: 120px" />
+            <col style="width: 280px" />
+            <col style="width: 80px" />
+            <col style="width: 110px" />
+            <col style="width: 90px" />
+            <col style="width: 120px" />
+            <col style="width: 150px" />
+            <col style="width: 130px" />
+          </colgroup>
           <thead>
             <tr>
               <th>Mã</th>
@@ -139,21 +163,25 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
               <th>Đơn giá</th>
               <th>Giảm</th>
               <th>Thành tiền</th>
+              <th>Nhân viên order</th>
+              <th>Giờ order</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in chiTiets" :key="item.idHoaDonChiTiet">
-              <td>{{ item.maHoaDonChiTiet }}</td>
-              <td>
-                <div>{{ itemName(item) }}</div>
+            <tr v-for="item in detailItems()" :key="item.idHoaDonChiTiet">
+              <td class="ma-cell">{{ item.maHoaDonChiTiet }}</td>
+              <td class="mon-cell">
+                <div class="ten-mon">{{ itemName(item) }}</div>
                 <template v-if="item.comboItems?.length">
                   <div class="mon-combo">Gồm: {{ item.comboItems.join(', ') }}</div>
                 </template>
               </td>
-              <td>{{ item.soLuong ?? 0 }}</td>
-              <td>{{ formatCurrency(item.giaBanTaiThoiDiem) }}</td>
-              <td>{{ formatCurrency(item.tienGiamGiaMon) }}</td>
-              <td>{{ formatCurrency(item.thanhTien) }}</td>
+              <td class="so-luong-cell">{{ item.soLuong ?? 0 }}</td>
+              <td class="gia-cell">{{ formatCurrency(item.giaBanTaiThoiDiem) }}</td>
+              <td class="giam-cell">{{ formatCurrency(item.tienGiamGiaMon) }}</td>
+              <td class="thanh-tien-cell">{{ formatCurrency(item.thanhTien) }}</td>
+              <td class="nhan-vien-cell">{{ item.orderedBy }}</td>
+              <td class="gio-order-cell">{{ formatDateTime(item.orderedAt) }}</td>
             </tr>
           </tbody>
         </table>
@@ -174,9 +202,11 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
   background: rgba(255, 248, 234, 0.96);
   backdrop-filter: blur(10px);
   border-radius: 16px;
-  padding: 18px;
+  padding: 14px;
   color: #5f3d22;
   box-shadow: 0 10px 24px rgba(103, 72, 32, 0.06);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tieu-de-panel {
@@ -203,8 +233,8 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
 .dau-chi-tiet .tieu-le {
@@ -228,9 +258,9 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
 }
 
 .hop-tong-tien {
-  min-width: 190px;
+  min-width: 170px;
   border-radius: 12px;
-  padding: 18px;
+  padding: 14px 16px;
   background: #d8a85c;
   color: #3d2814;
   text-align: right;
@@ -250,15 +280,15 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
 .luoi-thong-tin,
 .luoi-so-tien {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .luoi-thong-tin div,
 .luoi-so-tien div {
   border-radius: 10px;
-  padding: 14px;
+  padding: 12px 13px;
   background: #fff8ea;
   border: 1px solid #e6d2aa;
 }
@@ -280,30 +310,76 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
 
 .bao-bang {
   overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
 }
 
 table {
   width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 th,
 td {
   border-bottom: 1px solid #efe0c1;
-  padding: 13px 10px;
+  padding: 11px 8px;
   text-align: left;
-  white-space: nowrap;
+  vertical-align: top;
 }
 
 th {
   color: #8b5e34;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: #fff9ee;
 }
 
 td {
   color: #5f3d22;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.ma-cell {
+  width: 120px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.so-luong-cell,
+.gia-cell,
+.giam-cell,
+.thanh-tien-cell {
+  white-space: nowrap;
+}
+
+.mon-cell,
+.nhan-vien-cell,
+.gio-order-cell {
+  white-space: normal;
+}
+
+.ten-mon {
+  min-width: 0;
+}
+
+.mon-combo {
+  margin-top: 5px;
+  color: #8f6b46;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+tbody tr:hover {
+  background: rgba(216, 168, 92, 0.05);
 }
 
 .trang-trong {

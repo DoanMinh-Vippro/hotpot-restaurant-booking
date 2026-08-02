@@ -22,11 +22,8 @@ public class DatBanQuanLyController {
     private final DatBanQuanLyService datBanQuanLyService;
 
     @GetMapping
-    public ResponseEntity<List<DTODatBanQuanLyResponse>> getAll(@RequestParam(required = false) TrangThaiDatBan trangThai) {
-        if (trangThai == null) {
-            return ResponseEntity.ok(datBanQuanLyService.getAll());
-        }
-        return ResponseEntity.ok(datBanQuanLyService.getByTrangThai(trangThai));
+    public ResponseEntity<List<DTODatBanQuanLyResponse>> getAll() {
+        return ResponseEntity.ok(datBanQuanLyService.getAll());
     }
 
     @GetMapping("{id}")
@@ -48,11 +45,6 @@ public class DatBanQuanLyController {
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         datBanQuanLyService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/trang-thai/{trangThai}")
-    public ResponseEntity<List<DTODatBanQuanLyResponse>> findByTrangThai(@PathVariable TrangThaiDatBan trangThai) {
-        return ResponseEntity.ok(datBanQuanLyService.findByTrangThai(trangThai));
     }
 
     @GetMapping("/ban-trong")
@@ -83,14 +75,14 @@ public class DatBanQuanLyController {
         return ResponseEntity.ok(datBanQuanLyService.doiBan(id, request));
     }
 
-    @GetMapping("/thoi-gian")
-    public ResponseEntity<List<DTODatBanQuanLyResponse>> findByThoiGian(@RequestParam LocalDate tuNgay,
-                                                                        @RequestParam LocalDate denNgay) {
-        return ResponseEntity.ok(datBanQuanLyService.findByThoiGian(tuNgay.atStartOfDay(), denNgay.atTime(LocalTime.MAX)));
-    }
-
     @GetMapping("/search")
-    public ResponseEntity<List<DTODatBanQuanLyResponse>> searchByKeyword(@RequestParam String keyword) {
-        return ResponseEntity.ok(datBanQuanLyService.searchByKeyword(keyword));
+    public ResponseEntity<List<DTODatBanQuanLyResponse>> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) TrangThaiDatBan trangThai,
+            @RequestParam(required = false) LocalDate tuNgay,
+            @RequestParam(required = false) LocalDate denNgay) {
+        return ResponseEntity.ok(datBanQuanLyService.search(keyword, trangThai,
+                tuNgay == null ? null : tuNgay.atStartOfDay(), denNgay == null ? null : denNgay.atTime(LocalTime.MAX))
+        );
     }
 }
