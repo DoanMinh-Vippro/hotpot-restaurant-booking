@@ -60,7 +60,7 @@ const danhSachChuaXepBan = computed(() => {
 const loadSoLuongHoaDon = async () => {
   try {
     const [reservationRes] = await Promise.all([
-      DatBanQuanLyApi.getAll('DA_NHAN_BAN'),
+      DatBanQuanLyApi.getAll(),
     ])
 
     if (reservationRes?.data) {
@@ -94,32 +94,60 @@ const loadBan = async () => {
   const rawBan = Array.isArray(banRes?.data) ? banRes.data : []
   const reservations = Array.isArray(reservationRes?.data) ? reservationRes.data : []
 
-  const reservationByBanId = new Map<number, any>()
-  reservations.forEach((reservation: any) => {
-    if (!reservation?.idBan) return
-    const banId = Number(reservation.idBan)
-    const existing = reservationByBanId.get(banId)
-    const currentTime = reservation?.thoiGianDenDuKien 
-      ? new Date(reservation.thoiGianDenDuKien).getTime() 
-      : (reservation?.ngayDat ? new Date(reservation.ngayDat).getTime() : 0)
-    const existingTime = existing?.thoiGianDenDuKien 
-      ? new Date(existing.thoiGianDenDuKien).getTime() 
-      : (existing?.ngayDat ? new Date(existing.ngayDat).getTime() : 0)
-    if (!existing || currentTime > existingTime) {
-      reservationByBanId.set(banId, reservation)
+  const normalizeReservationStatus = (value: any) => {
+    if (!value) return ''
+    if (typeof value === 'string') return value
+    if (typeof value === 'object' && 'name' in value) return String(value.name)
+    return String(value)
+  }
+
+  const normalizeBanStatus = (value: any) => {
+    if (!value) return ''
+    if (typeof value === 'string') return value
+    if (typeof value === 'object' && 'name' in value) return String(value.name)
+    return String(value)
+  }
+
+  const getReservationStatusForBan = (banId: number, reservations: any[]) => {
+    const banReservations = reservations.filter((reservation: any) =>
+      Array.isArray(reservation?.dsBan) &&
+      reservation.dsBan.some((ban: any) => Number(ban?.idBan) === banId),
+    )
+
+    if (!banReservations.length) {
+      return null
     }
-  })
+
+    const activeReservation = banReservations.find((reservation: any) =>
+      ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(normalizeReservationStatus(reservation?.trangThai)),
+    )
+
+    if (!activeReservation) {
+      return null
+    }
+
+    const reservationStatus = normalizeReservationStatus(activeReservation?.trangThai)
+    if (reservationStatus === 'DA_NHAN_BAN') {
+      return 'DANG_SU_DUNG'
+    }
+    if (reservationStatus === 'DA_XAC_NHAN') {
+      return 'DA_DAT'
+    }
+
+    return null
+  }
 
   danhSachBan.value = rawBan.map((ban: any) => {
-    const reservation = reservationByBanId.get(Number(ban.idBan))
-    let nextStatus = ban.trangThai
+    const reservationStatus = getReservationStatusForBan(Number(ban.idBan), reservations)
+    const banStatus = normalizeBanStatus(ban.trangThai)
+    let nextStatus = banStatus
 
-    if (reservation?.trangThai === 'DA_XAC_NHAN' && (ban.trangThai === 'TRONG' || ban.trangThai === 'DA_DAT')) {
+    if (!['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus)) {
+      if (reservationStatus) {
+        nextStatus = reservationStatus
+      }
+    } else if (banStatus === 'TRONG' && reservationStatus === 'DA_DAT') {
       nextStatus = 'DA_DAT'
-    } else if (reservation?.trangThai === 'DA_NHAN_BAN' && (ban.trangThai === 'TRONG' || ban.trangThai === 'DANG_SU_DUNG')) {
-      nextStatus = 'DANG_SU_DUNG'
-    } else if (['HOAN_THANH', 'DA_HUY'].includes(reservation?.trangThai)) {
-      nextStatus = 'TRONG'
     }
 
     return { ...ban, trangThai: nextStatus }
@@ -194,7 +222,8 @@ const chonDatBan = (datBan: any) => {
 
 const quayVeDanhSachBan = async () => {
   manHinhHienTai.value = 'danhSachBan'
-  await loadBan()
+  await loadBan() // Load lại danh sách bàn để cập nhật trạng thái
+  await loadSoLuongHoaDon() // Cập nhật số lượng hóa đơn
 }
 
 const layNgayHienTai = () => {
@@ -216,6 +245,29 @@ const handleViewBill = (hoaDon: any) => {
   datBanDangChon.value = null
   banDangChon.value = danhSachBan.value.find(b => b.idBan === hoaDon.idBan)
   manHinhHienTai.value = 'thanhToan'
+}
+
+const handlePaymentComplete = async (payload: { idBan: number; trangThai: string }) => {
+  const normalizedStatus = payload?.trangThai || 'TRONG'
+
+  const targetIndex = danhSachBan.value.findIndex((item: any) => Number(item.idBan) === Number(payload.idBan))
+  if (targetIndex >= 0) {
+    danhSachBan.value[targetIndex] = {
+      ...danhSachBan.value[targetIndex],
+      trangThai: normalizedStatus,
+    }
+  }
+
+  if (banDangChon.value && Number(banDangChon.value.idBan) === Number(payload.idBan)) {
+    banDangChon.value = {
+      ...banDangChon.value,
+      trangThai: normalizedStatus,
+    }
+  }
+
+  setTimeout(() => {
+    void loadBan()
+  }, 400)
 }
 
 // ======================== HOOKS ========================
@@ -399,6 +451,7 @@ onMounted(async () => {
       :ban="banDangChon"
       :datBan="datBanDangChon"
       @quayLai="quayVeDanhSachBan"
+      @payment-complete="handlePaymentComplete"
     />
 
     <!-- MODAL TẤT CẢ HÓA ĐƠN -->

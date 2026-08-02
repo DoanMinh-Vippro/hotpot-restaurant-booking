@@ -21,11 +21,17 @@ const props = defineProps<{
 }>()
 
 // ================= EMIT =================
-const emit = defineEmits(['quayLai'])
+const emit = defineEmits(['quayLai', 'payment-complete'])
 const shiftStore = useShiftStore()
 const authStore = useAuthStore()
 const quayLai = () => {
   emit('quayLai')
+}
+
+const notifyPaymentComplete = () => {
+  if (props.ban?.idBan) {
+    emit('payment-complete', { idBan: props.ban.idBan, trangThai: 'TRONG' })
+  }
 }
 
 const hoanTatThanhToan = async () => {
@@ -179,6 +185,7 @@ const handleChuyenKhoanThanhCong = async () => {
     hienThiSePayQR.value = false
     await xuLyHoaDon(1, 1) // Cập nhật hóa đơn thành Đã thanh toán (1, 1)
     await markReservationCompleted()
+    notifyPaymentComplete()
     emit('quayLai')
     alert(`Bàn ${props.ban?.tenBan} đã thanh toán chuyển khoản thành công tự động!`)
 
@@ -371,13 +378,22 @@ const syncReservationToSeated = async () => {
   if (!props.datBan?.idDatBan) return
   const currentStatus = normalizeReservationStatus(props.datBan?.trangThai)
   if (currentStatus !== 'DA_XAC_NHAN' && currentStatus !== 'DA_NHAN_BAN') return
+
   try {
     if (props.ban?.idBan) {
+      const currentBanStatus = normalizeReservationStatus(props.ban?.trangThai)
+      const nextStatus =
+        currentStatus === 'DA_NHAN_BAN'
+          ? 'DANG_SU_DUNG'
+          : currentBanStatus === 'DANG_SU_DUNG'
+            ? 'DANG_SU_DUNG'
+            : 'DA_DAT'
+
       const payload = {
         loaiBan: props.ban?.loaiBan ?? null,
         tenBan: props.ban?.tenBan ?? null,
         idKhuVuc: props.ban?.idKhuVuc ?? null,
-        trangThai: currentStatus === 'DA_NHAN_BAN' ? 'DANG_SU_DUNG' : 'DA_DAT',
+        trangThai: nextStatus,
       }
       await BanApi.update(props.ban.idBan, payload)
     }
@@ -386,30 +402,67 @@ const syncReservationToSeated = async () => {
   }
 }
 
+const buildReservationUpdatePayload = (datBan: any) => {
+  if (!datBan) return null
+
+  return {
+    dsBan: Array.isArray(datBan.dsBan)
+      ? datBan.dsBan
+          .map((ban: any) => ban?.idBan)
+          .filter((id: any) => id != null)
+      : [],
+    dsCombo: Array.isArray(datBan.dsCombo)
+      ? datBan.dsCombo.map((combo: any) => ({
+          idCombo: combo.idCombo,
+          soLuong: combo.soLuong,
+        }))
+      : [],
+    dsMon: Array.isArray(datBan.dsMon)
+      ? datBan.dsMon.map((mon: any) => ({
+          idMon: mon.idMon,
+          soLuong: mon.soLuong,
+        }))
+      : [],
+    idKhachHang: datBan.idKhachHang ?? null,
+    tenKhachHang: datBan.tenKhachHang ?? '',
+    sdtKhachHang: datBan.sdtKhachHang ?? '',
+    soNguoi: datBan.soNguoi ?? 1,
+    thoiGianDenDuKien: datBan.thoiGianDenDuKien ?? null,
+    soTienCoc: datBan.soTienCoc ?? 0,
+    trangThaiCoc: datBan.trangThaiCoc ?? 'CHUA_COC',
+    phuongThucThanhToan: datBan.phuongThucThanhToan ?? 'CHUA_THANH_TOAN',
+    ghiChu: datBan.ghiChu ?? '',
+    trangThai: 'HOAN_THANH',
+  }
+}
+
 const markReservationCompleted = async () => {
   const reservationId = props.datBan?.idDatBan
   const banId = props.ban?.idBan
 
-  if (reservationId) {
+  // Cập nhật đơn đặt bàn nếu có
+  if (reservationId && props.datBan) {
     try {
-      await DatBanQuanLyApi.update(reservationId, {
-        ...props.datBan,
-        trangThai: 'HOAN_THANH',
-      })
+      const payload = buildReservationUpdatePayload(props.datBan)
+      if (payload) {
+        await DatBanQuanLyApi.update(reservationId, payload)
+      }
     } catch (error) {
       console.warn('Không thể cập nhật đơn đặt bàn sau thanh toán:', error)
     }
   }
 
+  // Cập nhật trạng thái bàn về TRỐNG (quan trọng: luôn thực hiện)
   if (banId) {
     try {
       const payload = {
         loaiBan: props.ban?.loaiBan ?? null,
         tenBan: props.ban?.tenBan ?? null,
         idKhuVuc: props.ban?.idKhuVuc ?? null,
-        trangThai: 'TRONG',
+        trangThai: 'TRONG', // Luôn đặt về TRỐNG
       }
       await BanApi.update(banId, payload)
+      console.log(`Đã cập nhật bàn ${props.ban?.tenBan} sang trạng thái TRỐNG`)
     } catch (error) {
       console.warn('Không thể cập nhật trạng thái bàn sau thanh toán:', error)
     }
@@ -477,6 +530,7 @@ const taoHoaDon = async () => {
   try {
     await xuLyHoaDon(1, 1)
     await markReservationCompleted()
+    notifyPaymentComplete()
     emit('quayLai')
 
     if (shiftStore.currentShift?.isOpen) {
