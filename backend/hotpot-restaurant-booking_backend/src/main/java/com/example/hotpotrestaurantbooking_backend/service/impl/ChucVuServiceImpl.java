@@ -10,15 +10,37 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class ChucVuServiceImpl implements ChucVuService {
     @Autowired
     private ChucVuRepository repository;
 
+    private String generateNextMaChucVu() {
+        List<ChucVu> allRoles = repository.findAll();
+        int maxNumber = 0;
+
+        Pattern pattern = Pattern.compile("CV(\\d+)", Pattern.CASE_INSENSITIVE);
+        for (ChucVu role : allRoles) {
+            if (role.getMaChucVu() == null) continue;
+            Matcher matcher = pattern.matcher(role.getMaChucVu().trim());
+            if (matcher.find()) {
+                maxNumber = Math.max(maxNumber, Integer.parseInt(matcher.group(1)));
+            }
+        }
+
+        return String.format("CV%02d", maxNumber + 1);
+    }
+
     private ChucVu toEntity(DTOChucVuRequest req){
+        String maChucVu = req.getMaChucVu() != null && !req.getMaChucVu().trim().isEmpty()
+                ? req.getMaChucVu().trim()
+                : generateNextMaChucVu();
+
         return ChucVu.builder()
-                .maChucVu(req.getMaChucVu())
+                .maChucVu(maChucVu)
                 .tenChucVu(req.getTenChucVu())
                 .build();
     }
@@ -53,7 +75,9 @@ public class ChucVuServiceImpl implements ChucVuService {
         ChucVu old = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy chức vụ"));
 
-        old.setMaChucVu(request.getMaChucVu());
+        old.setMaChucVu(request.getMaChucVu() != null && !request.getMaChucVu().trim().isEmpty()
+                ? request.getMaChucVu().trim()
+                : old.getMaChucVu());
         old.setTenChucVu(request.getTenChucVu());
 
         return toResponse(repository.save(old));

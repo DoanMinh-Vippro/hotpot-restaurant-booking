@@ -37,6 +37,8 @@ export interface HoaDonChiTiet {
   giaBanTaiThoiDiem: number | string | null
   tienGiamGiaMon: number | string | null
   thanhTien: number | string | null
+  orderedBy?: string | null
+  orderedAt?: string | number[] | null
 }
 
 class HoaDonApi {

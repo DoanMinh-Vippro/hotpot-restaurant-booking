@@ -18,6 +18,10 @@ export interface HoaDonChiTiet {
   tienGiamGiaMon: number
 
   thanhTien: number
+
+  orderedBy?: string | null
+
+  orderedAt?: string | null
 }
 
 const HoaDonChiTietApi = {

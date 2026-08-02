@@ -37,9 +37,17 @@ export interface ShiftSession {
 export interface ShiftHistoryEntry extends ShiftSession {
   closedAt: string
   summary: {
+    gross: number
+    discount: number
     revenue: number
+    cashSales: number
+    transferSales: number
     totalIncome: number
+    cashIncome: number
+    transferIncome: number
     totalExpense: number
+    cashExpense: number
+    transferExpense: number
     endingCash: number
   }
 }
@@ -76,6 +84,66 @@ const persistCurrentShift = (shift: ShiftSession | null) => {
 
 const persistHistory = (history: ShiftHistoryEntry[]) => {
   localStorage.setItem(SHIFT_HISTORY_STORAGE_KEY, JSON.stringify(history))
+}
+
+const buildShiftSummary = (shift: ShiftSession) => {
+  const bills = shift.bills || []
+  const expenses = shift.expenses || []
+
+  const gross = bills
+    .filter((bill) => bill.status === 'paid')
+    .reduce((sum, bill) => sum + bill.gross, 0)
+
+  const discount = bills
+    .filter((bill) => bill.status === 'paid')
+    .reduce((sum, bill) => sum + bill.discount, 0)
+
+  const revenue = bills
+    .filter((bill) => bill.status === 'paid')
+    .reduce((sum, bill) => sum + bill.total, 0)
+
+  const cashSales = bills
+    .filter((bill) => bill.status === 'paid' && bill.paymentMethod === 'cash')
+    .reduce((sum, bill) => sum + bill.total, 0)
+
+  const transferSales = bills
+    .filter((bill) => bill.status === 'paid' && bill.paymentMethod === 'transfer')
+    .reduce((sum, bill) => sum + bill.total, 0)
+
+  const cashIncome = expenses
+    .filter((item) => item.type === 'income' && item.paymentMethod === 'cash')
+    .reduce((sum, item) => sum + item.amount, 0)
+
+  const transferIncome = expenses
+    .filter((item) => item.type === 'income' && item.paymentMethod === 'transfer')
+    .reduce((sum, item) => sum + item.amount, 0)
+
+  const cashExpense = expenses
+    .filter((item) => item.type === 'expense' && item.paymentMethod === 'cash')
+    .reduce((sum, item) => sum + item.amount, 0)
+
+  const transferExpense = expenses
+    .filter((item) => item.type === 'expense' && item.paymentMethod === 'transfer')
+    .reduce((sum, item) => sum + item.amount, 0)
+
+  const totalIncome = cashIncome + transferIncome
+  const totalExpense = cashExpense + transferExpense
+  const endingCash = (shift.openingCash || 0) + cashSales + cashIncome - cashExpense
+
+  return {
+    gross,
+    discount,
+    revenue,
+    cashSales,
+    transferSales,
+    totalIncome,
+    cashIncome,
+    transferIncome,
+    totalExpense,
+    cashExpense,
+    transferExpense,
+    endingCash,
+  }
 }
 
 export const useShiftStore = defineStore('shift', {
@@ -194,21 +262,46 @@ export const useShiftStore = defineStore('shift', {
       persistCurrentShift(this.currentShift)
     },
 
+    updateExpenseTransaction(payload: { id: number; type: 'income' | 'expense'; amount: number; reason: string; paymentMethod?: 'cash' | 'transfer' }) {
+      if (!this.currentShift?.isOpen) return
+
+      const index = this.currentShift.expenses.findIndex((item) => item.id === payload.id)
+      if (index === -1) return
+
+      const existing = this.currentShift.expenses[index]
+      if (!existing) return
+
+      this.currentShift.expenses[index] = {
+        id: existing.id,
+        createdAt: existing.createdAt,
+        type: payload.type,
+        amount: payload.amount,
+        reason: payload.reason,
+        paymentMethod: payload.paymentMethod || 'cash',
+      }
+
+      persistCurrentShift(this.currentShift)
+    },
+
+    deleteExpenseTransaction(id: number) {
+      if (!this.currentShift?.isOpen) return
+
+      const nextExpenses = this.currentShift.expenses.filter((item) => item.id !== id)
+      this.currentShift.expenses = nextExpenses
+      persistCurrentShift(this.currentShift)
+    },
+
     closeShift() {
       if (!this.currentShift?.isOpen) return
 
+      const currentShift = this.currentShift
       const endTime = new Date().toISOString()
       const historyEntry: ShiftHistoryEntry = {
-        ...this.currentShift,
+        ...currentShift,
         isOpen: false,
         endTime,
         closedAt: endTime,
-        summary: {
-          revenue: this.invoiceRevenue,
-          totalIncome: this.cashIncome,
-          totalExpense: this.cashExpense,
-          endingCash: this.endingCash,
-        },
+        summary: buildShiftSummary(currentShift),
       }
 
       this.history.unshift(historyEntry)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { getAllKhachHang } from '@/api/khachhang'
@@ -11,6 +11,19 @@ const showMenu = ref(false)
 const customerInfo = ref<any>(null)
 const recentInvoices = ref<any[]>([])
 const loading = ref(false)
+
+const displayName = computed(() => {
+  return authStore.customerInfo.tenKhachHang || authStore.accountName || 'Người dùng'
+})
+
+const displayRole = computed(() => {
+  const role = String(authStore.userRole || '').toUpperCase()
+  if (role.includes('ADMIN')) return 'Quản trị viên'
+  if (role.includes('STAFF')) return 'Nhân viên'
+  if (role.includes('CASHIER') || role.includes('THUNGAN')) return 'Thu ngân'
+  if (role === 'USER' || role === 'ROLE_USER') return 'Khách hàng'
+  return authStore.userRole || 'Tài khoản'
+})
 
 const loadUserData = async () => {
   if (!authStore.customerInfo.khachHangId) return
@@ -69,20 +82,20 @@ onMounted(() => {
 <template>
   <div class="admin-account-panel">
     <button class="account-trigger" @click="toggleMenu">
-      <div class="account-avatar">{{ (authStore.customerInfo.tenKhachHang || authStore.tenKhachHang || 'A').charAt(0).toUpperCase() }}</div>
+      <div class="account-avatar">{{ displayName.charAt(0).toUpperCase() }}</div>
       <div class="account-text">
-        <div class="account-name">{{ authStore.customerInfo.tenKhachHang || authStore.tenKhachHang || 'Admin' }}</div>
-        <div class="account-role">{{ authStore.userRole === 'ROLE_ADMIN' ? 'Quản trị viên' : authStore.userRole === 'ROLE_STAFF' ? 'Nhân viên' : 'Tài khoản' }}</div>
+        <div class="account-name">{{ displayName }}</div>
+        <div class="account-role">{{ displayRole }}</div>
       </div>
       <span class="account-chevron">▾</span>
     </button>
 
     <div v-if="showMenu" class="account-menu">
       <div class="account-menu-header">
-        <div class="account-menu-avatar">{{ (authStore.customerInfo.tenKhachHang || authStore.tenKhachHang || 'A').charAt(0).toUpperCase() }}</div>
+        <div class="account-menu-avatar">{{ displayName.charAt(0).toUpperCase() }}</div>
         <div class="account-menu-info">
-          <div class="account-menu-name">{{ authStore.customerInfo.tenKhachHang || authStore.tenKhachHang || 'Admin' }}</div>
-          <div class="account-menu-phone">{{ authStore.customerInfo.soDienThoai || '-' }}</div>
+          <div class="account-menu-name">{{ displayName }}</div>
+          <div class="account-menu-phone">{{ authStore.customerInfo.soDienThoai || authStore.accountName || '-' }}</div>
         </div>
       </div>
 

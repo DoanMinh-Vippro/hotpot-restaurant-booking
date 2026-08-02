@@ -57,7 +57,12 @@ const tai_chi_tiet = async (idHoaDon: number) => {
   thong_bao_loi.value = ''
   try {
     const response = await HoaDonApi.getChiTiet(idHoaDon)
-    chi_tiet.value = response.data
+    const operatorName = localStorage.getItem('tenDangNhap')?.trim() || 'Admin'
+    chi_tiet.value = (response.data || []).map((item: HoaDonChiTiet) => ({
+      ...item,
+      orderedBy: item.orderedBy?.trim() || operatorName,
+      orderedAt: item.orderedAt || new Date().toISOString(),
+    }))
   } catch (error) {
     chi_tiet.value = []
     thong_bao_loi.value = 'Không tải được chi tiết hóa đơn.'
@@ -211,8 +216,9 @@ onMounted(tai_hoa_don)
 }
 .khong-gian-hoa-don {
   display: grid;
-  grid-template-columns: minmax(280px, 380px) 1fr;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
   gap: 18px;
+  align-items: start;
 }
 .thong-bao-loi {
   max-width: 1440px;

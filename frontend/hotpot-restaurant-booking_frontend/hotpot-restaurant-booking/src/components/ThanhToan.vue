@@ -38,12 +38,22 @@ const gioHang = ref<any[]>([])
 const danhSachMonPhucVu = ref<any[]>([])
 const monVuaGuiBep = ref<any[]>([])
 
-// Tự động lấy tên nhân viên dựa theo tài khoản đăng nhập
-const tenNhanVien = ref<string>(
+const getCurrentOperatorName = () =>
   authStore.accountName ||
-    localStorage.getItem('tenDangNhap') ||
-    'Nhân viên',
-)
+  localStorage.getItem('tenDangNhap') ||
+  authStore.customerInfo?.tenKhachHang ||
+  authStore.tenKhachHang ||
+  'Nhân viên'
+
+const tenNhanVien = ref<string>(getCurrentOperatorName())
+
+const getLocalDateTimeNow = () => {
+  const now = new Date()
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+}
+
+const getCurrentLocalTimestamp = () => new Date().getTime()
 
 const danhSachGiamGia = ref<any[]>([])
 const giamGiaDangChon = ref<number | null>(null)
@@ -81,6 +91,8 @@ const themVaoGio = (item: any, loai: string) => {
   )
   if (tonTai) {
     tonTai.soLuong++
+    tonTai.orderedBy = getCurrentOperatorName()
+    tonTai.orderedAt = getLocalDateTimeNow()
   } else {
     gioHang.value.push({
       idMon: item.idMon ?? null,
@@ -91,6 +103,8 @@ const themVaoGio = (item: any, loai: string) => {
       soLuong: 1,
       loai,
       comboItems: item.comboItems ?? [],
+      orderedBy: getCurrentOperatorName(),
+      orderedAt: getLocalDateTimeNow(),
     })
   }
 }
@@ -229,6 +243,8 @@ const saveChiTietHoaDon = async (idHoaDon: number) => {
       thanhTien: gia * item.soLuong,
       trangThaiMonAn,
       daLen: item.daLen,
+      orderedBy: item.orderedBy || getCurrentOperatorName(),
+      orderedAt: item.orderedAt || getLocalDateTimeNow(),
     } as any)
   }
 }
@@ -248,6 +264,9 @@ const updateHoaDon = async (idHoaDon: number, payload: any) => {
 }
 
 const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) => {
+  const currentOperator = getCurrentOperatorName()
+  tenNhanVien.value = currentOperator
+
   const payload = {
     maHoaDon: hoaDonHienTai.value?.maHoaDon || `HD${Date.now()}`,
     trangThaiHoaDon,
@@ -256,14 +275,14 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
     tienTruocGiam: tongTienTamTinhCotGiua.value,
     tienGiamGia: tienGiamGia.value,
     tongTien: tongThanhToan.value,
-    thoiGianXuat: new Date().toISOString(),
+    thoiGianXuat: getLocalDateTimeNow(),
     idBan: props.ban.idBan,
     idGiamGia: giamGiaDangChon.value,
     idDatBan: props.datBan?.idDatBan ?? null,
     idKhachHang: props.datBan?.idKhachHang ?? null,
     sdtKhachHang: props.datBan?.sdtKhachHang ?? null,
     tienCoc: props.datBan?.soTienCoc ?? null,
-    tenNhanVien: tenNhanVien.value,
+    tenNhanVien: currentOperator,
   }
   if (hoaDonHienTai.value) {
     await updateHoaDon(hoaDonHienTai.value.idHoaDon, payload)

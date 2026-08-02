@@ -34,11 +34,34 @@ const handleSubmit = async () => {
       username.value,
     )
 
-    const roleName = String(res.data?.role || '').toUpperCase()
-    const isAdminRole = authStore.isAdmin || ['ADMIN', 'STAFF', 'ROLE_ADMIN', 'ROLE_STAFF', 'CASHIER', 'ROLE_CASHIER'].includes(roleName)
+    const roleName = String(res.data?.role || '').trim().toUpperCase()
+    const isUserRole = roleName === 'USER'
+
+    const adminMenuOrder = [
+      { permission: 'menu', routeName: 'thucDon' },
+      { permission: 'invoice', routeName: 'hoa-don' },
+      { permission: 'pos', routeName: 'ban-hang' },
+      { permission: 'discount', routeName: 'giam-gia' },
+      { permission: 'table', routeName: 'ban' },
+      { permission: 'reservation', routeName: 'dat-ban-quan-ly' },
+      { permission: 'shift', routeName: 'shift-management' },
+      { permission: 'account', routeName: 'tai-khoan' },
+      { permission: 'statistics', routeName: 'thong-ke' },
+      { permission: 'area', routeName: 'khu-vuc' },
+      { permission: 'deposit', routeName: 'coc' },
+    ]
+
+    let redirectRoute = 'dat-ban-quan-ly'
+    if (!isUserRole) {
+      const permittedAdminMenus = authStore.permissions.length
+        ? adminMenuOrder.filter((item) => authStore.permissions.includes(item.permission))
+        : adminMenuOrder
+
+      redirectRoute = permittedAdminMenus[0]?.routeName || 'dat-ban-quan-ly'
+    }
 
     alert('Đăng nhập thành công!')
-    router.replace({ path: isAdminRole ? '/dat-ban-quan-ly' : '/' })
+    router.replace({ name: redirectRoute })
   } catch (error: any) {
     console.error(error)
     const errMsg = error?.response?.data?.message || 'Đăng nhập thất bại, vui lòng kiểm tra lại tài khoản!'

@@ -6,7 +6,8 @@ import NhanVienApi from '@/api/NhanVienApi'
 import ChucVuApi from '@/api/ChucVuApi'
 import { createKhachHang, getAllKhachHang, getKhachHangByTaiKhoanId } from '@/api/khachhang'
 import HoaDonApi from '@/api/HoaDonApi'
-import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import DatBanApi from '@/api/DatBanApi'
+import { PERMISSION_MODULES, getPermissionsForRole, savePermissionsForRole, deletePermissionsForRole, generateRoleCode } from '@/utils/rolePermissions'
 import type { HoaDonChiTiet } from '@/api/HoaDonApi'
 const router = useRouter()
 // Tab state (1: ADMIN, 2: NHÂN VIÊN, 3: KHÁCH HÀNG, 4: CHỨC VỤ, custom roles: 1000+id)
@@ -24,7 +25,6 @@ const createAccountForm = ref({
   id: null as number | null,
   tenDangNhap: '',
   matKhau: '',
-  trangThai: true,
   idChucVu: 3,
   hoTen: '',
   soDienThoai: '',
@@ -37,6 +37,7 @@ const roleForm = ref({
   id: null as number | null,
   maChucVu: '',
   tenChucVu: '',
+  permissions: [] as string[],
 })
 const roleFormMode = ref<'create' | 'edit'>('create')
 const roleTabBase = 1000
@@ -63,7 +64,7 @@ const bookingLoading = ref(false)
 const loadCustomerBookings = async (khachHangId: number) => {
   bookingLoading.value = true
   try {
-    const res = await DatBanQuanLyApi.getAll()
+    const res = await DatBanApi.getAll()
     const all = Array.isArray(res?.data) ? res.data : []
     customerBookings.value = all.filter((b: any) => Number(b.idKhachHang) === Number(khachHangId))
   } catch (err) {
@@ -131,7 +132,6 @@ const resetCreateAccountForm = () => {
     id: null,
     tenDangNhap: '',
     matKhau: '',
-    trangThai: true,
     idChucVu: 3,
     hoTen: '',
     soDienThoai: '',
@@ -155,18 +155,23 @@ const submitCreateAccount = async () => {
   const roleId = Number(form.idChucVu)
 
   try {
-    if (roleId === 3) {
+    const selectedRole = roles.value.find((role: any) => Number(role.id) === roleId)
+  const isUserRole = selectedRole
+    ? String(selectedRole.tenChucVu || '').toUpperCase() === 'USER'
+    : roleId === 3
+
+  if (isUserRole) {
       await createKhachHang({
         tenKhachHang: form.hoTen.trim(),
         gioiTinh: form.gioiTinh,
         diaChi: form.diaChi.trim(),
         soDienThoai: form.soDienThoai.trim(),
         email: form.email.trim(),
-        trangThai: form.trangThai,
+        trangThai: true,
         taiKhoan: {
           tenDangNhap: form.tenDangNhap.trim(),
           matKhau: form.matKhau,
-          trangThai: form.trangThai,
+          trangThai: true,
           chucVu: { idChucVu: roleId },
         },
       })
@@ -178,7 +183,7 @@ const submitCreateAccount = async () => {
         soDienThoai: form.soDienThoai.trim(),
         email: form.email.trim(),
         diaChi: form.diaChi.trim(),
-        trangThai: form.trangThai,
+        trangThai: true,
         idChucVu: roleId,
         tenDangNhap: form.tenDangNhap.trim(),
         matKhau: form.matKhau,
@@ -199,16 +204,20 @@ const resetRoleForm = () => {
     id: null,
     maChucVu: '',
     tenChucVu: '',
+    permissions: [],
   }
   roleFormMode.value = 'create'
 }
 
 const openRoleForm = (role?: any) => {
   if (role) {
+    const roleName = String(role.tenChucVu || '').trim()
+    const roleKey = roleName ? `ROLE_${roleName.toUpperCase()}` : ''
     roleForm.value = {
       id: role.id,
       maChucVu: role.maChucVu || '',
       tenChucVu: role.tenChucVu || '',
+      permissions: roleKey ? getPermissionsForRole(roleKey) : [],
     }
     roleFormMode.value = 'edit'
   } else {
@@ -218,23 +227,50 @@ const openRoleForm = (role?: any) => {
 }
 
 const submitRole = async () => {
-  if (!roleForm.value.maChucVu.trim() || !roleForm.value.tenChucVu.trim()) {
-    alert('Vui lòng nhập mã chức vụ và tên chức vụ.')
+  const tenChucVu = roleForm.value.tenChucVu.trim()
+
+  if (!tenChucVu) {
+    alert('Vui lòng nhập tên chức vụ.')
     return
   }
+
+  if (roleFormMode.value === 'create' || !roleForm.value.maChucVu.trim()) {
+    roleForm.value.maChucVu = generateRoleCode()
+  }
+
+  const sanitizedCode = roleForm.value.maChucVu.trim().toUpperCase()
+  const duplicateCode = roles.value.some(
+    (role: any) =>
+      String(role.maChucVu).trim().toUpperCase() === sanitizedCode &&
+      String(role.id) !== String(roleForm.value.id),
+  )
+
+  if (duplicateCode && roleFormMode.value === 'create') {
+    roleForm.value.maChucVu = generateRoleCode()
+  }
+
+  const oldRoleKey = roleFormMode.value === 'edit'
+    ? `ROLE_${String(roles.value.find((role: any) => String(role.id) === String(roleForm.value.id))?.tenChucVu || '').trim().toUpperCase()}`
+    : ''
 
   try {
     if (roleFormMode.value === 'create') {
       await ChucVuApi.add({
         maChucVu: roleForm.value.maChucVu.trim(),
-        tenChucVu: roleForm.value.tenChucVu.trim(),
+        tenChucVu,
       })
+      savePermissionsForRole(`ROLE_${tenChucVu.toUpperCase()}`, roleForm.value.permissions)
       alert('Thêm chức vụ mới thành công!')
     } else {
       await ChucVuApi.update(Number(roleForm.value.id), {
         maChucVu: roleForm.value.maChucVu.trim(),
-        tenChucVu: roleForm.value.tenChucVu.trim(),
+        tenChucVu,
       })
+      const newRoleKey = `ROLE_${tenChucVu.toUpperCase()}`
+      if (oldRoleKey && oldRoleKey !== newRoleKey) {
+        deletePermissionsForRole(oldRoleKey)
+      }
+      savePermissionsForRole(newRoleKey, roleForm.value.permissions)
       alert('Cập nhật chức vụ thành công!')
     }
 
@@ -771,10 +807,25 @@ const handleToggleLock = async (item: any) => {
     }
   }
 }
+const removeFromLocalState = (accountId: number) => {
+  accounts.value = accounts.value.filter((acc: any) => Number(acc.id) !== Number(accountId))
+  employees.value = employees.value.filter((nv: any) => Number(nv.idTaiKhoan) !== Number(accountId))
+  customers.value = customers.value.filter((kh: any) => {
+    const khAccountId = kh?.taiKhoan?.idTaiKhoan ?? kh?.taiKhoan?.id ?? null
+    return Number(khAccountId) !== Number(accountId)
+  })
+}
+
 const handleDeleteAccount = async (id: number) => {
+  if (!id) {
+    alert('Không tìm thấy tài khoản để xóa.')
+    return
+  }
+
   if (confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) {
     try {
       await TaiKhoanApi.delete(id)
+      removeFromLocalState(id)
       alert('Xóa tài khoản thành công!')
       await loadData()
     } catch (error) {
@@ -1133,13 +1184,6 @@ const handleDeleteAccount = async (id: number) => {
               </select>
             </div>
             <div class="modal-form-field">
-              <label>Trạng thái</label>
-              <select v-model="createAccountForm.trangThai" class="select-classic">
-                <option :value="true">Hoạt động</option>
-                <option :value="false">Ngừng hoạt động</option>
-              </select>
-            </div>
-            <div class="modal-form-field">
               <label>Họ và tên</label>
               <input v-model="createAccountForm.hoTen" type="text" placeholder="Nhập họ và tên" :class="{ 'is-error': accountFormErrors.hoTen }" @input="clearCreateAccountError('hoTen')" />
               <span v-if="accountFormErrors.hoTen" class="form-error-message">{{ accountFormErrors.hoTen }}</span>
@@ -1189,11 +1233,29 @@ const handleDeleteAccount = async (id: number) => {
           <div class="modal-form-grid">
             <div class="modal-form-field">
               <label>Mã chức vụ</label>
-              <input v-model="roleForm.maChucVu" type="text" placeholder="Nhập mã chức vụ" />
+              <input
+                v-model="roleForm.maChucVu"
+                :disabled="roleFormMode === 'create'"
+                type="text"
+                placeholder="Sẽ được hệ thống tự sinh"
+              />
             </div>
             <div class="modal-form-field">
               <label>Tên chức vụ</label>
               <input v-model="roleForm.tenChucVu" type="text" placeholder="Nhập tên chức vụ" />
+            </div>
+            <div class="modal-form-field full-width">
+              <label>Quyền truy cập module</label>
+              <div class="permissions-grid">
+                <label v-for="perm in PERMISSION_MODULES" :key="perm.key" class="permission-checkbox">
+                  <input
+                    type="checkbox"
+                    :value="perm.key"
+                    v-model="roleForm.permissions"
+                  />
+                  <span>{{ perm.label }}</span>
+                </label>
+              </div>
             </div>
           </div>
           <div class="modal-actions">
@@ -1958,6 +2020,26 @@ h2 {
   border-radius: 6px;
   padding: 8px 10px;
   color: #5f3d22;
+}
+.permissions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.permission-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff9e6;
+  border: 1px solid #e6d2aa;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #735c2e;
+  font-size: 13px;
+}
+.permission-checkbox input {
+  width: 18px;
+  height: 18px;
 }
 .modal-actions {
   display: flex;

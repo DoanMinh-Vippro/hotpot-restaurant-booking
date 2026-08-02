@@ -1,6 +1,16 @@
 import ApiClient from './ApiClient'
 
 const DatBanQuanLyApi = {
+  getAll() {
+    return ApiClient.get('/api/dat-ban-quan-ly')
+  },
+
+  findByTrangThai(trangThai: string) {
+    return ApiClient.get('/api/dat-ban-quan-ly', {
+      params: { trangThai },
+    })
+  },
+
   // Search tổng hợp
   search(params: { keyword?: string; trangThai?: string; tuNgay?: string; denNgay?: string }) {
     return ApiClient.get('/api/dat-ban-quan-ly/search', {
