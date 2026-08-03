@@ -11,9 +11,9 @@ const authStore = useAuthStore()
 const adminRouteNames = ['thucDon', 'hoa-don', 'ban-hang', 'giam-gia', 'ban', 'dat-ban-quan-ly', 'tai-khoan', 'thong-ke', 'khu-vuc', 'coc', 'shift-management']
 
 const menuItems = [
+  { label: 'Bán hàng', routeName: 'ban-hang', permission: 'pos', icon: '🛒' },
   { label: 'Quản lý thực đơn', routeName: 'thucDon', permission: 'menu', icon: '🍜' },
   { label: 'Hóa đơn', routeName: 'hoa-don', permission: 'invoice', icon: '🧾' },
-  { label: 'Bán hàng', routeName: 'ban-hang', permission: 'pos', icon: '🛒' },
   { label: 'Giảm giá', routeName: 'giam-gia', permission: 'discount', icon: '🏷️' },
   { label: 'Bàn', routeName: 'ban', permission: 'table', icon: '🪑' },
   { label: 'Đặt bàn quản lý', routeName: 'dat-ban-quan-ly', permission: 'reservation', icon: '📋' },
