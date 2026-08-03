@@ -448,15 +448,36 @@ const markReservationCompleted = async () => {
   const reservationId = props.datBan?.idDatBan
   const banId = props.ban?.idBan
 
-  // Cập nhật đơn đặt bàn nếu có
-  if (reservationId && props.datBan) {
+  const updateReservationToCompleted = async (reservation: any) => {
+    if (!reservation?.idDatBan) return
     try {
-      const payload = buildReservationUpdatePayload(props.datBan)
+      const payload = buildReservationUpdatePayload(reservation)
       if (payload) {
-        await DatBanQuanLyApi.update(reservationId, payload)
+        await DatBanQuanLyApi.update(reservation.idDatBan, payload)
       }
     } catch (error) {
       console.warn('Không thể cập nhật đơn đặt bàn sau thanh toán:', error)
+    }
+  }
+
+  // Nếu có reservation hiện tại thì cập nhật trực tiếp
+  if (reservationId && props.datBan) {
+    await updateReservationToCompleted(props.datBan)
+  } else if (banId) {
+    // Nếu không có reservation trực tiếp, tìm reservation hoạt động theo bàn và đóng nó
+    try {
+      const reservationRes = await DatBanQuanLyApi.getAll()
+      const reservationList = Array.isArray(reservationRes?.data) ? reservationRes.data : []
+      const matchedReservation = reservationList.find((reservation: any) =>
+        Array.isArray(reservation?.dsBan) &&
+        reservation.dsBan.some((ban: any) => Number(ban?.idBan) === Number(banId)) &&
+        ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || ''))
+      )
+      if (matchedReservation) {
+        await updateReservationToCompleted(matchedReservation)
+      }
+    } catch (error) {
+      console.warn('Không thể tìm reservation theo bàn để cập nhật trạng thái:', error)
     }
   }
 

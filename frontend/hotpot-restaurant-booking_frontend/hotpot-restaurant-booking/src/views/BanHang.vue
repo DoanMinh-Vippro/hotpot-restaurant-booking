@@ -142,12 +142,10 @@ const loadBan = async () => {
     const banStatus = normalizeBanStatus(ban.trangThai)
     let nextStatus = banStatus
 
-    if (!['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus)) {
-      if (reservationStatus) {
-        nextStatus = reservationStatus
-      }
-    } else if (banStatus === 'TRONG' && reservationStatus === 'DA_DAT') {
-      nextStatus = 'DA_DAT'
+    if (reservationStatus && banStatus === 'TRONG') {
+      nextStatus = reservationStatus
+    } else if (!['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus) && reservationStatus) {
+      nextStatus = reservationStatus
     }
 
     return { ...ban, trangThai: nextStatus }
@@ -209,8 +207,33 @@ const markBanDangSuDung = async (ban: any) => {
   }
 }
 
-const moDanhSachDatBan = () => {
+const moDanhSachDatBan = async () => {
   showPopup.value = false
+
+  if (!banDangChon?.value?.idBan) {
+    showPopupDaXacNhan.value = true
+    return
+  }
+
+  try {
+    const reservationRes = await DatBanQuanLyApi.getAll()
+    const reservations = Array.isArray(reservationRes?.data) ? reservationRes.data : []
+    const matchedReservation = reservations.find((reservation: any) =>
+      Array.isArray(reservation?.dsBan) &&
+      reservation.dsBan.some((ban: any) => Number(ban?.idBan) === Number(banDangChon.value.idBan)) &&
+      ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || ''))
+    )
+
+    if (matchedReservation) {
+      datBanDangChon.value = matchedReservation
+      showPopupDaXacNhan.value = false
+      manHinhHienTai.value = 'thanhToan'
+      return
+    }
+  } catch (error) {
+    console.warn('Không thể lấy đơn đặt bàn tương ứng:', error)
+  }
+
   showPopupDaXacNhan.value = true
 }
 
