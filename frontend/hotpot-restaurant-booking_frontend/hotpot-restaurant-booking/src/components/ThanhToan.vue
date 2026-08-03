@@ -262,7 +262,15 @@ const tienGiamGia = computed(() => {
   return 0
 })
 
-const tongThanhToan = computed(() => Math.max(0, tongTienTamTinhCotGiua.value - tienGiamGia.value))
+const depositDaCoc = computed(() => {
+  const deposit = Number(props.datBan?.soTienCoc ?? 0)
+  return Number.isFinite(deposit) ? Math.max(0, deposit) : 0
+})
+
+const tongThanhToan = computed(() => {
+  const base = tongTienTamTinhCotGiua.value - tienGiamGia.value
+  return Math.max(0, base - depositDaCoc.value)
+})
 
 // ================= HÓA ĐƠN API =================
 const checkHoaDonTam = async () => {
@@ -477,8 +485,8 @@ const buildReservationUpdatePayload = (datBan: any) => {
     sdtKhachHang: datBan.sdtKhachHang ?? '',
     soNguoi: datBan.soNguoi ?? 1,
     thoiGianDenDuKien: datBan.thoiGianDenDuKien ?? null,
-    soTienCoc: datBan.soTienCoc ?? 0,
-    trangThaiCoc: datBan.trangThaiCoc ?? 'CHUA_COC',
+    soTienCoc: 0,
+    trangThaiCoc: datBan?.soTienCoc > 0 ? 'DA_COC' : (datBan?.trangThaiCoc ?? 'CHUA_COC'),
     phuongThucThanhToan: datBan.phuongThucThanhToan ?? 'CHUA_THANH_TOAN',
     ghiChu: datBan.ghiChu ?? '',
     trangThai: 'HOAN_THANH',
@@ -859,8 +867,11 @@ onMounted(() => {
           Tạm tính: {{ tongTienTamTinhCotGiua.toLocaleString('vi-VN') }} đ
         </div>
         <div class="tong-tien">Tiền giảm giá: {{ tienGiamGia.toLocaleString('vi-VN') }} đ</div>
+        <div v-if="depositDaCoc > 0" class="tong-tien">
+          Tiền cọc đã trừ: {{ depositDaCoc.toLocaleString('vi-VN') }} đ
+        </div>
         <div class="tong-tien main-total-center">
-          Tổng tiền: {{ tongThanhToan.toLocaleString('vi-VN') }} đ
+          Còn phải thanh toán: {{ tongThanhToan.toLocaleString('vi-VN') }} đ
         </div>
         <div>
           <select class="discount-input" v-model="giamGiaDangChon">

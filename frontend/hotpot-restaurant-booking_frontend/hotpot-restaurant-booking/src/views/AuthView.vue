@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 // Đã import các thành phần cần thiết để gọi API
 import AuthApi from '@/api/AuthApi'
 import { useAuthStore } from '@/stores/AuthStore'
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore() // Khởi tạo store để lưu token sau khi login
 // [SỬA]: Thay đổi các biến lưu dữ liệu form cho khớp với database
 const username = ref('')     // Thay cho email
@@ -38,9 +39,9 @@ const handleSubmit = async () => {
     const isUserRole = roleName === 'USER'
 
     const adminMenuOrder = [
+      { permission: 'pos', routeName: 'ban-hang' },
       { permission: 'menu', routeName: 'thucDon' },
       { permission: 'invoice', routeName: 'hoa-don' },
-      { permission: 'pos', routeName: 'ban-hang' },
       { permission: 'discount', routeName: 'giam-gia' },
       { permission: 'table', routeName: 'ban' },
       { permission: 'reservation', routeName: 'dat-ban-quan-ly' },
@@ -51,15 +52,28 @@ const handleSubmit = async () => {
       { permission: 'deposit', routeName: 'coc' },
     ]
 
-    let redirectRoute = 'dat-ban-quan-ly'
-    if (!isUserRole) {
-      const permittedAdminMenus = authStore.permissions.length
-        ? adminMenuOrder.filter((item) => authStore.permissions.includes(item.permission))
-        : adminMenuOrder
+    // If login was triggered by trying to access a protected page, prefer returning there
+    const requested = (route.query.redirect as string) || ''
 
-      redirectRoute = permittedAdminMenus[0]?.routeName || 'dat-ban-quan-ly'
+    if (isUserRole) {
+      if (requested) {
+        alert('Đăng nhập thành công!')
+        router.replace(requested)
+        return
+      }
+
+      // default customer landing
+      alert('Đăng nhập thành công!')
+      router.replace({ path: '/' })
+      return
     }
 
+    // internal user: go to first permitted admin menu (or fallback)
+    const permittedAdminMenus = authStore.permissions.length
+      ? adminMenuOrder.filter((item) => authStore.permissions.includes(item.permission))
+      : adminMenuOrder
+
+    const redirectRoute = permittedAdminMenus[0]?.routeName || 'dat-ban-quan-ly'
     alert('Đăng nhập thành công!')
     router.replace({ name: redirectRoute })
   } catch (error: any) {
