@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
-import { useRouter } from "vue-router";
 import ThongKeApi from "@/api/ThongKeApi";
 import RevenueChart from "./RevenueChart.vue";
-
 import DepositStatusChart from "./DepositStatusChart.vue";
-
-
-const router = useRouter();
+import KhuVucChart from "./KhuVucChart.vue";
+import GioCaoDiemChart from "./GioCaoDiemChart.vue";
 
 const dashboard = ref<any>({});
 const topMon = ref<any[]>([]);
@@ -17,52 +14,56 @@ const trangThaiCoc = ref<any[]>([]);
 const ngay = ref<any[]>([]);
 const thang = ref<any[]>([]);
 const nam = ref<any[]>([]);
+const khuVuc = ref<any[]>([]);
+const doanhThuGio = ref<any[]>([]);
+const topKhachHang = ref<any[]>([]);
+const khuyenMai = ref<any[]>([]);
 
-// ✅ FIX: thêm mode
 const mode = ref<"ngay" | "thang" | "nam">("thang");
-
 const modes = ["ngay", "thang", "nam"] as const;
+
+const now = ref(new Date());
+const timeRefresh = ref("");
+
+const updateClock = () => {
+  now.value = new Date();
+  timeRefresh.value = now.value.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+};
 
 const load = async () => {
   try {
-    const [db, mon, nv, dNgay, dThang, dNam, coc, ttCoc] =
+    const [db, mon, nv, dNgay, dThang, dNam, coc, ttCoc, kv, dGio, kh, km] =
       await Promise.all([
         ThongKeApi.dashboard(),
-        ThongKeApi.topMon(),
+        ThongKeApi.topMon(0, 5),
         ThongKeApi.topNhanVien(),
         ThongKeApi.theoNgay("2026-01-01", "2026-12-31"),
         ThongKeApi.theoThang(),
         ThongKeApi.theoNam(),
         ThongKeApi.tienCocTheoNgay(),
-        ThongKeApi.trangThaiCoc()
+        ThongKeApi.trangThaiCoc(),
+        ThongKeApi.doanhThuTheoKhuVuc(),
+        ThongKeApi.doanhThuTheoGio(),
+        ThongKeApi.topKhachHangThanThiet(),
+        ThongKeApi.hieuQuaKhuyenMai()
       ]);
 
-    // Dashboard
     dashboard.value = db?.data || {};
-
-    // Top
     topMon.value = mon?.data || [];
     topNhanVien.value = nv?.data || [];
-
-    // Biểu đồ doanh thu
     ngay.value = dNgay?.data || [];
     thang.value = dThang?.data || [];
     nam.value = dNam?.data || [];
-
-    // Tiền cọc
     tienCoc.value = coc?.data || [];
     trangThaiCoc.value = ttCoc?.data || [];
-
-    // DEBUG
-    console.log("===== API DATA =====");
-    console.log("Dashboard:", dashboard.value);
-    console.log("Top món:", topMon.value);
-    console.log("Top NV:", topNhanVien.value);
-    console.log("Ngày:", ngay.value);
-    console.log("Tháng:", thang.value);
-    console.log("Năm:", nam.value);
-    console.log("Tiền cọc:", tienCoc.value);
-    console.log("Trạng thái cọc:", trangThaiCoc.value);
+    khuVuc.value = kv?.data || [];
+    doanhThuGio.value = dGio?.data || [];
+    topKhachHang.value = kh?.data || [];
+    khuyenMai.value = km?.data || [];
 
   } catch (err) {
     console.error("LOAD ERROR:", err);
@@ -71,256 +72,500 @@ const load = async () => {
 
 const chartData = computed(() => {
   let data: any[] = [];
-
   if (mode.value === "ngay") data = ngay.value;
   else if (mode.value === "nam") data = nam.value;
   else data = thang.value;
 
   return (data || []).map(i => {
     let thoiGian = "";
-
-    if (mode.value === "ngay") {
-      // 👉 2026-05-18 → 05-18
-      thoiGian = i?.thoiGian ? i.thoiGian.slice(5) : "";
-    }
-    else if (mode.value === "thang") {
-      // 🔥 GIỮ NGUYÊN yyyy-MM
-      thoiGian = i?.thoiGian || "";
-    }
-    else if (mode.value === "nam") {
-      // 👉 chỉ lấy năm
-      thoiGian = i?.thoiGian ? i.thoiGian.toString().slice(0, 4) : "";
-    }
+    if (mode.value === "ngay") thoiGian = i?.thoiGian ? i.thoiGian.slice(5) : "";
+    else if (mode.value === "thang") thoiGian = i?.thoiGian || "";
+    else if (mode.value === "nam") thoiGian = i?.thoiGian ? i.thoiGian.toString().slice(0, 4) : "";
 
     return {
       thoiGian,
-      tongDoanhThu:
-        i?.tongDoanhThu ||
-        i?.doanhThu ||
-        i?.tongTien ||
-        0
+      tongDoanhThu: i?.tongDoanhThu || i?.doanhThu || i?.tongTien || 0
     };
   });
 });
 
-onMounted(load);
+onMounted(() => {
+  load();
+  updateClock();
+  setInterval(updateClock, 1000);
+});
 </script>
+
 <template>
-  <div class="dashboard">
-    <!-- HEADER -->
-    <div class="header">
-      <h2>🍲 POS Restaurant Dashboard</h2>
-      <p>Realtime Business Overview</p>
+  <div class="pos-dashboard">
+
+    <!-- ====== TOP BAR ====== -->
+    <div class="topbar">
+      <div class="logo-area">
+        <span class="logo-icon">🍲</span>
+        <div>
+          <h1>Hotpot Restaurant</h1>
+          <span class="subtitle">POS Dashboard · Real-time</span>
+        </div>
+      </div>
+      <div class="right-info">
+        <span class="date">{{ now.toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+        <span class="clock">{{ timeRefresh }}</span>
+      </div>
     </div>
 
-    <!-- KPI -->
+    <!-- ====== KPI CARDS ====== -->
     <div class="kpi-grid">
-      <div class="kpi card-green">
-        <h4>💰 Doanh thu</h4>
-        <p>{{ Number(dashboard.tongDoanhThu || 0).toLocaleString() }} đ</p>
-      </div>
-
-      <div class="kpi card-blue">
-        <h4>🧾 Hóa đơn</h4>
-        <p>{{ dashboard.tongHoaDon || 0 }}</p>
-      </div>
-
-      <div class="kpi card-orange">
-        <h4>👥 Khách hàng</h4>
-        <p>{{ dashboard.tongKhachHang || 0 }}</p>
-      </div>
-      <div class="kpi card-purple">
-    <h4>💵 Tiền cọc</h4>
-    <p>{{ Number(dashboard.tongTienCoc || 0).toLocaleString() }} đ</p>
-  </div>
-
-  <div class="kpi card-green">
-    <h4>✅ Đã cọc</h4>
-    <p>{{ dashboard.soDonDaCoc }}</p>
-  </div>
-
-  <div class="kpi card-red">
-    <h4>❌ Chưa cọc</h4>
-    <p>{{ dashboard.soDonChuaCoc }}</p>
-  </div>
-    </div>
-
-    <!-- FILTER -->
-    <div class="filter">
-      <button
-        v-for="m in modes"
-        :key="m"
-        @click="mode = m"
-        :class="{active: mode === m}"
-      >
-        {{ m }}
-      </button>
-    </div>
-
-    <!-- CHART -->
-    <div class="chart-box">
-     <RevenueChart
-  :key="mode + chartData.length"
-  :data="chartData"
-  :mode="mode"
-/>
-    </div>
-
-    <!-- GRID -->
-    <div class="grid">
-
-      <div class="box">
-        <h3>🔥 Top món bán chạy</h3>
-        <div v-for="m in topMon" :key="m.tenMon" class="row">
-          <span>{{ m.tenMon }}</span>
-          <b>{{ m.soLuongBan }}</b>
+      <div class="kpi kpi-green">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-content">
+          <span class="kpi-label">Tổng doanh thu</span>
+          <span class="kpi-value">{{ Number(dashboard.tongDoanhThu || 0).toLocaleString() }} đ</span>
         </div>
       </div>
 
-      <div class="box">
-        <h3>👨‍🍳 Top nhân viên</h3>
-        <div v-for="nv in topNhanVien" :key="nv.tenNhanVien" class="row">
-          <span>{{ nv.tenNhanVien }}</span>
-          <b>{{ Number(nv.tongDoanhThu).toLocaleString() }} đ</b>
+      <div class="kpi kpi-blue">
+        <div class="kpi-icon">🧾</div>
+        <div class="kpi-content">
+          <span class="kpi-label">Tổng hóa đơn</span>
+          <span class="kpi-value">{{ dashboard.tongHoaDon || 0 }}</span>
         </div>
       </div>
 
+      <div class="kpi kpi-purple">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-content">
+          <span class="kpi-label">Khách hàng</span>
+          <span class="kpi-value">{{ dashboard.tongKhachHang || 0 }}</span>
+        </div>
+      </div>
+
+      <div class="kpi kpi-orange">
+        <div class="kpi-icon">💵</div>
+        <div class="kpi-content">
+          <span class="kpi-label">Tiền cọc</span>
+          <span class="kpi-value">{{ Number(dashboard.tongTienCoc || 0).toLocaleString() }} đ</span>
+        </div>
+      </div>
+
+      <div class="kpi kpi-teal">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-content">
+          <span class="kpi-label">Đã cọc</span>
+          <span class="kpi-value">{{ dashboard.soDonDaCoc || 0 }}</span>
+        </div>
+      </div>
+
+      <div class="kpi kpi-red">
+        <div class="kpi-icon">⏳</div>
+        <div class="kpi-content">
+          <span class="kpi-label">Chưa cọc</span>
+          <span class="kpi-value">{{ dashboard.soDonChuaCoc || 0 }}</span>
+        </div>
+      </div>
     </div>
-<div class="box" style="margin-top:20px">
-    <h3>💵 Tiền cọc theo ngày</h3>
 
-    <RevenueChart
-        :data="tienCoc.map(i => ({
-            thoiGian: i.thoiGian,
-            tongDoanhThu: i.doanhThu
-        }))"
-        mode="ngay"
-    />
-</div>
-<div class="box" style="margin-top:20px">
-    <h3>📌 Trạng thái cọc</h3>
+    <!-- ====== MAIN LAYOUT 2 CỘT ====== -->
+    <div class="main-grid">
 
-    <DepositStatusChart
-        :data="trangThaiCoc"
-    />
-</div>
+      <!-- CỘT TRÁI -->
+      <div class="col-left">
+
+        <!-- DOANH THU CHART -->
+        <div class="card">
+          <div class="card-header">
+            <h3>📊 Doanh thu</h3>
+            <div class="filter-chip">
+              <button
+                v-for="m in modes"
+                :key="m"
+                @click="mode = m"
+                :class="{ active: mode === m }"
+              >{{ m === 'ngay' ? 'Ngày' : m === 'thang' ? 'Tháng' : 'Năm' }}</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <RevenueChart :key="mode + chartData.length" :data="chartData" :mode="mode" />
+          </div>
+        </div>
+
+        <!-- GIỜ CAO ĐIỂM -->
+        <div class="card">
+          <div class="card-header">
+            <h3>⏰ Doanh thu theo khung giờ</h3>
+          </div>
+          <div class="card-body">
+            <GioCaoDiemChart :data="doanhThuGio" />
+          </div>
+        </div>
+
+        <!-- KHU VỰC -->
+        <div class="card">
+          <div class="card-header">
+            <h3>📍 Doanh thu theo khu vực</h3>
+          </div>
+          <div class="card-body">
+            <KhuVucChart :data="khuVuc" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CỘT PHẢI -->
+      <div class="col-right">
+
+        <!-- TRẠNG THÁI CỌC -->
+        <div class="card">
+          <div class="card-header">
+            <h3>📌 Trạng thái cọc</h3>
+          </div>
+          <div class="card-body">
+            <DepositStatusChart :data="trangThaiCoc" />
+          </div>
+        </div>
+
+        <!-- TOP MÓN -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🔥 Top món bán chạy</h3>
+          </div>
+          <div class="card-body">
+            <div class="list-row" v-for="(m, idx) in topMon" :key="m.tenMon">
+              <span class="rank">{{ idx + 1 }}</span>
+              <span class="name">{{ m.tenMon }}</span>
+              <span class="count">{{ m.soLuongBan }} món</span>
+            </div>
+            <div v-if="topMon.length === 0" class="empty">Chưa có dữ liệu</div>
+          </div>
+        </div>
+
+        <!-- TOP NHÂN VIÊN -->
+        <div class="card">
+          <div class="card-header">
+            <h3>👨‍🍳 Top nhân viên</h3>
+          </div>
+          <div class="card-body">
+            <div class="list-row" v-for="(nv, idx) in topNhanVien" :key="nv.tenNhanVien">
+              <span class="rank">{{ idx + 1 }}</span>
+              <span class="name">{{ nv.tenNhanVien }}</span>
+              <span class="amount">{{ Number(nv.tongDoanhThu).toLocaleString() }} đ</span>
+            </div>
+            <div v-if="topNhanVien.length === 0" class="empty">Chưa có dữ liệu</div>
+          </div>
+        </div>
+
+        <!-- TOP KHÁCH HÀNG -->
+        <div class="card">
+          <div class="card-header">
+            <h3>⭐ Khách hàng VIP</h3>
+          </div>
+          <div class="card-body">
+            <div class="list-row" v-for="(kh, idx) in topKhachHang" :key="kh.soDienThoai">
+              <span class="rank">{{ idx + 1 }}</span>
+              <span class="name">{{ kh.tenKhachHang }}</span>
+              <span class="amount">{{ Number(kh.tongChiTieu).toLocaleString() }} đ</span>
+            </div>
+            <div v-if="topKhachHang.length === 0" class="empty">Chưa có dữ liệu</div>
+          </div>
+        </div>
+
+        <!-- KHUYẾN MÃI -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🎫 Hiệu quả khuyến mãi</h3>
+          </div>
+          <div class="card-body">
+            <div class="list-row" v-for="km in khuyenMai" :key="km.maGiamGia">
+              <span class="tag">{{ km.maGiamGia }}</span>
+              <span class="name">{{ km.soLanSuDung }} lần</span>
+              <span class="discount">-{{ Number(km.tongTienDaGiam).toLocaleString() }} đ</span>
+            </div>
+            <div v-if="khuyenMai.length === 0" class="empty">Chưa có dữ liệu</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
+
 <style scoped>
-.page-top {
-  margin-bottom: 16px;
+/* ========== RESET & FONT ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.back-home-btn {
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  background: white;
-  color: #0f172a;
-  padding: 8px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.back-home-btn:hover {
-  background: #f8fafc;
-}
-
-.dashboard {
-  padding: 24px;
-  font-family: Inter;
-  background: linear-gradient(135deg, #f8fafc, #eef2ff);
+.pos-dashboard {
+  font-family: 'SF Pro Display', 'Inter', -apple-system, sans-serif;
+  background: #f0f2f5;
   min-height: 100vh;
+  padding: 20px 24px;
+  color: #1e293b;
 }
 
-/* HEADER */
-.header h2 {
-  font-size: 24px;
-  font-weight: 700;
-}
-.header p {
-  color: #64748b;
-}
-
-/* KPI */
-.kpi-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:16px;
-    margin:20px 0;
-}
-
-.kpi {
-  background: white;
-  padding: 18px;
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.05);
-}
-
-.kpi h4 {
-  color: #64748b;
-  font-size: 13px;
-}
-.kpi p {
-  font-size: 22px;
-  font-weight: bold;
-}
-
-.card-green { border-left: 4px solid #22c55e; }
-.card-blue { border-left: 4px solid #3b82f6; }
-.card-orange { border-left: 4px solid #f59e0b; }
-
-/* FILTER */
-.filter {
+/* ========== TOP BAR ========== */
+.topbar {
   display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 16px 24px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
-.filter button {
-  padding: 8px 14px;
-  border-radius: 10px;
-  border: none;
-  background: #e2e8f0;
-  cursor: pointer;
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.filter button.active {
-  background: #0ea5e9;
-  color: white;
+.logo-icon {
+  font-size: 36px;
 }
 
-/* CHART */
-.chart-box {
-  background: white;
-  padding: 16px;
-  border-radius: 16px;
+.logo-area h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.right-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.date {
+  font-size: 13px;
+  color: #64748b;
+  text-transform: capitalize;
+}
+
+.clock {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========== KPI GRID ========== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
   margin-bottom: 20px;
 }
 
-/* GRID */
-.grid {
+.kpi {
+  background: #fff;
+  padding: 16px 18px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: transform 0.15s;
+}
+
+.kpi:hover {
+  transform: translateY(-2px);
+}
+
+.kpi-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+}
+
+.kpi-green .kpi-icon { background: #dcfce7; }
+.kpi-blue .kpi-icon { background: #dbeafe; }
+.kpi-purple .kpi-icon { background: #ede9fe; }
+.kpi-orange .kpi-icon { background: #ffedd5; }
+.kpi-teal .kpi-icon { background: #ccfbf1; }
+.kpi-red .kpi-icon { background: #fee2e2; }
+
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-label {
+  font-size: 11px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ========== MAIN GRID 2 CỘT ========== */
+.main-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 18px;
 }
 
-.box {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
+/* ========== CARD ========== */
+.card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  margin-bottom: 18px;
+  overflow: hidden;
 }
 
-.row {
+.card-header {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
+  align-items: center;
+  padding: 16px 20px;
   border-bottom: 1px solid #f1f5f9;
 }
-.card-purple{
-    border-left:4px solid #8b5cf6;
+
+.card-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
 }
 
-.card-red{
-    border-left:4px solid #ef4444;
+.card-body {
+  padding: 16px 20px;
+}
+
+/* ========== FILTER CHIP ========== */
+.filter-chip {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.filter-chip button {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-chip button.active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* ========== LIST ROW ========== */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.list-row:last-child {
+  border-bottom: none;
+}
+
+.rank {
+  width: 24px;
+  height: 24px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.amount {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.tag {
+  background: #ede9fe;
+  color: #7c3aed;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.discount {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.empty {
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1200px) {
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .topbar {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .right-info {
+    align-items: center;
+  }
 }
 </style>
