@@ -1,6 +1,7 @@
 package com.example.hotpotrestaurantbooking_backend.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,4 +20,7 @@ public class DanhMuc {
     private String loaiDanhMuc;
     @Column(name = "mo_ta")
     private String moTa;
+    @Column(name = "quay", length = 10)
+    private String quay;
+
 }

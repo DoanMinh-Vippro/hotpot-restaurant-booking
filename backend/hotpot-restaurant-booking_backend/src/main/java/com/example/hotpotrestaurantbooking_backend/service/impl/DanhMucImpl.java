@@ -44,6 +44,9 @@ public class DanhMucImpl implements DanhMucService {
         validator.validateAdd(req);
         DanhMuc dm=new DanhMuc();
         BeanUtils.copyProperties(req,dm);
+         if (req.getQuay() != null) {
+             dm.setQuay(req.getQuay().trim().toUpperCase());
+         }
         repo.save(dm);
     }
     @Override
@@ -53,6 +56,9 @@ public class DanhMucImpl implements DanhMucService {
                 .orElseThrow(()->new RuntimeException("Không tìm thấy danh mục có id này"));
         dm.setLoaiDanhMuc(req.getLoaiDanhMuc());
         dm.setMoTa(req.getMoTa());
+        if (req.getQuay() != null) {
+            dm.setQuay(req.getQuay().trim().toUpperCase());
+        }
         repo.save(dm);
     }
 }

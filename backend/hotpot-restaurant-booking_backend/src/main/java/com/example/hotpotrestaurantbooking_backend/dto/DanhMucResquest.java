@@ -23,4 +23,6 @@ public class DanhMucResquest {
     private String loaiDanhMuc;
     @NotBlank(message = "Mô tả không được để trống")
     private String moTa;
+    @NotBlank(message = "Quầy chế biến không được để trống")
+    private String quay;
 }
