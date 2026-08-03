@@ -10,4 +10,8 @@ import lombok.NoArgsConstructor;
 public class DTOThongKeDoanhThu {
     private String thoiGian;
     private Double doanhThu;
+    public DTOThongKeDoanhThu(String thoiGian, Double doanhThu) {
+        this.thoiGian = thoiGian;
+        this.doanhThu = doanhThu;
+    }
 }
