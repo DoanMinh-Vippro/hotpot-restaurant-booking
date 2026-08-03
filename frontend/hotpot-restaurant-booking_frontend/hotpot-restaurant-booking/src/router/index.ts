@@ -200,7 +200,10 @@ router.beforeEach((to, from, next) => {
   } else {
     // For internal users, prefer admin area. If they try to access a non-admin non-home page,
     // redirect them to admin reservation as a safe default.
-    if (!internalPages.includes(to.name as string) && to.name !== 'home') {
+    // Cho phép các trang public của nhân viên
+    const allowPages = ['home', 'payment-success', 'payment-failed']
+
+    if (!internalPages.includes(to.name as string) && !allowPages.includes(to.name as string)) {
       next({ name: 'dat-ban-quan-ly' })
       return
     }
