@@ -1,9 +1,9 @@
 <template>
   <div class="container">
     <div class="khu-vuc-dieu-huong">
-      <button class="nut-quay-lai" @click="quayLaiThucDon">
+      <!-- <button class="nut-quay-lai" @click="quayLaiThucDon">
         ⬅ Quay lại Thực đơn
-      </button>
+      </button> -->
     </div>
 
     <div class="cot-trai">
@@ -20,7 +20,7 @@
       <Pagination :page-no="trangHienTai" :total-pages="tongSoTrang" @change-page="chuyenTrang" />
     </div>
 
-    <div class="cot-phai">
+    <div class="cot-phai" ref="cotPhaiRef">
       <DanhMucForm 
         ref="formRef" 
         :danh-sach="danhSach"
@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router' // Import useRouter để thực hiện quay về
+import { useRouter } from 'vue-router'
 import DanhMucApi from '../api/DanhMucApi'
 
 import DanhMucTable from '../components/DanhMucTable.vue'
@@ -48,6 +48,7 @@ const danhSach = ref<DanhMuc[]>([])
 const itemChon = ref<DanhMuc | undefined>()
 const selectedId = ref<number | null>(null)
 const formRef = ref()
+const cotPhaiRef = ref<HTMLElement | null>(null)
 
 // Trạng thái phân trang tập trung
 const tuKhoaHienTai = ref('')
@@ -113,6 +114,11 @@ const sua = (item: DanhMuc) => {
   itemChon.value = item
   selectedId.value = item.idDanhMuc
   formRef.value?.fillForm(item)
+
+  // Tự động cuộn sang Form khi bấm sửa trên thiết bị màn hình nhỏ (Mobile/Tablet)
+  if (window.innerWidth <= 1200 && cotPhaiRef.value) {
+    cotPhaiRef.value.scrollIntoView({ behavior: 'smooth' })
+  }
 }
 
 const luu = async (payload: DanhMucRequest) => {
@@ -148,7 +154,7 @@ const xoa = async (id: number) => {
 .container {
   min-height: 100vh;
   padding: 120px 32px 32px;
-  background: #0f0f0f;
+  background: transparent;
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;
@@ -184,6 +190,7 @@ const xoa = async (id: number) => {
   flex-direction: column;
   gap: 16px;
 }
+
 @media (max-width: 1200px) {
   .container {
     grid-template-columns: 1fr;

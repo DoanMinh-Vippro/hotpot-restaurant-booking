@@ -4,11 +4,13 @@ export interface DanhMuc {
   idDanhMuc: number
   loaiDanhMuc: string
   moTa: string
+  quay: 'BEP' | 'BAR' | string
 }
 
 export interface DanhMucRequest {
   loaiDanhMuc: string
   moTa: string
+  quay: 'BEP' | 'BAR' | string
 }
 
 class DanhMucApi {
