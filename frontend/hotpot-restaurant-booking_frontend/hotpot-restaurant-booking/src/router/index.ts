@@ -160,6 +160,7 @@ router.beforeEach((to, from, next) => {
   const authRoutes = ['auth', 'register']
   const internalPages = [
     'thucDon',
+    'danhMuc',
     'hoa-don',
     'ban-hang',
     'giam-gia',
@@ -181,18 +182,29 @@ router.beforeEach((to, from, next) => {
     return
   }
 
+  // Allow public access for unauthenticated users except internal admin pages
   if (!isAuthenticated) {
-    next({ name: 'auth' })
+    if (internalPages.includes(to.name as string)) {
+      next({ name: 'auth', query: { redirect: to.fullPath } })
+      return
+    }
+    next()
     return
   }
 
+  // If authenticated as regular USER, block access to internal pages
   if (isUser) {
     if (internalPages.includes(to.name as string)) {
       next({ name: 'home' })
       return
     }
   } else {
-    if (!internalPages.includes(to.name as string) && to.name !== 'home') {
+    // For internal users, prefer admin area. If they try to access a non-admin non-home page,
+    // redirect them to admin reservation as a safe default.
+    // Cho phép các trang public của nhân viên
+    const allowPages = ['home', 'payment-success', 'payment-failed']
+
+    if (!internalPages.includes(to.name as string) && !allowPages.includes(to.name as string)) {
       next({ name: 'dat-ban-quan-ly' })
       return
     }

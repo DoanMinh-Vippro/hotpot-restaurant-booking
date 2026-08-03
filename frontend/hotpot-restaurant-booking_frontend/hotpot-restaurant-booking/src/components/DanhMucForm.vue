@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 
-// Định nghĩa kiểu dữ liệu nội bộ (Nếu bạn chưa có file API, có thể dùng trực tiếp kiểu này)
+// Định nghĩa kiểu dữ liệu nội bộ (Cập nhật thêm trường quay)
 interface DanhMucRequest {
   loaiDanhMuc: string
   moTa: string
+  quay: string
 }
 
 const props = defineProps<{
@@ -20,18 +21,21 @@ const idDanhMucHienTai = ref<number | null>(null)
 const form = reactive({
   loaiDanhMuc: '',
   moTa: '',
+  quay: '', // --- BỔ SUNG TRƯỜNG QUẦY ---
 })
 
 // Trạng thái lưu trữ thông báo lỗi validate hiển thị lên giao diện
 const errors = reactive({
   loaiDanhMuc: '',
   moTa: '',
+  quay: '', // --- BỔ SUNG THÔNG BÁO LỖI QUẦY ---
 })
 
 // Xóa sạch thông báo lỗi cũ khi người dùng thao tác lại
 const clearErrors = () => {
   errors.loaiDanhMuc = ''
   errors.moTa = ''
+  errors.quay = '' // --- CLEAR LỖI QUẦY ---
 }
 
 // Hàm xử lý Validate nâng cao cho Danh Mục
@@ -41,6 +45,7 @@ const validateForm = () => {
 
   const ten = form.loaiDanhMuc ? form.loaiDanhMuc.trim() : ''
   const mTa = form.moTa ? form.moTa.trim() : ''
+  const quy = form.quay ? form.quay.trim() : '' // --- THÊM BIẾN QUẦY ---
 
   // =============== 1. VALIDATE TÊN DANH MỤC ===============
   if (ten === '') {
@@ -97,6 +102,12 @@ const validateForm = () => {
     isValid = false
   }
 
+  // =============== 3. VALIDATE QUẦY (BẾP / BAR) ===============
+  if (quy === '') {
+    errors.quay = "Vui lòng chọn quầy xử lý cho danh mục này"
+    isValid = false
+  }
+
   return isValid
 }
 
@@ -106,6 +117,7 @@ const gui = () => {
   emit('submit', {
     loaiDanhMuc: form.loaiDanhMuc.trim(),
     moTa: form.moTa.trim(),
+    quay: form.quay, // --- BỔ SUNG TRUYỀN QUẦY KHI SUBMIT ---
   } as DanhMucRequest)
 }
 
@@ -119,6 +131,7 @@ defineExpose({
       idDanhMucHienTai.value = null
       form.loaiDanhMuc = ''
       form.moTa = ''
+      form.quay = '' // --- RESET QUẦY ---
       return
     }
 
@@ -127,6 +140,7 @@ defineExpose({
     idDanhMucHienTai.value = item.idDanhMuc
     form.loaiDanhMuc = item.loaiDanhMuc || ''
     form.moTa = item.moTa || ''
+    form.quay = item.quay || '' // --- GÁN DỮ LIỆU QUẦY ---
   },
 })
 </script>
@@ -149,6 +163,21 @@ defineExpose({
           @input="errors.loaiDanhMuc = ''"
         />
         <span class="error-text" v-if="errors.loaiDanhMuc">{{ errors.loaiDanhMuc }}</span>
+      </div>
+
+      <!-- --- BỔ SUNG SELECT BỐ TRÍ CHỌN QUẦY --- -->
+      <div class="form-group">
+        <label>Chế biến tại quầy <span class="bat-buoc">*</span></label>
+        <select
+          v-model="form.quay"
+          :class="{ 'is-invalid': errors.quay }"
+          @change="errors.quay = ''"
+        >
+          <option value="" disabled selected>-- Chọn quầy chế biến --</option>
+          <option value="BEP">Bếp (Món ăn / Đồ nóng)</option>
+          <option value="BAR">Bar (Pha chế / Đồ uống)</option>
+        </select>
+        <span class="error-text" v-if="errors.quay">{{ errors.quay }}</span>
       </div>
 
       <div class="form-group">
@@ -174,19 +203,19 @@ defineExpose({
 
 <style scoped>
 .bieu-mau-panel {
-  background: rgba(15, 15, 15, 0.94);
+  background: #fff8ea;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 28px;
   padding: 26px;
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin-bottom: 10px;
 }
 
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
   font-size: 14px;
 }
 
@@ -203,7 +232,7 @@ defineExpose({
 }
 
 label {
-  color: #d8d8d8;
+  color: #6b4728;
   font-size: 14px;
   margin-bottom: 2px;
 }
@@ -213,13 +242,14 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select { /* --- BỔ SUNG SELECT VÀO STYLE CHUNG --- */
   margin-top: 6px;
   padding: 14px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, .08);
-  background: rgba(255, 255, 255, .04);
-  color: white;
+  background: #fffdf8;
+  color: #5f3d22;
   outline: none;
   box-sizing: border-box;
   width: 100%;
@@ -229,7 +259,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus { /* --- BỔ SUNG FOCUS CHO SELECT --- */
   border-color: #f8d46a;
 }
 

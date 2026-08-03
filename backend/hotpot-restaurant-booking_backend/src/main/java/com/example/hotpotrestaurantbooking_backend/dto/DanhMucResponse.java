@@ -19,4 +19,6 @@ public class DanhMucResponse {
     private String loaiDanhMuc;
 
     private String moTa;
+
+    private String quay;
 }

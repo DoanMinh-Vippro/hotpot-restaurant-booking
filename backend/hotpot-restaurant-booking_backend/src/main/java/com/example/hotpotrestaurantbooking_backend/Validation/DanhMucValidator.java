@@ -11,6 +11,17 @@ import org.springframework.stereotype.Component;
 public class DanhMucValidator {
     private final DanhMucRepository repo;
 
+    private void validateQuay(String quay) {
+        if (ValidateUtil.isBlank(quay)) {
+            throw new RuntimeException("Quầy chế biến không được để trống");
+        }
+
+        String quayUpper = quay.trim().toUpperCase();
+        if (!quayUpper.equals("BEP") && !quayUpper.equals("BAR")) {
+            throw new RuntimeException("Quầy chế biến chỉ được chọn 'BEP' hoặc 'BAR'");
+        }
+    }
+
     // ====== ADD ======
     public void validateAdd(DanhMucResquest req) {
 
@@ -36,6 +47,7 @@ public class DanhMucValidator {
         if (ValidateUtil.hasMultipleSpaces(moTa)) {
             throw new RuntimeException("Mô tả không được chứa nhiều khoảng trắng liên tiếp");
         }
+        validateQuay(req.getQuay());
     }
 
     // ====== UPDATE ======
@@ -67,5 +79,6 @@ public class DanhMucValidator {
         if (ValidateUtil.hasMultipleSpaces(moTa)) {
             throw new RuntimeException("Mô tả không được chứa nhiều khoảng trắng liên tiếp");
         }
+        validateQuay(req.getQuay());
     }
 }

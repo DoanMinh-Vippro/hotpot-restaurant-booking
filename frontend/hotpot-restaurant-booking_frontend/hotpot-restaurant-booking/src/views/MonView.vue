@@ -11,7 +11,7 @@
         @add="chuyenSangThemMoi"
         @search="xuLyTimKiem"
         @reset="xuLyLamMoi"
-        @go-to-category="() => $router.push('/danhmuc')" 
+        @go-to-category="() => $router.push('/danhMuc')" 
       />
 
       <!-- 📄 BỔ SUNG COMPONENT PHÂN TRANG GIONG VIEW COMBO -->

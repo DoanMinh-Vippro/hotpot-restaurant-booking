@@ -55,6 +55,8 @@ const xoa = (id: number) => {
             <th>ID</th>
             <th>Loại danh mục</th>
             <th>Mô tả</th>
+            <!-- BỔ SUNG CỘT QUẦY -->
+            <th>Quầy</th>
             <th>Hành động</th>
           </tr>
         </thead>
@@ -67,13 +69,20 @@ const xoa = (id: number) => {
             <td>{{ item.idDanhMuc }}</td>
             <td>{{ item.loaiDanhMuc }}</td>
             <td>{{ item.moTa }}</td>
+            <!-- BỔ SUNG DỮ LIỆU CỘT QUẦY -->
+            <td>
+              <span :class="['badge-quay', item.quay?.toLowerCase()]">
+                {{ item.quay === 'BEP' ? 'Bếp' : item.quay === 'BAR' ? 'Bar' : item.quay }}
+              </span>
+            </td>
             <td class="hanh-dong">
               <button class="nut-sua" @click="$emit('edit', item)">Sửa</button>
               <button class="nut-xoa" @click="xoa(item.idDanhMuc)">Xoá</button>
             </td>
           </tr>
           <tr v-if="danhSach.length === 0">
-            <td colspan="4" style="text-align: center; color: #a0a0a0; padding: 20px">
+            <!-- TĂNG COLSPAN LÊN 5 CHO KHỚP CỘT -->
+            <td colspan="5" style="text-align: center; color: #a0a0a0; padding: 20px">
               Không tìm thấy danh mục phù hợp.
             </td>
           </tr>
@@ -90,8 +99,8 @@ const xoa = (id: number) => {
   gap: 16px;
 }
 .bo-loc-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 20px;
   padding: 16px 20px;
   display: flex;
@@ -99,9 +108,9 @@ const xoa = (id: number) => {
   align-items: center;
 }
 .bo-loc-panel input {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f5f5f5;
+  background: #fffdf8;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   padding: 10px 14px;
   border-radius: 12px;
   outline: none;
@@ -120,16 +129,17 @@ const xoa = (id: number) => {
   white-space: nowrap;
 }
 .nut-tim {
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
 }
 .nut-lam-moi {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 .danh-sach-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 28px;
   padding: 26px;
 }
@@ -139,24 +149,24 @@ const xoa = (id: number) => {
   margin-bottom: 20px;
 }
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
 }
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
 }
 table {
   width: 100%;
   border-collapse: collapse;
-  color: white;
+  color: #5f3d22;
 }
 th {
   text-align: left;
   padding: 12px;
-  color: #f8d46a;
+  color: #8b5e34;
 }
 td {
   padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #efe0c1;
 }
 tr.active {
   background: rgba(248, 212, 106, 0.08);
@@ -185,9 +195,28 @@ tr.active {
   border: none;
   padding: 10px 16px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: #f8d46a;
+  color: #1a1410;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* --- THÊM STYLE BADGE CHO QUẦY --- */
+.badge-quay {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-block;
+  background: #efe0c1;
+  color: #8b5e34;
+}
+.badge-quay.bep {
+  background: rgba(216, 168, 92, 0.2);
+  color: #8b5e34;
+}
+.badge-quay.bar {
+  background: rgba(248, 212, 106, 0.3);
+  color: #5f3d22;
 }
 </style>
