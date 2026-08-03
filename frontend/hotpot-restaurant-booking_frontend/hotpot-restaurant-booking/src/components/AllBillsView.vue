@@ -69,23 +69,14 @@ const loadHoaDon = async () => {
     const invoices = Array.isArray(res?.data) ? res.data : []
 
     danhSachHoaDon.value = invoices.filter((item: any) => {
-      const ban = danhSachBan.value.find((b: any) => Number(b.idBan) === Number(item.idBan ?? item.ban?.idBan))
       const invoiceStatus = Number(item?.trangThaiHoaDon ?? item?.trangThai ?? 0)
       const paymentStatus = Number(item?.trangThaiThanhToan ?? 0)
-      const tableStatus = String(ban?.trangThai ?? item?.ban?.trangThai ?? '').toUpperCase()
+      const hasActiveTable = item?.idBan != null
 
-      const isInvoiceActive = invoiceStatus === 0 || paymentStatus === 0 || invoiceStatus === null || paymentStatus === null
-      const isTableOccupied =
-        tableStatus === 'DANG_SU_DUNG' ||
-        tableStatus === 'DA_DAT' ||
-        tableStatus === 'DA_NHAN_BAN' ||
-        Number(ban?.trangThai) === 1 ||
-        Number(item?.trangThaiThanhToan ?? 0) === 0
-
-      return item.idBan != null && (isInvoiceActive || isTableOccupied)
+      return hasActiveTable && (invoiceStatus === 0 || paymentStatus === 0)
     })
   } catch (error) {
-    console.error('Không thể tải hóa đơn đang hoạt động:', error)
+    console.error('Không thể tải danh sách hóa đơn:', error)
     danhSachHoaDon.value = []
   } finally {
     isLoading.value = false
