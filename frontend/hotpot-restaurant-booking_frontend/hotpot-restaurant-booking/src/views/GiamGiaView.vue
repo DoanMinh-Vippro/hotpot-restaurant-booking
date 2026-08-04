@@ -80,8 +80,8 @@ const tai_danh_sach_giam_gia = async () => {
   }
 }
 
-const xu_ly_chon_giam_gia = (id: number) => {
-  id_da_chon.value = id
+const xu_ly_chon_giam_gia = (id: string | number) => {
+  id_da_chon.value = Number(id)
 }
 
 const xu_ly_sua_giam_gia = (giam_gia: GiamGia) => {
@@ -91,13 +91,13 @@ const xu_ly_sua_giam_gia = (giam_gia: GiamGia) => {
   thong_bao_thanh_cong.value = ''
 }
 
-const xu_ly_xoa_giam_gia = async (id: number) => {
+const xu_ly_xoa_giam_gia = async (id: string | number) => {
   dang_tai.value = true
   loi_may_chu.value = ''
   thong_bao_thanh_cong.value = ''
 
   try {
-    await GiamGiaApi.delete(id)
+    await GiamGiaApi.delete(Number(id))
     thong_bao_thanh_cong.value = 'Xóa mã giảm giá thành công'
     await tai_danh_sach_giam_gia()
     xu_ly_huy_bieu_mau()

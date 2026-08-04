@@ -61,6 +61,56 @@ const customerModalTab = ref<'info' | 'invoices' | 'bookings'>('info')
 const customerBookings = ref<any[]>([])
 const bookingLoading = ref(false)
 
+const isRootAdminAccount = (acc: any) => {
+  const roleName = String(acc?.tenChucVu || acc?.chucVu?.tenChucVu || '').trim().toUpperCase()
+  const roleId = Number(acc?.idChucVu ?? acc?.chucVu?.idChucVu ?? acc?.chucVu?.id ?? 0)
+  const accountCode = String(acc?.maTaiKhoan || '').trim().toUpperCase()
+  const username = String(acc?.tenDangNhap || '').trim().toLowerCase()
+
+  return (roleId === 1 || roleName === 'ADMIN' || roleName === 'ROLE_ADMIN') && (
+    Number(acc?.id) === 1 ||
+    accountCode === 'TK001' ||
+    username === 'admin' ||
+    username === 'tk001'
+  )
+}
+
+const isProtectedAccount = (acc: any) => {
+  if (!acc) return false
+  const roleName = String(acc?.tenChucVu || acc?.chucVu?.tenChucVu || '').trim().toUpperCase()
+  const roleId = Number(acc?.idChucVu ?? acc?.chucVu?.idChucVu ?? acc?.chucVu?.id ?? 0)
+
+  return isRootAdminAccount(acc) || roleId === 2 || roleName === 'STAFF' || roleName === 'ROLE_STAFF'
+}
+
+const isSystemRole = (role: any) => {
+  const roleId = Number(role?.id ?? role?.idChucVu ?? 0)
+  const roleName = String(role?.tenChucVu || role?.name || '').trim().toUpperCase()
+
+  return roleId === 1 || roleId === 2 || roleId === 3 || roleName === 'ADMIN' || roleName === 'USER' || roleName === 'STAFF' || roleName === 'ROLE_ADMIN' || roleName === 'ROLE_USER' || roleName === 'ROLE_STAFF'
+}
+
+const canEditRole = (role: any) => {
+  const roleId = Number(role?.id ?? role?.idChucVu ?? 0)
+  const roleName = String(role?.tenChucVu || role?.name || '').trim().toUpperCase()
+
+  return !isSystemRole(role) || roleId === 2 || roleName === 'STAFF' || roleName === 'ROLE_STAFF'
+}
+
+const canDeleteRole = (role: any) => {
+  return !isSystemRole(role)
+}
+
+const isAdminRoleOption = (role: any) => {
+  const roleId = Number(role?.id ?? role?.idChucVu ?? 0)
+  const roleName = String(role?.tenChucVu || role?.name || '').trim().toUpperCase()
+  return roleId === 1 || roleName === 'ADMIN' || roleName === 'ROLE_ADMIN'
+}
+
+const availableAccountRoles = computed(() => {
+  return roles.value.filter((role: any) => !isAdminRoleOption(role))
+})
+
 const loadCustomerBookings = async (khachHangId: number) => {
   bookingLoading.value = true
   try {
@@ -333,6 +383,13 @@ const loadData = async () => {
       trangThai: toBoolean(kh.trangThai),
     }))
     roles.value = resRoles.data || []
+
+    if (!availableAccountRoles.value.some((role: any) => Number(role.id) === Number(createAccountForm.value.idChucVu))) {
+      const fallbackRole = availableAccountRoles.value.find((role: any) => Number(role.id) === 3) || availableAccountRoles.value[0]
+      if (fallbackRole) {
+        createAccountForm.value.idChucVu = Number(fallbackRole.id)
+      }
+    }
   } catch (error) {
     console.error('Lỗi khi tải dữ liệu:', error)
   } finally {
@@ -822,6 +879,12 @@ const handleDeleteAccount = async (id: number) => {
     return
   }
 
+  const account = accounts.value.find((acc: any) => Number(acc.id) === Number(id))
+  if (isProtectedAccount(account)) {
+    alert('Tài khoản này được bảo vệ khỏi thao tác xóa từ giao diện.')
+    return
+  }
+
   if (confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) {
     try {
       await TaiKhoanApi.delete(id)
@@ -909,7 +972,11 @@ const handleDeleteAccount = async (id: number) => {
                   <button class="btn-action view" @click="viewAdminDetail(acc)">
                     Xem chi tiết
                   </button>
-                  <button class="btn-action delete" @click="handleDeleteAccount(acc.id)">
+                  <button
+                    v-if="!isRootAdminAccount(acc)"
+                    class="btn-action delete"
+                    @click="handleDeleteAccount(acc.id)"
+                  >
                     Xóa
                   </button>
                 </td>
@@ -976,7 +1043,11 @@ const handleDeleteAccount = async (id: number) => {
                   <button class="btn-action view" @click="viewStaffDetail(item)">
                     Xem chi tiết
                   </button>
-                  <button class="btn-action delete" @click="handleDeleteAccount(item.account.id)">
+                  <button
+                    v-if="!isProtectedAccount(item.account)"
+                    class="btn-action delete"
+                    @click="handleDeleteAccount(item.account.id)"
+                  >
                     Xóa
                   </button>
                 </td>
@@ -1106,8 +1177,8 @@ const handleDeleteAccount = async (id: number) => {
                   <div class="role-item-sub">{{ role.maChucVu }}</div>
                 </div>
                 <div class="role-item-actions">
-                  <button class="btn-action view" @click="openRoleForm(role)">Sửa</button>
-                  <button class="btn-action delete" @click="deleteRole(role)">Xóa</button>
+                  <button v-if="canEditRole(role)" class="btn-action view" @click="openRoleForm(role)">Sửa</button>
+                  <button v-if="canDeleteRole(role)" class="btn-action delete" @click="deleteRole(role)">Xóa</button>
                 </div>
               </div>
               <div v-if="filteredRoles.length === 0" class="no-profile-text">
@@ -1178,7 +1249,7 @@ const handleDeleteAccount = async (id: number) => {
             <div class="modal-form-field">
               <label>Chức vụ</label>
               <select v-model.number="createAccountForm.idChucVu" class="select-classic">
-                <option v-for="role in roles" :key="role.id" :value="Number(role.id)">
+                <option v-for="role in availableAccountRoles" :key="role.id" :value="Number(role.id)">
                   {{ role.tenChucVu }}
                 </option>
               </select>

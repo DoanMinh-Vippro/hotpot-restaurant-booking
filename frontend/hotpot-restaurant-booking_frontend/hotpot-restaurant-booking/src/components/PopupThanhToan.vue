@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   tongTien: number
+  isProcessing?: boolean
 }>()
 
 const emit = defineEmits(['close', 'chonTienMat', 'chonChuyenKhoan'])
@@ -26,11 +27,11 @@ const dongPopup = () => {
       <div class="money">{{ props.tongTien.toLocaleString('vi-VN') }} đ</div>
 
       <div class="option">
-        <button class="btn-transfer" @click="chonChuyenKhoan">Chuyển khoản</button>
+        <button class="btn-transfer" :disabled="props.isProcessing" @click="chonChuyenKhoan">Chuyển khoản</button>
 
-        <button class="btn-cash" @click="chonTienMat">Tiền mặt</button>
+        <button class="btn-cash" :disabled="props.isProcessing" @click="chonTienMat">Tiền mặt</button>
 
-        <button class="btn-close" @click="dongPopup">Đóng</button>
+        <button class="btn-close" :disabled="props.isProcessing" @click="dongPopup">Đóng</button>
       </div>
     </div>
   </div>
@@ -148,5 +149,12 @@ h3 {
 
 .btn-close:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.option button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 </style>

@@ -12,6 +12,7 @@ import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import BanApi from '@/api/BanApi'
 import { useShiftStore } from '@/stores/ShiftStore'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useModulePermission } from '@/utils/permissionGuard'
 import printJS from 'print-js'
 import DanhMucApi from '@/api/DanhMucApi.ts'
 
@@ -25,19 +26,63 @@ const props = defineProps<{
 const emit = defineEmits(['quayLai', 'payment-complete'])
 const shiftStore = useShiftStore()
 const authStore = useAuthStore()
+const { ensureUse: ensurePosUse } = useModulePermission('pos')
 const quayLai = () => {
   emit('quayLai')
 }
 
-const notifyPaymentComplete = () => {
+const notifyPaymentComplete = (billId?: number | string | null) => {
   if (props.ban?.idBan) {
-    emit('payment-complete', { idBan: props.ban.idBan, trangThai: 'TRONG' })
+    emit('payment-complete', { idBan: props.ban.idBan, trangThai: 'TRONG', billId: billId ?? null })
   }
+}
+
+const clearPosOrderStorage = (tableId?: number | string | null) => {
+  if (typeof window === 'undefined') return
+
+  const keysToRemove = Object.keys(localStorage).filter((key) => {
+    if (key === 'pos-order-context') return true
+    return key.startsWith('pos-order-context-')
+  })
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key))
+
+  if (tableId != null) {
+    localStorage.removeItem(`pos-order-context-${Number(tableId)}`)
+  }
+}
+
+const normalizeTableStatus = (value: any) => {
+  if (!value) return ''
+  if (typeof value === 'string') return value.trim().toUpperCase()
+  if (typeof value === 'object' && 'name' in value) return String(value.name).trim().toUpperCase()
+  return String(value).trim().toUpperCase()
+}
+
+const resetPaymentState = () => {
+  clearPosOrderStorage(props.ban?.idBan)
+  hoaDonHienTai.value = null
+  gioHang.value = []
+  danhSachMonPhucVu.value = []
+  monVuaGuiBep.value = []
+  giamGiaDangChon.value = null
+  phuongThucThanhToan.value = false
+  tienMatThanhToan.value = false
+  hienThiSePayQR.value = false
+  isSubmittingPayment.value = false
+  tabGioHang.value = 'goi-mon'
+}
+
+const finalizePaymentSuccess = async (billId?: number | string | null) => {
+  await markReservationCompleted()
+  resetPaymentState()
+  notifyPaymentComplete(billId)
+  await nextTick()
 }
 
 const hoanTatThanhToan = async () => {
   try {
-    await markReservationCompleted()
+    await finalizePaymentSuccess()
     emit('quayLai')
   } catch (error) {
     console.error('Không thể cập nhật trạng thái bàn sau thanh toán:', error)
@@ -62,6 +107,42 @@ const getCurrentOperatorName = () =>
   authStore.tenKhachHang ||
   'Nhân viên'
 
+const hasActiveShift = computed(() => Boolean(shiftStore.currentShift?.isOpen))
+
+const matchesInheritedPendingInvoice = (tableId?: number | string | null, billId?: number | string | null) => {
+  const normalizedTableId = tableId != null ? Number(tableId) : null
+  const normalizedBillId = billId != null ? String(billId) : null
+
+  const pendingCandidates = [
+    ...(shiftStore.currentShift?.handoverContext?.pendingTables || []),
+    ...(shiftStore.currentShift?.bills || []),
+    ...(shiftStore.history?.[0]?.handoverContext?.pendingTables || []),
+  ]
+
+  return pendingCandidates.some((item: any) => {
+    const pendingTableId = item?.idBan != null ? Number(item.idBan) : null
+    const pendingBillId = item?.billId != null ? String(item.billId) : null
+    const billIdentifier = item?.id != null ? String(item.id) : null
+    const matchesTable = normalizedTableId != null && pendingTableId != null && normalizedTableId === pendingTableId
+    const matchesBill = normalizedBillId != null && (pendingBillId != null ? normalizedBillId === pendingBillId : false)
+    const matchesShiftBill = normalizedBillId != null && billIdentifier != null && normalizedBillId === billIdentifier
+    return matchesTable || matchesBill || matchesShiftBill
+  })
+}
+
+const hasPendingHandoverAccess = computed(() => {
+  const tableId = props.ban?.idBan ?? null
+  const billId = hoaDonHienTai.value?.idHoaDon ?? null
+  return matchesInheritedPendingInvoice(tableId, billId)
+})
+
+const ensureActiveShift = () => {
+  if (hasActiveShift.value || hasPendingHandoverAccess.value) return true
+  alert('Bạn chưa mở ca làm việc. Vui lòng mở ca trước khi gọi món, bán hàng hoặc thanh toán.')
+  window.location.assign('/shift-management')
+  return false
+}
+
 const tenNhanVien = ref<string>(getCurrentOperatorName())
 
 const getLocalDateTimeNow = () => {
@@ -79,9 +160,32 @@ const phuongThucThanhToan = ref(false)
 const tienMatThanhToan = ref(false)
 const hienThiSePayQR = ref(false)
 const hoaDonHienTai = ref<any>(null)
+const isSubmittingPayment = ref(false)
 
 // ================= UTILS =================
 const itemName = (item: any) => item.tenMon ?? item.tenCombo ?? 'Món chưa đặt tên'
+
+const buildPaidShiftBill = (paymentMethod: 'cash' | 'transfer') => ({
+  id: String(hoaDonHienTai.value?.idHoaDon || Date.now()),
+  code: hoaDonHienTai.value?.maHoaDon || `HD${Date.now()}`,
+  customer: props.datBan?.tenKhachHang || 'Khách hàng',
+  total: Number(tongThanhToan.value || 0),
+  gross: Number(tongTienTamTinhCotGiua.value || 0),
+  discount: Number(tienGiamGia.value || 0),
+  paymentMethod,
+  status: 'paid' as const,
+  createdAt: new Date().toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }),
+  createdAtTimestamp: Date.now(),
+})
+
+const syncPaidBillToShift = (bill: ReturnType<typeof buildPaidShiftBill>) => {
+  if (shiftStore.currentShift?.isOpen) {
+    shiftStore.syncBillFromPos(bill)
+  }
+}
 
 // Map mã quầy từ Danh Mục ('BEP' | 'BAR') sang tên hiển thị
 const layTenQuay = (item: any): string => {
@@ -135,13 +239,165 @@ const loadData = async () => {
   }
 }
 
+const normalizeDiscountType = (value: unknown) => {
+  const normalized = `${value ?? ''}`
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
+
+  if (['PHANTRAM', 'PERCENT', 'PHNTRAM', 'PHTNTRAM', 'PHTRAM'].includes(normalized)) return 'percent'
+  if (normalized.includes('PH') && normalized.includes('TRAM')) return 'percent'
+  if (['TIENMAT', 'TIEN', 'VND', 'FIXED', 'MONEY'].includes(normalized)) return 'fixed'
+  if (normalized.includes('TIEN') || normalized.includes('MAT') || normalized.includes('GIATRI') || normalized.includes('VALUE')) return 'fixed'
+
+  return 'unknown'
+}
+
+const parseNumericValue = (value: unknown) => {
+  if (value == null || value === '') return 0
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+
+  const raw = `${value}`.trim()
+  if (!raw) return 0
+
+  const cleaned = raw.replace(/[^\d,.-]/g, '')
+  if (!cleaned) return 0
+
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    const lastComma = cleaned.lastIndexOf(',')
+    const lastDot = cleaned.lastIndexOf('.')
+    const decimalSeparator = lastComma > lastDot ? ',' : '.'
+    const thousandSeparator = decimalSeparator === ',' ? '.' : ','
+    const withoutThousands = cleaned.replace(new RegExp(`\\${thousandSeparator}`, 'g'), '')
+    const normalizedDecimal = withoutThousands.replace(decimalSeparator, '.')
+    return Number(normalizedDecimal)
+  }
+
+  if (cleaned.includes(',')) {
+    const parts = cleaned.split(',')
+    const fractionalPart = parts[1]
+    const integerPart = parts[0]
+    if (parts.length > 2 || (fractionalPart != null && fractionalPart.length === 3 && integerPart != null && integerPart.length >= 1)) {
+      return Number(parts.join(''))
+    }
+    return Number(cleaned.replace(/,/g, '.'))
+  }
+
+  if (cleaned.includes('.')) {
+    const parts = cleaned.split('.')
+    const fractionalPart = parts[1]
+    const integerPart = parts[0]
+    if (parts.length > 2 || (fractionalPart != null && fractionalPart.length === 3 && integerPart != null && integerPart.length >= 1)) {
+      return Number(parts.join(''))
+    }
+    return Number(cleaned)
+  }
+
+  return Number(cleaned)
+}
+
+const formatDiscountValue = (item: any) => {
+  const numeric = parseNumericValue(item?.giaTriGiam)
+  const type = normalizeDiscountType(item?.loaiGiam)
+
+  if (type === 'percent') {
+    return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`
+  }
+
+  if (type === 'fixed') {
+    return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 0 })} đ`
+  }
+
+  return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 0 })}`
+}
+
+const parseConditionThreshold = (discount: any) => {
+  const raw = `${discount?.dieuKienSuDung ?? ''}`.trim()
+  if (!raw) return null
+
+  const normalized = raw
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-zA-Z0-9\s.,-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const match = normalized.match(/(-?\d+(?:[.,]\d+)?)(\s*(k|tr|trieu|nghin|nghìn))?/i)
+  if (!match || !match[1]) return null
+
+  const numericValue = Number(match[1].replace(/\./g, '').replace(',', '.'))
+  if (!Number.isFinite(numericValue)) return null
+
+  const suffix = `${match[2] || ''}`.toLowerCase()
+  let multiplier = 1
+
+  if (suffix.includes('k') || suffix.includes('nghin')) multiplier = 1000
+  else if (suffix.includes('tr') || suffix.includes('trieu')) multiplier = 1000000
+
+  return numericValue * multiplier
+}
+
+const isDiscountEligible = (discount: any, baseAmount: number) => {
+  const threshold = parseConditionThreshold(discount)
+  if (threshold == null) return true
+  return baseAmount >= threshold
+}
+
+const getDateOnlyKey = (value: unknown) => {
+  if (value == null || value === '') return ''
+
+  const raw = `${value}`.trim()
+  const match = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
+  if (match) {
+    const [, year, monthValue, dayValue] = match
+    const month = monthValue ?? '1'
+    const day = dayValue ?? '1'
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+  }
+
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return ''
+
+  const pad = (num: number) => String(num).padStart(2, '0')
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`
+}
+
+const isDiscountActive = (item: any) => {
+  if (Number(item?.trangThai ?? 1) !== 1) return false
+
+  const endDate = getDateOnlyKey(item?.ngayKetThuc)
+  if (!endDate) return true
+
+  const today = new Date()
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+  return todayKey <= endDate
+}
+
 const loadGiamGia = async () => {
-  const gg = await GiamGiaApi.getDanhSach()
-  danhSachGiamGia.value = gg.data
+  try {
+    const gg = await GiamGiaApi.getDanhSach()
+    const rawDiscounts = Array.isArray(gg?.data) ? gg.data : []
+    danhSachGiamGia.value = rawDiscounts.filter((item: any) => isDiscountActive(item))
+
+    if (giamGiaDangChon.value && !danhSachGiamGia.value.some((item: any) => item.idGiamGia === giamGiaDangChon.value)) {
+      giamGiaDangChon.value = null
+    }
+  } catch (error) {
+    console.error('Lỗi tải mã giảm giá:', error)
+    danhSachGiamGia.value = []
+  }
 }
 
 // ================= GIỎ HÀNG =================
 const themVaoGio = (item: any, loai: string) => {
+  if (!ensureActiveShift()) return
+  if (normalizeTableStatus(props.ban?.trangThai) === 'TRONG' && hoaDonHienTai.value) {
+    resetPaymentState()
+  }
+
   if (item.trangThaiBan === 0) {
     alert(`${loai === 'MON' ? 'Món' : 'Combo'} "${item.tenMon || item.tenCombo}" này đã hết hàng!`)
     return
@@ -206,43 +462,70 @@ const xacNhanTatCaMon = async () => {
 
 // ================= POPUP =================
 const optionPay = async () => {
+  if (!ensureActiveShift()) return
+  if (isSubmittingPayment.value) return
+
   if (danhSachMonPhucVu.value.length === 0) {
     alert('Chưa có món nào được gửi vào bếp để thanh toán!')
     return
   }
+
+  if (tongThanhToan.value <= 0) {
+    alert('Không thể tạo hóa đơn khi tổng tiền bằng 0. Vui lòng kiểm tra giỏ hàng và số tiền thanh toán.')
+    return
+  }
+
   phuongThucThanhToan.value = true
 }
 const closePopup = () => {
   phuongThucThanhToan.value = false
+  isSubmittingPayment.value = false
 }
 const popupTienMat = () => {
+  if (isSubmittingPayment.value) return
   phuongThucThanhToan.value = false
   tienMatThanhToan.value = true
 }
 const closeTienMatPopup = () => {
   tienMatThanhToan.value = false
+  isSubmittingPayment.value = false
 }
 
 const moPopupQR = async () => {
-  await xuLyHoaDon(0, 0)
-  phuongThucThanhToan.value = false
-  hienThiSePayQR.value = true
+  if (isSubmittingPayment.value) return
+
+  if (tongThanhToan.value <= 0) {
+    alert('Không thể tạo hóa đơn khi tổng tiền bằng 0. Vui lòng kiểm tra giỏ hàng và số tiền thanh toán.')
+    return
+  }
+
+  isSubmittingPayment.value = true
+  try {
+    await xuLyHoaDon(0, 0)
+    phuongThucThanhToan.value = false
+    hienThiSePayQR.value = true
+  } catch (error) {
+    console.error('Không thể tạo hóa đơn chuyển khoản:', error)
+    alert('Không thể tạo hóa đơn chuyển khoản. Vui lòng thử lại.')
+    isSubmittingPayment.value = false
+  }
 }
 
 const handleChuyenKhoanThanhCong = async () => {
+  if (isSubmittingPayment.value) return
+  isSubmittingPayment.value = true
+
   try {
     hienThiSePayQR.value = false
-    await xuLyHoaDon(1, 1)
-    await markReservationCompleted()
-    notifyPaymentComplete()
+    await xuLyHoaDon(1, 1, 2)
+    const paidBill = buildPaidShiftBill('transfer')
+    syncPaidBillToShift(paidBill)
+    await finalizePaymentSuccess(paidBill.id)
+
     emit('quayLai')
     alert(`Bàn ${props.ban?.tenBan} đã thanh toán chuyển khoản thành công tự động!`)
-
-    hoaDonHienTai.value = null
-    gioHang.value = []
-    danhSachMonPhucVu.value = []
-    giamGiaDangChon.value = null
   } catch (error) {
+    isSubmittingPayment.value = false
     alert('Có lỗi xảy ra khi cập nhật trạng thái hóa đơn!')
   }
 }
@@ -255,10 +538,20 @@ const tongTienTamTinhCotGiua = computed(() =>
 const tienGiamGia = computed(() => {
   const base = tongTienTamTinhCotGiua.value
   if (!giamGiaDangChon.value) return 0
-  const giamGia = danhSachGiamGia.value.find((g) => g.idGiamGia === giamGiaDangChon.value)
-  if (!giamGia) return 0
-  if (giamGia.loaiGiam === 'TIENMAT') return Math.min(giamGia.giaTriGiam, base)
-  if (giamGia.loaiGiam === 'PHANTRAM') return (base * giamGia.giaTriGiam) / 100
+
+  const giamGia = danhSachGiamGia.value.find((g: any) => g.idGiamGia === giamGiaDangChon.value)
+  if (!giamGia || !isDiscountEligible(giamGia, base)) return 0
+
+  const value = parseNumericValue(giamGia.giaTriGiam)
+  const type = normalizeDiscountType(giamGia.loaiGiam)
+
+  if (type === 'fixed') return Math.min(value, base)
+  if (type === 'percent') {
+    const percentDiscount = (base * value) / 100
+    const maxDiscount = parseNumericValue(giamGia.giaTriGiamToiDa)
+    const cappedDiscount = maxDiscount > 0 ? Math.min(percentDiscount, maxDiscount) : percentDiscount
+    return Math.min(cappedDiscount, base)
+  }
   return 0
 })
 
@@ -272,10 +565,45 @@ const tongThanhToan = computed(() => {
   return Math.max(0, base - depositDaCoc.value)
 })
 
+watch([tongTienTamTinhCotGiua, () => danhSachGiamGia.value], () => {
+  if (!giamGiaDangChon.value) return
+
+  const selected = danhSachGiamGia.value.find((item: any) => item.idGiamGia === giamGiaDangChon.value)
+  if (!selected || !isDiscountEligible(selected, tongTienTamTinhCotGiua.value)) {
+    giamGiaDangChon.value = null
+  }
+})
+
+watch(giamGiaDangChon, (newValue, oldValue) => {
+  if (!newValue || newValue === oldValue) return
+
+  const selected = danhSachGiamGia.value.find((item: any) => item.idGiamGia === newValue)
+  if (!selected) {
+    giamGiaDangChon.value = null
+    return
+  }
+
+  if (!isDiscountEligible(selected, tongTienTamTinhCotGiua.value)) {
+    window.alert('Đơn hàng chưa đạt điều kiện để sử dụng mã giảm giá này')
+    giamGiaDangChon.value = null
+  }
+})
+
 // ================= HÓA ĐƠN API =================
 const checkHoaDonTam = async () => {
   try {
+    const reservationStatus = normalizeReservationStatus(props.datBan?.trangThai)
     const reservationItems = props.datBan?.idDatBan ? buildReservationItems(props.datBan) : []
+
+    if (normalizeTableStatus(props.ban?.trangThai) === 'TRONG') {
+      resetPaymentState()
+      return
+    }
+
+    if (props.datBan?.idDatBan && !['DA_XAC_NHAN', 'DA_NHAN_BAN'].includes(reservationStatus)) {
+      resetPaymentState()
+      return
+    }
 
     if (reservationItems.length > 0) {
       gioHang.value = []
@@ -350,15 +678,39 @@ const updateHoaDon = async (idHoaDon: number, payload: any) => {
   await saveChiTietHoaDon(idHoaDon)
 }
 
-const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) => {
+const buildInvoiceItemsPayload = () =>
+  danhSachMonPhucVu.value
+    .filter((item: any) => Number(item.soLuong ?? 0) > 0)
+    .map((item: any) => ({
+      maHoaDonChiTiet: `HDCT${Date.now()}${item.idMon || item.idCombo}`,
+      idMon: item.idMon ?? null,
+      idCombo: item.idCombo ?? null,
+      soLuong: Number(item.soLuong ?? 0),
+      giaBanTaiThoiDiem: Number(item.gia ?? 0),
+      tienGiamGiaMon: 0,
+      thanhTien: Number(item.gia ?? 0) * Number(item.soLuong ?? 0),
+    }))
+
+const xuLyHoaDon = async (
+  trangThaiHoaDon: number,
+  trangThaiThanhToan: number,
+  phuongThucThanhToanParam?: number | string,
+) => {
   const currentOperator = getCurrentOperatorName()
   tenNhanVien.value = currentOperator
+
+  const selectedPaymentMethod =
+    phuongThucThanhToanParam !== undefined
+      ? Number(phuongThucThanhToanParam)
+      : trangThaiThanhToan === 1
+        ? 1
+        : null
 
   const payload = {
     maHoaDon: hoaDonHienTai.value?.maHoaDon || `HD${Date.now()}`,
     trangThaiHoaDon,
     trangThaiThanhToan,
-    phuongThucThanhToan: trangThaiThanhToan === 1 ? 1 : null,
+    phuongThucThanhToan: selectedPaymentMethod,
     tienTruocGiam: tongTienTamTinhCotGiua.value,
     tienGiamGia: tienGiamGia.value,
     tongTien: tongThanhToan.value,
@@ -370,6 +722,7 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
     sdtKhachHang: props.datBan?.sdtKhachHang ?? null,
     tienCoc: props.datBan?.soTienCoc ?? null,
     tenNhanVien: currentOperator,
+    chiTiet: buildInvoiceItemsPayload(),
   }
   if (hoaDonHienTai.value) {
     await updateHoaDon(hoaDonHienTai.value.idHoaDon, payload)
@@ -497,6 +850,8 @@ const markReservationCompleted = async () => {
   const reservationId = props.datBan?.idDatBan
   const banId = props.ban?.idBan
 
+  clearPosOrderStorage(banId)
+
   const updateReservationToCompleted = async (reservation: any) => {
     if (!reservation?.idDatBan) return
   if (reservationId && props.datBan) {
@@ -553,6 +908,8 @@ const markReservationCompleted = async () => {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const luuTam = async () => {
+  if (!ensureActiveShift()) return
+
   if (gioHang.value.length === 0) {
     alert('Vui lòng chọn món ăn trước khi nhấn gửi vào bếp!')
     return
@@ -632,37 +989,26 @@ const luuTam = async () => {
 }
 
 const taoHoaDon = async () => {
+  if (!ensurePosUse()) return
+  if (!ensureActiveShift()) return
+  if (isSubmittingPayment.value) return
+  if (danhSachMonPhucVu.value.length === 0 || tongThanhToan.value <= 0) {
+    alert('Không thể tạo hóa đơn khi giỏ hàng trống hoặc tổng tiền bằng 0.')
+    return
+  }
+
+  isSubmittingPayment.value = true
+
   try {
-    await xuLyHoaDon(1, 1)
-    await markReservationCompleted()
-    notifyPaymentComplete()
+    await xuLyHoaDon(1, 1, 1)
+    const paidBill = buildPaidShiftBill('cash')
+    syncPaidBillToShift(paidBill)
+    await finalizePaymentSuccess(paidBill.id)
     emit('quayLai')
 
-    if (shiftStore.currentShift?.isOpen) {
-      shiftStore.syncBillFromPos({
-        id: String(hoaDonHienTai.value?.idHoaDon || Date.now()),
-        code: hoaDonHienTai.value?.maHoaDon || `HD${Date.now()}`,
-        customer: props.datBan?.tenKhachHang || 'Khách hàng',
-        total: Number(tongThanhToan.value || 0),
-        gross: Number(tongTienTamTinhCotGiua.value || 0),
-        discount: Number(tienGiamGia.value || 0),
-        paymentMethod: Number(hoaDonHienTai.value?.phuongThucThanhToan) === 2 ? 'transfer' : 'cash',
-        status: 'paid',
-        createdAt: new Date().toLocaleTimeString('vi-VN', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        createdAtTimestamp: Date.now(),
-      })
-    }
-
     alert('Thanh toán thành công!')
-    hoaDonHienTai.value = null
-    gioHang.value = []
-    danhSachMonPhucVu.value = []
-    giamGiaDangChon.value = null
-    tienMatThanhToan.value = false
   } catch {
+    isSubmittingPayment.value = false
     alert('Thanh toán thất bại')
   }
 }
@@ -670,7 +1016,16 @@ const taoHoaDon = async () => {
 watch(
   () => props.datBan,
   async (db) => {
-    if (!db) return
+    if (!db) {
+      resetPaymentState()
+      return
+    }
+
+    const reservationStatus = normalizeReservationStatus(db?.trangThai)
+    if (!['DA_XAC_NHAN', 'DA_NHAN_BAN'].includes(reservationStatus)) {
+      resetPaymentState()
+      return
+    }
 
     const reservationItems = buildReservationItems(db)
 
@@ -900,12 +1255,19 @@ onMounted(() => {
         <div>
           <select class="discount-input" v-model="giamGiaDangChon">
             <option :value="null">Chọn mã giảm giá</option>
-            <option v-for="g in danhSachGiamGia" :key="g.idGiamGia" :value="g.idGiamGia">
-              {{ g.maGiamGia }} - {{ g.giaTriGiam }}{{ g.loaiGiam === 'PHANTRAM' ? '%' : 'Đ' }}
+            <option
+              v-for="g in danhSachGiamGia"
+              :key="g.idGiamGia"
+              :value="g.idGiamGia"
+              :disabled="!isDiscountEligible(g, tongTienTamTinhCotGiua)"
+            >
+              {{ g.maGiamGia }} - {{ formatDiscountValue(g) }}{{ !isDiscountEligible(g, tongTienTamTinhCotGiua) ? ' (không đủ điều kiện)' : '' }}
             </option>
           </select>
         </div>
-        <button class="btn-thanh-toan" @click="optionPay">Thanh toán</button>
+        <button class="btn-thanh-toan" :disabled="isSubmittingPayment" @click="optionPay">
+          {{ isSubmittingPayment ? 'Đang xử lý...' : 'Thanh toán' }}
+        </button>
       </div>
     </div>
 
@@ -962,6 +1324,7 @@ onMounted(() => {
     <PopupThanhToan
       v-if="phuongThucThanhToan"
       :tongTien="tongThanhToan"
+      :is-processing="isSubmittingPayment"
       @close="closePopup"
       @chonTienMat="popupTienMat"
       @chonChuyenKhoan="moPopupQR"
@@ -970,6 +1333,7 @@ onMounted(() => {
     <PopupTienMat
       v-if="tienMatThanhToan"
       :tongTien="tongThanhToan"
+      :is-processing="isSubmittingPayment"
       @close="closeTienMatPopup"
       @xacNhan="taoHoaDon"
     />

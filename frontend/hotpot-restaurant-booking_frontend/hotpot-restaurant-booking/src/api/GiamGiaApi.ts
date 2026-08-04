@@ -46,7 +46,7 @@ class GiamGiaApi {
    * Xóa mã giảm giá
    */
   delete(idGiamGia: number) {
-    return ApiClient.delete(`/api/giam-gia/${idGiamGia}`)
+    return ApiClient.delete<{ message: string }>(`/api/giam-gia/${idGiamGia}`)
   }
 
   /**

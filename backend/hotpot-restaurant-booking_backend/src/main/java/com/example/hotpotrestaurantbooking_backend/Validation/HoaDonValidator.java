@@ -1,10 +1,12 @@
 package com.example.hotpotrestaurantbooking_backend.Validation;
 
+import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.repository.GiamGiaRepository;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Component
 public class HoaDonValidator {
@@ -53,6 +55,16 @@ public class HoaDonValidator {
             throw new RuntimeException("Tổng tiền không được âm");
         }
 
+        boolean isCompletedInvoice = request.getTrangThaiHoaDon() != null && request.getTrangThaiHoaDon() == 1;
+        boolean isCompletedPayment = request.getTrangThaiThanhToan() != null && request.getTrangThaiThanhToan() == 1;
+        if ((isCompletedInvoice || isCompletedPayment) && tongTien != null && tongTien.signum() == 0) {
+            throw new IllegalArgumentException("Tổng tiền phải lớn hơn 0 để tạo hóa đơn");
+        }
+
+        if ((isCompletedInvoice || isCompletedPayment) && isEmptyItems(request.getChiTiet())) {
+            throw new IllegalArgumentException("Danh sách món trong hóa đơn không được để trống");
+        }
+
         if (tienGiamGia != null && tienTruocGiam != null && tienGiamGia.compareTo(tienTruocGiam) > 0) {
             throw new RuntimeException("Tiền giảm giá không được lớn hơn tiền trước giảm");
         }
@@ -66,5 +78,12 @@ public class HoaDonValidator {
                 throw new RuntimeException("Tiền trước giảm phải lớn hơn 0 để áp dụng mã giảm giá");
             }
         }
+    }
+
+    private boolean isEmptyItems(List<DTOHoaDonChiTietRequest> chiTiet) {
+        if (chiTiet == null || chiTiet.isEmpty()) {
+            return true;
+        }
+        return chiTiet.stream().allMatch(item -> item == null || (item.getSoLuong() != null && item.getSoLuong() <= 0));
     }
 }

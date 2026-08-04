@@ -4,6 +4,7 @@ import com.example.hotpotrestaurantbooking_backend.dto.DTOSepayWebhook;
 import com.example.hotpotrestaurantbooking_backend.entity.HoaDon;
 import com.example.hotpotrestaurantbooking_backend.entity.Transaction;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
+import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.TransactionRepository;
 import com.example.hotpotrestaurantbooking_backend.service.SePayHoaDonService;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 public class SePayHoaDonServiceImpl implements SePayHoaDonService {
 
     private final HoaDonRepository hoaDonRepository;
+    private final BanRepository banRepository;
     private final TransactionRepository transactionRepository;
 
     @Override
@@ -58,6 +60,7 @@ public class SePayHoaDonServiceImpl implements SePayHoaDonService {
         // 5. Giải phóng trạng thái bàn ăn từ ĐANG_SU_DUNG về TRONG
         if (hoaDon.getBan() != null) {
             hoaDon.getBan().setTrangThai(TrangThaiBan.TRONG);
+            banRepository.save(hoaDon.getBan());
         }
 
         hoaDonRepository.save(hoaDon);

@@ -23,6 +23,7 @@ export interface HoaDon {
   tenNhanVien: string | null
   trangThaiThanhToan: number | null
   phuongThucThanhToan: number | null
+  shiftId?: string | null
 
   chiTiet?: HoaDonChiTiet[] | null
 }

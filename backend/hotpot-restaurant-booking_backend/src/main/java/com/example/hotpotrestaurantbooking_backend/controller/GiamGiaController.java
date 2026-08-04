@@ -6,6 +6,7 @@ import com.example.hotpotrestaurantbooking_backend.dto.GiamGiaRequest;
 import com.example.hotpotrestaurantbooking_backend.service.GiamGiaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,7 +45,12 @@ public class GiamGiaController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> delete(@PathVariable("id") Integer id) {
-        service.deleteGiamGia(id);
-        return ResponseEntity.ok(new ApiResponse("Xóa mã giảm giá thành công"));
+        try {
+            service.deleteGiamGia(id);
+            return ResponseEntity.ok(new ApiResponse("Mã giảm giá đã được chuyển sang trạng thái ngừng hoạt động"));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ApiResponse(ex.getMessage()));
+        }
     }
 }
