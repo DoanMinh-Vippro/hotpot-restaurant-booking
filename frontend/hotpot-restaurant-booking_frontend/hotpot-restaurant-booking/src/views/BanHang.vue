@@ -60,7 +60,23 @@ const danhSachChuaXepBan = computed(() => {
   )
 })
 
-// ======================== METHODS ========================
+// ======================== HELPER FUNCTIONS ========================
+const formatDateTime = (value: any) => {
+  if (!value) return null
+  if (Array.isArray(value)) {
+    const [y, m, d, h = 0, min = 0] = value
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${pad(h)}:${pad(min)} - ${pad(d)}/${pad(m)}/${y}`
+  }
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return String(value)
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(date.getHours())}:${pad(date.getMinutes())} - ${pad(date.getDate())}/${pad(
+    date.getMonth() + 1,
+  )}/${date.getFullYear()}`
+}
+
 const normalizeStatus = (value: any) => {
   if (!value) return ''
   if (typeof value === 'string') return value.trim().toUpperCase()
@@ -70,6 +86,7 @@ const normalizeStatus = (value: any) => {
 
 const isAvailableTable = (ban: any) => normalizeStatus(ban?.trangThai) === 'TRONG'
 
+// ======================== METHODS ========================
 const loadSoLuongHoaDon = async () => {
   try {
     const [reservationRes] = await Promise.all([
@@ -147,7 +164,7 @@ const loadBan = async () => {
     return String(value)
   }
 
-  const getReservationStatusForBan = (banId: number, reservations: any[]) => {
+  const getReservationInfoForBan = (banId: number, reservations: any[]) => {
     const banReservations = reservations.filter((reservation: any) =>
       Array.isArray(reservation?.dsBan) &&
       reservation.dsBan.some((ban: any) => Number(ban?.idBan) === banId),
@@ -161,36 +178,34 @@ const loadBan = async () => {
       ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(normalizeReservationStatus(reservation?.trangThai)),
     )
 
-    if (!activeReservation) {
-      return null
-    }
-
-    const reservationStatus = normalizeReservationStatus(activeReservation?.trangThai)
-    if (reservationStatus === 'DA_NHAN_BAN') {
-      return 'DANG_SU_DUNG'
-    }
-    if (reservationStatus === 'DA_XAC_NHAN') {
-      return 'DA_DAT'
-    }
-
-    return null
+    return activeReservation || null
   }
 
   danhSachBan.value = rawBan.map((ban: any) => {
     const banId = Number(ban.idBan)
-    const reservationStatus = getReservationStatusForBan(banId, reservations)
+    const activeReservation = getReservationInfoForBan(banId, reservations)
+    const reservationStatus = activeReservation ? normalizeReservationStatus(activeReservation.trangThai) : null
+    const activeInvoice = unpaidInvoices.find((inv: any) => Number(inv.idBan) === banId)
+    
     const banStatus = normalizeBanStatus(ban.trangThai)
     let nextStatus = banStatus
 
     if (unpaidBanIds.has(banId)) {
       nextStatus = 'DANG_SU_DUNG'
-    } else if (reservationStatus && banStatus === 'TRONG') {
-      nextStatus = reservationStatus
-    } else if (!['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus) && reservationStatus) {
-      nextStatus = reservationStatus
+    } else if (reservationStatus === 'DA_NHAN_BAN') {
+      nextStatus = 'DANG_SU_DUNG'
+    } else if (reservationStatus === 'DA_XAC_NHAN' && banStatus === 'TRONG') {
+      nextStatus = 'DA_DAT'
+    } else if (!['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus) && reservationStatus === 'DA_XAC_NHAN') {
+      nextStatus = 'DA_DAT'
     }
 
-    return { ...ban, trangThai: nextStatus }
+    return { 
+      ...ban, 
+      trangThai: nextStatus,
+      datBanInfo: activeReservation,
+      hoaDonInfo: activeInvoice
+    }
   })
 }
 
@@ -320,7 +335,6 @@ const layThuTrongTuan = () => {
 
 const handleViewBill = (hoaDon: any) => {
   showAllBills.value = false
-  // Chuyển sang màn hình thanh toán với hóa đơn được chọn
   datBanDangChon.value = null
   banDangChon.value = danhSachBan.value.find(b => b.idBan === hoaDon.idBan)
   manHinhHienTai.value = 'thanhToan'
@@ -451,7 +465,6 @@ onMounted(async () => {
   await loadSoLuongHoaDon()
   await openPendingTarget()
 
-  // Tự động refresh số lượng hóa đơn mỗi 30s
   setInterval(loadSoLuongHoaDon, 30000)
 })
 </script>
@@ -477,7 +490,6 @@ onMounted(async () => {
           </div>
         </div>
         <div class="header-right">
-          <!-- Thống kê nhanh -->
           <div class="stats-badge">
             <span class="stat-item">
               <span class="stat-dot busy"></span>
@@ -497,46 +509,89 @@ onMounted(async () => {
         @change="handleChangeTab"
       >
         <template #default="{ idKhuVuc }">
-          <!-- PHẦN CHỌN BÀN - GIAO DIỆN BÀN THẬT -->
           <div class="ban-list-container">
             <div class="ban-grid">
               <div 
                 v-for="ban in danhSachBan.filter(b => b.idKhuVuc === idKhuVuc)" 
                 :key="ban.idBan"
-                class="ban-item"
-                :class="{
-                  'trong': ban.trangThai === 'TRONG',
-                  'da-dat': ban.trangThai === 'DA_DAT',
-                  'dang-su-dung': ban.trangThai === 'DANG_SU_DUNG'
-                }"
-                @click="handleSelectBan(ban)"
-                @dblclick="moPopupDatBan(ban)"
+                class="ban-item-wrapper"
               >
-                <div class="ban-icon">
-                  <svg v-if="ban.trangThai === 'TRONG'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <rect x="4" y="4" width="16" height="16" rx="3" stroke="#4CAF50" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="2" fill="#4CAF50"/>
-                  </svg>
-                  <svg v-else-if="ban.trangThai === 'DA_DAT'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <rect x="4" y="4" width="16" height="16" rx="3" stroke="#FF9800" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="2" fill="#FF9800"/>
-                    <text x="12" y="20" text-anchor="middle" font-size="8" fill="#FF9800">⏳</text>
-                  </svg>
-                  <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <rect x="4" y="4" width="16" height="16" rx="3" stroke="#F44336" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="2" fill="#F44336"/>
-                    <text x="12" y="20" text-anchor="middle" font-size="8" fill="#F44336">●</text>
-                  </svg>
+                <!-- CARD BÀN -->
+                <div 
+                  class="ban-item"
+                  :class="{
+                    'trong': ban.trangThai === 'TRONG',
+                    'da-dat': ban.trangThai === 'DA_DAT',
+                    'dang-su-dung': ban.trangThai === 'DANG_SU_DUNG'
+                  }"
+                  @click="handleSelectBan(ban)"
+                  @dblclick="moPopupDatBan(ban)"
+                >
+                  <div class="ban-icon">
+                    <svg v-if="ban.trangThai === 'TRONG'" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#4CAF50" stroke-width="2"/>
+                      <circle cx="12" cy="12" r="2" fill="#4CAF50"/>
+                    </svg>
+                    <svg v-else-if="ban.trangThai === 'DA_DAT'" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#FF9800" stroke-width="2"/>
+                      <circle cx="12" cy="12" r="2" fill="#FF9800"/>
+                      <text x="12" y="20" text-anchor="middle" font-size="8" fill="#FF9800">⏳</text>
+                    </svg>
+                    <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#F44336" stroke-width="2"/>
+                      <circle cx="12" cy="12" r="2" fill="#F44336"/>
+                      <text x="12" y="20" text-anchor="middle" font-size="8" fill="#F44336">●</text>
+                    </svg>
+                  </div>
+                  <div class="ban-info">
+                    <span class="ban-name">{{ ban.tenBan }}</span>
+                    <span class="ban-capacity">👥 {{ ban.soLuongNguoi || ban.soNguoi || 4 }}</span>
+                  </div>
+                  <div class="ban-status">
+                    <span class="status-badge" :class="ban.trangThai.toLowerCase()">
+                      {{ ban.trangThai === 'TRONG' ? 'Trống' : 
+                         ban.trangThai === 'DA_DAT' ? 'Đã đặt' : 'Đang dùng' }}
+                    </span>
+                  </div>
                 </div>
-                <div class="ban-info">
-                  <span class="ban-name">{{ ban.tenBan }}</span>
-                  <span class="ban-capacity">👥 {{ ban.soLuongNguoi }}</span>
-                </div>
-                <div class="ban-status">
-                  <span class="status-badge" :class="ban.trangThai.toLowerCase()">
-                    {{ ban.trangThai === 'TRONG' ? 'Trống' : 
-                       ban.trangThai === 'DA_DAT' ? 'Đã đặt' : 'Đang dùng' }}
-                  </span>
+
+                <!-- TOOLTIP HIỂN THỊ THÔNG TIN KHI HOVER -->
+                <div class="ban-tooltip">
+                  <div class="tooltip-header">
+                    <strong>Thông tin {{ ban.tenBan }}</strong>
+                  </div>
+                  <div class="tooltip-body">
+                    <div class="tooltip-row">
+                      <span class="label">Mã hóa đơn:</span>
+                      <span class="value highlight">
+                        {{ ban.hoaDonInfo?.maHoaDon || ban.datBanInfo?.maHoaDon || 'Chưa tạo' }}
+                      </span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="label">Khách hàng:</span>
+                      <span class="value">
+                        {{ ban.datBanInfo?.tenKhachHang || ban.hoaDonInfo?.tenKhachHang || 'Khách lẻ' }}
+                      </span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="label">Số điện thoại:</span>
+                      <span class="value">
+                        {{ ban.datBanInfo?.sdtKhachHang || ban.hoaDonInfo?.sdtKhachHang || 'N/A' }}
+                      </span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="label">Thời gian đến:</span>
+                      <span class="value">
+                        {{ formatDateTime(ban.datBanInfo?.thoiGianDenDuKien) || 'Khách vào trực tiếp' }}
+                      </span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="label">Số khách:</span>
+                      <span class="value">
+                        {{ ban.datBanInfo?.soNguoi ? `${ban.datBanInfo.soNguoi} người` : 'N/A' }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -863,7 +918,7 @@ onMounted(async () => {
   }
 }
 
-/* ========== BAN GRID ========== */
+/* ========== BAN GRID & TOOLTIP ========== */
 .ban-list-container {
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(8px);
@@ -877,6 +932,10 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
+}
+
+.ban-item-wrapper {
+  position: relative;
 }
 
 .ban-item {
@@ -893,7 +952,7 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.ban-item:hover {
+.ban-item-wrapper:hover .ban-item {
   transform: translateY(-4px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
@@ -978,6 +1037,78 @@ onMounted(async () => {
 .status-badge.dang-su-dung {
   background: #FFEBEE;
   color: #C62828;
+}
+
+/* ================= TOOLTIP DESIGN ================= */
+.ban-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  width: 240px;
+  background-color: #2d2319;
+  color: #fceee0;
+  text-align: left;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #c8a374;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  z-index: 999;
+  bottom: 105%;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  pointer-events: none;
+}
+
+.ban-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -6px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: #2d2319 transparent transparent transparent;
+}
+
+.ban-item-wrapper:hover .ban-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltip-header {
+  font-size: 13px;
+  color: #ffc875;
+  border-bottom: 1px solid rgba(200, 163, 116, 0.3);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.tooltip-row .label {
+  color: #bfa893;
+}
+
+.tooltip-row .value {
+  color: #ffffff;
+  font-weight: 600;
+  text-align: right;
+}
+
+.tooltip-row .value.highlight {
+  color: #ffc875;
 }
 
 /* ========== TAB ĐƠN ĐẶT BÀN ========== */
@@ -1127,29 +1258,6 @@ onMounted(async () => {
 .ban-mini-time {
   font-size: 12px;
   color: #a09080;
-}
-
-/* ========== BUTTON SẮP BÀN ========== */
-.btn-xep-ban {
-  padding: 6px 16px;
-  border: none;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #8B6B4A, #6B4F3A);
-  color: white;
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 2px 8px rgba(139, 107, 74, 0.25);
-}
-
-.btn-xep-ban:hover {
-  transform: scale(1.04);
-  box-shadow: 0 4px 16px rgba(139, 107, 74, 0.35);
-}
-
-.btn-xep-ban:active {
-  transform: scale(0.96);
 }
 
 /* ========== RESPONSIVE ========== */
