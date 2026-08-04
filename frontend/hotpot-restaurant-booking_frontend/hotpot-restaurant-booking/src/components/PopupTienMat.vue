@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 
 const props = defineProps<{
   tongTien: number
+  isProcessing?: boolean
 }>()
 
 const tienNhan = ref(0)
@@ -41,6 +42,7 @@ const xacNhan = () => {
             type="number"
             class="input-money"
             placeholder="Nhập số tiền..."
+            :disabled="props.isProcessing"
           />
         </div>
 
@@ -58,9 +60,9 @@ const xacNhan = () => {
       </div>
 
       <div class="btn">
-        <button class="btn-cancel" @click="huy">Hủy</button>
+        <button class="btn-cancel" :disabled="props.isProcessing" @click="huy">Hủy</button>
 
-        <button class="btn-confirm" @click="xacNhan">Tạo hóa đơn</button>
+        <button class="btn-confirm" :disabled="props.isProcessing" @click="xacNhan">{{ props.isProcessing ? 'Đang xử lý...' : 'Tạo hóa đơn' }}</button>
       </div>
     </div>
   </div>
@@ -213,6 +215,13 @@ const xacNhan = () => {
   background: #4a4a4a;
 
   transform: translateY(-2px);
+}
+
+.btn-cancel:disabled,
+.btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-confirm {

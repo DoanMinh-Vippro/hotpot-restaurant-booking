@@ -2,8 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
-import { useShiftStore, type ShiftHistoryEntry, type ShiftInvoice } from '@/stores/ShiftStore'
+import { useShiftStore, type ShiftHistoryEntry, type ShiftInvoice, type ShiftHandoverTable, type ShiftHandoverContext, type ShiftPaymentMethod, normalizeShiftPaymentMethod, isValidShiftInvoice } from '@/stores/ShiftStore'
 import HoaDonApi, { type HoaDon, type HoaDonChiTiet } from '@/api/HoaDonApi'
+import BanApi from '@/api/BanApi'
 import HoaDonDetail from '@/components/HoaDonDetail.vue'
 import { printInvoiceReceipt } from '@/utils/printInvoice'
 
@@ -13,14 +14,19 @@ const router = useRouter()
 const activeTab = ref<'history' | 'bills' | 'transactions' | 'report'>('history')
 const showOpenModal = ref(false)
 const showCloseModal = ref(false)
+const showPrintPreviewModal = ref(false)
+const isSubmittingCloseShift = ref(false)
+const closeMode = ref<'normal' | 'handover'>('handover')
+const handoverNote = ref('')
+const pendingTables = ref<ShiftHandoverTable[]>([])
+const closeShiftError = ref<string | null>(null)
 const openingCashInput = ref('1500000')
-const transactionForm = ref({
-  type: 'income' as 'income' | 'expense',
-  paymentMethod: 'cash' as 'cash' | 'transfer',
+const transactionForm = ref<{ type: 'income' | 'expense'; paymentMethod: ShiftPaymentMethod; amount: string; reason: string }>({
+  type: 'income',
+  paymentMethod: 'cash',
   amount: '',
   reason: '',
 })
-const printSummary = ref(true)
 const refreshingBills = ref(false)
 const showInvoiceDetailModal = ref(false)
 const selectedInvoice = ref<HoaDon | null>(null)
@@ -39,18 +45,32 @@ const shiftSession = computed(() => shiftStore.currentShift)
 const invoiceRevenue = computed(() => shiftStore.invoiceRevenue)
 const cashSales = computed(() => shiftStore.cashSales)
 const transferSales = computed(() => shiftStore.transferSales)
+const electronicSales = computed(() => shiftStore.electronicSales)
+const otherSales = computed(() => shiftStore.otherSales)
 const grossSales = computed(() => shiftStore.grossSales)
 const discountSales = computed(() => shiftStore.discountSales)
 const cashIncome = computed(() => shiftStore.cashIncome)
 const transferIncome = computed(() => shiftStore.transferIncome)
+const electronicIncome = computed(() => shiftStore.electronicIncome)
+const otherIncome = computed(() => shiftStore.otherIncome)
 const cashExpense = computed(() => shiftStore.cashExpense)
 const transferExpense = computed(() => shiftStore.transferExpense)
+const electronicExpense = computed(() => shiftStore.electronicExpense)
+const otherExpense = computed(() => shiftStore.otherExpense)
+const netRevenue = computed(() => cashSales.value + transferSales.value + electronicSales.value + otherSales.value)
 const endingCash = computed(() => shiftStore.endingCash)
 const hasUnpaidBills = computed(() => shiftStore.hasUnpaidBills)
+const hasPendingClosure = computed(() => pendingTables.value.length > 0)
 const incomeTransactions = computed(() => (shiftSession.value?.expenses || []).filter((item) => item.type === 'income'))
 const expenseTransactions = computed(() => (shiftSession.value?.expenses || []).filter((item) => item.type === 'expense'))
 const cashInShift = computed(() => cashSales.value + cashIncome.value - cashExpense.value)
-const billCount = computed(() => (shiftSession.value?.bills || []).length)
+const transferInShift = computed(() => transferSales.value + transferIncome.value - transferExpense.value)
+const totalShiftFunds = computed(() => endingCash.value + transferInShift.value)
+const totalIncome = computed(() => cashIncome.value + transferIncome.value + electronicIncome.value + otherIncome.value)
+const totalExpense = computed(() => cashExpense.value + transferExpense.value + electronicExpense.value + otherExpense.value)
+const visibleShiftBills = computed(() => (shiftSession.value?.bills || []).filter(isValidShiftInvoice))
+const selectedHistoryBills = computed(() => (selectedHistoryEntry.value?.bills || []).filter(isValidShiftInvoice))
+const billCount = computed(() => visibleShiftBills.value.length)
 const shiftId = computed(() => shiftSession.value?.shiftId || '---')
 const openedAt = computed(() => shiftSession.value?.openedAt ? formatDate(shiftSession.value.openedAt) : '---')
 const historyEntries = computed(() => {
@@ -63,6 +83,8 @@ const historyEntries = computed(() => {
 })
 const getEntryCashInShift = (entry?: ShiftHistoryEntry | null) =>
   Number(entry?.summary?.cashSales || 0) + Number(entry?.summary?.cashIncome || 0) - Number(entry?.summary?.cashExpense || 0)
+
+const formatPaymentBreakdown = (label: string, amount: number) => `${label}: ${moneyFormatter.format(amount)}`
 const employeeName = computed(() => {
   const fromShift = shiftSession.value?.employeeName?.trim()
   const fromAuth = authStore.accountName?.trim()
@@ -127,10 +149,65 @@ const printSelectedInvoice = async (billId: string) => {
 
 const getShiftSummary = () => ({
   revenue: invoiceRevenue.value,
-  totalIncome: cashIncome.value,
-  totalExpense: cashExpense.value,
+  totalIncome: cashIncome.value + transferIncome.value + electronicIncome.value + otherIncome.value,
+  totalExpense: cashExpense.value + transferExpense.value + electronicExpense.value + otherExpense.value,
   endingCash: endingCash.value,
 })
+
+const resolvePendingTables = async () => {
+  try {
+    const [tableRes, invoiceRes] = await Promise.all([BanApi.getAll(), HoaDonApi.getDanhSach()])
+    const tables = Array.isArray(tableRes.data) ? tableRes.data : []
+    const invoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : []
+
+    const pendingMap = new Map<string, ShiftHandoverTable>()
+
+    invoices
+      .filter((invoice: HoaDon) => Number(invoice.trangThaiThanhToan) === 0)
+      .forEach((invoice: HoaDon) => {
+        const key = `invoice-${invoice.idHoaDon}`
+        pendingMap.set(key, {
+          idBan: invoice.idBan ?? null,
+          code: invoice.maHoaDon || `HD-${invoice.idHoaDon}`,
+          name: invoice.tenKhachHang || `Bàn ${invoice.idBan ?? '-'}`,
+          total: Number(invoice.tongTien || 0),
+          status: 'unpaid-bill',
+          billId: String(invoice.idHoaDon),
+        })
+      })
+
+    tables.forEach((table: any) => {
+      const rawStatus = String(table?.trangThai ?? table?.status ?? '').trim().toUpperCase()
+      const isInService =
+        rawStatus === 'DANG_SU_DUNG' ||
+        rawStatus === 'DANG_PHUC_VU' ||
+        rawStatus === 'IN_SERVICE' ||
+        rawStatus === 'ĐANG_PHỤC_VỤ' ||
+        rawStatus === 'ĐANG_SỬ_DỤNG'
+
+      if (!isInService) return
+
+      const key = `table-${table?.idBan ?? ''}`
+      if (!pendingMap.has(key)) {
+        pendingMap.set(key, {
+          idBan: table?.idBan ?? null,
+          code: `Bàn ${table?.tenBan || table?.idBan || '-'}`,
+          name: table?.tenBan || 'Bàn đang phục vụ',
+          total: 0,
+          status: 'in-service',
+          billId: null,
+        })
+      }
+    })
+
+    const pending = Array.from(pendingMap.values())
+    pendingTables.value = pending
+    return pending
+  } catch {
+    pendingTables.value = []
+    return []
+  }
+}
 
 const toTimestamp = (value: string | number[] | null | undefined) => {
   if (!value) return null
@@ -164,7 +241,7 @@ const getInvoiceTimestamp = (invoice: HoaDon) => {
 const normalizeShiftBill = (invoice: HoaDon): ShiftInvoice => {
   const gross = Number(invoice.tienTruocGiam ?? (Number(invoice.tongTien || 0) + Number(invoice.tienGiamGia || 0)))
   const discount = Number(invoice.tienGiamGia || 0)
-  const paymentMethod = Number(invoice.phuongThucThanhToan) === 2 ? 'transfer' : 'cash'
+  const paymentMethod = normalizeShiftPaymentMethod(invoice.phuongThucThanhToan)
   const invoiceTime = getInvoiceTimestamp(invoice)
 
   return {
@@ -181,6 +258,10 @@ const normalizeShiftBill = (invoice: HoaDon): ShiftInvoice => {
   }
 }
 
+const isValidServerShiftInvoice = (invoice: HoaDon) => {
+  return Number(invoice.tongTien || 0) > 0 && Number(invoice.trangThaiHoaDon) !== 0
+}
+
 const getEffectiveShiftAllocationStart = () => {
   const currentShiftStart = new Date(shiftStore.currentShift?.startTime || shiftStore.currentShift?.openedAt || Date.now()).getTime()
   const historyTimeline = [...(shiftStore.history || [])]
@@ -194,6 +275,14 @@ const getEffectiveShiftAllocationStart = () => {
   const latestClosedBoundary = historyTimeline[0] ?? currentShiftStart
   return Number.isFinite(latestClosedBoundary) ? latestClosedBoundary : currentShiftStart
 }
+
+const getInvoicePaymentTimestamp = (invoice: HoaDon) => {
+  const parsed = toTimestamp(invoice.thoiGianXuat)
+  if (parsed !== null) return parsed
+  return getInvoiceTimestamp(invoice)
+}
+
+const lastHandoverContext = computed(() => shiftStore.history[0]?.handoverContext ?? null)
 
 const loadShiftBillsFromServer = async () => {
   if (!shiftStore.currentShift?.startTime || !shiftStore.currentShift.isOpen) return
@@ -210,26 +299,51 @@ const loadShiftBillsFromServer = async () => {
     const res = await HoaDonApi.getDanhSach()
     const invoices = Array.isArray(res.data) ? res.data : []
 
+    // Collect idBan of all handed-over pending tables so their unpaid invoices
+    // are always included in this shift regardless of creation timestamp.
+    const handoverBanIds = new Set<number>(
+      (shiftStore.currentShift.handoverContext?.pendingTables || [])
+        .filter((t) => t.idBan != null)
+        .map((t) => Number(t.idBan)),
+    )
+    const handoverBillIds = new Set<string>(
+      (shiftStore.currentShift.handoverContext?.pendingTables || [])
+        .filter((t) => t.billId && t.billId !== 'null' && t.billId !== '')
+        .map((t) => String(t.billId)),
+    )
+
     const serverBills: ShiftInvoice[] = invoices
+      .filter((invoice: HoaDon) => isValidServerShiftInvoice(invoice))
       .filter((invoice: HoaDon) => {
-        const invoiceTime = getInvoiceTimestamp(invoice)
-        return invoiceTime !== null && invoiceTime >= shiftStartTime && invoiceTime <= shiftEndTime
+        const createdTime = getInvoiceTimestamp(invoice)
+        const paymentTime = getInvoicePaymentTimestamp(invoice)
+        const isPaid = Number(invoice.trangThaiThanhToan) === 1
+        const isHandoverBan = invoice.idBan != null && handoverBanIds.has(Number(invoice.idBan))
+        const isHandoverBill = handoverBillIds.has(String(invoice.idHoaDon))
+
+        if (isPaid) {
+          const paidInShift = paymentTime !== null && paymentTime >= shiftStartTime && paymentTime <= shiftEndTime
+          const createdInShift = createdTime !== null && createdTime >= shiftStartTime && createdTime <= shiftEndTime
+          // Handed-over table paid in this shift → count it
+          return paidInShift || createdInShift || (isHandoverBan && paidInShift)
+        }
+
+        // Always include unpaid invoices for handed-over tables/bills
+        if (isHandoverBan || isHandoverBill) return true
+
+        return createdTime !== null && createdTime <= shiftEndTime
       })
       .map((invoice: HoaDon) => normalizeShiftBill(invoice))
 
-    const mergedBills = [...(shiftStore.currentShift?.bills || [])]
-
+    // Merge: update existing entries, append new ones
+    const mergedMap = new Map<string, ShiftInvoice>()
+    ;(shiftStore.currentShift?.bills || []).forEach((b) => mergedMap.set(b.id, b))
     serverBills.forEach((bill) => {
-      const exists = mergedBills.some((existing) => existing.id === bill.id || existing.code === bill.code)
-      if (!exists) {
-        mergedBills.push(bill)
-      }
+      // Prefer server data (more up-to-date) over local store stubs
+      mergedMap.set(bill.id, { ...(mergedMap.get(bill.id) || {}), ...bill })
     })
 
-    const uniqueBills = mergedBills.filter((bill, index, list) => {
-      return list.findIndex((candidate) => candidate.id === bill.id || candidate.code === bill.code) === index
-    })
-
+    const uniqueBills = Array.from(mergedMap.values()).filter(isValidShiftInvoice)
     uniqueBills.sort((a, b) => (b.createdAtTimestamp ?? 0) - (a.createdAtTimestamp ?? 0))
 
     if (!shiftStore.currentShift) return
@@ -255,10 +369,40 @@ const openShift = () => {
     authStore.tenKhachHang ||
     'Nhân viên'
 
+  const handoverContext = shiftStore.history[0]?.handoverContext ?? null
+
   shiftStore.openShift({
     openingCash,
     employeeName: resolvedEmployeeName,
+    handoverContext,
   })
+
+  const newShiftId = shiftStore.currentShift?.shiftId
+  if (newShiftId && handoverContext?.pendingTables?.length) {
+    void Promise.all(
+      handoverContext.pendingTables
+        .filter((item) => item.billId)
+        .map(async (item) => {
+          try {
+            await HoaDonApi.update(Number(item.billId), { shiftId: newShiftId })
+          } catch (error) {
+            console.warn('Không thể cập nhật shift cho hóa đơn bàn giao:', error)
+          }
+        }),
+    )
+
+    void Promise.all(
+      handoverContext.pendingTables
+        .filter((item) => item.idBan != null)
+        .map(async (item) => {
+          try {
+            await BanApi.update(Number(item.idBan), { trangThai: 'DANG_SU_DUNG' })
+          } catch (error) {
+            console.warn('Không thể cập nhật trạng thái bàn bàn giao:', error)
+          }
+        }),
+    )
+  }
 
   showOpenModal.value = false
   openingCashInput.value = ''
@@ -276,11 +420,11 @@ const resetTransactionForm = () => {
   }
 }
 
-const startEditTransaction = (item: { id: number; type: 'income' | 'expense'; amount: number; reason: string; paymentMethod: 'cash' | 'transfer' }) => {
+const startEditTransaction = (item: { id: number; type: 'income' | 'expense'; amount: number; reason: string; paymentMethod: ShiftPaymentMethod }) => {
   editingTransactionId.value = item.id
   transactionForm.value = {
     type: item.type,
-    paymentMethod: item.paymentMethod,
+    paymentMethod: item.type === 'expense' ? 'cash' : item.paymentMethod === 'transfer' ? 'transfer' : 'cash',
     amount: String(item.amount),
     reason: item.reason,
   }
@@ -292,6 +436,11 @@ const cancelEditTransaction = () => {
 
 const saveTransaction = () => {
   const amount = Number(transactionForm.value.amount)
+  const paymentMethod: ShiftPaymentMethod = transactionForm.value.type === 'expense'
+    ? 'cash'
+    : transactionForm.value.paymentMethod === 'transfer'
+      ? 'transfer'
+      : 'cash'
 
   if (!transactionForm.value.reason.trim() || !transactionForm.value.amount || Number.isNaN(amount) || amount <= 0) {
     alert('Vui lòng nhập số tiền và lý do hợp lệ.')
@@ -304,18 +453,27 @@ const saveTransaction = () => {
       type: transactionForm.value.type,
       amount,
       reason: transactionForm.value.reason.trim(),
-      paymentMethod: transactionForm.value.paymentMethod,
+      paymentMethod,
     })
   } else {
     shiftStore.addCashTransaction({
       type: transactionForm.value.type,
       amount,
       reason: transactionForm.value.reason.trim(),
-      paymentMethod: transactionForm.value.paymentMethod,
+      paymentMethod,
     })
   }
 
   resetTransactionForm()
+}
+
+const openPrintPreview = () => {
+  showPrintPreviewModal.value = true
+}
+
+const confirmPrintReport = () => {
+  showPrintPreviewModal.value = false
+  window.print()
 }
 
 const removeTransaction = (id: number) => {
@@ -327,29 +485,79 @@ const removeTransaction = (id: number) => {
   }
 }
 
-const startCloseShift = () => {
-  if (hasUnpaidBills.value) {
-    alert('Có hóa đơn chưa thanh toán trong ca. Vui lòng thanh toán trước khi đóng ca.')
-    return
-  }
-
+const startCloseShift = async () => {
+  closeShiftError.value = null
+  const pending = await resolvePendingTables()
+  closeMode.value = pending.length > 0 ? 'handover' : 'normal'
+  handoverNote.value = pending.length > 0 ? `Bàn giao ca cho ca sau: ${pending.length} bàn/đơn còn treo.` : ''
   showCloseModal.value = true
+
+  if (pending.length > 0) {
+    closeShiftError.value = `Vẫn còn ${pending.length} bàn/đơn đang hoạt động hoặc chưa thanh toán. Vui lòng chọn phương án phù hợp.`
+  }
 }
 
-const confirmCloseShift = (keepLoggedIn: boolean) => {
-  const summary = getShiftSummary()
-  console.log('Closing shift summary:', summary, 'print', printSummary.value)
-
-  shiftStore.closeShift()
+const goToSalesScreen = (item?: ShiftHandoverTable) => {
   showCloseModal.value = false
+  closeShiftError.value = null
 
-  if (!keepLoggedIn) {
-    authStore.logout()
-    router.replace('/auth')
-    return
+  const target = item || pendingTables.value[0]
+  const targetQuery: Record<string, string> = {}
+
+  if (target?.idBan != null) {
+    targetQuery.pendingTableId = String(target.idBan)
+  }
+  if (target?.billId) {
+    targetQuery.pendingBillId = String(target.billId)
+  }
+  if (target?.name) {
+    targetQuery.pendingTableName = target.name
   }
 
-  router.push({ name: 'dat-ban-quan-ly' })
+  void router.push({ name: 'ban-hang', query: Object.keys(targetQuery).length > 0 ? targetQuery : undefined })
+}
+
+const confirmCloseShift = async (keepLoggedIn: boolean) => {
+  if (isSubmittingCloseShift.value) return
+  isSubmittingCloseShift.value = true
+
+  try {
+    const pending = await resolvePendingTables()
+    const mode = closeMode.value
+
+    if (mode === 'normal' && pending.length > 0) {
+      closeShiftError.value = `Không thể đóng ca ở chế độ thanh toán dứt điểm khi còn ${pending.length} bàn/đơn đang hoạt động hoặc chưa thanh toán. Vui lòng bấm 'Đi tới Bán hàng' để xử lý.`
+      return
+    }
+
+    const handoverContext: ShiftHandoverContext | null =
+      mode === 'handover'
+        ? {
+            sourceShiftId: shiftSession.value?.shiftId || 'SHIFT-UNKNOWN',
+            handoverAt: new Date().toISOString(),
+            pendingTables: pending,
+            totalPending: pending.reduce((sum, item) => sum + item.total, 0),
+            note: handoverNote.value.trim() || undefined,
+          }
+        : null
+
+    shiftStore.closeShift({
+      mode,
+      handoverContext,
+    })
+
+    showCloseModal.value = false
+
+    if (!keepLoggedIn) {
+      authStore.logout()
+      router.replace('/auth')
+      return
+    }
+
+    router.push({ name: 'dat-ban-quan-ly' })
+  } finally {
+    isSubmittingCloseShift.value = false
+  }
 }
 
 const formatDate = (iso: string) =>
@@ -371,6 +579,17 @@ watch(
   () => [shiftStore.currentShift?.startTime, shiftStore.currentShift?.openedAt, shiftStore.currentShift?.isOpen],
   async () => {
     await loadShiftBillsFromServer()
+  },
+)
+
+watch(
+  () => transactionForm.value.type,
+  (type) => {
+    if (type === 'expense') {
+      transactionForm.value.paymentMethod = 'cash'
+    } else if (!['cash', 'transfer'].includes(transactionForm.value.paymentMethod)) {
+      transactionForm.value.paymentMethod = 'cash'
+    }
   },
 )
 
@@ -453,7 +672,7 @@ onMounted(() => {
                     <div class="inline-stack">
                       <span>{{ moneyFormatter.format(entry.summary?.cashSales ?? 0) }}</span>
                       <span class="subtle-label">/</span>
-                      <span>{{ moneyFormatter.format(entry.summary?.transferSales ?? 0) }}</span>
+                      <span>{{ moneyFormatter.format((entry.summary?.transferSales ?? 0) + (entry.summary?.electronicSales ?? 0) + (entry.summary?.otherSales ?? 0)) }}</span>
                     </div>
                   </td>
                   <td>{{ moneyFormatter.format(entry.summary?.endingCash ?? 0) }}</td>
@@ -480,7 +699,7 @@ onMounted(() => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="bill in shiftSession?.bills || []" :key="bill.id">
+                <tr v-for="bill in visibleShiftBills" :key="bill.id">
                   <td>{{ bill.code }}</td>
                   <td>{{ bill.customer }}</td>
                   <td>{{ bill.createdAt }}</td>
@@ -506,9 +725,9 @@ onMounted(() => {
                 <option value="income">Thu</option>
                 <option value="expense">Chi</option>
               </select>
-              <select v-model="transactionForm.paymentMethod">
+              <select v-model="transactionForm.paymentMethod" :disabled="transactionForm.type === 'expense'">
                 <option value="cash">Tiền mặt</option>
-                <option value="transfer">Chuyển khoản</option>
+                <option v-if="transactionForm.type === 'income'" value="transfer">Chuyển khoản</option>
               </select>
               <input v-model="transactionForm.amount" type="number" min="0" placeholder="Nhập số tiền" />
               <input v-model="transactionForm.reason" type="text" placeholder="Nhập lý do" />
@@ -536,7 +755,7 @@ onMounted(() => {
                     <span :class="['status-badge', item.type]">{{ item.type === 'income' ? 'Thu' : 'Chi' }}</span>
                   </td>
                   <td>{{ moneyFormatter.format(item.amount) }}</td>
-                  <td>{{ item.reason }} <span class="payment-method-tag">{{ item.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản' }}</span></td>
+                  <td>{{ item.reason }} <span class="payment-method-tag">{{ item.paymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt' }}</span></td>
                   <td>{{ item.createdAt }}</td>
                   <td>
                     <div class="transaction-actions">
@@ -591,16 +810,24 @@ onMounted(() => {
                 </div>
                 <div class="metric-row net-row">
                   <span>Doanh thu (NET)</span>
-                  <strong>{{ moneyFormatter.format(invoiceRevenue) }}</strong>
+                  <strong>{{ moneyFormatter.format(netRevenue) }}</strong>
                 </div>
                 <div class="payment-split">
                   <div class="payment-pill">
-                    <span>+ Tiền mặt (1)</span>
+                    <span>+ Tiền mặt</span>
                     <strong>{{ moneyFormatter.format(cashSales) }}</strong>
                   </div>
                   <div class="payment-pill">
                     <span>+ Chuyển khoản</span>
                     <strong>{{ moneyFormatter.format(transferSales) }}</strong>
+                  </div>
+                  <div class="payment-pill">
+                    <span>+ Thanh toán điện tử</span>
+                    <strong>{{ moneyFormatter.format(electronicSales) }}</strong>
+                  </div>
+                  <div class="payment-pill">
+                    <span>+ Khác</span>
+                    <strong>{{ moneyFormatter.format(otherSales) }}</strong>
                   </div>
                 </div>
               </div>
@@ -616,7 +843,7 @@ onMounted(() => {
                     <strong>{{ incomeTransactions.length }}</strong>
                   </div>
                   <div class="mini-meta">
-                    <span>Tiền mặt (2)</span>
+                    <span>Tiền mặt</span>
                     <strong>{{ moneyFormatter.format(cashIncome) }}</strong>
                   </div>
                   <div class="mini-meta">
@@ -637,12 +864,12 @@ onMounted(() => {
                     <strong>{{ expenseTransactions.length }}</strong>
                   </div>
                   <div class="mini-meta">
-                    <span>Tiền mặt (3)</span>
+                    <span>Tiền mặt</span>
                     <strong>{{ moneyFormatter.format(cashExpense) }}</strong>
                   </div>
                   <div class="mini-meta">
                     <span>Chuyển khoản</span>
-                    <strong>{{ moneyFormatter.format(transferExpense) }}</strong>
+                    <strong>{{ moneyFormatter.format(0) }}</strong>
                   </div>
                   <ul class="mini-list">
                     <li v-for="item in expenseTransactions" :key="item.id">
@@ -665,14 +892,23 @@ onMounted(() => {
                   <span>Tiền mặt trong ca</span>
                   <strong>{{ moneyFormatter.format(cashInShift) }}</strong>
                 </div>
-                <div class="metric-row handover-row">
-                  <span>Tiền mặt cuối ca</span>
+                <div class="metric-row">
+                  <span>Tổng tiền chuyển khoản</span>
+                  <strong>{{ moneyFormatter.format(transferInShift) }}</strong>
+                </div>
+                <div class="metric-row">
+                  <span>Tổng tiền chung</span>
+                  <strong>{{ moneyFormatter.format(totalShiftFunds) }}</strong>
+                </div>
+                <div class="metric-row">
+                  <span>Tiền mặt thực tế trong két</span>
                   <strong>{{ moneyFormatter.format(endingCash) }}</strong>
                 </div>
-                <label class="checkbox-row report-checkbox">
-                  <input v-model="printSummary" type="checkbox" />
-                  <span>In báo cáo khi chốt ca</span>
-                </label>
+                <div class="metric-row handover-row">
+                  <span>Tiền mặt cuối ca (cash drawer)</span>
+                  <strong>{{ moneyFormatter.format(endingCash) }}</strong>
+                </div>
+                <button class="btn-report-preview" type="button" @click="openPrintPreview">In báo cáo</button>
               </div>
             </section>
           </div>
@@ -683,14 +919,17 @@ onMounted(() => {
     <div v-if="showOpenModal" class="modal-overlay" @click.self="showOpenModal = false">
       <div class="modal-card">
         <div class="modal-header">
-          <h3>Mở ca</h3>
+          <h3>Mở ca làm việc</h3>
           <button class="close-btn" @click="showOpenModal = false">×</button>
+        </div>
+        <div v-if="lastHandoverContext" class="handover-alert" style="margin-bottom: 12px;">
+          📌 Ca trước đã bàn giao: {{ lastHandoverContext.pendingTables?.length || 0 }} bàn/đơn còn treo.
         </div>
         <label class="field-label">Tiền mặt đầu ca</label>
         <input v-model="openingCashInput" type="number" min="0" placeholder="Nhập số tiền mặt đầu ca" />
         <div class="modal-actions">
           <button class="btn-secondary" @click="showOpenModal = false">Hủy</button>
-          <button class="btn-primary" @click="openShift">Xác nhận</button>
+          <button class="btn-primary" @click="openShift">Xác nhận mở ca</button>
         </div>
       </div>
     </div>
@@ -830,6 +1069,37 @@ onMounted(() => {
             </div>
           </section>
 
+          <section v-if="selectedHistoryEntry.handoverContext" class="report-section">
+            <div class="section-title">BIÊN BẢN BÀN GIAO CA</div>
+            <div class="section-body">
+              <div class="metric-row">
+                <span>Mã ca nguồn</span>
+                <strong>{{ selectedHistoryEntry.handoverContext.sourceShiftId }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Thời gian bàn giao</span>
+                <strong>{{ formatDate(selectedHistoryEntry.handoverContext.handoverAt) }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Tổng tiền bàn giao</span>
+                <strong>{{ moneyFormatter.format(selectedHistoryEntry.handoverContext.totalPending || 0) }}</strong>
+              </div>
+              <div v-if="selectedHistoryEntry.handoverContext.note" class="metric-row">
+                <span>Ghi chú</span>
+                <strong>{{ selectedHistoryEntry.handoverContext.note }}</strong>
+              </div>
+              <div v-if="selectedHistoryEntry.handoverContext.pendingTables?.length" class="pending-table-list">
+                <div class="section-title">Danh sách bàn/đơn còn treo</div>
+                <ul>
+                  <li v-for="item in selectedHistoryEntry.handoverContext.pendingTables" :key="`${item.idBan}-${item.billId}`">
+                    <span>{{ item.code }} · {{ item.name }}</span>
+                    <strong>{{ moneyFormatter.format(item.total) }}</strong>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
           <section class="report-section">
             <div class="section-title">DANH SÁCH HÓA ĐƠN ĐÃ GÁN VÀO CA</div>
             <div class="table-card nested-table-card">
@@ -845,7 +1115,7 @@ onMounted(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="bill in selectedHistoryEntry.bills || []" :key="bill.id">
+                  <tr v-for="bill in selectedHistoryBills" :key="bill.id">
                     <td>{{ bill.code }}</td>
                     <td>{{ bill.customer }}</td>
                     <td>{{ bill.createdAt }}</td>
@@ -872,31 +1142,169 @@ onMounted(() => {
 
         <div class="summary-grid">
           <div>
-            <span>Doanh thu</span>
-            <strong>{{ moneyFormatter.format(invoiceRevenue) }}</strong>
+            <span>Doanh thu (NET)</span>
+            <strong>{{ moneyFormatter.format(netRevenue) }}</strong>
           </div>
           <div>
-            <span>Tổng thu</span>
-            <strong>{{ moneyFormatter.format(cashIncome) }}</strong>
-          </div>
-          <div>
-            <span>Tổng chi</span>
-            <strong>{{ moneyFormatter.format(cashExpense) }}</strong>
-          </div>
-          <div>
-            <span>Tiền mặt cuối ca</span>
+            <span>Tổng tiền mặt</span>
             <strong>{{ moneyFormatter.format(endingCash) }}</strong>
+          </div>
+          <div>
+            <span>Tổng tiền chuyển khoản</span>
+            <strong>{{ moneyFormatter.format(transferInShift) }}</strong>
+          </div>
+          <div>
+            <span>Tổng tiền chung</span>
+            <strong>{{ moneyFormatter.format(totalShiftFunds) }}</strong>
           </div>
         </div>
 
-        <label class="checkbox-row">
-          <input v-model="printSummary" type="checkbox" />
-          <span>In báo cáo chốt ca</span>
-        </label>
+        <div v-if="closeShiftError" class="handover-alert">{{ closeShiftError }}</div>
+
+        <div class="handover-options">
+          <p class="handover-hint">Chọn một trong hai cách đóng ca:</p>
+          <div class="mode-choice-row">
+            <label class="mode-option">
+              <input v-model="closeMode" type="radio" value="normal" />
+              <span>Thanh toán dứt điểm trước</span>
+            </label>
+            <label class="mode-option">
+              <input v-model="closeMode" type="radio" value="handover" />
+              <span>Bàn giao sang ca sau</span>
+            </label>
+          </div>
+          <div v-if="closeMode === 'normal' && pendingTables.length > 0" class="handover-alert">
+            Hãy chuyển sang màn hình Bán hàng để thanh toán nốt các bàn treo trước khi đóng ca.
+          </div>
+          <textarea v-if="pendingTables.length > 0 && closeMode === 'handover'" v-model="handoverNote" rows="3" placeholder="Ghi chú bàn giao ca tiếp theo..."></textarea>
+        </div>
+
+        <div v-if="pendingTables.length > 0" class="pending-table-list">
+          <div class="section-title">DANH SÁCH BÀN CÒN TREO (Click để xử lý)</div>
+          <ul>
+            <li
+              v-for="item in pendingTables"
+              :key="`${item.idBan}-${item.billId}`"
+              class="pending-table-item-clickable"
+              @click="goToSalesScreen(item)"
+              title="Click để tới màn hình Bán hàng mở bàn này"
+              style="cursor: pointer;"
+            >
+              <span>{{ item.code }} · {{ item.name }}</span>
+              <div class="pending-item-action">
+                <strong>{{ moneyFormatter.format(item.total) }}</strong>
+                <span class="action-link-text">Xử lý ngay →</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <button class="btn-report-preview compact" type="button" @click="openPrintPreview">In báo cáo</button>
 
         <div class="modal-actions split">
-          <button class="btn-secondary" @click="confirmCloseShift(true)">Đóng ca</button>
-          <button class="btn-danger" @click="confirmCloseShift(false)">Đóng ca và đăng xuất</button>
+          <template v-if="closeMode === 'normal'">
+            <button
+              v-if="pendingTables.length > 0"
+              class="btn-primary"
+              :disabled="isSubmittingCloseShift"
+              @click="goToSalesScreen()"
+            >
+              Đi tới Bán hàng
+            </button>
+            <button
+              v-else
+              class="btn-primary"
+              :disabled="isSubmittingCloseShift"
+              @click="confirmCloseShift(true)"
+            >
+              {{ isSubmittingCloseShift ? 'Đang xử lý...' : 'Đóng ca (thanh toán xong)' }}
+            </button>
+          </template>
+
+          <template v-else-if="closeMode === 'handover'">
+            <button
+              class="btn-primary"
+              :disabled="isSubmittingCloseShift"
+              @click="confirmCloseShift(true)"
+            >
+              {{ isSubmittingCloseShift ? 'Đang xử lý...' : 'Đóng ca bàn giao' }}
+            </button>
+            <button
+              class="btn-danger"
+              :disabled="isSubmittingCloseShift"
+              @click="confirmCloseShift(false)"
+            >
+              {{ isSubmittingCloseShift ? 'Đang xử lý...' : 'Đóng ca và đăng xuất' }}
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showPrintPreviewModal" class="modal-overlay" @click.self="showPrintPreviewModal = false">
+      <div class="modal-card wide print-preview-card">
+        <div class="modal-header">
+          <h3>Xem trước báo cáo chốt ca</h3>
+          <button class="close-btn" @click="showPrintPreviewModal = false">×</button>
+        </div>
+
+        <div class="preview-grid">
+          <section class="report-section">
+            <div class="section-title">TỔNG QUAN CA</div>
+            <div class="section-body">
+              <div class="metric-row">
+                <span>Mã ca</span>
+                <strong>{{ shiftId }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Thời gian mở ca</span>
+                <strong>{{ openedAt }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Nhân viên</span>
+                <strong>{{ employeeName }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Số dư đầu ca</span>
+                <strong>{{ moneyFormatter.format(shiftSession?.openingCash || 0) }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="report-section">
+            <div class="section-title">DÒNG TIỀN</div>
+            <div class="section-body">
+              <div class="metric-row">
+                <span>Doanh thu tiền mặt</span>
+                <strong>{{ moneyFormatter.format(cashSales) }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Doanh thu chuyển khoản</span>
+                <strong>{{ moneyFormatter.format(transferSales) }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Thu phát sinh</span>
+                <strong>{{ moneyFormatter.format(totalIncome) }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Chi phát sinh</span>
+                <strong>{{ moneyFormatter.format(totalExpense) }}</strong>
+              </div>
+              <div class="metric-row">
+                <span>Tiền mặt thực tế trong két</span>
+                <strong>{{ moneyFormatter.format(endingCash) }}</strong>
+              </div>
+              <div class="metric-row handover-row">
+                <span>Tổng tiền chung</span>
+                <strong>{{ moneyFormatter.format(totalShiftFunds) }}</strong>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="modal-actions split">
+          <button class="btn-secondary" type="button" @click="showPrintPreviewModal = false">Hủy/Quay lại</button>
+          <button class="btn-primary" type="button" @click="confirmPrintReport">Xác nhận in / In báo cáo</button>
         </div>
       </div>
     </div>
@@ -1007,6 +1415,24 @@ p {
   background: transparent;
   color: #8a5724;
   padding: 0 8px 0 0;
+}
+
+.btn-report-preview {
+  width: fit-content;
+  border: 1px solid #b57b3e;
+  background: #fff8ec;
+  color: #7b4a22;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-report-preview.compact {
+  margin-top: 14px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
 }
 
 .shift-dashboard {
@@ -1204,6 +1630,16 @@ select {
   max-width: 1000px;
 }
 
+.print-preview-card {
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.preview-grid {
+  display: grid;
+  gap: 12px;
+}
+
 .detail-modal-card {
   max-height: min(88vh, 920px);
   overflow-y: auto;
@@ -1374,34 +1810,6 @@ select {
   font-weight: 800;
 }
 
-.report-checkbox {
-  margin-top: 6px;
-  padding: 7px 10px;
-  width: fit-content;
-  max-width: 100%;
-  border: 1px solid #d7ad72;
-  border-radius: 10px;
-  background: #f7eedc;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  box-sizing: border-box;
-  align-self: flex-start;
-}
-
-.report-checkbox input {
-  margin: 0;
-  flex: 0 0 auto;
-}
-
-.report-checkbox span {
-  white-space: nowrap;
-  min-width: 0;
-  font-size: 0.82rem;
-  color: #6f4928;
-}
-
 .payment-method-tag {
   display: inline-flex;
   align-items: center;
@@ -1426,6 +1834,91 @@ select {
   .report-stack {
     width: 100%;
   }
+}
+
+.handover-alert {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff2cc;
+  color: #8a4b00;
+  border: 1px solid #e8c06b;
+}
+
+.handover-options {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.handover-hint {
+  color: #8b5b2c;
+  font-size: 0.92rem;
+}
+
+.mode-choice-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pending-table-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.pending-table-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.pending-table-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #ead4ad;
+  border-radius: 10px;
+  background: #fff9eb;
+  transition: all 0.2s ease;
+}
+
+.pending-table-item-clickable:hover {
+  background: #fdeccb;
+  border-color: #c58f4c;
+  transform: translateY(-1px);
+}
+
+.pending-item-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-link-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a76b2c;
+  background: #f3e3ca;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 90px;
+  border: 1px solid #d8b180;
+  border-radius: 10px;
+  background: #fffdf7;
+  color: #5d3a1f;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  resize: vertical;
 }
 
 .history-detail-card {

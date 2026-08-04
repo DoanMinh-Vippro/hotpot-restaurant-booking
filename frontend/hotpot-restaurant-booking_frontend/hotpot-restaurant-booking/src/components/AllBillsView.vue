@@ -43,8 +43,13 @@ const filteredHoaDon = computed(() => {
     } else if (sortBy.value === 'tongTien') {
       return Number(b.tongTien || 0) - Number(a.tongTien || 0)
     } else if (sortBy.value === 'tenBan') {
-      const banA = danhSachBan.value.find((b) => Number(b.idBan) === Number(a.idBan ?? a.ban?.idBan))
-      const banB = danhSachBan.value.find((b) => Number(b.idBan) === Number(b.idBan ?? b.ban?.idBan))
+      const banA = danhSachBan.value.find(
+  ban => Number(ban.idBan) === Number(a.idBan)
+)
+
+const banB = danhSachBan.value.find(
+  ban => Number(ban.idBan) === Number(b.idBan)
+)
       return (banA?.tenBan || '').localeCompare(banB?.tenBan || '')
     }
     return 0
@@ -63,20 +68,24 @@ const tongDoanhThu = computed(() => {
 
 // ======================== METHODS ========================
 const loadHoaDon = async () => {
-  isLoading.value = true
+ isLoading.value = true
+
   try {
     const res = await HoaDonApi.getDanhSach()
-    const invoices = Array.isArray(res?.data) ? res.data : []
 
-    danhSachHoaDon.value = invoices.filter((item: any) => {
-      const invoiceStatus = Number(item?.trangThaiHoaDon ?? item?.trangThai ?? 0)
-      const paymentStatus = Number(item?.trangThaiThanhToan ?? 0)
-      const hasActiveTable = item?.idBan != null
+    const invoices = Array.isArray(res.data)
+      ? res.data
+      : []
 
-      return hasActiveTable && (invoiceStatus === 0 || paymentStatus === 0)
+    danhSachHoaDon.value = invoices.filter((hd: any) => {
+      return (
+        Number(hd.trangThaiHoaDon) === 0 &&
+        Number(hd.trangThaiThanhToan) === 0 &&
+        hd.idBan != null
+      )
     })
-  } catch (error) {
-    console.error('Không thể tải danh sách hóa đơn:', error)
+  } catch (e) {
+    console.error(e)
     danhSachHoaDon.value = []
   } finally {
     isLoading.value = false
@@ -252,22 +261,34 @@ onBeforeUnmount(() => {
               <span class="bill-ban">{{ getBanName(hd.dsBan?.[0]?.idBan || hd.idBan) }}</span>
               <span class="bill-khuvuc">{{ getKhuVucName(hd.dsBan?.[0]?.idBan || hd.idBan) }}</span>
             </div>
-            <span class="bill-time">{{ formatTime(hd.thoiGianDenDuKien || hd.ngayDat) }}</span>
-          </div>
+              <span class="bill-time">{{ formatTime(hd.thoiGianXuat) }}</span>    
+                  </div>
           
-          <div class="bill-card-body">
-            <div class="bill-details">
-              <span class="bill-customer">👤 {{ hd.tenKhachHang || 'Khách lẻ' }}</span>
-              <span class="bill-code">📝 Đơn #{{ hd.idDatBan }}</span>
-            </div>
-            <div class="bill-total">
-              <span class="total-amount">{{ formatCurrency(hd.soTienCoc || 0) }}</span>
-            </div>
-          </div>
+         <div class="bill-card-body">
+  <div class="bill-details">
+    <span class="bill-customer">
+      👤 {{ hd.tenKhachHang || 'Khách lẻ' }}
+    </span>
+
+    <span class="bill-code">
+      🧾 {{ hd.maHoaDon }}
+    </span>
+  </div>
+
+  <div class="bill-total">
+    <span class="total-amount">
+      {{ formatCurrency(hd.tongTien) }}
+    </span>
+  </div>
+</div>
           
           <div class="bill-card-footer">
-            <span class="bill-items">👥 {{ hd.soNguoi || 0 }} người</span>
-            <button class="btn-view" @click="$emit('viewBill', hd)">
+<span class="bill-items">
+  💳
+  {{ hd.trangThaiThanhToan === 0
+      ? 'Chưa thanh toán'
+      : 'Đã thanh toán' }}
+</span>            <button class="btn-view" @click="$emit('viewBill', hd)">
               Xem chi tiết →
             </button>
           </div>

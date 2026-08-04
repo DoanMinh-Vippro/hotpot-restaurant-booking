@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { GiamGia } from '../api/GiamGiaApi'
 
 const props = defineProps<{
@@ -10,32 +9,85 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'select': [id: number]
+  'select': [id: number | string]
   'edit': [discount: GiamGia]
-  'delete': [id: number]
+  'delete': [id: number | string]
   'add': []
   'update:timKiemQuery': [value: string]
 }>()
 
+const normalizeLoaiGiam = (value: string | null | undefined) => {
+  const normalized = `${value ?? ''}`
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
+
+  if (['PHANTRAM', 'PERCENT', 'PHNTRAM', 'PHTNTRAM', 'PHTRAM'].includes(normalized)) return 'percent'
+  if (normalized.includes('PH') && normalized.includes('TRAM')) return 'percent'
+  if (['TIENMAT', 'TIEN', 'VND', 'FIXED', 'MONEY'].includes(normalized)) return 'fixed'
+  if (normalized.includes('TIEN') || normalized.includes('MAT') || normalized.includes('GIATRI') || normalized.includes('VALUE')) return 'fixed'
+
+  return 'unknown'
+}
+
+const formatLoaiGiam = (value: string | null | undefined) => {
+  switch (normalizeLoaiGiam(value)) {
+    case 'percent':
+      return 'Phần trăm'
+    case 'fixed':
+      return 'Tiền mặt'
+    default:
+      return value?.trim() || 'Không xác định'
+  }
+}
+
 const formatGiaTriGiam = (discount: GiamGia) => {
   const numeric = Number(discount.giaTriGiam ?? 0)
-  if (discount.loaiGiam === 'PHẦN TRĂM') {
-    return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`
-  }
 
-  return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 0 })} đ`
+  switch (normalizeLoaiGiam(discount.loaiGiam)) {
+    case 'percent':
+      return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`
+    case 'fixed':
+      return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 0 })} đ`
+    default:
+      return `${numeric.toLocaleString('vi-VN', { maximumFractionDigits: 0 })}`
+  }
+}
+
+const getDiscountId = (discount: GiamGia) => {
+  const candidates = [
+    (discount as GiamGia & Record<string, unknown>).idGiamGia,
+    (discount as GiamGia & Record<string, unknown>).id,
+    (discount as GiamGia & Record<string, unknown>).code,
+  ]
+
+  const numericId = candidates.find((value) => typeof value === 'number' && Number.isFinite(value))
+  if (typeof numericId === 'number') return numericId
+
+  const stringId = candidates.find((value) => typeof value === 'string' && value.trim())
+  return typeof stringId === 'string' ? stringId : null
 }
 
 const handleSelect = (discount: GiamGia) => {
-  emit('select', discount.idGiamGia)
+  const discountId = getDiscountId(discount)
+  if (typeof discountId === 'number' || typeof discountId === 'string') {
+    emit('select', discountId)
+  }
   emit('edit', discount)
 }
 
-const handleDelete = (id: number) => {
+const handleDelete = (discount: GiamGia) => {
   const confirmed = window.confirm('Bạn có chắc muốn xóa mã giảm giá này?')
-  if (confirmed) {
-    emit('delete', id)
+  if (!confirmed) return
+
+  const discountId = getDiscountId(discount)
+  if (typeof discountId === 'number' || typeof discountId === 'string') {
+    emit('delete', discountId)
+    return
   }
+
+  window.alert('Không tìm thấy mã định danh của mã giảm giá để xóa.')
 }
 
 const handleAddNew = () => {
@@ -77,6 +129,7 @@ const updateSearch = (e: Event) => {
             <th>Mã</th>
             <th>Loại giảm</th>
             <th>Giá trị</th>
+            <th>Điều kiện sử dụng</th>
             <th>Trạng thái</th>
             <th>Hành động</th>
           </tr>
@@ -88,12 +141,13 @@ const updateSearch = (e: Event) => {
             :class="{ active: discount.idGiamGia === selectedId }"
           >
             <td>{{ discount.maGiamGia }}</td>
-            <td>{{ discount.loaiGiam }}</td>
+            <td>{{ formatLoaiGiam(discount.loaiGiam) }}</td>
             <td>{{ formatGiaTriGiam(discount) }}</td>
+            <td>{{ discount.dieuKienSuDung || 'Không có' }}</td>
             <td>{{ discount.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}</td>
             <td class="hanh-dong">
               <button type="button" class="nut-van-ban" @click="handleSelect(discount)">Sửa</button>
-              <button type="button" class="nut-xoa" @click="handleDelete(discount.idGiamGia)">Xóa</button>
+              <button type="button" class="nut-xoa" @click="handleDelete(discount)">Xóa</button>
             </td>
           </tr>
         </tbody>
