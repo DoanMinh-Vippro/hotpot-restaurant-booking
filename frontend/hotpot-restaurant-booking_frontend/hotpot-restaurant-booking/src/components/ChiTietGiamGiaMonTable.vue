@@ -245,8 +245,8 @@ const getKeyItem = (item: any, keyId: string, index: number): string | number =>
 
 /* Bộ lọc panel */
 .bo-loc-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 20px;
   padding: 16px 20px;
   display: flex;
@@ -256,9 +256,9 @@ const getKeyItem = (item: any, keyId: string, index: number): string | number =>
 
 .bo-loc-panel input,
 .bo-loc-panel select {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f5f5f5;
+  background: #fffdf8;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   padding: 10px 14px;
   border-radius: 12px;
   outline: none;
@@ -269,12 +269,12 @@ const getKeyItem = (item: any, keyId: string, index: number): string | number =>
 
 .bo-loc-panel input:focus,
 .bo-loc-panel select:focus {
-  border-color: #f8d46a;
+  border-color: #d8a85c;
 }
 
 .bo-loc-panel select option {
-  background: #151515;
-  color: #fff;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 
 .nut-tim, .nut-lam-moi {
@@ -292,14 +292,14 @@ const getKeyItem = (item: any, keyId: string, index: number): string | number =>
 }
 
 .nut-lam-moi {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: #efe0c1;
+  color: #5f3d22;
 }
 
 /* Bảng danh sách */
 .danh-sach-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 28px;
   padding: 26px;
 }
@@ -311,12 +311,12 @@ const getKeyItem = (item: any, keyId: string, index: number): string | number =>
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin: 0;
 }
 
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
   margin: 4px 0 0;
 }
 
@@ -329,7 +329,7 @@ const getKeyItem = (item: any, keyId: string, index: number): string | number =>
 table {
   width: 100%;
   border-collapse: collapse;
-  color: white;
+  color: #5f3d22;
   table-layout: fixed;
 }
 
@@ -343,14 +343,14 @@ table th:nth-child(6), table td:nth-child(6) { width: 12%; } /* Hành động */
 
 th, td {
   padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #efe0c1;
   vertical-align: middle !important;
   box-sizing: border-box;
 }
 
 th {
   text-align: left;
-  color: #f8d46a;
+  color: #8b5e34;
 }
 
 .canh-giua {
@@ -358,12 +358,12 @@ th {
 }
 
 tr.active {
-  background: rgba(248, 212, 106, 0.06);
+  background: rgba(216, 168, 92, 0.12);
 }
 
 .ten-chuong-trinh-highlight {
   font-weight: 600;
-  color: #fff;
+  color: #3d2814;
   word-break: break-word;
 }
 
@@ -390,9 +390,9 @@ tr.active {
   margin-right: 2px;
 }
 
-.nhan-mon { color: #f8d46a; background: rgba(248, 212, 106, 0.1); }
-.nhan-combo { color: #69c0ff; background: rgba(105, 192, 255, 0.1); }
-.nhan-danhmuc { color: #b7eb8f; background: rgba(183, 235, 143, 0.1); }
+.nhan-mon { color: #8b5e34; background: #fff3d3; }
+.nhan-combo { color: #1890ff; background: #e6f7ff; }
+.nhan-danhmuc { color: #389e0d; background: #f6ffed; }
 
 /* Badge hiển thị tên các mục */
 .badge-item {
@@ -404,41 +404,41 @@ tr.active {
 }
 
 .badge-mon {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8d46a;
-  border: 1px solid rgba(248, 212, 106, 0.2);
+  background: #fffdf8;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .badge-combo {
-  background: rgba(105, 192, 255, 0.08);
-  color: #69c0ff;
-  border: 1px solid rgba(105, 192, 255, 0.2);
+  background: #f0f5ff;
+  color: #2f54eb;
+  border: 1px solid #adc6ff;
 }
 
 .badge-danhmuc {
-  background: rgba(183, 235, 143, 0.08);
-  color: #b7eb8f;
-  border: 1px solid rgba(183, 235, 143, 0.2);
+  background: #f6ffed;
+  color: #389e0d;
+  border: 1px solid #b7eb8f;
 }
 
 .muc-giam-highlight {
-  color: #f8d46a;
+  color: #27ae60;
   font-size: 15px;
 }
 
 .badge-loai-giam {
   font-size: 12px;
-  color: #d9d9d9;
+  color: #8f6b46;
 }
 
 /* Trạng thái */
 .trang-thai-con {
-  color: #52c41a;
+  color: #27ae60;
   font-weight: 500;
 }
 
 .trang-thai-ngung {
-  color: #ff4d4f;
+  color: #e74c3c;
   font-weight: 500;
 }
 
@@ -450,9 +450,9 @@ tr.active {
 }
 
 .nut-sua {
-  background: rgba(248, 212, 106, 0.15);
-  color: #f8d46a;
-  border: none;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -460,13 +460,14 @@ tr.active {
 }
 
 .nut-sua:hover {
-  background: rgba(248, 212, 106, 0.3);
+  background: #f8d46a;
+  color: #1a1410;
 }
 
 .nut-xoa {
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
-  border: none;
+  background: #fff1f0;
+  color: #e74c3c;
+  border: 1px solid #ffa39e;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -474,7 +475,8 @@ tr.active {
 }
 
 .nut-xoa:hover {
-  background: rgba(255, 107, 107, 0.3);
+  background: #ff4d4f;
+  color: #fff;
 }
 
 .nut-phu {
@@ -489,7 +491,7 @@ tr.active {
 
 .no-data {
   text-align: center;
-  color: #a0a0a0;
+  color: #8f6b46;
   padding: 20px;
 }
 

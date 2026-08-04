@@ -143,8 +143,8 @@ const xoa = (id: number) => {
 }
 
 .bo-loc-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 20px;
   padding: 16px 20px;
   display: flex;
@@ -153,9 +153,9 @@ const xoa = (id: number) => {
 }
 
 .bo-loc-panel input {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f5f5f5;
+  background: #fffdf8;
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   padding: 10px 14px;
   border-radius: 12px;
   outline: none;
@@ -167,7 +167,8 @@ const xoa = (id: number) => {
   border-color: #f8d46a;
 }
 
-.nut-tim, .nut-lam-moi {
+.nut-tim,
+.nut-lam-moi {
   padding: 10px 18px;
   border-radius: 12px;
   border: none;
@@ -177,18 +178,19 @@ const xoa = (id: number) => {
 }
 
 .nut-tim {
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
 }
 
 .nut-lam-moi {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: #fff3d3;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .danh-sach-panel {
-  background: rgba(15,15,15,.94);
-  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 28px;
   padding: 26px;
 }
@@ -200,12 +202,12 @@ const xoa = (id: number) => {
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin: 0;
 }
 
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
   margin: 4px 0 0;
 }
 
@@ -214,34 +216,31 @@ const xoa = (id: number) => {
   overflow-x: auto;
 }
 
-/* =========================================================
-   🔥 THAY ĐỔI CSS CHÍNH XỬ LÝ LỖI LỆCH HÀNG & KẺ VIỀN ĐỨT ĐOẠN
-   ========================================================= */
 table {
   width: 100%;
   border-collapse: collapse;
-  color: white;
-  table-layout: fixed; /* Bắt buộc bảng cố định tỉ lệ giúp đường kẻ viền chạy full 100% */
+  color: #5f3d22;
+  table-layout: fixed;
 }
 
 /* Phân chia kích thước tỉ lệ các cột */
-table th:nth-child(1), table td:nth-child(1) { width: 14%; } /* Combo */
-table th:nth-child(2), table td:nth-child(2) { width: 38%; } /* Món ăn thành phần */
-table th:nth-child(3), table td:nth-child(3) { width: 10%; } /* Số lượng */
-table th:nth-child(4), table td:nth-child(4) { width: 13%; } /* Giá combo */
-table th:nth-child(5), table td:nth-child(5) { width: 11%; } /* Mô tả */
-table th:nth-child(6), table td:nth-child(6) { width: 14%; } /* Hành động */
+table th:nth-child(1), table td:nth-child(1) { width: 14%; }
+table th:nth-child(2), table td:nth-child(2) { width: 38%; }
+table th:nth-child(3), table td:nth-child(3) { width: 10%; }
+table th:nth-child(4), table td:nth-child(4) { width: 13%; }
+table th:nth-child(5), table td:nth-child(5) { width: 11%; }
+table th:nth-child(6), table td:nth-child(6) { width: 14%; }
 
 th, td {
   padding: 14px;
-  border-bottom: 1px solid rgba(255,255,255,.06); /* Viền kẻ ngang tràn full bảng */
-  vertical-align: middle !important; /* Gióng thẳng lề dọc tất cả tiêu đề và dữ liệu */
+  border-bottom: 1px solid #efe0c1;
+  vertical-align: middle !important;
   box-sizing: border-box;
 }
 
 th {
   text-align: left;
-  color: #f8d46a;
+  color: #8b5e34;
 }
 
 .canh-giua {
@@ -249,16 +248,16 @@ th {
 }
 
 tr.active {
-  background: rgba(248, 212, 106, 0.06);
+  background: rgba(248, 212, 106, 0.08);
 }
 
 .ten-combo-highlight {
   font-weight: 600;
-  color: #fff;
+  color: #5f3d22;
   word-break: break-word;
 }
 
-/* Khung hiển thị danh sách nhiều món dạng gom nhóm */
+/* Khung hiển thị danh sách nhiều món */
 .danh-sach-badge-mon {
   display: flex;
   flex-wrap: wrap;
@@ -267,19 +266,19 @@ tr.active {
 }
 
 .badge-ten-mon {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8d46a;
+  background: #efe0c1;
+  color: #8b5e34;
   padding: 4px 10px;
   border-radius: 8px;
   font-size: 13px;
+  font-weight: 600;
   display: inline-block;
-  border: 1px solid rgba(248, 212, 106, 0.2);
   white-space: nowrap;
 }
 
 .badge-ten-mon small {
-  color: #fff;
-  opacity: 0.8;
+  color: #5f3d22;
+  opacity: 0.85;
   margin-left: 2px;
 }
 
@@ -291,7 +290,7 @@ tr.active {
 }
 
 .nut-sua {
-  background: rgba(248,212,106,.15);
+  background: rgba(248, 212, 106, 0.15);
   color: #f8d46a;
   border: none;
   padding: 8px 12px;
@@ -301,11 +300,11 @@ tr.active {
 }
 
 .nut-sua:hover {
-  background: rgba(248,212,106,.3);
+  background: rgba(248, 212, 106, 0.3);
 }
 
 .nut-xoa {
-  background: rgba(255,107,107,.15);
+  background: rgba(255, 107, 107, 0.15);
   color: #ff6b6b;
   border: none;
   padding: 8px 12px;
@@ -315,7 +314,7 @@ tr.active {
 }
 
 .nut-xoa:hover {
-  background: rgba(255,107,107,.3);
+  background: rgba(255, 107, 107, 0.3);
 }
 
 .nut-phu {

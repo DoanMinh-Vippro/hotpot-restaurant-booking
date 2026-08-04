@@ -374,19 +374,19 @@ defineExpose({
 
 <style scoped>
 .bieu-mau-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 28px;
   padding: 26px;
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin-bottom: 10px;
 }
 
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
 }
 
 .luoi-bieu-mau {
@@ -400,8 +400,9 @@ defineExpose({
 }
 
 label {
-  color: #d8d8d8;
+  color: #5f3d22;
   margin-bottom: 6px;
+  font-weight: 500;
 }
 
 input,
@@ -410,9 +411,9 @@ select,
   margin-top: 6px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: white;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
   outline: none;
   box-sizing: border-box;
   width: 100%;
@@ -430,18 +431,19 @@ select:focus {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  color: #8E8E93;
+  color: #8f6b46;
   transition: all 0.2s ease;
 }
 
 .nut-chon-mon.da-chon {
-  color: #f8d46a;
+  color: #8b5e34;
   font-weight: 600;
-  border-color: rgba(248, 212, 106, 0.3);
+  border-color: #d8a85c;
+  background: #fff3d3;
 }
 
 .nut-chon-mon:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: #fff8eb;
   border-color: #f8d46a;
 }
 
@@ -458,11 +460,16 @@ select:focus {
   border: none;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.nut-chinh:hover {
+  background: #e5bf55;
 }
 
 select option {
-  background: #151515;
-  color: #ffffff;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 
 .error-text {
@@ -484,7 +491,7 @@ select option {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(61, 40, 20, 0.5);
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
@@ -493,13 +500,13 @@ select option {
 }
 
 .modal-container {
-  background: #181818;
-  border: 1px solid rgba(248, 212, 106, 0.2);
+  background: rgba(255, 248, 234, 0.98);
+  border: 1px solid #e6d2aa;
   width: 90%;
   max-width: 500px;
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(95, 61, 34, 0.15);
   animation: popIn 0.2s ease-out;
 }
 
@@ -523,14 +530,14 @@ select option {
 
 .modal-header h3 {
   margin: 0;
-  color: #f8d46a;
+  color: #8b5e34;
   font-size: 18px;
 }
 
 .nut-dong {
   background: transparent;
   border: none;
-  color: #a0a0a0;
+  color: #8f6b46;
   font-size: 18px;
   cursor: pointer;
 }
@@ -547,18 +554,19 @@ select option {
 }
 
 .nut-chon-tat-ca {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #d8d8d8;
+  background: #fff3d3;
+  border: 1px solid #e6d2aa;
+  color: #8b5e34;
   border-radius: 12px;
   padding: 0 12px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .nut-chon-tat-ca:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: #efe0c1;
 }
 
 .danh-sach-mon-scroll {
@@ -574,16 +582,16 @@ select option {
   width: 6px;
 }
 .danh-sach-mon-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: #e6d2aa;
   border-radius: 4px;
 }
 
 .the-mon-checkbox {
   padding: 12px 16px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: #e0e0e0;
+  background: #fffdf8;
+  border: 1px solid #efe0c1;
+  color: #5f3d22;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -602,18 +610,19 @@ select option {
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: #f8d46a;
+  accent-color: #d8a85c;
   cursor: pointer;
 }
 
 .the-mon-checkbox:hover {
-  background: rgba(248, 212, 106, 0.08);
+  background: #fff8eb;
 }
 
 .the-mon-checkbox.active {
-  background: rgba(248, 212, 106, 0.15);
-  border-color: rgba(248, 212, 106, 0.4);
-  color: #f8d46a;
+  background: #efe0c1;
+  border-color: #d8a85c;
+  color: #8b5e34;
+  font-weight: 600;
 }
 
 .modal-footer {
@@ -622,21 +631,21 @@ select option {
   align-items: center;
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid #efe0c1;
 }
 
 .thong-ke-da-chon {
-  color: #c7c7c7;
+  color: #8f6b46;
   font-size: 14px;
 }
 
 .thong-ke-da-chon strong {
-  color: #f8d46a;
+  color: #8b5e34;
 }
 
 .nut-xac-nhan {
-  background: #f8d46a;
-  color: #1a1410;
+  background: #d8a85c;
+  color: #3d2814;
   border: none;
   padding: 8px 20px;
   border-radius: 10px;
@@ -646,7 +655,7 @@ select option {
 
 .khong-co-data {
   text-align: center;
-  color: #8e8e93;
+  color: #8f6b46;
   padding: 20px 0;
 }
 </style>

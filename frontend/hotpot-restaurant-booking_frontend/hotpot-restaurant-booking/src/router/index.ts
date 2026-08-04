@@ -152,6 +152,16 @@ const router = createRouter({
       name: 'order',
       component: () => import('@/views/OrderView.vue'),
     },
+    {
+      path: '/bar',
+      name: 'bar',
+      component: () => import('../views/BarDisplay.vue'),
+    },
+    {
+      path: '/bep',
+      name: 'bep',
+      component: () => import('../views/BepDisplay.vue'),
+    },
   ],
 })
 
@@ -165,6 +175,8 @@ router.beforeEach((to, from, next) => {
     'ban-hang',
     'giam-gia',
     'ban',
+    'CTGGM',
+    'CTCB',
     'dat-ban-quan-ly',
     'shift-management',
     'tai-khoan',
@@ -172,6 +184,8 @@ router.beforeEach((to, from, next) => {
     'khu-vuc',
     'coc',
     'order',
+    'bar',
+    'bep',
   ]
 
   const isAuthenticated = authStore.isAuthenticated

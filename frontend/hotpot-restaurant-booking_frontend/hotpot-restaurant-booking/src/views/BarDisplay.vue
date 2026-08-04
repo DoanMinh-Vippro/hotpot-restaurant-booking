@@ -1,6 +1,6 @@
 <template>
   <div class="kds-container">
-    <h2> MÀN HÌNH HIỂN THỊ QUẦY BAR</h2>
+    <h2>MÀN HÌNH HIỂN THỊ QUẦY BAR</h2>
     <div class="ticket-list">
       <div v-for="(ticket, index) in danhSachPhieu" :key="index" class="ticket-card">
         <h3>PHIẾU BÁO CHẾ BIẾN</h3>
@@ -11,14 +11,18 @@
         <div class="info">Giờ đặt: {{ ticket.thoiGian }}</div>
         <hr />
         <table>
-          <tr>
-            <th>Tên món / Combo</th>
-            <th class="sl">SL</th>
-          </tr>
-          <tr v-for="(mon, mIdx) in ticket.danhSachMon" :key="mIdx">
-            <td>{{ mon.tenMon }}</td>
-            <td class="sl">x{{ mon.soLuong }}</td>
-          </tr>
+          <thead>
+            <tr>
+              <th>Tên món / Combo</th>
+              <th class="sl">SL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(mon, mIdx) in ticket.danhSachMon" :key="mIdx">
+              <td>{{ mon.tenMon }}</td>
+              <td class="sl">x{{ mon.soLuong }}</td>
+            </tr>
+          </tbody>
         </table>
         <hr />
         <div class="footer">Vui lòng chế biến/pha chế theo thứ tự!</div>
@@ -27,12 +31,27 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import SockJS from 'sockjs-client'
 import Stomp from 'stompjs'
 
-const danhSachPhieu = ref([])
+// Định nghĩa kiểu dữ liệu để TypeScript không báo lỗi any
+interface Mon {
+  tenMon: string
+  soLuong: number
+}
+
+interface Ticket {
+  tenQuay: string
+  maHoaDon: string
+  tenBan: string
+  tenNhanVien: string
+  thoiGian: string
+  danhSachMon: Mon[]
+}
+
+const danhSachPhieu = ref<Ticket[]>([])
 
 onMounted(() => {
   const socket = new SockJS('http://localhost:8080/ws-print')
@@ -41,8 +60,8 @@ onMounted(() => {
   stompClient.connect({}, () => {
     console.log('✅ Đã kết nối Màn Hình Bar!')
     // Lắng nghe kênh của Bar
-    stompClient.subscribe('/topic/bar', (message) => {
-      const data = JSON.parse(message.body)
+    stompClient.subscribe('/topic/bar', (message: Stomp.Message) => {
+      const data: Ticket = JSON.parse(message.body)
       danhSachPhieu.value.unshift(data) // Đơn mới nổi lên đầu
     })
   })

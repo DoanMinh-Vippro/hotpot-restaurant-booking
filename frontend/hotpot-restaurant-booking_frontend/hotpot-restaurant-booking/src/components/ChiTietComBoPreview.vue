@@ -91,20 +91,20 @@ defineProps<{
   margin-top: 18px;
   padding: 16px 20px;
   border-radius: 16px;
-  background: rgba(248, 212, 106, 0.06);
-  border: 1px solid rgba(248, 212, 106, 0.18);
-  color: #d8d8d8;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   font-size: 14px;
   line-height: 1.6;
 }
 
 h3 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin-top: 0;
   margin-bottom: 12px;
   font-size: 16px;
   font-weight: 600;
-  border-bottom: 1px dashed rgba(248, 212, 106, 0.2);
+  border-bottom: 1px dashed #e6d2aa;
   padding-bottom: 8px;
 }
 
@@ -113,7 +113,7 @@ p {
 }
 
 .highlight-text {
-  color: #fff;
+  color: #8b5e34;
   font-weight: 600;
 }
 
@@ -132,31 +132,30 @@ p {
 }
 
 .badge-mon {
-  background: rgba(248, 212, 106, 0.15);
-  color: #f8d46a;
-  border: 1px solid rgba(248, 212, 106, 0.35);
+  background: #efe0c1;
+  color: #8b5e34;
   padding: 4px 12px;
   border-radius: 8px;
   font-size: 13px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .badge-mon small {
-  color: #fff;
+  color: #5f3d22;
   opacity: 0.85;
   font-weight: normal;
 }
 
 .gia-text {
-  color: #6bffb8;
-  font-weight: 600;
+  color: #8b5e34;
+  font-weight: 700;
 }
 
 .text-trang-thai {
-  color: #888;
+  color: #8f6b46;
   font-style: italic;
   font-size: 13px;
 }

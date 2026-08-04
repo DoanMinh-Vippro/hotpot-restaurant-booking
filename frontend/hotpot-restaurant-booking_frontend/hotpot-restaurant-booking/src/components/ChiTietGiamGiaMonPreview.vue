@@ -189,20 +189,20 @@ const getKeyItem = (item: any, keyId: string, index: number): string | number =>
   margin-top: 18px;
   padding: 16px 20px;
   border-radius: 16px;
-  background: rgba(248, 212, 106, 0.06);
-  border: 1px solid rgba(248, 212, 106, 0.18);
-  color: #d8d8d8;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   font-size: 14px;
   line-height: 1.6;
 }
 
 h3 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin-top: 0;
   margin-bottom: 12px;
   font-size: 16px;
   font-weight: 600;
-  border-bottom: 1px dashed rgba(248, 212, 106, 0.2);
+  border-bottom: 1px dashed #efe0c1;
   padding-bottom: 8px;
 }
 
@@ -211,7 +211,7 @@ p {
 }
 
 .highlight-text {
-  color: #fff;
+  color: #3d2814;
   font-weight: 600;
 }
 
@@ -244,9 +244,9 @@ p {
   border-radius: 4px;
 }
 
-.nhan-mon { color: #f8d46a; background: rgba(248, 212, 106, 0.12); }
-.nhan-combo { color: #69c0ff; background: rgba(105, 192, 255, 0.12); }
-.nhan-danhmuc { color: #b7eb8f; background: rgba(183, 235, 143, 0.12); }
+.nhan-mon { color: #8b5e34; background: #fff3d3; }
+.nhan-combo { color: #1890ff; background: #e6f7ff; }
+.nhan-danhmuc { color: #389e0d; background: #f6ffed; }
 
 /* Item Badges */
 .badge-item {
@@ -259,42 +259,42 @@ p {
 }
 
 .badge-mon {
-  background: rgba(248, 212, 106, 0.15);
-  color: #f8d46a;
-  border: 1px solid rgba(248, 212, 106, 0.35);
+  background: #fffdf8;
+  color: #8b5e34;
+  border: 1px solid #e6d2aa;
 }
 
 .badge-combo {
-  background: rgba(105, 192, 255, 0.15);
-  color: #69c0ff;
-  border: 1px solid rgba(105, 192, 255, 0.35);
+  background: #f0f5ff;
+  color: #2f54eb;
+  border: 1px solid #adc6ff;
 }
 
 .badge-danhmuc {
-  background: rgba(183, 235, 143, 0.15);
-  color: #b7eb8f;
-  border: 1px solid rgba(183, 235, 143, 0.35);
+  background: #f6ffed;
+  color: #389e0d;
+  border: 1px solid #b7eb8f;
 }
 
 .muc-giam-text {
-  color: #6bffb8;
+  color: #27ae60;
   font-weight: 600;
   font-size: 15px;
 }
 
 .text-trang-thai {
-  color: #888;
+  color: #8f6b46;
   font-style: italic;
   font-size: 13px;
 }
 
 .status-active {
-  color: #52c41a;
+  color: #27ae60;
   font-weight: 500;
 }
 
 .status-inactive {
-  color: #ff4d4f;
+  color: #e74c3c;
   font-weight: 500;
 }
 </style>

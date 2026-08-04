@@ -14,6 +14,7 @@ import { useShiftStore } from '@/stores/ShiftStore'
 import { useAuthStore } from '@/stores/AuthStore'
 import printJS from 'print-js'
 import DanhMucApi from '@/api/DanhMucApi.ts'
+import MayInApi from '@/api/MayInApi'
 
 // ================= PROPS =================
 const props = defineProps<{
@@ -25,6 +26,7 @@ const props = defineProps<{
 const emit = defineEmits(['quayLai', 'payment-complete'])
 const shiftStore = useShiftStore()
 const authStore = useAuthStore()
+
 const quayLai = () => {
   emit('quayLai')
 }
@@ -45,6 +47,7 @@ const hoanTatThanhToan = async () => {
 }
 
 // ================= STATE =================
+const isDataLoaded = ref(false)
 const danhSachCombo = ref<any[]>([])
 const danhSachMonAn = ref<any[]>([])
 const danhMucDangChon = ref('combo')
@@ -70,8 +73,6 @@ const getLocalDateTimeNow = () => {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
 }
 
-const getCurrentLocalTimestamp = () => new Date().getTime()
-
 const danhSachGiamGia = ref<any[]>([])
 const giamGiaDangChon = ref<number | null>(null)
 
@@ -83,29 +84,17 @@ const hoaDonHienTai = ref<any>(null)
 // ================= UTILS =================
 const itemName = (item: any) => item.tenMon ?? item.tenCombo ?? 'Món chưa đặt tên'
 
-// Map mã quầy từ Danh Mục ('BEP' | 'BAR') sang tên hiển thị
 const layTenQuay = (item: any): string => {
-  // Bắt trường `quay` từ item trực tiếp hoặc qua object `danhMuc`
   const quay = item.quay || item.danhMuc?.quay || ''
-
   if (String(quay).toUpperCase() === 'BAR') {
     return 'Quầy Bar'
   }
-  
   return 'Quầy Bếp'
 }
 
 // ================= LOAD DATA =================
-// const loadData = async () => {
-//   const combo = await ComBoApi.hienThiComBo()
-//   const mon = await MonApi.hienThiMon()
-//   danhSachCombo.value = (combo.data || []).filter((cb: Combo) => cb.trangThai === 1)
-//   danhSachMonAn.value = (mon.data || []).filter((m: Mon) => m.trangThai === 0)
-// }
-
 const loadData = async () => {
   try {
-    // 1. Gọi song song cả 3 API cho nhanh
     const [comboRes, monRes, danhMucRes] = await Promise.all([
       ComBoApi.hienThiComBo(),
       MonApi.hienThiMon(),
@@ -115,16 +104,12 @@ const loadData = async () => {
     const dsDanhMuc = danhMucRes.data || []
     const dsMonRaw = monRes.data || []
 
-    // 2. Map dữ liệu quầy từ Danh Mục sang từng Món Ăn dựa vào idDanhMuc
     danhSachMonAn.value = dsMonRaw
       .filter((m: Mon) => m.trangThai === 0)
       .map((m: any) => {
-        // Tìm danh mục tương ứng
         const dm = dsDanhMuc.find((d: any) => d.idDanhMuc === m.idDanhMuc)
-        
         return {
           ...m,
-          // Ưu tiên m.quay, nếu null thì lấy dm.quay, nếu vẫn ko có mới lấy 'BEP'
           quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP'
         }
       })
@@ -147,7 +132,6 @@ const themVaoGio = (item: any, loai: string) => {
     return
   }
 
-  // Xác định quầy: Combo mặc định Quầy Bếp, Món lẻ lấy theo Danh Mục
   const quayCheBien = loai === 'COMBO' ? 'Quầy Bếp' : layTenQuay(item)
 
   const tonTai = gioHang.value.find(
@@ -164,7 +148,7 @@ const themVaoGio = (item: any, loai: string) => {
       idCombo: item.idCombo ?? null,
       tenMon: item.tenMon ?? null,
       tenCombo: item.tenCombo ?? null,
-      tenQuay: quayCheBien, // Lưu thông tin quầy vào giỏ
+      tenQuay: quayCheBien,
       gia: item.giaSauGiam ?? (loai === 'MON' ? item.gia : item.giaCombo) ?? 0,
       soLuong: 1,
       loai,
@@ -192,8 +176,8 @@ const giamSoLuong = (item: any) => {
 // ================= XỬ LÝ LÊN MÓN =================
 const xacNhanTungMon = async (item: any) => {
   if (item.daLen < item.soLuong) {
-    item.daLen++
-    await xuLyHoaDon(0, 0)
+    item.daLen += 1
+    await capNhatDatabaseNoRebuild()
   }
 }
 
@@ -201,7 +185,7 @@ const xacNhanTatCaMon = async () => {
   danhSachMonPhucVu.value.forEach((item) => {
     item.daLen = item.soLuong
   })
-  await xuLyHoaDon(0, 0)
+  await capNhatDatabaseNoRebuild()
 }
 
 // ================= POPUP =================
@@ -274,6 +258,7 @@ const tongThanhToan = computed(() => {
 
 // ================= HÓA ĐƠN API =================
 const checkHoaDonTam = async () => {
+  if (isDataLoaded.value) return
   try {
     const reservationItems = props.datBan?.idDatBan ? buildReservationItems(props.datBan) : []
 
@@ -283,31 +268,46 @@ const checkHoaDonTam = async () => {
       tabGioHang.value = 'mon-da-goi'
       hoaDonHienTai.value = null
       giamGiaDangChon.value = null
+      isDataLoaded.value = true
       return
     }
 
     const res = await HoaDonApi.findByBanAndStatus(props.ban.idBan, 0)
     const hd = res.data
-    if (!hd) return
+    if (!hd) {
+      isDataLoaded.value = true
+      return
+    }
     hoaDonHienTai.value = hd
 
-    danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => ({
-      idMon: item.idMon,
-      idCombo: item.idCombo,
-      tenMon: item.tenMon,
-      tenCombo: item.tenCombo,
-      tenQuay: item.tenQuay || 'Quầy Bếp',
-      gia: Number(
-        item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0,
-      ),
-      soLuong: item.soLuong,
-      daLen: item.trangThaiMonAn === 'DA_LEN' ? item.soLuong : item.daLen || 0,
-      loai: item.idMon ? 'MON' : 'COMBO',
-      comboItems: item.comboItems ?? [],
-    }))
+    danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => {
+      const soLuong = Number(item.soLuong || 0)
+      let daLen = item.daLen !== undefined && item.daLen !== null ? Number(item.daLen) : 0
+      if (item.trangThaiMonAn === 'DA_LEN' || item.trangThaiMonAn === 'DA_PHUC_VU') {
+        daLen = soLuong
+      }
+
+      return {
+        idMon: item.idMon,
+        idCombo: item.idCombo,
+        tenMon: item.tenMon,
+        tenCombo: item.tenCombo,
+        tenQuay: item.tenQuay || 'Quầy Bếp',
+        gia: Number(
+          item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0,
+        ),
+        soLuong: soLuong,
+        daLen: daLen,
+        loai: item.idMon ? 'MON' : 'COMBO',
+        comboItems: item.comboItems ?? [],
+      }
+    })
+
     giamGiaDangChon.value = hd.idGiamGia ?? null
+    isDataLoaded.value = true
   } catch {
     console.log('Không có hóa đơn tạm')
+    isDataLoaded.value = true
   }
 }
 
@@ -315,7 +315,7 @@ const saveChiTietHoaDon = async (idHoaDon: number) => {
   for (const item of danhSachMonPhucVu.value) {
     const gia = item.gia ?? 0
     let trangThaiMonAn = 'DANG_LEN'
-    if (item.daLen === item.soLuong) {
+    if (item.daLen >= item.soLuong) {
       trangThaiMonAn = 'DA_LEN'
     }
 
@@ -329,11 +329,17 @@ const saveChiTietHoaDon = async (idHoaDon: number) => {
       tienGiamGiaMon: 0,
       thanhTien: gia * item.soLuong,
       trangThaiMonAn,
-      daLen: item.daLen,
+      daLen: item.daLen || 0,
       orderedBy: item.orderedBy || getCurrentOperatorName(),
       orderedAt: item.orderedAt || getLocalDateTimeNow(),
     } as any)
   }
+}
+
+const capNhatDatabaseNoRebuild = async () => {
+  if (!hoaDonHienTai.value?.idHoaDon) return
+  await HoaDonChiTietApi.deleteByHoaDon(hoaDonHienTai.value.idHoaDon)
+  await saveChiTietHoaDon(hoaDonHienTai.value.idHoaDon)
 }
 
 const addHoaDon = async (payload: any) => {
@@ -375,6 +381,22 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
     await updateHoaDon(hoaDonHienTai.value.idHoaDon, payload)
   } else {
     await addHoaDon(payload)
+  }
+}
+
+// HÀM XỬ LÝ KHI BẤM NÚT LƯU
+const luuHoaDonTam = async () => {
+  try {
+    const isFirstTime = !hoaDonHienTai.value
+    await xuLyHoaDon(0, 0)
+    if (isFirstTime) {
+      alert('Tạo hóa đơn tạm thành công!')
+    } else {
+      alert('Cập nhật hóa đơn thành công!')
+    }
+  } catch (error) {
+    console.error('Lỗi khi lưu hóa đơn:', error)
+    alert('Lưu hóa đơn thất bại!')
   }
 }
 
@@ -517,31 +539,36 @@ const markReservationCompleted = async () => {
         trangThai: 'TRONG',
       }
       await BanApi.update(banId, payload)
-      console.log(`Đã cập nhật bàn ${props.ban?.tenBan} sang trạng thái TRỐNG`)
     } catch (error) {
       console.warn('Không thể cập nhật trạng thái bàn sau thanh toán:', error)
     }
   }
 }
 
-// ================= ACTION XÁC NHẬN GỬI BẾP & IN K80 (PHÂN LOẠI THEO QUẦY) =================
+interface CartItem {
+  idMon?: number
+  idCombo?: number
+  loai: 'MON' | 'COMBO'
+  soLuong: number
+  tenQuay?: string
+  [key: string]: any
+}
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
+// ================= ACTION XÁC NHẬN GỬI BẾP =================
 const luuTam = async () => {
-  if (gioHang.value.length === 0) {
+  const currentCart = gioHang.value as CartItem[]
+  if (!currentCart.length) {
     alert('Vui lòng chọn món ăn trước khi nhấn gửi vào bếp!')
     return
   }
-  try {
-    monVuaGuiBep.value = [...gioHang.value]
 
-    // Đồng bộ vào danh sách món phục vụ tại bàn
-    gioHang.value.forEach((cartItem) => {
-      const trungMon = danhSachMonPhucVu.value.find(
-        (p) =>
-          p.loai === cartItem.loai &&
-          (cartItem.loai === 'MON' ? p.idMon === cartItem.idMon : p.idCombo === cartItem.idCombo),
+  try {
+    monVuaGuiBep.value = [...currentCart]
+
+    currentCart.forEach((cartItem) => {
+      const trungMon = danhSachMonPhucVu.value.find((p: any) =>
+        p.loai === cartItem.loai &&
+        (cartItem.loai === 'MON' ? p.idMon === cartItem.idMon : p.idCombo === cartItem.idCombo)
       )
       if (trungMon) {
         trungMon.soLuong += cartItem.soLuong
@@ -550,60 +577,41 @@ const luuTam = async () => {
       }
     })
 
-    // Gom nhóm món theo tên quầy ('Quầy Bếp', 'Quầy Bar',...)
-    const grouped = gioHang.value.reduce((acc: Record<string, any[]>, item) => {
+    const grouped = currentCart.reduce<Record<string, CartItem[]>>((acc, item) => {
       const quay = item.tenQuay || 'Quầy Bếp'
-      if (!acc[quay]) {
-        acc[quay] = []
-      }
-      acc[quay].push(item)
+      ;(acc[quay] ||= []).push(item)
       return acc
     }, {})
 
     monTheoQuayMap.value = grouped
 
-    gioHang.value = []
     await xuLyHoaDon(0, 0)
     await nextTick()
 
-    // Lần lượt gửi lệnh in phách K80 cho từng quầy
-    const danhSachQuay = Object.keys(grouped)
+    const now = new Date()
+    const thoiGianFormatted = `${now.toLocaleTimeString('vi-VN')} ${now.toLocaleDateString('vi-VN')}`
 
-    for (const quay of danhSachQuay) {
-      const elementId = `vung-phieu-in-${quay.replace(/\s+/g, '-')}`
-
-      printJS({
-        printable: elementId,
-        type: 'html',
-        header: undefined,
-        targetStyles: ['*'],
-        style: `
-          @page { size: 80mm auto; margin: 0; }
-          body { margin: 0; padding: 0; }
-          .phieu-in-bep { 
-            font-family: 'Courier New', Courier, monospace; 
-            color: #000000; width: 72mm; margin: 0 auto; padding: 6mm 0; box-sizing: border-box;
-          }
-          .phieu-header { text-align: center; }
-          .phieu-header h2 { margin: 0 0 6px 0; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; }
-          .phieu-header h3 { margin: 0 0 10px 0; font-size: 16px; text-transform: uppercase; }
-          .phieu-header p { margin: 3px 0; font-size: 13px; text-align: left; }
-          .dash-line { border: none; border-top: 1px dashed #000000 !important; margin: 10px 0; height: 0; width: 100%; }
-          .phieu-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-          .phieu-table th { border-bottom: 2px solid #000000 !important; font-size: 14px; font-weight: bold; padding-bottom: 6px; }
-          .phieu-table td { padding: 8px 0; font-size: 15px; vertical-align: top; }
-          .print-item-name { font-weight: bold; }
-          .print-combo-sub { font-size: 12px; font-style: italic; padding-left: 10px; margin-top: 2px; }
-          .phieu-footer { text-align: center; margin-top: 18px; font-size: 13px; font-style: italic; }
-        `,
+    const printRequests = Object.entries(grouped).map(([quay, danhSachMon]) =>
+      MayInApi.sendTicket({
+        tenQuay: quay,
+        maHoaDon: hoaDonHienTai.value?.maHoaDon ?? 'Mới',
+        tenBan: props.ban?.tenBan ?? 'N/A',
+        tenNhanVien: tenNhanVien?.value ?? 'Nhân viên',
+        thoiGian: thoiGianFormatted,
+        danhSachMon: danhSachMon.map((item) => ({
+          tenMon: itemName(item),
+          soLuong: item.soLuong,
+        })),
       })
-      await delay(500)
-    }
+    )
 
+    await Promise.all(printRequests)
+
+    gioHang.value = []
     tabGioHang.value = 'mon-dang-len'
   } catch (error) {
-    console.error(error)
-    alert('Gửi bếp thất bại')
+    console.error('Lỗi khi gửi bếp / in phiếu:', error)
+    alert('Gửi bếp thất bại!')
   }
 }
 
@@ -646,7 +654,7 @@ const taoHoaDon = async () => {
 watch(
   () => props.datBan,
   async (db) => {
-    if (!db) return
+    if (!db || isDataLoaded.value) return
 
     const reservationItems = buildReservationItems(db)
 
@@ -670,14 +678,13 @@ watch(
     }
 
     await syncReservationToSeated()
-  },
-  { immediate: true },
+  }
 )
 
-onMounted(() => {
-  loadData()
-  loadGiamGia()
-  checkHoaDonTam()
+onMounted(async () => {
+  await loadData()
+  await loadGiamGia()
+  await checkHoaDonTam()
 })
 </script>
 
@@ -700,7 +707,10 @@ onMounted(() => {
       >
         Món ăn
       </div>
-      <div><button class="btn-quay-lai" @click="quayLai">Quay Lại</button></div>
+      <div class="action-bottom-group">
+        <button class="btn-luu-don" @click="luuHoaDonTam">Lưu</button>
+        <button class="btn-quay-lai" @click="quayLai">Quay Lại</button>
+      </div>
     </div>
 
     <!-- CỘT DANH SÁCH MÓN GIỮA -->
@@ -798,17 +808,17 @@ onMounted(() => {
         <div v-if="tabGioHang === 'mon-dang-len'" class="gio-hang-list">
           <div
             class="tab-action-header"
-            v-if="danhSachMonPhucVu.some((i) => i.soLuong - i.daLen > 0)"
+            v-if="danhSachMonPhucVu.some((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)"
           >
             <button class="btn-xac-nhan-all" @click="xacNhanTatCaMon">
               ✓ Xác nhận tất cả lên đồ
             </button>
           </div>
-          <div v-if="!danhSachMonPhucVu.some((i) => i.soLuong - i.daLen > 0)" class="empty-cart">
+          <div v-if="!danhSachMonPhucVu.some((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)" class="empty-cart">
             Không có món đang chờ.
           </div>
           <div
-            v-for="item in danhSachMonPhucVu.filter((i) => i.soLuong - i.daLen > 0)"
+            v-for="item in danhSachMonPhucVu.filter((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)"
             :key="`pending-${item.loai}-${item.idMon ?? item.idCombo}`"
             class="cart-item pending-item"
           >
@@ -819,10 +829,10 @@ onMounted(() => {
               </div>
               <div class="item-bottom">
                 <div class="item-qty">
-                  Còn: {{ item.soLuong - item.daLen }} / {{ item.soLuong }}
+                  Còn: {{ Number(item.soLuong) - Number(item.daLen || 0) }} / {{ item.soLuong }}
                 </div>
                 <div class="item-price">
-                  Giá: {{ ((item.soLuong - item.daLen) * item.gia).toLocaleString('vi-VN') }} đ
+                  Giá: {{ ((Number(item.soLuong) - Number(item.daLen || 0)) * item.gia).toLocaleString('vi-VN') }} đ
                 </div>
               </div>
             </div>
@@ -832,11 +842,11 @@ onMounted(() => {
 
         <!-- TAB: MÓN ĐÃ PHỤC VỤ XONG -->
         <div v-if="tabGioHang === 'mon-da-goi'" class="gio-hang-list">
-          <div v-if="!danhSachMonPhucVu.some((i) => i.daLen > 0)" class="empty-cart">
+          <div v-if="!danhSachMonPhucVu.some((i) => Number(i.daLen || 0) > 0)" class="empty-cart">
             Chưa có món nào được lên.
           </div>
           <div
-            v-for="item in danhSachMonPhucVu.filter((i) => i.daLen > 0)"
+            v-for="item in danhSachMonPhucVu.filter((i) => Number(i.daLen || 0) > 0)"
             :key="`done-${item.loai}-${item.idMon ?? item.idCombo}`"
             class="cart-item done-item"
           >
@@ -848,7 +858,7 @@ onMounted(() => {
               <div class="item-bottom">
                 <div class="item-qty">Đã phục vụ: x{{ item.daLen }}</div>
                 <div class="item-price">
-                  Thành tiền: {{ (item.daLen * item.gia).toLocaleString('vi-VN') }} đ
+                  Thành tiền: {{ (Number(item.daLen) * item.gia).toLocaleString('vi-VN') }} đ
                 </div>
               </div>
             </div>
@@ -885,7 +895,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- VÙNG IN KHUẤT PHIẾU BÁO CHẾ BIẾN K80 (TỰ ĐỘNG LÊN ĐỒ THEO QUẦY BẾP / QUẦY BAR) -->
+    <!-- VÙNG IN KHUẤT PHIẾU BÁO CHẾ BIẾN K80 -->
     <div style="display: none">
       <div
         v-for="(items, tenQuay) in monTheoQuayMap"
@@ -1006,11 +1016,13 @@ onMounted(() => {
   width: 30%;
 }
 
-.danh-muc > div:last-child {
+.action-bottom-group {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* --- CỘT GIỮA: DANH SÁCH MÓN --- */
 .food-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1023,7 +1035,6 @@ onMounted(() => {
   align-content: start;
 }
 
-/* --- CỘT PHẢI: GIỎ HÀNG --- */
 .gio-hang-tabs {
   display: flex;
   background: #242424;
@@ -1032,13 +1043,6 @@ onMounted(() => {
   margin-bottom: 12px;
   border: 1px solid rgba(212, 175, 55, 0.15);
   flex-shrink: 0;
-}
-
-.gio-hang-list-wrapper {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 .gio-hang-tab-content {
@@ -1059,6 +1063,26 @@ onMounted(() => {
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid rgba(255, 216, 107, 0.15);
+}
+
+.btn-luu-don {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #2e7d32, #1b5e20);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
+}
+
+.btn-luu-don:hover {
+  background: linear-gradient(145deg, #388e3c, #2e7d32);
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(46, 125, 50, 0.5);
 }
 
 .btn-quay-lai {

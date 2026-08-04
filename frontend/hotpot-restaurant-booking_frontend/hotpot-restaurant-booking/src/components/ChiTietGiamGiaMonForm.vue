@@ -500,19 +500,19 @@ defineExpose({
 
 <style scoped>
 .bieu-mau-panel {
-  background: rgba(15, 15, 15, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
   border-radius: 28px;
   padding: 26px;
 }
 
 .tieu-de-panel h2 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin-bottom: 10px;
 }
 
 .tieu-de-panel p {
-  color: #c7c7c7;
+  color: #8f6b46;
 }
 
 .luoi-bieu-mau {
@@ -526,13 +526,13 @@ defineExpose({
 }
 
 label {
-  color: #d8d8d8;
+  color: #5f3d22;
   margin-bottom: 6px;
 }
 
 .disabled-hint {
   font-size: 11px;
-  color: #f8d46a;
+  color: #8b5e34;
   margin-left: 6px;
 }
 
@@ -542,9 +542,9 @@ select,
   margin-top: 6px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: white;
+  border: 1px solid #e6d2aa;
+  background: #fffdf8;
+  color: #5f3d22;
   outline: none;
   box-sizing: border-box;
   width: 100%;
@@ -555,21 +555,21 @@ select,
 .input-disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: #efe0c1 !important;
 }
 
 .da-chon-text {
-  color: #f8d46a;
+  color: #8b5e34;
   font-weight: 600;
 }
 
 input:focus,
 select:focus {
-  border-color: #f8d46a;
+  border-color: #d8a85c;
 }
 
 .help-text {
-  color: #888;
+  color: #8f6b46;
   font-size: 12px;
   margin-top: 4px;
 }
@@ -590,8 +590,8 @@ select:focus {
 }
 
 select option {
-  background: #151515;
-  color: #fff;
+  background: #fffdf8;
+  color: #5f3d22;
 }
 
 .error-text {
@@ -613,7 +613,7 @@ select option {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(61, 40, 20, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -622,8 +622,8 @@ select option {
 }
 
 .modal-content {
-  background: #1e1e1e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 248, 234, 0.98);
+  border: 1px solid #e6d2aa;
   border-radius: 20px;
   width: 520px;
   height: 580px;
@@ -633,7 +633,7 @@ select option {
   flex-direction: column;
   padding: 24px;
   box-sizing: border-box;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(95, 61, 34, 0.15);
 }
 
 .modal-header {
@@ -645,7 +645,7 @@ select option {
 }
 
 .modal-header h3 {
-  color: #f8d46a;
+  color: #8b5e34;
   margin: 0;
   font-size: 18px;
 }
@@ -653,7 +653,7 @@ select option {
 .btn-close {
   background: none;
   border: none;
-  color: #888;
+  color: #8f6b46;
   font-size: 24px;
   cursor: pointer;
 }
@@ -661,7 +661,7 @@ select option {
 .tab-header {
   display: flex;
   gap: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #efe0c1;
   padding-bottom: 10px;
   margin-bottom: 14px;
   flex-shrink: 0;
@@ -671,9 +671,9 @@ select option {
   flex: 1;
   padding: 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  color: #ccc;
+  background: #fffdf8;
+  border: 1px solid #efe0c1;
+  color: #8f6b46;
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
@@ -681,8 +681,9 @@ select option {
 }
 
 .tab-btn.active {
-  background: #f8d46a;
-  color: #121212;
+  background: #fff3d3;
+  color: #8b5e34;
+  border-color: #d8a85c;
   font-weight: 600;
 }
 
@@ -710,6 +711,7 @@ select option {
   cursor: pointer;
   margin: 0;
   white-space: nowrap;
+  color: #5f3d22;
 }
 
 /* KHU VỰC CUỘN DỮ LIỆU CỐ ĐỊNH */
@@ -731,14 +733,16 @@ select option {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: #fffdf8;
+  border: 1px solid #efe0c1;
+  color: #5f3d22;
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .check-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: #fff8eb;
 }
 
 .check-item input[type='checkbox'] {
@@ -746,11 +750,12 @@ select option {
   height: 18px;
   margin: 0;
   cursor: pointer;
+  accent-color: #d8a85c;
 }
 
 .no-data {
   text-align: center;
-  color: #777;
+  color: #8f6b46;
   padding: 20px 0;
 }
 
@@ -763,8 +768,8 @@ select option {
   width: 100%;
   padding: 12px;
   border-radius: 12px;
-  background: #f8d46a;
-  color: #121212;
+  background: #d8a85c;
+  color: #3d2814;
   border: none;
   font-weight: bold;
   cursor: pointer;

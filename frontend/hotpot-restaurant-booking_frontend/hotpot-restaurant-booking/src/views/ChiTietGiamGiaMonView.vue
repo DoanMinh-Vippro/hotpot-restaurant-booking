@@ -1,9 +1,9 @@
 <template>
   <div class="container">
     <div class="khu-vuc-dieu-huong">
-      <button class="nut-quay-lai" @click="quayLaiDotGiamGia">
+      <!-- <button class="nut-quay-lai" @click="quayLaiDotGiamGia">
         ⬅ Quay lại Đợt giảm giá
-      </button>
+      </button> -->
     </div>
     
     <div class="cot-trai">
@@ -290,7 +290,7 @@ const xoa = async (id: number) => {
 .container {
   min-height: 100vh;
   padding: 120px 32px 32px;
-  background: #0f0f0f;
+  background: #fcf8f2;
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;
@@ -304,20 +304,20 @@ const xoa = async (id: number) => {
 }
 
 .nut-quay-lai {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #c7c7c7;
+  background: rgba(255, 248, 234, 0.96);
+  border: 1px solid #e6d2aa;
+  color: #5f3d22;
   padding: 10px 18px;
   border-radius: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .nut-quay-lai:hover {
-  background: rgba(248, 212, 106, 0.15);
-  border-color: #f8d46a;
-  color: #f8d46a;
+  background: #f8d46a;
+  border-color: #d8a85c;
+  color: #1a1410;
 }
 
 .cot-trai, .cot-phai {
