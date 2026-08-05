@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface HoaDonRepository extends JpaRepository<HoaDon,Integer> {
     Optional<HoaDon> findByBan_IdBanAndTrangThaiHoaDon(Integer idBan, Integer trangThaiHoaDon);
+    Optional<HoaDon> findFirstByBan_IdBanAndTrangThaiHoaDonAndTrangThaiThanhToan(Integer idBan, Integer trangThaiHoaDon, Integer trangThaiThanhToan);
     boolean existsByDatBan_IdDatBanAndTrangThaiThanhToan(Integer idDatBan, Integer trangThaiThanhToan);
     Optional<HoaDon> findByDatBan_IdDatBan(Integer idDatBan);
     List<HoaDon> findByTrangThaiHoaDon(Integer trangThaiHoaDon);

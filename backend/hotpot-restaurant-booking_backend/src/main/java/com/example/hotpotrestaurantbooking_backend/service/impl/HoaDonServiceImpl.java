@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.List;
 
 @Service
@@ -49,10 +50,9 @@ public class HoaDonServiceImpl implements HoaDonService {
         updateEntityFromRequest(hd, request);
 
         // Chuyển trạng thái bàn khi tạo hóa đơn lần đầu
-        if (hd.getTrangThaiThanhToan() == 1) {
-            hd.getBan().setTrangThai(TrangThaiBan.TRONG);
-        } else {
-            hd.getBan().setTrangThai(TrangThaiBan.DANG_SU_DUNG);
+        if (hd.getBan() != null) {
+            applyTableStateFromInvoice(hd.getBan(), hd);
+            banRepository.save(hd.getBan());
         }
 
         hoaDonRepository.save(hd);
@@ -66,9 +66,10 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay hoa don voi id: " + id));
         updateEntityFromRequest(hd, request);
 
-        // Chỉ trả bàn khi đã thanh toán
-        if (hd.getTrangThaiThanhToan() == 1) {
-            hd.getBan().setTrangThai(TrangThaiBan.TRONG);
+        // Chỉ trả bàn khi hóa đơn đã hoàn tất hoặc đã thanh toán
+        if (hd.getBan() != null) {
+            applyTableStateFromInvoice(hd.getBan(), hd);
+            banRepository.save(hd.getBan());
         }
 
         hoaDonRepository.save(hd);
@@ -109,9 +110,18 @@ public class HoaDonServiceImpl implements HoaDonService {
 
     @Override
     public DTOHoaDonResponse findByBanAndStatus(Integer idBan, Integer trangThaiHoaDon) {
+        if (idBan == null || trangThaiHoaDon == null) {
+            return null;
+        }
 
+        Ban ban = banRepository.findById(idBan).orElse(null);
+        if (ban != null && ban.getTrangThai() == TrangThaiBan.TRONG) {
+            return null;
+        }
+
+        Integer pendingPaymentStatus = 0;
         return hoaDonRepository
-                .findByBan_IdBanAndTrangThaiHoaDon(idBan, trangThaiHoaDon)
+                .findFirstByBan_IdBanAndTrangThaiHoaDonAndTrangThaiThanhToan(idBan, trangThaiHoaDon, pendingPaymentStatus)
                 .map(this::convertToResponse)
                 .orElse(null);
     }
@@ -135,10 +145,23 @@ public class HoaDonServiceImpl implements HoaDonService {
             hd.setBan(ban);
         }
 
+        DatBan resolvedDatBan = null;
         if (request.getIdDatBan() != null) {
-            DatBan datBan = datBanRepository.findById(request.getIdDatBan())
+            resolvedDatBan = datBanRepository.findById(request.getIdDatBan())
                     .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay thong tin dat ban"));
-            hd.setDatBan(datBan);
+            hd.setDatBan(resolvedDatBan);
+        }
+
+        if (resolvedDatBan != null) {
+            if (request.getIdKhachHang() == null && resolvedDatBan.getKhachHang() != null) {
+                hd.setKhachHang(resolvedDatBan.getKhachHang());
+            }
+            if (request.getSdtKhachHang() == null && resolvedDatBan.getSdtKhachHang() != null) {
+                hd.setSdtKhachHang(resolvedDatBan.getSdtKhachHang());
+            }
+            if (request.getTienCoc() == null && resolvedDatBan.getSoTienCoc() != null) {
+                hd.setTienCoc(resolvedDatBan.getSoTienCoc());
+            }
         }
 
         GiamGia selectedGiamGia = null;
@@ -169,12 +192,32 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
     }
 
+    private boolean isInvoicePaid(HoaDon hoaDon) {
+        boolean paidByPaymentStatus = hoaDon.getTrangThaiThanhToan() != null && hoaDon.getTrangThaiThanhToan() == 1;
+        boolean completedByInvoiceStatus = hoaDon.getTrangThaiHoaDon() != null && hoaDon.getTrangThaiHoaDon() == 1;
+        return paidByPaymentStatus || completedByInvoiceStatus;
+    }
+
+    private void applyTableStateFromInvoice(Ban ban, HoaDon hoaDon) {
+        if (ban == null) {
+            return;
+        }
+
+        if (Boolean.TRUE.equals(isInvoicePaid(hoaDon))) {
+            ban.setTrangThai(TrangThaiBan.TRONG);
+        } else {
+            ban.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
+        }
+    }
+
     private BigDecimal applyGiamGiaDiscount(BigDecimal tienTruocGiam, GiamGia giamGia) {
         if (tienTruocGiam == null || giamGia == null) {
             return BigDecimal.ZERO;
         }
 
-        if ("PHAN_TRAM".equalsIgnoreCase(giamGia.getLoaiGiam())) {
+        String normalizedType = normalizeDiscountType(giamGia.getLoaiGiam());
+
+        if ("PERCENT".equals(normalizedType)) {
             BigDecimal percent = giamGia.getGiaTriGiam() == null ? BigDecimal.ZERO : giamGia.getGiaTriGiam();
             BigDecimal discount = tienTruocGiam.multiply(percent).divide(BigDecimal.valueOf(100));
             if (giamGia.getGiaTriGiamToiDa() != null) {
@@ -183,7 +226,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             return discount.max(BigDecimal.ZERO);
         }
 
-        if ("TIEN_MAT".equalsIgnoreCase(giamGia.getLoaiGiam())) {
+        if ("FIXED".equals(normalizedType)) {
             BigDecimal fixedDiscount = giamGia.getGiaTriGiam() == null ? BigDecimal.ZERO : giamGia.getGiaTriGiam();
             if (giamGia.getGiaTriGiamToiDa() != null) {
                 fixedDiscount = fixedDiscount.min(giamGia.getGiaTriGiamToiDa());
@@ -192,6 +235,27 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
 
         return BigDecimal.ZERO;
+    }
+
+    private String normalizeDiscountType(String rawType) {
+        if (rawType == null) {
+            return "UNKNOWN";
+        }
+
+        String normalized = Normalizer.normalize(rawType, Normalizer.Form.NFKD)
+                .replaceAll("[\\p{M}]", "")
+                .replaceAll("[^a-zA-Z0-9]", "")
+                .toUpperCase();
+
+        if (normalized.contains("PHANTRAM") || normalized.contains("PERCENT")) {
+            return "PERCENT";
+        }
+
+        if (normalized.contains("TIEN") || normalized.contains("MAT") || normalized.contains("GIATRI") || normalized.contains("VALUE")) {
+            return "FIXED";
+        }
+
+        return "UNKNOWN";
     }
 
     private DTOHoaDonResponse convertToResponse(HoaDon hoaDon) {

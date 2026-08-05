@@ -27,8 +27,26 @@ const bieu_mau = reactive({
 
 const loi_val = reactive<Record<string, string>>({})
 
+const normalizeLoaiGiamValue = (value: string | null | undefined) => {
+  const normalized = `${value ?? ''}`
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
+
+  if (['PHANTRAM', 'PERCENT', 'PHNTRAM', 'PHTNTRAM', 'PHTRAM'].includes(normalized)) return 'PHẦN TRĂM'
+  if (normalized.includes('PH') && normalized.includes('TRAM')) return 'PHẦN TRĂM'
+  if (['GIATRI', 'TIEN', 'TIENMAT', 'VND', 'FIXED', 'MONEY'].includes(normalized)) return 'GIÁ TRỊ'
+  if (normalized.includes('TIEN') || normalized.includes('MAT') || normalized.includes('GIATRI') || normalized.includes('VALUE')) return 'GIÁ TRỊ'
+
+  return 'PHẦN TRĂM'
+}
+
 const nhan_gui = computed(() => (props.che_do_bieu_mau === 'create' ? 'Tạo mới' : 'Cập nhật'))
-const la_phan_tram = computed(() => bieu_mau.loaiGiam === 'PHẦN TRĂM')
+const la_phan_tram = computed(() => normalizeLoaiGiamValue(bieu_mau.loaiGiam) === 'PHẦN TRĂM')
+const nhan_gia_tri_giam = computed(() => (la_phan_tram.value ? 'Giá trị giảm (%)' : 'Giá trị giảm (đ)'))
+const noi_dung_gia_tri_giam = computed(() => (la_phan_tram.value ? 'Khoảng từ 1% đến 100%' : 'Giá trị theo đơn vị VNĐ (đ)'))
+const placeholder_gia_tri_giam = computed(() => (la_phan_tram.value ? 'Nhập % từ 1 - 100' : 'Nhập số tiền giảm (đ)'))
 
 const kiem_tra_bieu_mau = () => {
   Object.keys(loi_val).forEach((key) => delete loi_val[key])
@@ -62,22 +80,22 @@ const kiem_tra_bieu_mau = () => {
   } else if (Number.isNaN(giaTriGiam) || giaTriGiam <= 0) {
     loi_val.giaTriGiam = la_phan_tram.value ? 'Giá trị phần trăm phải lớn hơn 0' : 'Giá trị giảm phải lớn hơn 0'
     valid = false
-  } else if (la_phan_tram.value && (giaTriGiam < 0 || giaTriGiam > 100)) {
-    loi_val.giaTriGiam = 'Giá trị phần trăm phải từ 0 đến 100'
+  } else if (la_phan_tram.value && (giaTriGiam < 1 || giaTriGiam > 100)) {
+    loi_val.giaTriGiam = 'Giá trị phần trăm phải từ 1 đến 100'
     valid = false
   }
 
-  if (!bieu_mau.giaTriGiamToiDa) {
-    loi_val.giaTriGiamToiDa = 'Giá trị giảm tối đa không được để trống'
-    valid = false
-  } else if (Number.isNaN(giaTriToiDa) || giaTriToiDa <= 0) {
-    loi_val.giaTriGiamToiDa = 'Giá trị giảm tối đa phải lớn hơn 0'
-    valid = false
-  }
-
-  if (!la_phan_tram.value && !Number.isNaN(giaTriGiam) && !Number.isNaN(giaTriToiDa) && giaTriToiDa < giaTriGiam) {
-    loi_val.giaTriGiamToiDa = 'Giá trị giảm tối đa phải lớn hơn hoặc bằng giá trị giảm'
-    valid = false
+  if (la_phan_tram.value) {
+    if (!bieu_mau.giaTriGiamToiDa) {
+      loi_val.giaTriGiamToiDa = 'Giá trị giảm tối đa không được để trống'
+      valid = false
+    } else if (Number.isNaN(giaTriToiDa) || giaTriToiDa <= 0) {
+      loi_val.giaTriGiamToiDa = 'Giá trị giảm tối đa phải lớn hơn 0'
+      valid = false
+    } else if (!Number.isNaN(giaTriGiam) && !Number.isNaN(giaTriToiDa) && giaTriToiDa < giaTriGiam) {
+      loi_val.giaTriGiamToiDa = 'Giá trị giảm tối đa phải lớn hơn hoặc bằng giá trị giảm'
+      valid = false
+    }
   }
 
   if (!bieu_mau.soLuongMaGiamGia || bieu_mau.soLuongMaGiamGia <= 0) {
@@ -95,7 +113,7 @@ const xu_ly_gui = () => {
     maGiamGia: bieu_mau.maGiamGia.trim(),
     ngayKetThuc: bieu_mau.ngayKetThuc,
     dieuKienSuDung: bieu_mau.dieuKienSuDung.trim(),
-    giaTriGiamToiDa: Number(bieu_mau.giaTriGiamToiDa),
+    giaTriGiamToiDa: la_phan_tram.value ? Number(bieu_mau.giaTriGiamToiDa || 0) : Number(bieu_mau.giaTriGiam || 0),
     giaTriGiam: Number(bieu_mau.giaTriGiam),
     loaiGiam: bieu_mau.loaiGiam.trim(),
     soLuongMaGiamGia: bieu_mau.soLuongMaGiamGia,
@@ -127,7 +145,7 @@ defineExpose({
       bieu_mau.dieuKienSuDung = discount.dieuKienSuDung ?? ''
       bieu_mau.giaTriGiamToiDa = discount.giaTriGiamToiDa?.toString() ?? ''
       bieu_mau.giaTriGiam = discount.giaTriGiam?.toString() ?? ''
-      bieu_mau.loaiGiam = discount.loaiGiam ?? 'PHẦN TRĂM'
+      bieu_mau.loaiGiam = normalizeLoaiGiamValue(discount.loaiGiam)
       bieu_mau.soLuongMaGiamGia = discount.soLuongMaGiamGia ?? 1
       bieu_mau.trangThai = discount.trangThai ?? 1
     } else {
@@ -167,24 +185,31 @@ defineExpose({
       </label>
 
       <label>
-        {{ la_phan_tram ? 'Giá trị giảm (%)' : 'Giá trị giảm (VNĐ)' }}
-        <input v-model="bieu_mau.giaTriGiam" type="number" min="0" step="0.01" :placeholder="la_phan_tram ? '0 - 100' : 'Nhập số tiền giảm'" />
-        <span class="ghi-chu-truong">{{ la_phan_tram ? 'Khoảng từ 0 đến 100%' : 'Giá trị theo đơn vị VNĐ' }}</span>
+        {{ nhan_gia_tri_giam }}
+        <input
+          v-model="bieu_mau.giaTriGiam"
+          type="number"
+          :min="la_phan_tram ? 1 : 0"
+          :max="la_phan_tram ? 100 : undefined"
+          step="0.01"
+          :placeholder="placeholder_gia_tri_giam"
+        />
+        <span class="ghi-chu-truong">{{ noi_dung_gia_tri_giam }}</span>
         <span class="loi-truong" v-if="loi_val.giaTriGiam">{{ loi_val.giaTriGiam }}</span>
       </label>
 
-      <label>
+      <label v-if="la_phan_tram">
         Giá trị giảm tối đa (VNĐ)
         <input v-model="bieu_mau.giaTriGiamToiDa" type="number" min="0" step="0.01" placeholder="Nhập số tiền tối đa" />
-        <span class="ghi-chu-truong">Dù là giảm theo phần trăm hay giá trị, mức giảm tối đa luôn là số tiền VNĐ.</span>
+        <span class="ghi-chu-truong">Mức giảm tối đa chỉ áp dụng cho mã giảm giá theo phần trăm.</span>
         <span class="loi-truong" v-if="loi_val.giaTriGiamToiDa">{{ loi_val.giaTriGiamToiDa }}</span>
       </label>
 
       <label>
         Loại giảm
         <select v-model="bieu_mau.loaiGiam">
-          <option value="PHẦN TRĂM">PHẦN TRĂM</option>
-          <option value="GIÁ TRỊ">GIÁ TRỊ</option>
+          <option value="PHẦN TRĂM">Phần trăm</option>
+          <option value="GIÁ TRỊ">Tiền mặt</option>
         </select>
       </label>
 

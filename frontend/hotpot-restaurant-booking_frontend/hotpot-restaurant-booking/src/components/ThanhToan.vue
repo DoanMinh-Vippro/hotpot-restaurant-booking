@@ -14,9 +14,8 @@ import { useShiftStore } from '@/stores/ShiftStore'
 import { useAuthStore } from '@/stores/AuthStore'
 import printJS from 'print-js'
 import DanhMucApi from '@/api/DanhMucApi.ts'
-import { useOrderStore } from '@/stores/OrderStore'
+import MayInApi from '@/api/MayInApi'
 
-const orderStore = useOrderStore()
 // ================= PROPS =================
 const props = defineProps<{
   ban: any
@@ -27,6 +26,31 @@ const props = defineProps<{
 const emit = defineEmits(['quayLai', 'payment-complete'])
 const shiftStore = useShiftStore()
 const authStore = useAuthStore()
+
+const SHIFT_CLOSED_MESSAGE = 'Ca làm việc đã đóng, không thể thực hiện thao tác gọi món mới'
+
+const isShiftClosed = computed(() => !shiftStore.currentShift || shiftStore.currentShift.isOpen === false)
+
+const hasActiveUnpaidInvoice = computed(() => {
+  const invoice = hoaDonHienTai.value
+  if (!invoice) return false
+
+  return (
+    Number(invoice.trangThaiThanhToan) === 0 &&
+    Number(invoice.trangThaiHoaDon) === 0
+  )
+})
+
+const isShiftClosedForUi = computed(() => isShiftClosed.value && !hasActiveUnpaidInvoice.value)
+
+const blockShiftClosedAction = () => {
+  if (isShiftClosedForUi.value) {
+    alert(SHIFT_CLOSED_MESSAGE)
+    return true
+  }
+  return false
+}
+
 const quayLai = () => {
   emit('quayLai')
 }
@@ -47,6 +71,7 @@ const hoanTatThanhToan = async () => {
 }
 
 // ================= STATE =================
+const isDataLoaded = ref(false)
 const danhSachCombo = ref<any[]>([])
 const danhSachMonAn = ref<any[]>([])
 const danhMucDangChon = ref('combo')
@@ -72,10 +97,98 @@ const getLocalDateTimeNow = () => {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
 }
 
-const getCurrentLocalTimestamp = () => new Date().getTime()
-
 const danhSachGiamGia = ref<any[]>([])
 const giamGiaDangChon = ref<number | null>(null)
+
+const normalizeDiscountType = (value: any) => {
+  if (value == null) return ''
+
+  const normalized = String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '')
+    .replace(/%/g, 'PERCENT')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
+
+  if (normalized.includes('PERCENT') || normalized.includes('PHANTRAM')) return 'PHANTRAM'
+  if (normalized.includes('TIEN') || normalized.includes('MAT') || normalized.includes('GIATRI') || normalized.includes('VALUE') || normalized.includes('VND') || normalized.includes('FIXED')) return 'TIEN'
+  return normalized
+}
+
+const getDiscountCode = (discount: any) =>
+  discount?.maGiamGia ?? discount?.ma ?? discount?.code ?? 'Mã giảm giá'
+
+const getDiscountRawValue = (discount: any) =>
+  discount?.giaTriGiam ??
+  discount?.giaTri ??
+  discount?.giatri ??
+  discount?.discountValue ??
+  discount?.discount_value ??
+  discount?.value ??
+  0
+
+const getDiscountRawMax = (discount: any) =>
+  discount?.giaTriGiamToiDa ??
+  discount?.maxDiscount ??
+  discount?.max_discount ??
+  discount?.maximumDiscount ??
+  0
+
+const getDiscountPayload = (discount: any) => {
+  const rawDiscountType =
+    discount?.loaiGiam ??
+    discount?.discountType ??
+    discount?.discount_type ??
+    discount?.type ??
+    ''
+
+  return {
+    type: normalizeDiscountType(rawDiscountType),
+    value: Number(getDiscountRawValue(discount) ?? 0),
+    maxDiscount: Number(getDiscountRawMax(discount) ?? 0),
+  }
+}
+
+const isPercentDiscountType = (type: string) =>
+  type.includes('PHANTRAM') ||
+  type.includes('PERCENT') ||
+  type.includes('PERCENTAGE')
+
+const isFixedDiscountType = (type: string) =>
+  type.includes('TIEN') ||
+  type.includes('MAT') ||
+  type.includes('GIATRI') ||
+  type.includes('VALUE') ||
+  type.includes('VND') ||
+  type.includes('FIXED')
+
+const getDiscountLabel = (discount: any) => {
+  const { type, value, maxDiscount } = getDiscountPayload(discount)
+  const code = getDiscountCode(discount)
+  const safeValue = Number.isFinite(value) ? value : 0
+  const safeMax = Number.isFinite(maxDiscount) ? maxDiscount : 0
+
+  if (isPercentDiscountType(type)) {
+    const percentLabel = `${safeValue.toLocaleString('vi-VN')}%`
+    const maxLabel = safeMax > 0 ? ` (tối đa ${safeMax.toLocaleString('vi-VN')}đ)` : ''
+    return `${code} - ${percentLabel}${maxLabel}`
+  }
+
+  return `${code} - ${safeValue.toLocaleString('vi-VN')}đ`
+}
+
+const getDiscountDisplayText = (discount: any) => {
+  const { type, value } = getDiscountPayload(discount)
+  const code = getDiscountCode(discount)
+  const safeValue = Number.isFinite(value) ? value : 0
+
+  if (isPercentDiscountType(type)) {
+    return `${code}: ${safeValue}%`
+  }
+
+  return `${code}: ${safeValue.toLocaleString('vi-VN')} đ`
+}
 
 const phuongThucThanhToan = ref(false)
 const tienMatThanhToan = ref(false)
@@ -85,56 +198,33 @@ const hoaDonHienTai = ref<any>(null)
 // ================= UTILS =================
 const itemName = (item: any) => item.tenMon ?? item.tenCombo ?? 'Món chưa đặt tên'
 
-// Map mã quầy từ Danh Mục ('BEP' | 'BAR') sang tên hiển thị
 const layTenQuay = (item: any): string => {
-  // Bắt trường `quay` từ item trực tiếp hoặc qua object `danhMuc`
   const quay = item.quay || item.danhMuc?.quay || ''
-
   if (String(quay).toUpperCase() === 'BAR') {
     return 'Quầy Bar'
   }
-
   return 'Quầy Bếp'
 }
 
-const loadOrderFromStore = () => {
-  if (!props.ban?.idBan) return
-
-  const ds = orderStore.getByBan(props.ban.idBan)
-
-  danhSachMonPhucVu.value = structuredClone(ds)
-}
 // ================= LOAD DATA =================
-// const loadData = async () => {
-//   const combo = await ComBoApi.hienThiComBo()
-//   const mon = await MonApi.hienThiMon()
-//   danhSachCombo.value = (combo.data || []).filter((cb: Combo) => cb.trangThai === 1)
-//   danhSachMonAn.value = (mon.data || []).filter((m: Mon) => m.trangThai === 0)
-// }
-
 const loadData = async () => {
   try {
-    // 1. Gọi song song cả 3 API cho nhanh
     const [comboRes, monRes, danhMucRes] = await Promise.all([
       ComBoApi.hienThiComBo(),
       MonApi.hienThiMon(),
-      DanhMucApi.getDanhSach(),
+      DanhMucApi.getDanhSach()
     ])
 
     const dsDanhMuc = danhMucRes.data || []
     const dsMonRaw = monRes.data || []
 
-    // 2. Map dữ liệu quầy từ Danh Mục sang từng Món Ăn dựa vào idDanhMuc
     danhSachMonAn.value = dsMonRaw
       .filter((m: Mon) => m.trangThai === 0)
       .map((m: any) => {
-        // Tìm danh mục tương ứng
         const dm = dsDanhMuc.find((d: any) => d.idDanhMuc === m.idDanhMuc)
-
         return {
           ...m,
-          // Ưu tiên m.quay, nếu null thì lấy dm.quay, nếu vẫn ko có mới lấy 'BEP'
-          quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP',
+          quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP'
         }
       })
 
@@ -151,12 +241,13 @@ const loadGiamGia = async () => {
 
 // ================= GIỎ HÀNG =================
 const themVaoGio = (item: any, loai: string) => {
+  if (blockShiftClosedAction()) return
+
   if (item.trangThaiBan === 0) {
     alert(`${loai === 'MON' ? 'Món' : 'Combo'} "${item.tenMon || item.tenCombo}" này đã hết hàng!`)
     return
   }
 
-  // Xác định quầy: Combo mặc định Quầy Bếp, Món lẻ lấy theo Danh Mục
   const quayCheBien = loai === 'COMBO' ? 'Quầy Bếp' : layTenQuay(item)
 
   const tonTai = gioHang.value.find(
@@ -173,7 +264,7 @@ const themVaoGio = (item: any, loai: string) => {
       idCombo: item.idCombo ?? null,
       tenMon: item.tenMon ?? null,
       tenCombo: item.tenCombo ?? null,
-      tenQuay: quayCheBien, // Lưu thông tin quầy vào giỏ
+      tenQuay: quayCheBien,
       gia: item.giaSauGiam ?? (loai === 'MON' ? item.gia : item.giaCombo) ?? 0,
       soLuong: 1,
       loai,
@@ -201,20 +292,24 @@ const giamSoLuong = (item: any) => {
 // ================= XỬ LÝ LÊN MÓN =================
 const xacNhanTungMon = async (item: any) => {
   if (item.daLen < item.soLuong) {
-    item.daLen++
-    await xuLyHoaDon(0, 0)
+    item.daLen += 1
+    await capNhatDatabaseNoRebuild()
   }
 }
 
 const xacNhanTatCaMon = async () => {
+  if (blockShiftClosedAction()) return
+
   danhSachMonPhucVu.value.forEach((item) => {
     item.daLen = item.soLuong
   })
-  await xuLyHoaDon(0, 0)
+  await capNhatDatabaseNoRebuild()
 }
 
 // ================= POPUP =================
 const optionPay = async () => {
+  if (blockShiftClosedAction()) return
+
   if (danhSachMonPhucVu.value.length === 0) {
     alert('Chưa có món nào được gửi vào bếp để thanh toán!')
     return
@@ -233,15 +328,19 @@ const closeTienMatPopup = () => {
 }
 
 const moPopupQR = async () => {
+  if (blockShiftClosedAction()) return
+
   await xuLyHoaDon(0, 0)
   phuongThucThanhToan.value = false
   hienThiSePayQR.value = true
 }
 
 const handleChuyenKhoanThanhCong = async () => {
+  if (blockShiftClosedAction()) return
+
   try {
     hienThiSePayQR.value = false
-    await xuLyHoaDon(1, 1)
+    await xuLyHoaDon(1, 1, 2)
     await markReservationCompleted()
     notifyPaymentComplete()
     emit('quayLai')
@@ -261,14 +360,41 @@ const tongTienTamTinhCotGiua = computed(() =>
   danhSachMonPhucVu.value.reduce((tong, item) => tong + item.gia * item.soLuong, 0),
 )
 
-const tienGiamGia = computed(() => {
-  const base = tongTienTamTinhCotGiua.value
-  if (!giamGiaDangChon.value) return 0
-  const giamGia = danhSachGiamGia.value.find((g) => g.idGiamGia === giamGiaDangChon.value)
-  if (!giamGia) return 0
-  if (giamGia.loaiGiam === 'TIENMAT') return Math.min(giamGia.giaTriGiam, base)
-  if (giamGia.loaiGiam === 'PHANTRAM') return (base * giamGia.giaTriGiam) / 100
+const selectedDiscount = computed(() => {
+  if (!giamGiaDangChon.value) return null
+  return danhSachGiamGia.value.find((g) => Number(g.idGiamGia) === Number(giamGiaDangChon.value)) ?? null
+})
+
+const discountAmount = computed(() => {
+  const subtotal = Number(tongTienTamTinhCotGiua.value || 0)
+  const selected = selectedDiscount.value
+
+  if (!selected || subtotal <= 0) return 0
+
+  const { type, value, maxDiscount } = getDiscountPayload(selected)
+  const cleanValue = Math.max(0, Number(value || 0))
+  const cleanMax = Math.max(0, Number(maxDiscount || 0))
+
+  if (isPercentDiscountType(type)) {
+    const percent = Math.min(cleanValue, 100)
+    const computedDiscount = Math.round(subtotal * (percent / 100))
+    return cleanMax > 0 ? Math.min(computedDiscount, cleanMax) : computedDiscount
+  }
+
+  if (isFixedDiscountType(type)) {
+    const fixedDiscount = cleanValue
+    return Math.min(fixedDiscount, subtotal)
+  }
+
   return 0
+})
+
+const tienGiamGia = computed(() => discountAmount.value)
+
+const finalTotal = computed(() => {
+  const subtotal = Number(tongTienTamTinhCotGiua.value || 0)
+  const afterDiscount = Math.max(0, subtotal - discountAmount.value)
+  return Math.max(0, afterDiscount - depositDaCoc.value)
 })
 
 const depositDaCoc = computed(() => {
@@ -276,13 +402,11 @@ const depositDaCoc = computed(() => {
   return Number.isFinite(deposit) ? Math.max(0, deposit) : 0
 })
 
-const tongThanhToan = computed(() => {
-  const base = tongTienTamTinhCotGiua.value - tienGiamGia.value
-  return Math.max(0, base - depositDaCoc.value)
-})
+const tongThanhToan = computed(() => finalTotal.value)
 
 // ================= HÓA ĐƠN API =================
 const checkHoaDonTam = async () => {
+  if (isDataLoaded.value) return
   try {
     const reservationItems = props.datBan?.idDatBan ? buildReservationItems(props.datBan) : []
 
@@ -292,31 +416,46 @@ const checkHoaDonTam = async () => {
       tabGioHang.value = 'mon-da-goi'
       hoaDonHienTai.value = null
       giamGiaDangChon.value = null
+      isDataLoaded.value = true
       return
     }
 
     const res = await HoaDonApi.findByBanAndStatus(props.ban.idBan, 0)
     const hd = res.data
-    if (!hd) return
+    if (!hd) {
+      isDataLoaded.value = true
+      return
+    }
     hoaDonHienTai.value = hd
 
-    danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => ({
-      idMon: item.idMon,
-      idCombo: item.idCombo,
-      tenMon: item.tenMon,
-      tenCombo: item.tenCombo,
-      tenQuay: item.tenQuay || 'Quầy Bếp',
-      gia: Number(
-        item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0,
-      ),
-      soLuong: item.soLuong,
-      daLen: item.trangThaiMonAn === 'DA_LEN' ? item.soLuong : item.daLen || 0,
-      loai: item.idMon ? 'MON' : 'COMBO',
-      comboItems: item.comboItems ?? [],
-    }))
+    danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => {
+      const soLuong = Number(item.soLuong || 0)
+      let daLen = item.daLen !== undefined && item.daLen !== null ? Number(item.daLen) : 0
+      if (item.trangThaiMonAn === 'DA_LEN' || item.trangThaiMonAn === 'DA_PHUC_VU') {
+        daLen = soLuong
+      }
+
+      return {
+        idMon: item.idMon,
+        idCombo: item.idCombo,
+        tenMon: item.tenMon,
+        tenCombo: item.tenCombo,
+        tenQuay: item.tenQuay || 'Quầy Bếp',
+        gia: Number(
+          item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0,
+        ),
+        soLuong: soLuong,
+        daLen: daLen,
+        loai: item.idMon ? 'MON' : 'COMBO',
+        comboItems: item.comboItems ?? [],
+      }
+    })
+
     giamGiaDangChon.value = hd.idGiamGia ?? null
+    isDataLoaded.value = true
   } catch {
     console.log('Không có hóa đơn tạm')
+    isDataLoaded.value = true
   }
 }
 
@@ -324,7 +463,7 @@ const saveChiTietHoaDon = async (idHoaDon: number) => {
   for (const item of danhSachMonPhucVu.value) {
     const gia = item.gia ?? 0
     let trangThaiMonAn = 'DANG_LEN'
-    if (item.daLen === item.soLuong) {
+    if (item.daLen >= item.soLuong) {
       trangThaiMonAn = 'DA_LEN'
     }
 
@@ -338,11 +477,17 @@ const saveChiTietHoaDon = async (idHoaDon: number) => {
       tienGiamGiaMon: 0,
       thanhTien: gia * item.soLuong,
       trangThaiMonAn,
-      daLen: item.daLen,
+      daLen: item.daLen || 0,
       orderedBy: item.orderedBy || getCurrentOperatorName(),
       orderedAt: item.orderedAt || getLocalDateTimeNow(),
     } as any)
   }
+}
+
+const capNhatDatabaseNoRebuild = async () => {
+  if (!hoaDonHienTai.value?.idHoaDon) return
+  await HoaDonChiTietApi.deleteByHoaDon(hoaDonHienTai.value.idHoaDon)
+  await saveChiTietHoaDon(hoaDonHienTai.value.idHoaDon)
 }
 
 const addHoaDon = async (payload: any) => {
@@ -359,18 +504,39 @@ const updateHoaDon = async (idHoaDon: number, payload: any) => {
   await saveChiTietHoaDon(idHoaDon)
 }
 
-const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) => {
+const buildChiTietPayload = () =>
+  danhSachMonPhucVu.value.map((item: any, index: number) => ({
+    maHoaDonChiTiet: `HDCT${Date.now()}${index + 1}${item.idMon || item.idCombo || ''}`,
+    idMon: item.idMon ?? null,
+    idCombo: item.idCombo ?? null,
+    soLuong: Number(item.soLuong || 0),
+    giaBanTaiThoiDiem: Number(item.gia || 0),
+    tienGiamGiaMon: 0,
+    thanhTien: Number((item.gia || 0) * (item.soLuong || 0)),
+    orderedBy: item.orderedBy || getCurrentOperatorName(),
+    orderedAt: item.orderedAt || getLocalDateTimeNow(),
+  }))
+
+const xuLyHoaDon = async (
+  trangThaiHoaDon: number,
+  trangThaiThanhToan: number,
+  paymentMethodNumber: number | null = null,
+) => {
   const currentOperator = getCurrentOperatorName()
   tenNhanVien.value = currentOperator
 
+  const normalizedPaymentMethod = paymentMethodNumber ?? (trangThaiThanhToan === 1 ? 1 : null)
+  const chiTietPayload = buildChiTietPayload()
+
   const payload = {
     maHoaDon: hoaDonHienTai.value?.maHoaDon || `HD${Date.now()}`,
+    maGiaoDich: `TX${Date.now()}`,
     trangThaiHoaDon,
     trangThaiThanhToan,
-    phuongThucThanhToan: trangThaiThanhToan === 1 ? 1 : null,
-    tienTruocGiam: tongTienTamTinhCotGiua.value,
-    tienGiamGia: tienGiamGia.value,
-    tongTien: tongThanhToan.value,
+    phuongThucThanhToan: normalizedPaymentMethod,
+    tienTruocGiam: Number(tongTienTamTinhCotGiua.value || 0),
+    tienGiamGia: Number(tienGiamGia.value || 0),
+    tongTien: Number(tongThanhToan.value || 0),
     thoiGianXuat: getLocalDateTimeNow(),
     idBan: props.ban.idBan,
     idGiamGia: giamGiaDangChon.value,
@@ -379,11 +545,31 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
     sdtKhachHang: props.datBan?.sdtKhachHang ?? null,
     tienCoc: props.datBan?.soTienCoc ?? null,
     tenNhanVien: currentOperator,
+    chiTiet: chiTietPayload,
   }
+
   if (hoaDonHienTai.value) {
     await updateHoaDon(hoaDonHienTai.value.idHoaDon, payload)
   } else {
     await addHoaDon(payload)
+  }
+}
+
+// HÀM XỬ LÝ KHI BẤM NÚT LƯU
+const luuHoaDonTam = async () => {
+  if (blockShiftClosedAction()) return
+
+  try {
+    const isFirstTime = !hoaDonHienTai.value
+    await xuLyHoaDon(0, 0)
+    if (isFirstTime) {
+      alert('Tạo hóa đơn tạm thành công!')
+    } else {
+      alert('Cập nhật hóa đơn thành công!')
+    }
+  } catch (error) {
+    console.error('Lỗi khi lưu hóa đơn:', error)
+    alert('Lưu hóa đơn thất bại!')
   }
 }
 
@@ -506,43 +692,17 @@ const markReservationCompleted = async () => {
   const reservationId = props.datBan?.idDatBan
   const banId = props.ban?.idBan
 
-  const updateReservationToCompleted = async (reservation: any) => {
-    if (!reservation?.idDatBan) return
-    if (reservationId && props.datBan) {
-      try {
-        const payload = buildReservationUpdatePayload(reservation)
-        if (payload) {
-          await DatBanQuanLyApi.update(reservation.idDatBan, payload)
-        }
-      } catch (error) {
-        console.warn('Không thể cập nhật đơn đặt bàn sau thanh toán:', error)
-      }
-    }
-  }
-
-  // Nếu có reservation hiện tại thì cập nhật trực tiếp
   if (reservationId && props.datBan) {
-    await updateReservationToCompleted(props.datBan)
-  } else if (banId) {
-    // Nếu không có reservation trực tiếp, tìm reservation hoạt động theo bàn và đóng nó
     try {
-      const reservationRes = await DatBanQuanLyApi.getAll()
-      const reservationList = Array.isArray(reservationRes?.data) ? reservationRes.data : []
-      const matchedReservation = reservationList.find(
-        (reservation: any) =>
-          Array.isArray(reservation?.dsBan) &&
-          reservation.dsBan.some((ban: any) => Number(ban?.idBan) === Number(banId)) &&
-          ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || '')),
-      )
-      if (matchedReservation) {
-        await updateReservationToCompleted(matchedReservation)
+      const payload = buildReservationUpdatePayload(props.datBan)
+      if (payload) {
+        await DatBanQuanLyApi.update(reservationId, payload)
       }
     } catch (error) {
-      console.warn('Không thể tìm reservation theo bàn để cập nhật trạng thái:', error)
+      console.warn('Không thể cập nhật đơn đặt bàn sau thanh toán:', error)
     }
   }
 
-  // Cập nhật trạng thái bàn về TRỐNG (quan trọng: luôn thực hiện)
   if (banId) {
     try {
       const payload = {
@@ -552,31 +712,38 @@ const markReservationCompleted = async () => {
         trangThai: 'TRONG',
       }
       await BanApi.update(banId, payload)
-      console.log(`Đã cập nhật bàn ${props.ban?.tenBan} sang trạng thái TRỐNG`)
     } catch (error) {
       console.warn('Không thể cập nhật trạng thái bàn sau thanh toán:', error)
     }
   }
 }
 
-// ================= ACTION XÁC NHẬN GỬI BẾP & IN K80 (PHÂN LOẠI THEO QUẦY) =================
+interface CartItem {
+  idMon?: number
+  idCombo?: number
+  loai: 'MON' | 'COMBO'
+  soLuong: number
+  tenQuay?: string
+  [key: string]: any
+}
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
+// ================= ACTION XÁC NHẬN GỬI BẾP =================
 const luuTam = async () => {
-  if (gioHang.value.length === 0) {
+  if (blockShiftClosedAction()) return
+
+  const currentCart = gioHang.value as CartItem[]
+  if (!currentCart.length) {
     alert('Vui lòng chọn món ăn trước khi nhấn gửi vào bếp!')
     return
   }
-  try {
-    monVuaGuiBep.value = [...gioHang.value]
 
-    // Đồng bộ vào danh sách món phục vụ tại bàn
-    gioHang.value.forEach((cartItem) => {
-      const trungMon = danhSachMonPhucVu.value.find(
-        (p) =>
-          p.loai === cartItem.loai &&
-          (cartItem.loai === 'MON' ? p.idMon === cartItem.idMon : p.idCombo === cartItem.idCombo),
+  try {
+    monVuaGuiBep.value = [...currentCart]
+
+    currentCart.forEach((cartItem) => {
+      const trungMon = danhSachMonPhucVu.value.find((p: any) =>
+        p.loai === cartItem.loai &&
+        (cartItem.loai === 'MON' ? p.idMon === cartItem.idMon : p.idCombo === cartItem.idCombo)
       )
       if (trungMon) {
         trungMon.soLuong += cartItem.soLuong
@@ -585,66 +752,49 @@ const luuTam = async () => {
       }
     })
 
-    // Gom nhóm món theo tên quầy ('Quầy Bếp', 'Quầy Bar',...)
-    const grouped = gioHang.value.reduce((acc: Record<string, any[]>, item) => {
+    const grouped = currentCart.reduce<Record<string, CartItem[]>>((acc, item) => {
       const quay = item.tenQuay || 'Quầy Bếp'
-      if (!acc[quay]) {
-        acc[quay] = []
-      }
-      acc[quay].push(item)
+      ;(acc[quay] ||= []).push(item)
       return acc
     }, {})
 
     monTheoQuayMap.value = grouped
 
-    gioHang.value = []
     await xuLyHoaDon(0, 0)
     await nextTick()
 
-    // Lần lượt gửi lệnh in phách K80 cho từng quầy
-    const danhSachQuay = Object.keys(grouped)
+    const now = new Date()
+    const thoiGianFormatted = `${now.toLocaleTimeString('vi-VN')} ${now.toLocaleDateString('vi-VN')}`
 
-    for (const quay of danhSachQuay) {
-      const elementId = `vung-phieu-in-${quay.replace(/\s+/g, '-')}`
-
-      printJS({
-        printable: elementId,
-        type: 'html',
-        header: undefined,
-        targetStyles: ['*'],
-        style: `
-          @page { size: 80mm auto; margin: 0; }
-          body { margin: 0; padding: 0; }
-          .phieu-in-bep {
-            font-family: 'Courier New', Courier, monospace;
-            color: #000000; width: 72mm; margin: 0 auto; padding: 6mm 0; box-sizing: border-box;
-          }
-          .phieu-header { text-align: center; }
-          .phieu-header h2 { margin: 0 0 6px 0; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; }
-          .phieu-header h3 { margin: 0 0 10px 0; font-size: 16px; text-transform: uppercase; }
-          .phieu-header p { margin: 3px 0; font-size: 13px; text-align: left; }
-          .dash-line { border: none; border-top: 1px dashed #000000 !important; margin: 10px 0; height: 0; width: 100%; }
-          .phieu-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-          .phieu-table th { border-bottom: 2px solid #000000 !important; font-size: 14px; font-weight: bold; padding-bottom: 6px; }
-          .phieu-table td { padding: 8px 0; font-size: 15px; vertical-align: top; }
-          .print-item-name { font-weight: bold; }
-          .print-combo-sub { font-size: 12px; font-style: italic; padding-left: 10px; margin-top: 2px; }
-          .phieu-footer { text-align: center; margin-top: 18px; font-size: 13px; font-style: italic; }
-        `,
+    const printRequests = Object.entries(grouped).map(([quay, danhSachMon]) =>
+      MayInApi.sendTicket({
+        tenQuay: quay,
+        maHoaDon: hoaDonHienTai.value?.maHoaDon ?? 'Mới',
+        tenBan: props.ban?.tenBan ?? 'N/A',
+        tenNhanVien: tenNhanVien?.value ?? 'Nhân viên',
+        thoiGian: thoiGianFormatted,
+        danhSachMon: danhSachMon.map((item) => ({
+          tenMon: itemName(item),
+          soLuong: item.soLuong,
+        })),
       })
-      await delay(500)
-    }
+    )
 
+    await Promise.all(printRequests)
+
+    gioHang.value = []
     tabGioHang.value = 'mon-dang-len'
   } catch (error) {
-    console.error(error)
-    alert('Gửi bếp thất bại')
+    console.error('Lỗi khi gửi bếp / in phiếu:', error)
+    alert('Gửi bếp thất bại!')
   }
 }
 
 const taoHoaDon = async () => {
+  if (blockShiftClosedAction()) return
+
   try {
-    await xuLyHoaDon(1, 1)
+    await xuLyHoaDon(1, 1, 1)
     await markReservationCompleted()
     notifyPaymentComplete()
     emit('quayLai')
@@ -657,7 +807,7 @@ const taoHoaDon = async () => {
         total: Number(tongThanhToan.value || 0),
         gross: Number(tongTienTamTinhCotGiua.value || 0),
         discount: Number(tienGiamGia.value || 0),
-        paymentMethod: Number(hoaDonHienTai.value?.phuongThucThanhToan) === 2 ? 'transfer' : 'cash',
+        paymentMethod: 'cash',
         status: 'paid',
         createdAt: new Date().toLocaleTimeString('vi-VN', {
           hour: '2-digit',
@@ -679,9 +829,29 @@ const taoHoaDon = async () => {
 }
 
 watch(
+  () => giamGiaDangChon.value,
+  (selectedId) => {
+    if (selectedId == null) return
+    if (tongTienTamTinhCotGiua.value <= 0) {
+      alert('Vui lòng chọn món trước khi áp dụng mã giảm giá')
+      giamGiaDangChon.value = null
+    }
+  },
+)
+
+watch(
+  () => tongTienTamTinhCotGiua.value,
+  (subtotal) => {
+    if (subtotal <= 0 && giamGiaDangChon.value != null) {
+      giamGiaDangChon.value = null
+    }
+  },
+)
+
+watch(
   () => props.datBan,
   async (db) => {
-    if (!db) return
+    if (!db || isDataLoaded.value) return
 
     const reservationItems = buildReservationItems(db)
 
@@ -705,24 +875,13 @@ watch(
     }
 
     await syncReservationToSeated()
-  },
-  { immediate: true },
+  }
 )
 
-watch(
-  () => props.ban?.idBan,
-  () => {
-    loadOrderFromStore()
-  },
-  {
-    immediate: true,
-  },
-)
-
-onMounted(() => {
-  loadData()
-  loadGiamGia()
-  checkHoaDonTam()
+onMounted(async () => {
+  await loadData()
+  await loadGiamGia()
+  await checkHoaDonTam()
 })
 </script>
 
@@ -745,7 +904,10 @@ onMounted(() => {
       >
         Món ăn
       </div>
-      <div><button class="btn-quay-lai" @click="quayLai">Quay Lại</button></div>
+      <div class="action-bottom-group">
+        <button class="btn-luu-don" @click="luuHoaDonTam">Lưu</button>
+        <button class="btn-quay-lai" @click="quayLai">Quay Lại</button>
+      </div>
     </div>
 
     <!-- CỘT DANH SÁCH MÓN GIỮA -->
@@ -760,7 +922,8 @@ onMounted(() => {
             :key="combo.idCombo"
             class="food-card"
             :class="combo.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
-            @click="themVaoGio(combo, 'COMBO')"
+            :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
+            @click="!isShiftClosedForUi && themVaoGio(combo, 'COMBO')"
           >
             {{ combo.tenCombo }}
           </div>
@@ -771,7 +934,8 @@ onMounted(() => {
             :key="mon.idMon"
             class="food-card"
             :class="mon.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
-            @click="themVaoGio(mon, 'MON')"
+            :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
+            @click="!isShiftClosedForUi && themVaoGio(mon, 'MON')"
           >
             {{ mon.tenMon }}
           </div>
@@ -843,17 +1007,17 @@ onMounted(() => {
         <div v-if="tabGioHang === 'mon-dang-len'" class="gio-hang-list">
           <div
             class="tab-action-header"
-            v-if="danhSachMonPhucVu.some((i) => i.soLuong - i.daLen > 0)"
+            v-if="danhSachMonPhucVu.some((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)"
           >
-            <button class="btn-xac-nhan-all" @click="xacNhanTatCaMon">
+            <button class="btn-xac-nhan-all" :disabled="isShiftClosedForUi" @click="xacNhanTatCaMon">
               ✓ Xác nhận tất cả lên đồ
             </button>
           </div>
-          <div v-if="!danhSachMonPhucVu.some((i) => i.soLuong - i.daLen > 0)" class="empty-cart">
+          <div v-if="!danhSachMonPhucVu.some((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)" class="empty-cart">
             Không có món đang chờ.
           </div>
           <div
-            v-for="item in danhSachMonPhucVu.filter((i) => i.soLuong - i.daLen > 0)"
+            v-for="item in danhSachMonPhucVu.filter((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)"
             :key="`pending-${item.loai}-${item.idMon ?? item.idCombo}`"
             class="cart-item pending-item"
           >
@@ -864,24 +1028,24 @@ onMounted(() => {
               </div>
               <div class="item-bottom">
                 <div class="item-qty">
-                  Còn: {{ item.soLuong - item.daLen }} / {{ item.soLuong }}
+                  Còn: {{ Number(item.soLuong) - Number(item.daLen || 0) }} / {{ item.soLuong }}
                 </div>
                 <div class="item-price">
-                  Giá: {{ ((item.soLuong - item.daLen) * item.gia).toLocaleString('vi-VN') }} đ
+                  Giá: {{ ((Number(item.soLuong) - Number(item.daLen || 0)) * item.gia).toLocaleString('vi-VN') }} đ
                 </div>
               </div>
             </div>
-            <button class="btn-check-item" @click="xacNhanTungMon(item)">✓ Lên</button>
+            <button class="btn-check-item" :disabled="isShiftClosedForUi" @click="xacNhanTungMon(item)">✓ Lên</button>
           </div>
         </div>
 
         <!-- TAB: MÓN ĐÃ PHỤC VỤ XONG -->
         <div v-if="tabGioHang === 'mon-da-goi'" class="gio-hang-list">
-          <div v-if="!danhSachMonPhucVu.some((i) => i.daLen > 0)" class="empty-cart">
+          <div v-if="!danhSachMonPhucVu.some((i) => Number(i.daLen || 0) > 0)" class="empty-cart">
             Chưa có món nào được lên.
           </div>
           <div
-            v-for="item in danhSachMonPhucVu.filter((i) => i.daLen > 0)"
+            v-for="item in danhSachMonPhucVu.filter((i) => Number(i.daLen || 0) > 0)"
             :key="`done-${item.loai}-${item.idMon ?? item.idCombo}`"
             class="cart-item done-item"
           >
@@ -893,7 +1057,7 @@ onMounted(() => {
               <div class="item-bottom">
                 <div class="item-qty">Đã phục vụ: x{{ item.daLen }}</div>
                 <div class="item-price">
-                  Thành tiền: {{ (item.daLen * item.gia).toLocaleString('vi-VN') }} đ
+                  Thành tiền: {{ (Number(item.daLen) * item.gia).toLocaleString('vi-VN') }} đ
                 </div>
               </div>
             </div>
@@ -904,7 +1068,7 @@ onMounted(() => {
       <!-- CỤM TÍNH TIỀN GIO-HANG-FOOTER -->
       <div class="gio-hang-footer">
         <hr />
-        <button v-if="tabGioHang === 'goi-mon'" class="btn-luu-phu" @click="luuTam()">
+        <button v-if="tabGioHang === 'goi-mon'" class="btn-luu-phu" :disabled="isShiftClosedForUi" @click="luuTam()">
           🔥 Xác nhận gửi vào bếp / Bar
         </button>
 
@@ -922,15 +1086,15 @@ onMounted(() => {
           <select class="discount-input" v-model="giamGiaDangChon">
             <option :value="null">Chọn mã giảm giá</option>
             <option v-for="g in danhSachGiamGia" :key="g.idGiamGia" :value="g.idGiamGia">
-              {{ g.maGiamGia }} - {{ g.giaTriGiam }}{{ g.loaiGiam === 'PHANTRAM' ? '%' : 'Đ' }}
+              {{ getDiscountDisplayText(g) }}
             </option>
           </select>
         </div>
-        <button class="btn-thanh-toan" @click="optionPay">Thanh toán</button>
+        <button class="btn-thanh-toan" :disabled="isShiftClosedForUi" @click="optionPay">Thanh toán</button>
       </div>
     </div>
 
-    <!-- VÙNG IN KHUẤT PHIẾU BÁO CHẾ BIẾN K80 (TỰ ĐỘNG LÊN ĐỒ THEO QUẦY BẾP / QUẦY BAR) -->
+    <!-- VÙNG IN KHUẤT PHIẾU BÁO CHẾ BIẾN K80 -->
     <div style="display: none">
       <div
         v-for="(items, tenQuay) in monTheoQuayMap"
@@ -1051,11 +1215,13 @@ onMounted(() => {
   width: 30%;
 }
 
-.danh-muc > div:last-child {
+.action-bottom-group {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* --- CỘT GIỮA: DANH SÁCH MÓN --- */
 .food-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1068,7 +1234,6 @@ onMounted(() => {
   align-content: start;
 }
 
-/* --- CỘT PHẢI: GIỎ HÀNG --- */
 .gio-hang-tabs {
   display: flex;
   background: #242424;
@@ -1077,13 +1242,6 @@ onMounted(() => {
   margin-bottom: 12px;
   border: 1px solid rgba(212, 175, 55, 0.15);
   flex-shrink: 0;
-}
-
-.gio-hang-list-wrapper {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 .gio-hang-tab-content {
@@ -1104,6 +1262,26 @@ onMounted(() => {
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid rgba(255, 216, 107, 0.15);
+}
+
+.btn-luu-don {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #2e7d32, #1b5e20);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
+}
+
+.btn-luu-don:hover {
+  background: linear-gradient(145deg, #388e3c, #2e7d32);
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(46, 125, 50, 0.5);
 }
 
 .btn-quay-lai {

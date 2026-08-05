@@ -1,6 +1,7 @@
 <!-- src/views/BanHang.vue -->
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import BanApi from '@/api/BanApi'
 import { getAllKhuVuc } from '@/api/khuvuc'
 import PopupListDatBan from '@/components/PopupListDatBan.vue'
@@ -11,6 +12,7 @@ import ThanhToan from '@/components/ThanhToan.vue'
 import HoaDonApi from '@/api/HoaDonApi'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import AllBillsView from '@/components/AllBillsView.vue'
+import { useShiftStore } from '@/stores/ShiftStore'
 
 interface CheckedInReservation {
   idDatBan: number
@@ -27,6 +29,8 @@ interface CheckedInReservation {
 }
 
 // ======================== STATE ========================
+const route = useRoute()
+const shiftStore = useShiftStore()
 const manHinhHienTai = ref('danhSachBan')
 const showPopup = ref(false)
 const showPopupDaXacNhan = ref(false)
@@ -56,6 +60,32 @@ const danhSachChuaXepBan = computed(() => {
   )
 })
 
+// ======================== HELPER FUNCTIONS ========================
+const formatDateTime = (value: any) => {
+  if (!value) return null
+  if (Array.isArray(value)) {
+    const [y, m, d, h = 0, min = 0] = value
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${pad(h)}:${pad(min)} - ${pad(d)}/${pad(m)}/${y}`
+  }
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return String(value)
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(date.getHours())}:${pad(date.getMinutes())} - ${pad(date.getDate())}/${pad(
+    date.getMonth() + 1,
+  )}/${date.getFullYear()}`
+}
+
+const normalizeStatus = (value: any) => {
+  if (!value) return ''
+  if (typeof value === 'string') return value.trim().toUpperCase()
+  if (typeof value === 'object' && 'name' in value) return String(value.name).trim().toUpperCase()
+  return String(value).trim().toUpperCase()
+}
+
+const isAvailableTable = (ban: any) => normalizeStatus(ban?.trangThai) === 'TRONG'
+
 // ======================== METHODS ========================
 const loadSoLuongHoaDon = async () => {
   try {
@@ -77,7 +107,27 @@ const loadSoLuongHoaDon = async () => {
   }
 }
 
+const canContinueServingClosedShift = (ban: any | null) => {
+  if (!ban?.idBan) return false
+
+  const activeInvoice = ban?.hoaDonInfo
+  const hasUnpaidInvoice =
+    activeInvoice &&
+    Number(activeInvoice.trangThaiThanhToan) === 0 &&
+    Number(activeInvoice.trangThaiHoaDon) === 0
+
+  return Boolean(hasUnpaidInvoice)
+}
+
 const chuyenManHinhThanhToan = async () => {
+  const isShiftClosed = !shiftStore.currentShift || shiftStore.currentShift.isOpen === false
+  const canContinue = canContinueServingClosedShift(banDangChon.value)
+
+  if (isShiftClosed && !canContinue) {
+    alert('Ca làm việc đã đóng, không thể thực hiện thao tác gọi món mới')
+    return
+  }
+
   showPopup.value = false
   if (banDangChon.value) {
     await markBanDangSuDung(banDangChon.value)
@@ -86,13 +136,39 @@ const chuyenManHinhThanhToan = async () => {
 }
 
 const loadBan = async () => {
-  const [banRes, reservationRes] = await Promise.all([
-    BanApi.getAll(), 
-    DatBanQuanLyApi.getAll()
+  const [banRes, reservationRes, invoiceRes] = await Promise.all([
+    BanApi.getAll(),
+    DatBanQuanLyApi.getAll(),
+    HoaDonApi.getDanhSach().catch(() => ({ data: [] }))
   ])
   
   const rawBan = Array.isArray(banRes?.data) ? banRes.data : []
   const reservations = Array.isArray(reservationRes?.data) ? reservationRes.data : []
+  const invoices = Array.isArray(invoiceRes?.data) ? invoiceRes.data : []
+
+  const rawBanStatusById = new Map<number, string>(
+    rawBan.map((ban: any) => [Number(ban.idBan), normalizeStatus(ban.trangThai)]),
+  )
+  const unpaidInvoices = invoices.filter((inv: any) => Number(inv.trangThaiThanhToan) === 0 && inv.idBan != null)
+  const unpaidBillIds = new Set<string>(unpaidInvoices.map((inv: any) => String(inv.idHoaDon)))
+  const unpaidBanIds = new Set<number>()
+  unpaidInvoices.forEach((inv: any) => unpaidBanIds.add(Number(inv.idBan)))
+
+  const handoverPending = shiftStore.currentShift?.handoverContext?.pendingTables || []
+  handoverPending.forEach((item: any) => {
+    const itemBanId = item.idBan != null ? Number(item.idBan) : null
+    if (itemBanId == null) return
+
+    const itemBillId = item.billId != null ? String(item.billId) : null
+    const stillHasUnpaidBill = itemBillId != null && unpaidBillIds.has(itemBillId)
+    const tableStillInUse = rawBanStatusById.get(itemBanId) !== 'TRONG'
+
+    if (stillHasUnpaidBill || tableStillInUse) {
+      unpaidBanIds.add(itemBanId)
+    } else {
+      shiftStore.clearSettledTableReferences({ tableId: itemBanId, billId: itemBillId })
+    }
+  })
 
   const normalizeReservationStatus = (value: any) => {
     if (!value) return ''
@@ -108,7 +184,7 @@ const loadBan = async () => {
     return String(value)
   }
 
-  const getReservationStatusForBan = (banId: number, reservations: any[]) => {
+  const getReservationInfoForBan = (banId: number, reservations: any[]) => {
     const banReservations = reservations.filter((reservation: any) =>
       Array.isArray(reservation?.dsBan) &&
       reservation.dsBan.some((ban: any) => Number(ban?.idBan) === banId),
@@ -122,33 +198,34 @@ const loadBan = async () => {
       ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(normalizeReservationStatus(reservation?.trangThai)),
     )
 
-    if (!activeReservation) {
-      return null
-    }
-
-    const reservationStatus = normalizeReservationStatus(activeReservation?.trangThai)
-    if (reservationStatus === 'DA_NHAN_BAN') {
-      return 'DANG_SU_DUNG'
-    }
-    if (reservationStatus === 'DA_XAC_NHAN') {
-      return 'DA_DAT'
-    }
-
-    return null
+    return activeReservation || null
   }
 
   danhSachBan.value = rawBan.map((ban: any) => {
-    const reservationStatus = getReservationStatusForBan(Number(ban.idBan), reservations)
+    const banId = Number(ban.idBan)
+    const activeReservation = getReservationInfoForBan(banId, reservations)
+    const reservationStatus = activeReservation ? normalizeReservationStatus(activeReservation.trangThai) : null
+    const activeInvoice = unpaidInvoices.find((inv: any) => Number(inv.idBan) === banId)
+    
     const banStatus = normalizeBanStatus(ban.trangThai)
     let nextStatus = banStatus
 
-    if (reservationStatus && banStatus === 'TRONG') {
-      nextStatus = reservationStatus
-    } else if (!['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus) && reservationStatus) {
-      nextStatus = reservationStatus
+    if (unpaidBanIds.has(banId)) {
+      nextStatus = 'DANG_SU_DUNG'
+    } else if (reservationStatus === 'DA_NHAN_BAN') {
+      nextStatus = 'DANG_SU_DUNG'
+    } else if (reservationStatus === 'DA_XAC_NHAN' && banStatus === 'TRONG') {
+      nextStatus = 'DA_DAT'
+    } else if (!['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus) && reservationStatus === 'DA_XAC_NHAN') {
+      nextStatus = 'DA_DAT'
     }
 
-    return { ...ban, trangThai: nextStatus }
+    return { 
+      ...ban, 
+      trangThai: nextStatus,
+      datBanInfo: activeReservation,
+      hoaDonInfo: activeInvoice
+    }
   })
 }
 
@@ -162,11 +239,23 @@ const handleChangeTab = (idKhuVuc: number) => {
 }
 
 const handleSelectBan = (ban: any) => {
+  if (isAvailableTable(ban)) {
+    clearPosOrderCache(ban.idBan)
+    datBanDangChon.value = null
+    banDangChon.value = { ...ban, current_order_id: null, invoice_id: null, idHoaDon: null }
+    return
+  }
+
   banDangChon.value = ban
 }
 
 const moPopupDatBan = async (ban: any) => {
-  banDangChon.value = ban
+  handleSelectBan(ban)
+
+  if (isAvailableTable(ban)) {
+    showPopup.value = true
+    return
+  }
 
   try {
     const res = await HoaDonApi.findByBanAndStatus(ban.idBan, 0)
@@ -245,8 +334,10 @@ const chonDatBan = (datBan: any) => {
 
 const quayVeDanhSachBan = async () => {
   manHinhHienTai.value = 'danhSachBan'
-  await loadBan() // Load lại danh sách bàn để cập nhật trạng thái
-  await loadSoLuongHoaDon() // Cập nhật số lượng hóa đơn
+  datBanDangChon.value = null
+  banDangChon.value = null
+  await loadBan()
+  await loadSoLuongHoaDon()
 }
 
 const layNgayHienTai = () => {
@@ -264,42 +355,136 @@ const layThuTrongTuan = () => {
 
 const handleViewBill = (hoaDon: any) => {
   showAllBills.value = false
-  // Chuyển sang màn hình thanh toán với hóa đơn được chọn
   datBanDangChon.value = null
   banDangChon.value = danhSachBan.value.find(b => b.idBan === hoaDon.idBan)
   manHinhHienTai.value = 'thanhToan'
 }
 
-const handlePaymentComplete = async (payload: { idBan: number; trangThai: string }) => {
+const openPendingTarget = async () => {
+  const pendingTableId = route.query.pendingTableId ? String(route.query.pendingTableId) : ''
+  const pendingBillId = route.query.pendingBillId ? String(route.query.pendingBillId) : ''
+  const pendingTableName = route.query.pendingTableName ? String(route.query.pendingTableName) : ''
+
+  if (!pendingTableId && !pendingBillId) return
+
+  if (pendingTableId) {
+    const matchedBan = danhSachBan.value.find((item: any) => Number(item.idBan) === Number(pendingTableId))
+    if (matchedBan && isAvailableTable(matchedBan)) {
+      clearPosOrderCache(pendingTableId)
+      shiftStore.clearSettledTableReferences({ tableId: pendingTableId, billId: pendingBillId || null })
+      return
+    }
+
+    if (pendingBillId) {
+      try {
+        const billRes = await HoaDonApi.getById(Number(pendingBillId))
+        const invoice = billRes?.data
+        if (!invoice || Number(invoice.trangThaiThanhToan) === 1 || Number(invoice.trangThaiHoaDon) === 1) {
+          clearPosOrderCache(pendingTableId)
+          shiftStore.clearSettledTableReferences({ tableId: pendingTableId, billId: pendingBillId })
+          return
+        }
+      } catch (error) {
+        console.warn('Không thể kiểm tra hóa đơn treo từ link chốt ca:', error)
+      }
+    }
+
+    if (matchedBan) {
+      banDangChon.value = { ...matchedBan, tenBan: matchedBan.tenBan || pendingTableName || `Bàn ${pendingTableId}` }
+      manHinhHienTai.value = 'thanhToan'
+      showPopup.value = false
+      return
+    } else {
+      banDangChon.value = { idBan: Number(pendingTableId), tenBan: pendingTableName || `Bàn ${pendingTableId}`, trangThai: 'DANG_SU_DUNG' }
+      manHinhHienTai.value = 'thanhToan'
+      showPopup.value = false
+      return
+    }
+  }
+
+  if (pendingBillId) {
+    try {
+      const billRes = await HoaDonApi.getById(Number(pendingBillId))
+      const invoice = billRes?.data
+      if (!invoice || Number(invoice.trangThaiThanhToan) === 1 || Number(invoice.trangThaiHoaDon) === 1) {
+        clearPosOrderCache(invoice?.idBan ?? null)
+        shiftStore.clearSettledTableReferences({ tableId: invoice?.idBan ?? null, billId: pendingBillId })
+        return
+      }
+      if (invoice?.idBan) {
+        const matchedBan = danhSachBan.value.find((item: any) => Number(item.idBan) === Number(invoice.idBan))
+        if (matchedBan && isAvailableTable(matchedBan)) {
+          clearPosOrderCache(invoice.idBan)
+          shiftStore.clearSettledTableReferences({ tableId: invoice.idBan, billId: pendingBillId })
+          return
+        }
+        banDangChon.value = matchedBan
+          ? { ...matchedBan, tenBan: matchedBan.tenBan || pendingTableName || `Bàn ${invoice.idBan}` }
+          : { idBan: Number(invoice.idBan), tenBan: pendingTableName || `Bàn ${invoice.idBan}` }
+        manHinhHienTai.value = 'thanhToan'
+        showPopup.value = false
+      }
+    } catch (error) {
+      console.warn('Không thể mở hóa đơn treo từ link chốt ca:', error)
+    }
+  }
+}
+
+const clearPosOrderCache = (tableId?: number | string | null) => {
+  if (typeof window === 'undefined') return
+
+  const keysToRemove = Object.keys(localStorage).filter((key) => {
+    if (key === 'pos-order-context') return true
+    return key.startsWith('pos-order-context-')
+  })
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key))
+
+  if (tableId != null) {
+    localStorage.removeItem(`pos-order-context-${Number(tableId)}`)
+  }
+}
+
+const handlePaymentComplete = async (payload: { idBan: number; trangThai: string; billId?: number | string | null }) => {
   const normalizedStatus = payload?.trangThai || 'TRONG'
+  clearPosOrderCache(payload?.idBan)
+  shiftStore.clearSettledTableReferences({ tableId: payload?.idBan, billId: payload?.billId })
 
   const targetIndex = danhSachBan.value.findIndex((item: any) => Number(item.idBan) === Number(payload.idBan))
   if (targetIndex >= 0) {
     danhSachBan.value[targetIndex] = {
       ...danhSachBan.value[targetIndex],
       trangThai: normalizedStatus,
+      current_order_id: null,
+      invoice_id: null,
+      idHoaDon: null,
     }
   }
 
   if (banDangChon.value && Number(banDangChon.value.idBan) === Number(payload.idBan)) {
-    banDangChon.value = {
-      ...banDangChon.value,
-      trangThai: normalizedStatus,
-    }
+    banDangChon.value = null
   }
 
-  setTimeout(() => {
-    void loadBan()
-  }, 400)
+  manHinhHienTai.value = 'danhSachBan'
+  datBanDangChon.value = null
+  await Promise.all([loadBan(), loadSoLuongHoaDon()])
 }
 
 // ======================== HOOKS ========================
+watch(
+  () => route.query,
+  async () => {
+    await openPendingTarget()
+  },
+  { deep: true },
+)
+
 onMounted(async () => {
   await loadBan()
   await loadKhuVuc()
   await loadSoLuongHoaDon()
-  
-  // Tự động refresh số lượng hóa đơn mỗi 30s
+  await openPendingTarget()
+
   setInterval(loadSoLuongHoaDon, 30000)
 })
 </script>
@@ -325,7 +510,6 @@ onMounted(async () => {
           </div>
         </div>
         <div class="header-right">
-          <!-- Thống kê nhanh -->
           <div class="stats-badge">
             <span class="stat-item">
               <span class="stat-dot busy"></span>
@@ -345,46 +529,89 @@ onMounted(async () => {
         @change="handleChangeTab"
       >
         <template #default="{ idKhuVuc }">
-          <!-- PHẦN CHỌN BÀN - GIAO DIỆN BÀN THẬT -->
           <div class="ban-list-container">
             <div class="ban-grid">
               <div 
                 v-for="ban in danhSachBan.filter(b => b.idKhuVuc === idKhuVuc)" 
                 :key="ban.idBan"
-                class="ban-item"
-                :class="{
-                  'trong': ban.trangThai === 'TRONG',
-                  'da-dat': ban.trangThai === 'DA_DAT',
-                  'dang-su-dung': ban.trangThai === 'DANG_SU_DUNG'
-                }"
-                @click="handleSelectBan(ban)"
-                @dblclick="moPopupDatBan(ban)"
+                class="ban-item-wrapper"
               >
-                <div class="ban-icon">
-                  <svg v-if="ban.trangThai === 'TRONG'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <rect x="4" y="4" width="16" height="16" rx="3" stroke="#4CAF50" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="2" fill="#4CAF50"/>
-                  </svg>
-                  <svg v-else-if="ban.trangThai === 'DA_DAT'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <rect x="4" y="4" width="16" height="16" rx="3" stroke="#FF9800" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="2" fill="#FF9800"/>
-                    <text x="12" y="20" text-anchor="middle" font-size="8" fill="#FF9800">⏳</text>
-                  </svg>
-                  <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <rect x="4" y="4" width="16" height="16" rx="3" stroke="#F44336" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="2" fill="#F44336"/>
-                    <text x="12" y="20" text-anchor="middle" font-size="8" fill="#F44336">●</text>
-                  </svg>
+                <!-- CARD BÀN -->
+                <div 
+                  class="ban-item"
+                  :class="{
+                    'trong': ban.trangThai === 'TRONG',
+                    'da-dat': ban.trangThai === 'DA_DAT',
+                    'dang-su-dung': ban.trangThai === 'DANG_SU_DUNG'
+                  }"
+                  @click="handleSelectBan(ban)"
+                  @dblclick="moPopupDatBan(ban)"
+                >
+                  <div class="ban-icon">
+                    <svg v-if="ban.trangThai === 'TRONG'" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#4CAF50" stroke-width="2"/>
+                      <circle cx="12" cy="12" r="2" fill="#4CAF50"/>
+                    </svg>
+                    <svg v-else-if="ban.trangThai === 'DA_DAT'" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#FF9800" stroke-width="2"/>
+                      <circle cx="12" cy="12" r="2" fill="#FF9800"/>
+                      <text x="12" y="20" text-anchor="middle" font-size="8" fill="#FF9800">⏳</text>
+                    </svg>
+                    <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#F44336" stroke-width="2"/>
+                      <circle cx="12" cy="12" r="2" fill="#F44336"/>
+                      <text x="12" y="20" text-anchor="middle" font-size="8" fill="#F44336">●</text>
+                    </svg>
+                  </div>
+                  <div class="ban-info">
+                    <span class="ban-name">{{ ban.tenBan }}</span>
+                    <span class="ban-capacity">👥 {{ ban.soLuongNguoi || ban.soNguoi || 4 }}</span>
+                  </div>
+                  <div class="ban-status">
+                    <span class="status-badge" :class="ban.trangThai.toLowerCase()">
+                      {{ ban.trangThai === 'TRONG' ? 'Trống' : 
+                         ban.trangThai === 'DA_DAT' ? 'Đã đặt' : 'Đang dùng' }}
+                    </span>
+                  </div>
                 </div>
-                <div class="ban-info">
-                  <span class="ban-name">{{ ban.tenBan }}</span>
-                  <span class="ban-capacity">👥 {{ ban.soLuongNguoi }}</span>
-                </div>
-                <div class="ban-status">
-                  <span class="status-badge" :class="ban.trangThai.toLowerCase()">
-                    {{ ban.trangThai === 'TRONG' ? 'Trống' : 
-                       ban.trangThai === 'DA_DAT' ? 'Đã đặt' : 'Đang dùng' }}
-                  </span>
+
+                <!-- TOOLTIP HIỂN THỊ THÔNG TIN KHI HOVER -->
+                <div class="ban-tooltip">
+                  <div class="tooltip-header">
+                    <strong>Thông tin {{ ban.tenBan }}</strong>
+                  </div>
+                  <div class="tooltip-body">
+                    <div class="tooltip-row">
+                      <span class="label">Mã hóa đơn:</span>
+                      <span class="value highlight">
+                        {{ ban.hoaDonInfo?.maHoaDon || ban.datBanInfo?.maHoaDon || 'Chưa tạo' }}
+                      </span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="label">Khách hàng:</span>
+                      <span class="value">
+                        {{ ban.datBanInfo?.tenKhachHang || ban.hoaDonInfo?.tenKhachHang || 'Khách lẻ' }}
+                      </span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="label">Số điện thoại:</span>
+                      <span class="value">
+                        {{ ban.datBanInfo?.sdtKhachHang || ban.hoaDonInfo?.sdtKhachHang || 'N/A' }}
+                      </span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="label">Thời gian đến:</span>
+                      <span class="value">
+                        {{ formatDateTime(ban.datBanInfo?.thoiGianDenDuKien) || 'Khách vào trực tiếp' }}
+                      </span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="label">Số khách:</span>
+                      <span class="value">
+                        {{ ban.datBanInfo?.soNguoi ? `${ban.datBanInfo.soNguoi} người` : 'N/A' }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -711,7 +938,7 @@ onMounted(async () => {
   }
 }
 
-/* ========== BAN GRID ========== */
+/* ========== BAN GRID & TOOLTIP ========== */
 .ban-list-container {
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(8px);
@@ -725,6 +952,10 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
+}
+
+.ban-item-wrapper {
+  position: relative;
 }
 
 .ban-item {
@@ -741,7 +972,7 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.ban-item:hover {
+.ban-item-wrapper:hover .ban-item {
   transform: translateY(-4px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
@@ -826,6 +1057,78 @@ onMounted(async () => {
 .status-badge.dang-su-dung {
   background: #FFEBEE;
   color: #C62828;
+}
+
+/* ================= TOOLTIP DESIGN ================= */
+.ban-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  width: 240px;
+  background-color: #2d2319;
+  color: #fceee0;
+  text-align: left;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #c8a374;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  z-index: 999;
+  bottom: 105%;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  pointer-events: none;
+}
+
+.ban-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -6px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: #2d2319 transparent transparent transparent;
+}
+
+.ban-item-wrapper:hover .ban-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltip-header {
+  font-size: 13px;
+  color: #ffc875;
+  border-bottom: 1px solid rgba(200, 163, 116, 0.3);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.tooltip-row .label {
+  color: #bfa893;
+}
+
+.tooltip-row .value {
+  color: #ffffff;
+  font-weight: 600;
+  text-align: right;
+}
+
+.tooltip-row .value.highlight {
+  color: #ffc875;
 }
 
 /* ========== TAB ĐƠN ĐẶT BÀN ========== */
@@ -975,29 +1278,6 @@ onMounted(async () => {
 .ban-mini-time {
   font-size: 12px;
   color: #a09080;
-}
-
-/* ========== BUTTON SẮP BÀN ========== */
-.btn-xep-ban {
-  padding: 6px 16px;
-  border: none;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #8B6B4A, #6B4F3A);
-  color: white;
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 2px 8px rgba(139, 107, 74, 0.25);
-}
-
-.btn-xep-ban:hover {
-  transform: scale(1.04);
-  box-shadow: 0 4px 16px rgba(139, 107, 74, 0.35);
-}
-
-.btn-xep-ban:active {
-  transform: scale(0.96);
 }
 
 /* ========== RESPONSIVE ========== */

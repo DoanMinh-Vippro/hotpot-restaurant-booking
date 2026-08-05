@@ -43,6 +43,7 @@ public class SercurityConfig {
                         .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()
                         .requestMatchers("/upload").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/ws-print/**").permitAll()
 
                         .requestMatchers("/api/quan-ly-payment/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")

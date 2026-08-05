@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 
+export type ShiftPaymentMethod = 'cash' | 'transfer' | 'electronic' | 'other'
+
 export interface ShiftInvoice {
   id: string
   code: string
@@ -7,10 +9,32 @@ export interface ShiftInvoice {
   total: number
   gross: number
   discount: number
-  paymentMethod: 'cash' | 'transfer'
+  paymentMethod: ShiftPaymentMethod
   status: 'paid' | 'unpaid'
   createdAt: string
   createdAtTimestamp?: number
+  sourceShiftId?: string | null
+  targetShiftId?: string | null
+}
+
+export interface ShiftHandoverTable {
+  idBan: number | string | null
+  code: string
+  name: string
+  total: number
+  status: 'in-service' | 'unpaid-bill'
+  billId?: string | null
+  sourceShiftId?: string | null
+  targetShiftId?: string | null
+}
+
+export interface ShiftHandoverContext {
+  sourceShiftId: string
+  handoverAt: string
+  pendingTables: ShiftHandoverTable[]
+  totalPending: number
+  note?: string
+  targetShiftId?: string | null
 }
 
 export interface ShiftExpense {
@@ -18,7 +42,7 @@ export interface ShiftExpense {
   type: 'income' | 'expense'
   amount: number
   reason: string
-  paymentMethod: 'cash' | 'transfer'
+  paymentMethod: ShiftPaymentMethod
   createdAt: string
 }
 
@@ -32,6 +56,7 @@ export interface ShiftSession {
   bills: ShiftInvoice[]
   expenses: ShiftExpense[]
   isOpen: boolean
+  handoverContext?: ShiftHandoverContext | null
 }
 
 export interface ShiftHistoryEntry extends ShiftSession {
@@ -42,12 +67,18 @@ export interface ShiftHistoryEntry extends ShiftSession {
     revenue: number
     cashSales: number
     transferSales: number
+    electronicSales: number
+    otherSales: number
     totalIncome: number
     cashIncome: number
     transferIncome: number
+    electronicIncome: number
+    otherIncome: number
     totalExpense: number
     cashExpense: number
     transferExpense: number
+    electronicExpense: number
+    otherExpense: number
     endingCash: number
   }
 }
@@ -86,48 +117,67 @@ const persistHistory = (history: ShiftHistoryEntry[]) => {
   localStorage.setItem(SHIFT_HISTORY_STORAGE_KEY, JSON.stringify(history))
 }
 
+export const normalizeShiftPaymentMethod = (value: unknown): ShiftPaymentMethod => {
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (['cash', 'tien mat', 'tiền mặt', 'tien-mat', '1'].includes(normalized)) return 'cash'
+    if (['transfer', 'chuyen khoan', 'chuyển khoản', 'bank transfer', 'transfer-bank', '2', 'chuyen_khoan', 'sepay', 'qr', 'banking'].includes(normalized)) return 'transfer'
+    if (['electronic', 'vnpay', 'momo', 'zalopay', 'payoo', '3'].includes(normalized)) return 'electronic'
+    return 'other'
+  }
+
+  if (typeof value === 'number') {
+    if (value === 1) return 'cash'
+    if (value === 2) return 'transfer'
+    if (value === 3) return 'electronic'
+    return 'other'
+  }
+
+  return 'other'
+}
+
+export const isShiftClosed = (shift?: ShiftSession | null) => !shift || shift.isOpen === false
+
+export const getShiftDisplayStatus = (shift?: ShiftSession | null) => {
+  if (!shift) return 'Closed'
+  return shift.isOpen === false ? 'Closed' : 'Open'
+}
+
+export const isValidShiftInvoice = (bill: unknown) => {
+  const invoice = (bill || {}) as Partial<ShiftInvoice> & { trangThaiHoaDon?: unknown; invoiceStatus?: unknown }
+  const total = Number(invoice.total ?? 0)
+  const status = String(invoice.status ?? '').trim().toUpperCase()
+  const invoiceStatus = invoice.trangThaiHoaDon ?? invoice.invoiceStatus
+
+  return total > 0 && status !== 'DRAFT' && invoiceStatus !== 0 && invoiceStatus !== '0'
+}
+
 const buildShiftSummary = (shift: ShiftSession) => {
-  const bills = shift.bills || []
+  const bills = (shift.bills || []).filter(isValidShiftInvoice)
   const expenses = shift.expenses || []
+  const paidBills = bills.filter((bill) => bill.status === 'paid')
 
-  const gross = bills
-    .filter((bill) => bill.status === 'paid')
-    .reduce((sum, bill) => sum + bill.gross, 0)
+  const gross = paidBills.reduce((sum, bill) => sum + bill.gross, 0)
+  const discount = paidBills.reduce((sum, bill) => sum + bill.discount, 0)
+  const revenue = paidBills.reduce((sum, bill) => sum + bill.total, 0)
 
-  const discount = bills
-    .filter((bill) => bill.status === 'paid')
-    .reduce((sum, bill) => sum + bill.discount, 0)
+  const cashSales = paidBills.filter((bill) => bill.paymentMethod === 'cash').reduce((sum, bill) => sum + bill.total, 0)
+  const transferSales = paidBills.filter((bill) => bill.paymentMethod === 'transfer').reduce((sum, bill) => sum + bill.total, 0)
+  const electronicSales = paidBills.filter((bill) => bill.paymentMethod === 'electronic').reduce((sum, bill) => sum + bill.total, 0)
+  const otherSales = paidBills.filter((bill) => bill.paymentMethod === 'other').reduce((sum, bill) => sum + bill.total, 0)
 
-  const revenue = bills
-    .filter((bill) => bill.status === 'paid')
-    .reduce((sum, bill) => sum + bill.total, 0)
+  const cashIncome = expenses.filter((item) => item.type === 'income' && item.paymentMethod === 'cash').reduce((sum, item) => sum + item.amount, 0)
+  const transferIncome = expenses.filter((item) => item.type === 'income' && item.paymentMethod === 'transfer').reduce((sum, item) => sum + item.amount, 0)
+  const electronicIncome = expenses.filter((item) => item.type === 'income' && item.paymentMethod === 'electronic').reduce((sum, item) => sum + item.amount, 0)
+  const otherIncome = expenses.filter((item) => item.type === 'income' && item.paymentMethod === 'other').reduce((sum, item) => sum + item.amount, 0)
 
-  const cashSales = bills
-    .filter((bill) => bill.status === 'paid' && bill.paymentMethod === 'cash')
-    .reduce((sum, bill) => sum + bill.total, 0)
+  const cashExpense = expenses.filter((item) => item.type === 'expense' && item.paymentMethod === 'cash').reduce((sum, item) => sum + item.amount, 0)
+  const transferExpense = expenses.filter((item) => item.type === 'expense' && item.paymentMethod === 'transfer').reduce((sum, item) => sum + item.amount, 0)
+  const electronicExpense = expenses.filter((item) => item.type === 'expense' && item.paymentMethod === 'electronic').reduce((sum, item) => sum + item.amount, 0)
+  const otherExpense = expenses.filter((item) => item.type === 'expense' && item.paymentMethod === 'other').reduce((sum, item) => sum + item.amount, 0)
 
-  const transferSales = bills
-    .filter((bill) => bill.status === 'paid' && bill.paymentMethod === 'transfer')
-    .reduce((sum, bill) => sum + bill.total, 0)
-
-  const cashIncome = expenses
-    .filter((item) => item.type === 'income' && item.paymentMethod === 'cash')
-    .reduce((sum, item) => sum + item.amount, 0)
-
-  const transferIncome = expenses
-    .filter((item) => item.type === 'income' && item.paymentMethod === 'transfer')
-    .reduce((sum, item) => sum + item.amount, 0)
-
-  const cashExpense = expenses
-    .filter((item) => item.type === 'expense' && item.paymentMethod === 'cash')
-    .reduce((sum, item) => sum + item.amount, 0)
-
-  const transferExpense = expenses
-    .filter((item) => item.type === 'expense' && item.paymentMethod === 'transfer')
-    .reduce((sum, item) => sum + item.amount, 0)
-
-  const totalIncome = cashIncome + transferIncome
-  const totalExpense = cashExpense + transferExpense
+  const totalIncome = cashIncome + transferIncome + electronicIncome + otherIncome
+  const totalExpense = cashExpense + transferExpense + electronicExpense + otherExpense
   const endingCash = (shift.openingCash || 0) + cashSales + cashIncome - cashExpense
 
   return {
@@ -136,12 +186,18 @@ const buildShiftSummary = (shift: ShiftSession) => {
     revenue,
     cashSales,
     transferSales,
+    electronicSales,
+    otherSales,
     totalIncome,
     cashIncome,
     transferIncome,
+    electronicIncome,
+    otherIncome,
     totalExpense,
     cashExpense,
     transferExpense,
+    electronicExpense,
+    otherExpense,
     endingCash,
   }
 }
@@ -154,22 +210,24 @@ export const useShiftStore = defineStore('shift', {
 
   getters: {
     invoiceRevenue: (state) =>
-      (state.currentShift?.bills || []).reduce((sum, bill) => sum + (bill.status === 'paid' ? bill.total : 0), 0),
+      (state.currentShift?.bills || [])
+        .filter(isValidShiftInvoice)
+        .reduce((sum, bill) => sum + (bill.status === 'paid' ? bill.total : 0), 0),
     cashSales: (state) =>
       (state.currentShift?.bills || [])
-        .filter((bill) => bill.status === 'paid' && bill.paymentMethod === 'cash')
+        .filter((bill) => isValidShiftInvoice(bill) && bill.status === 'paid' && bill.paymentMethod === 'cash')
         .reduce((sum, bill) => sum + bill.total, 0),
     transferSales: (state) =>
       (state.currentShift?.bills || [])
-        .filter((bill) => bill.status === 'paid' && bill.paymentMethod === 'transfer')
+        .filter((bill) => isValidShiftInvoice(bill) && bill.status === 'paid' && bill.paymentMethod === 'transfer')
         .reduce((sum, bill) => sum + bill.total, 0),
     grossSales: (state) =>
       (state.currentShift?.bills || [])
-        .filter((bill) => bill.status === 'paid')
+        .filter((bill) => isValidShiftInvoice(bill) && bill.status === 'paid')
         .reduce((sum, bill) => sum + bill.gross, 0),
     discountSales: (state) =>
       (state.currentShift?.bills || [])
-        .filter((bill) => bill.status === 'paid')
+        .filter((bill) => isValidShiftInvoice(bill) && bill.status === 'paid')
         .reduce((sum, bill) => sum + bill.discount, 0),
     transferIncome: (state) =>
       (state.currentShift?.expenses || [])
@@ -178,6 +236,30 @@ export const useShiftStore = defineStore('shift', {
     transferExpense: (state) =>
       (state.currentShift?.expenses || [])
         .filter((item) => item.type === 'expense' && item.paymentMethod === 'transfer')
+        .reduce((sum, item) => sum + item.amount, 0),
+    electronicSales: (state) =>
+      (state.currentShift?.bills || [])
+        .filter((bill) => isValidShiftInvoice(bill) && bill.status === 'paid' && bill.paymentMethod === 'electronic')
+        .reduce((sum, bill) => sum + bill.total, 0),
+    otherSales: (state) =>
+      (state.currentShift?.bills || [])
+        .filter((bill) => isValidShiftInvoice(bill) && bill.status === 'paid' && bill.paymentMethod === 'other')
+        .reduce((sum, bill) => sum + bill.total, 0),
+    electronicIncome: (state) =>
+      (state.currentShift?.expenses || [])
+        .filter((item) => item.type === 'income' && item.paymentMethod === 'electronic')
+        .reduce((sum, item) => sum + item.amount, 0),
+    electronicExpense: (state) =>
+      (state.currentShift?.expenses || [])
+        .filter((item) => item.type === 'expense' && item.paymentMethod === 'electronic')
+        .reduce((sum, item) => sum + item.amount, 0),
+    otherIncome: (state) =>
+      (state.currentShift?.expenses || [])
+        .filter((item) => item.type === 'income' && item.paymentMethod === 'other')
+        .reduce((sum, item) => sum + item.amount, 0),
+    otherExpense: (state) =>
+      (state.currentShift?.expenses || [])
+        .filter((item) => item.type === 'expense' && item.paymentMethod === 'other')
         .reduce((sum, item) => sum + item.amount, 0),
     cashIncome: (state) =>
       (state.currentShift?.expenses || [])
@@ -190,7 +272,7 @@ export const useShiftStore = defineStore('shift', {
     endingCash: (state) => {
       const openingCash = state.currentShift?.openingCash || 0
       const cashSales = (state.currentShift?.bills || [])
-        .filter((bill) => bill.status === 'paid' && bill.paymentMethod === 'cash')
+        .filter((bill) => isValidShiftInvoice(bill) && bill.status === 'paid' && bill.paymentMethod === 'cash')
         .reduce((sum, bill) => sum + bill.total, 0)
       const cashIncome = (state.currentShift?.expenses || [])
         .filter((item) => item.type === 'income' && item.paymentMethod === 'cash')
@@ -202,25 +284,60 @@ export const useShiftStore = defineStore('shift', {
       return openingCash + cashSales + cashIncome - cashExpense
     },
     hasUnpaidBills: (state) =>
-      (state.currentShift?.bills || []).some((bill) => bill.status === 'unpaid'),
+      (state.currentShift?.bills || []).some((bill) => isValidShiftInvoice(bill) && bill.status === 'unpaid'),
   },
 
   actions: {
-    openShift(payload: { openingCash: number; employeeName: string }) {
+    openShift(payload: { openingCash: number; employeeName: string; handoverContext?: ShiftHandoverContext | null }) {
       if (this.currentShift?.isOpen) return
 
       const startTime = new Date().toISOString()
+      const latestHistoryEntry = this.history[0]
+      const resolvedHandoverContext = payload.handoverContext ?? latestHistoryEntry?.handoverContext ?? null
+
+      const newShiftId = `SHIFT-${Date.now()}`
+      const nextHandoverContext = resolvedHandoverContext
+        ? {
+            ...resolvedHandoverContext,
+            targetShiftId: newShiftId,
+            pendingTables: (resolvedHandoverContext.pendingTables || []).map((item) => ({
+              ...item,
+              sourceShiftId: item.sourceShiftId || resolvedHandoverContext.sourceShiftId || null,
+              targetShiftId: newShiftId,
+            })),
+          }
+        : null
+
+      // Seed only handed-over bills that have a real billId (actual DB invoice ID).
+      // Tables without a known billId will be loaded by loadShiftBillsFromServer via HoaDonApi.
+      const handoverBills: ShiftInvoice[] = (nextHandoverContext?.pendingTables || [])
+        .filter((item) => item.billId && item.billId !== 'null' && item.billId !== '')
+        .map((item) => ({
+          id: String(item.billId!),
+          code: item.code || `HD-${item.billId}`,
+          customer: item.name || 'Khách hàng',
+          total: Number(item.total || 0),
+          gross: Number(item.total || 0),
+          discount: 0,
+          paymentMethod: 'cash' as ShiftPaymentMethod,
+          status: 'unpaid' as const,
+          createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          createdAtTimestamp: Date.now(),
+          sourceShiftId: item.sourceShiftId || resolvedHandoverContext?.sourceShiftId || null,
+          targetShiftId: newShiftId,
+        }))
 
       this.currentShift = {
-        shiftId: `SHIFT-${Date.now()}`,
+        shiftId: newShiftId,
         startTime,
         openedAt: startTime,
         endTime: null,
         employeeName: payload.employeeName || 'Nhân viên',
         openingCash: payload.openingCash,
-        bills: [],
+        bills: handoverBills,
         expenses: [],
         isOpen: true,
+        handoverContext: nextHandoverContext,
       }
 
       persistCurrentShift(this.currentShift)
@@ -228,23 +345,63 @@ export const useShiftStore = defineStore('shift', {
 
     syncBillFromPos(bill: ShiftInvoice) {
       if (!this.currentShift?.isOpen) return
+      if (!isValidShiftInvoice(bill)) return
 
-      const shiftStartTime = new Date(this.currentShift.startTime || this.currentShift.openedAt).getTime()
-      const billTime = bill.createdAtTimestamp ?? Date.now()
-
-      if (billTime < shiftStartTime) return
-
-      const duplicate = this.currentShift.bills.some(
-        (existing) => existing.id === bill.id || existing.code === bill.code,
+      const existingIndex = this.currentShift.bills.findIndex(
+        (existing) => existing.id === bill.id || (bill.code && existing.code === bill.code),
       )
 
-      if (duplicate) return
+      if (existingIndex >= 0) {
+        // Update existing bill (e.g. handed-over bill now being paid in new shift)
+        this.currentShift.bills[existingIndex] = {
+          ...this.currentShift.bills[existingIndex],
+          ...bill,
+        }
+      } else {
+        this.currentShift.bills.unshift(bill)
+      }
 
-      this.currentShift.bills.unshift(bill)
       persistCurrentShift(this.currentShift)
     },
 
-    addCashTransaction(payload: { type: 'income' | 'expense'; amount: number; reason: string; paymentMethod?: 'cash' | 'transfer' }) {
+    clearSettledTableReferences(payload: { tableId?: number | string | null; billId?: number | string | null }) {
+      const tableId = payload.tableId != null ? Number(payload.tableId) : null
+      const billId = payload.billId != null ? String(payload.billId) : null
+
+      const shouldKeepPendingTable = (item: ShiftHandoverTable) => {
+        const itemTableId = item.idBan != null ? Number(item.idBan) : null
+        const itemBillId = item.billId != null ? String(item.billId) : null
+        const matchesTable = tableId != null && itemTableId != null && itemTableId === tableId
+        const matchesBill = billId != null && itemBillId != null && itemBillId === billId
+        return !matchesTable && !matchesBill
+      }
+
+      if (this.currentShift?.handoverContext) {
+        const pendingTables = (this.currentShift.handoverContext.pendingTables || []).filter(shouldKeepPendingTable)
+        this.currentShift.handoverContext = {
+          ...this.currentShift.handoverContext,
+          pendingTables,
+          totalPending: pendingTables.reduce((sum, item) => sum + Number(item.total || 0), 0),
+        }
+        persistCurrentShift(this.currentShift)
+      }
+
+      this.history = (this.history || []).map((entry) => {
+        if (!entry.handoverContext) return entry
+        const pendingTables = (entry.handoverContext.pendingTables || []).filter(shouldKeepPendingTable)
+        return {
+          ...entry,
+          handoverContext: {
+            ...entry.handoverContext,
+            pendingTables,
+            totalPending: pendingTables.reduce((sum, item) => sum + Number(item.total || 0), 0),
+          },
+        }
+      })
+      persistHistory(this.history)
+    },
+
+    addCashTransaction(payload: { type: 'income' | 'expense'; amount: number; reason: string; paymentMethod?: ShiftPaymentMethod }) {
       if (!this.currentShift?.isOpen) return
 
       this.currentShift.expenses.unshift({
@@ -262,7 +419,7 @@ export const useShiftStore = defineStore('shift', {
       persistCurrentShift(this.currentShift)
     },
 
-    updateExpenseTransaction(payload: { id: number; type: 'income' | 'expense'; amount: number; reason: string; paymentMethod?: 'cash' | 'transfer' }) {
+    updateExpenseTransaction(payload: { id: number; type: 'income' | 'expense'; amount: number; reason: string; paymentMethod?: ShiftPaymentMethod }) {
       if (!this.currentShift?.isOpen) return
 
       const index = this.currentShift.expenses.findIndex((item) => item.id === payload.id)
@@ -291,7 +448,7 @@ export const useShiftStore = defineStore('shift', {
       persistCurrentShift(this.currentShift)
     },
 
-    closeShift() {
+    closeShift(options?: { mode?: 'normal' | 'handover'; handoverContext?: ShiftHandoverContext | null }) {
       if (!this.currentShift?.isOpen) return
 
       const currentShift = this.currentShift
@@ -302,10 +459,15 @@ export const useShiftStore = defineStore('shift', {
         endTime,
         closedAt: endTime,
         summary: buildShiftSummary(currentShift),
+        handoverContext: options?.mode === 'handover' ? options.handoverContext ?? null : null,
       }
 
-      this.history.unshift(historyEntry)
-      persistHistory(this.history)
+      const alreadyInHistory = this.history.some((entry) => entry.shiftId === currentShift.shiftId)
+      if (!alreadyInHistory) {
+        this.history.unshift(historyEntry)
+        persistHistory(this.history)
+      }
+
       this.currentShift = null
       persistCurrentShift(null)
     },

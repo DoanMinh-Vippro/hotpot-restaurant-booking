@@ -1,6 +1,6 @@
 <template>
   <div class="kds-container">
-    <h2> MÀN HÌNH HIỂN THỊ QUẦY BẾP</h2>
+    <h2>MÀN HÌNH HIỂN THỊ QUẦY BẾP</h2>
     <div class="ticket-list">
       <div v-for="(ticket, index) in danhSachPhieu" :key="index" class="ticket-card">
         <h3>PHIẾU BÁO CHẾ BIẾN</h3>
@@ -11,14 +11,18 @@
         <div class="info">Giờ đặt: {{ ticket.thoiGian }}</div>
         <hr />
         <table>
-          <tr>
-            <th>Tên món / Combo</th>
-            <th class="sl">SL</th>
-          </tr>
-          <tr v-for="(mon, mIdx) in ticket.danhSachMon" :key="mIdx">
-            <td>{{ mon.tenMon }}</td>
-            <td class="sl">x{{ mon.soLuong }}</td>
-          </tr>
+          <thead>
+            <tr>
+              <th>Tên món / Combo</th>
+              <th class="sl">SL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(mon, mIdx) in ticket.danhSachMon" :key="mIdx">
+              <td>{{ mon.tenMon }}</td>
+              <td class="sl">x{{ mon.soLuong }}</td>
+            </tr>
+          </tbody>
         </table>
         <hr />
         <div class="footer">Vui lòng chế biến/pha chế theo thứ tự!</div>

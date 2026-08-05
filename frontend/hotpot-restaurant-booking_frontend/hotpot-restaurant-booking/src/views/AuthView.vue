@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 // Đã import các thành phần cần thiết để gọi API
 import AuthApi from '@/api/AuthApi'
 import { useAuthStore } from '@/stores/AuthStore'
+import { canAccessModule } from '@/utils/permissionGuard'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore() // Khởi tạo store để lưu token sau khi login
@@ -47,6 +48,7 @@ const handleSubmit = async () => {
       { permission: 'reservation', routeName: 'dat-ban-quan-ly' },
       { permission: 'shift', routeName: 'shift-management' },
       { permission: 'account', routeName: 'tai-khoan' },
+      { permission: 'message', routeName: 'tin-nhan' },
       { permission: 'statistics', routeName: 'thong-ke' },
       { permission: 'area', routeName: 'khu-vuc' },
       { permission: 'deposit', routeName: 'coc' },
@@ -70,7 +72,7 @@ const handleSubmit = async () => {
 
     // internal user: go to first permitted admin menu (or fallback)
     const permittedAdminMenus = authStore.permissions.length
-      ? adminMenuOrder.filter((item) => authStore.permissions.includes(item.permission))
+      ? adminMenuOrder.filter((item) => canAccessModule(authStore.permissions, item.permission))
       : adminMenuOrder
 
     const redirectRoute = permittedAdminMenus[0]?.routeName || 'dat-ban-quan-ly'

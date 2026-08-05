@@ -7,9 +7,13 @@ import com.example.hotpotrestaurantbooking_backend.entity.GiamGia;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.GiamGiaRepository;
 import com.example.hotpotrestaurantbooking_backend.service.GiamGiaService;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,22 +27,34 @@ public class GiamGiaImpl implements GiamGiaService {
     @Autowired
     private GiamGiaValidator validator;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @Override
     public List<GiamGiaDTO> getAll(String keyword) {
+        List<GiamGia> entities;
         if (keyword == null || keyword.trim().isEmpty()) {
-            return repo.findAll().stream().map(this::toDto).toList();
+            entities = repo.findAll();
+        } else {
+            Page<GiamGia> page = repo.findByMaGiamGiaContainingIgnoreCaseOrDieuKienSuDungContainingIgnoreCase(keyword, keyword, Pageable.unpaged());
+            entities = page.getContent();
         }
-        return repo.findByMaGiamGiaContainingIgnoreCaseOrDieuKienSuDungContainingIgnoreCase(keyword, keyword, Pageable.unpaged())
-                .stream()
-                .map(this::toDto)
-                .toList();
+
+        autoDisableExpiredDiscounts(entities);
+        return entities.stream().map(this::toDto).toList();
     }
 
     @Override
     public GiamGiaDTO getById(Integer idGiamGia) {
-        return repo.findById(idGiamGia)
-                .map(this::toDto)
+        GiamGia entity = repo.findById(idGiamGia)
                 .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy mã giảm giá"));
+
+        if (shouldDisableDueToExpiry(entity)) {
+            entity.setTrangThai(0);
+            repo.save(entity);
+        }
+
+        return toDto(entity);
     }
 
     @Override
@@ -93,11 +109,21 @@ public class GiamGiaImpl implements GiamGiaService {
     }
 
     @Override
+    @Transactional
     public void deleteGiamGia(Integer idGiamGia) {
-        if (!repo.existsById(idGiamGia)) {
-            throw new CustomResourceNotFoundException("Không tìm thấy mã giảm giá");
+        GiamGia existing = repo.findById(idGiamGia)
+                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy mã giảm giá"));
+
+        existing.setTrangThai(0);
+
+        try {
+            repo.save(existing);
+            if (entityManager != null) {
+                entityManager.flush();
+            }
+        } catch (DataIntegrityViolationException ex) {
+            throw new RuntimeException("Mã giảm giá này đã được sử dụng trong hóa đơn nên không thể xóa vĩnh viễn. Hệ thống đã tự động chuyển về trạng thái ngừng hoạt động", ex);
         }
-        repo.deleteById(idGiamGia);
     }
 
     @Override
@@ -105,10 +131,36 @@ public class GiamGiaImpl implements GiamGiaService {
         if (keyword == null || keyword.trim().isEmpty()) {
             return getAll(null);
         }
-        return repo.findByMaGiamGiaContainingIgnoreCaseOrDieuKienSuDungContainingIgnoreCase(keyword, keyword, Pageable.unpaged())
-                .stream()
-                .map(this::toDto)
-                .toList();
+
+        Page<GiamGia> page = repo.findByMaGiamGiaContainingIgnoreCaseOrDieuKienSuDungContainingIgnoreCase(keyword, keyword, Pageable.unpaged());
+        List<GiamGia> entities = page.getContent();
+        autoDisableExpiredDiscounts(entities);
+        return entities.stream().map(this::toDto).toList();
+    }
+
+    private void autoDisableExpiredDiscounts(List<GiamGia> entities) {
+        if (entities == null || entities.isEmpty()) {
+            return;
+        }
+
+        for (GiamGia entity : entities) {
+            if (shouldDisableDueToExpiry(entity)) {
+                entity.setTrangThai(0);
+                repo.save(entity);
+            }
+        }
+    }
+
+    private boolean shouldDisableDueToExpiry(GiamGia entity) {
+        return entity != null
+                && entity.getTrangThai() != null
+                && entity.getTrangThai() == 1
+                && entity.getNgayKetThuc() != null
+                && isExpiredOnDateOnly(entity.getNgayKetThuc());
+    }
+
+    private boolean isExpiredOnDateOnly(LocalDate endDate) {
+        return endDate != null && LocalDate.now().isAfter(endDate);
     }
 
     private GiamGiaDTO toDto(GiamGia entity) {

@@ -31,7 +31,25 @@ const ThongKeApi = {
 
   trangThaiCoc() {
     return ApiClient.get("/api/thong-ke/trang-thai-coc");
-  }
+  },
+ doanhThuTheoKhuVuc()
+   {
+    return ApiClient.get("/api/thong-ke/doanh-thu-theo-khu-vuc");
+  },
+ doanhThuTheoGio()
+ {
+  return ApiClient.get("/api/thong-ke/doanh-thu-theo-gio");
+},
+ doanhThuTheoDanhMuc() { return ApiClient.get("/api/thong-ke/doanh-thu-theo-danh-muc");
+ },
+ topKhachHangThanThiet()
+ {
+  return ApiClient.get("/api/thong-ke/top-khach-hang-than-thiet");
+ },
+ topSanPhamBanChay() { return ApiClient.get("/api/thong-ke/top-san-pham-ban-chay"); },
+ hieuSuatBan() { return ApiClient.get("/api/thong-ke/hieu-suat-ban"); },
+ hieuQuaKhuyenMai() { return ApiClient.get("/api/thong-ke/hieu-qua-khuyen-mai"); },
+ tyLeHuyDatBan(from: string, to: string) { return ApiClient.get( `/api/thong-ke/ty-le-huy-dat-ban?from=${from}&to=${to}` ); },
 };
 
 export default ThongKeApi;
