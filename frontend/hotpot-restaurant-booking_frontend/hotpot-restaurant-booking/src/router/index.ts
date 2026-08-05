@@ -128,6 +128,11 @@ const router = createRouter({
       redirect: { name: 'thucDon' },
     },
     {
+      path: '/tin-nhan',
+      name: 'tin-nhan',
+      component: () => import('@/views/TinNhanView.vue'),
+    },
+    {
       path: '/thong-ke',
       name: 'thong-ke',
       component: () => import('@/views/ThongKeView.vue'),
@@ -180,6 +185,7 @@ router.beforeEach((to, from, next) => {
     'dat-ban-quan-ly',
     'shift-management',
     'tai-khoan',
+    'tin-nhan',
     'thong-ke',
     'khu-vuc',
     'coc',

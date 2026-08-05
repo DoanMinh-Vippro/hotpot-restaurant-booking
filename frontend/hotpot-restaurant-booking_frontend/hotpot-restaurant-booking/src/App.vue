@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
+import { canAccessModule } from '@/utils/permissionGuard'
 import AdminAccountPanel from '@/components/AdminAccountPanel.vue'
+import ChatWidget from '@/components/ChatWidget.vue'
+import { getChatMessages } from '@/utils/chatStorage'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const isSidebarCollapsed = ref(false)
+const unreadRefreshTick = ref(0)
+let unreadRefreshTimer: number | null = null
 
-const adminRouteNames = ['thucDon', 'hoa-don', 'ban-hang', 'giam-gia', 'ban', 'dat-ban-quan-ly', 'tai-khoan', 'thong-ke', 'khu-vuc', 'coc', 'shift-management']
+const adminRouteNames = ['thucDon', 'hoa-don', 'ban-hang', 'giam-gia', 'ban', 'dat-ban-quan-ly', 'tai-khoan', 'tin-nhan', 'thong-ke', 'khu-vuc', 'coc', 'shift-management']
 
 const menuItems = [
   { label: 'Bán hàng', routeName: 'ban-hang', permission: 'pos', icon: '🛒' },
@@ -19,16 +25,26 @@ const menuItems = [
   { label: 'Đặt bàn quản lý', routeName: 'dat-ban-quan-ly', permission: 'reservation', icon: '📋' },
   { label: 'Quản lý ca', routeName: 'shift-management', permission: 'shift', icon: '🕒' },
   { label: 'Quản lý tài khoản', routeName: 'tai-khoan', permission: 'account', icon: '👤' },
+  { label: 'Tin nhắn', routeName: 'tin-nhan', permission: 'message', icon: '💬' },
   { label: 'Thống kê', routeName: 'thong-ke', permission: 'statistics', icon: '📈' },
   { label: 'Khu vực', routeName: 'khu-vuc', permission: 'area', icon: '📍' },
   { label: 'Tiền cọc', routeName: 'coc', permission: 'deposit', icon: '💳' },
 ]
 
+const totalUnreadMessages = computed(() => {
+  unreadRefreshTick.value
+  return getChatMessages().filter((message) => message.sender === 'customer' && !message.isRead).length
+})
+
 const permittedMenuItems = computed(() => {
   if (!authStore.isAuthenticated || authStore.isUser) return []
   if (!authStore.permissions.length) return menuItems
-  return menuItems.filter((item) => authStore.permissions.includes(item.permission))
+  return menuItems.filter((item) => canAccessModule(authStore.permissions, item.permission))
 })
+
+const refreshUnreadBadge = () => {
+  unreadRefreshTick.value += 1
+}
 
 const isAdminLayout = computed(
   () =>
@@ -40,16 +56,30 @@ const isAdminLayout = computed(
 const goTo = (routeName: string) => {
   router.push({ name: routeName })
 }
+
+onMounted(() => {
+  refreshUnreadBadge()
+  window.addEventListener('storage', refreshUnreadBadge)
+  unreadRefreshTimer = window.setInterval(refreshUnreadBadge, 1500)
+})
+
+onUnmounted(() => {
+  if (unreadRefreshTimer) window.clearInterval(unreadRefreshTimer)
+  window.removeEventListener('storage', refreshUnreadBadge)
+})
 </script>
 
 <template>
   <div v-if="isAdminLayout" class="admin-shell">
-    <aside class="admin-sidebar">
+    <aside class="admin-sidebar" :class="{ collapsed: isSidebarCollapsed }">
       <div class="sidebar-header">
         <div class="sidebar-heading">
           <div class="sidebar-brand">CÁI BANG</div>
           <div class="sidebar-subtitle">Bảng điều khiển quản trị</div>
         </div>
+        <button class="sidebar-collapse-btn" @click="isSidebarCollapsed = !isSidebarCollapsed" :title="isSidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'">
+          <span>{{ isSidebarCollapsed ? '›' : '‹' }}</span>
+        </button>
       </div>
 
       <nav class="sidebar-nav">
@@ -57,11 +87,19 @@ const goTo = (routeName: string) => {
           v-for="item in permittedMenuItems"
           :key="item.routeName"
           class="nav-item"
-          :class="{ active: route.name === item.routeName }"
+          :class="{ active: route.name === item.routeName, collapsed: isSidebarCollapsed }"
           @click="goTo(item.routeName)"
         >
           <span class="nav-icon">{{ item.icon }}</span>
-          <span>{{ item.label }}</span>
+          <span v-if="!isSidebarCollapsed" class="nav-label">{{ item.label }}</span>
+          <span
+            v-if="item.routeName === 'tin-nhan' && totalUnreadMessages > 0"
+            class="menu-badge"
+            :class="{ collapsed: isSidebarCollapsed }"
+            :title="`${totalUnreadMessages} tin nhắn chưa đọc`"
+          >
+            {{ totalUnreadMessages }}
+          </span>
         </button>
 
         <div class="sidebar-account-panel">
@@ -75,7 +113,10 @@ const goTo = (routeName: string) => {
     </main>
   </div>
 
-  <RouterView v-else />
+  <template v-else>
+    <RouterView />
+    <ChatWidget />
+  </template>
 </template>
 
 <style>
@@ -115,6 +156,11 @@ textarea {
   flex-direction: column;
   gap: 16px;
   box-shadow: 2px 0 18px rgba(103, 72, 32, 0.08);
+  transition: width 0.25s ease;
+}
+
+.admin-sidebar.collapsed {
+  width: 88px;
 }
 
 .sidebar-header {
@@ -131,6 +177,10 @@ textarea {
   min-width: 0;
 }
 
+.admin-sidebar.collapsed .sidebar-heading {
+  display: none;
+}
+
 .sidebar-brand {
   font-size: 1.05rem;
   font-weight: 800;
@@ -142,6 +192,19 @@ textarea {
   margin-top: 4px;
   font-size: 0.82rem;
   color: #8f6b46;
+}
+
+.sidebar-collapse-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #d9b678;
+  background: #fff7e8;
+  color: #7a4d1f;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .sidebar-nav {
@@ -164,6 +227,16 @@ textarea {
   text-align: left;
   font-size: 0.92rem;
   transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-item.collapsed {
+  justify-content: center;
+  padding-inline: 10px;
+}
+
+.nav-item.collapsed .nav-icon {
+  margin-right: 0;
 }
 
 .nav-item:hover,
@@ -178,6 +251,33 @@ textarea {
 .nav-icon {
   width: 20px;
   text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  white-space: nowrap;
+}
+
+.menu-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ff4d4f;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.menu-badge.collapsed {
+  top: 1px;
+  right: 2px;
 }
 
 .sidebar-toolbar {
