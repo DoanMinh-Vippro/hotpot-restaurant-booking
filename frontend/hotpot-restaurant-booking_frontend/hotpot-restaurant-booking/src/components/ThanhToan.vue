@@ -173,7 +173,7 @@ const giamSoLuong = (item: any) => {
   }
 }
 
-// ================= XỬ LÝ LÊN MÓN =================
+// ================= XỬ LÝ LÊN MÓN (ĐÃ FIX KHÔNG BỊ TRÁO/GỌI LẠI MÓN ĐÃ LÊN) =================
 const xacNhanTungMon = async (item: any) => {
   if (item.daLen < item.soLuong) {
     item.daLen += 1
@@ -384,22 +384,6 @@ const xuLyHoaDon = async (trangThaiHoaDon: number, trangThaiThanhToan: number) =
   }
 }
 
-// HÀM XỬ LÝ KHI BẤM NÚT LƯU
-const luuHoaDonTam = async () => {
-  try {
-    const isFirstTime = !hoaDonHienTai.value
-    await xuLyHoaDon(0, 0)
-    if (isFirstTime) {
-      alert('Tạo hóa đơn tạm thành công!')
-    } else {
-      alert('Cập nhật hóa đơn thành công!')
-    }
-  } catch (error) {
-    console.error('Lỗi khi lưu hóa đơn:', error)
-    alert('Lưu hóa đơn thất bại!')
-  }
-}
-
 const normalizeReservationStatus = (value: any) => {
   if (!value) return ''
   if (typeof value === 'string') return value
@@ -545,6 +529,7 @@ const markReservationCompleted = async () => {
   }
 }
 
+// Định nghĩa interface gọn gàng (đặt ở ngoài hoặc đầu file script)
 interface CartItem {
   idMon?: number
   idCombo?: number
@@ -554,7 +539,7 @@ interface CartItem {
   [key: string]: any
 }
 
-// ================= ACTION XÁC NHẬN GỬI BẾP =================
+// ================= ACTION XÁC NHẬN GỬI BẾP & GỌI API MAYIN =================
 const luuTam = async () => {
   const currentCart = gioHang.value as CartItem[]
   if (!currentCart.length) {
@@ -565,6 +550,7 @@ const luuTam = async () => {
   try {
     monVuaGuiBep.value = [...currentCart]
 
+    // 1. Cập nhật món phục vụ tại bàn
     currentCart.forEach((cartItem) => {
       const trungMon = danhSachMonPhucVu.value.find((p: any) =>
         p.loai === cartItem.loai &&
@@ -577,17 +563,20 @@ const luuTam = async () => {
       }
     })
 
+    // 2. Nhóm món theo Quầy (Bếp / Bar)
     const grouped = currentCart.reduce<Record<string, CartItem[]>>((acc, item) => {
       const quay = item.tenQuay || 'Quầy Bếp'
-      ;(acc[quay] ||= []).push(item)
+      ;(acc[quay] ||= []).push(item) // Cú pháp ||= ngắn gọn hơn
       return acc
     }, {})
 
     monTheoQuayMap.value = grouped
 
+    // 3. Lưu hóa đơn tạm vào DB trước
     await xuLyHoaDon(0, 0)
     await nextTick()
 
+    // 4. GỬI PHIẾU BÁO BẰNG API SONG SONG (PROMISE.ALL) 🚀
     const now = new Date()
     const thoiGianFormatted = `${now.toLocaleTimeString('vi-VN')} ${now.toLocaleDateString('vi-VN')}`
 
@@ -605,8 +594,10 @@ const luuTam = async () => {
       })
     )
 
+    // Chờ tất cả quầy gửi request in xong cùng lúc
     await Promise.all(printRequests)
 
+    // Reset giỏ và chuyển tab
     gioHang.value = []
     tabGioHang.value = 'mon-dang-len'
   } catch (error) {
@@ -707,10 +698,7 @@ onMounted(async () => {
       >
         Món ăn
       </div>
-      <div class="action-bottom-group">
-        <button class="btn-luu-don" @click="luuHoaDonTam">Lưu</button>
-        <button class="btn-quay-lai" @click="quayLai">Quay Lại</button>
-      </div>
+      <div><button class="btn-quay-lai" @click="quayLai">Quay Lại</button></div>
     </div>
 
     <!-- CỘT DANH SÁCH MÓN GIỮA -->
@@ -1016,11 +1004,8 @@ onMounted(async () => {
   width: 30%;
 }
 
-.action-bottom-group {
+.danh-muc > div:last-child {
   margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .food-grid {
@@ -1063,26 +1048,6 @@ onMounted(async () => {
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid rgba(255, 216, 107, 0.15);
-}
-
-.btn-luu-don {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #2e7d32, #1b5e20);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
-}
-
-.btn-luu-don:hover {
-  background: linear-gradient(145deg, #388e3c, #2e7d32);
-  transform: translateY(-2px);
-  box-shadow: 0 0 12px rgba(46, 125, 50, 0.5);
 }
 
 .btn-quay-lai {
