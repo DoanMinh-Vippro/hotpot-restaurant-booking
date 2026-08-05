@@ -1,104 +1,101 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
-import ThongKeApi from "@/api/ThongKeApi";
-import RevenueChart from "./RevenueChart.vue";
-import DepositStatusChart from "./DepositStatusChart.vue";
-import KhuVucChart from "./KhuVucChart.vue";
-import GioCaoDiemChart from "./GioCaoDiemChart.vue";
+import { onMounted, ref, computed } from 'vue'
+import ThongKeApi from '@/api/ThongKeApi'
+import RevenueChart from './RevenueChart.vue'
+import DepositStatusChart from './DepositStatusChart.vue'
+import KhuVucChart from './KhuVucChart.vue'
+import GioCaoDiemChart from './GioCaoDiemChart.vue'
 
-const dashboard = ref<any>({});
-const topMon = ref<any[]>([]);
-const topNhanVien = ref<any[]>([]);
-const tienCoc = ref<any[]>([]);
-const trangThaiCoc = ref<any[]>([]);
-const ngay = ref<any[]>([]);
-const thang = ref<any[]>([]);
-const nam = ref<any[]>([]);
-const khuVuc = ref<any[]>([]);
-const doanhThuGio = ref<any[]>([]);
-const topKhachHang = ref<any[]>([]);
-const khuyenMai = ref<any[]>([]);
+const dashboard = ref<any>({})
+const topMon = ref<any[]>([])
+const topNhanVien = ref<any[]>([])
+const tienCoc = ref<any[]>([])
+const trangThaiCoc = ref<any[]>([])
+const ngay = ref<any[]>([])
+const thang = ref<any[]>([])
+const nam = ref<any[]>([])
+const khuVuc = ref<any[]>([])
+const doanhThuGio = ref<any[]>([])
+const topKhachHang = ref<any[]>([])
+const khuyenMai = ref<any[]>([])
 
-const mode = ref<"ngay" | "thang" | "nam">("thang");
-const modes = ["ngay", "thang", "nam"] as const;
+const mode = ref<'ngay' | 'thang' | 'nam'>('thang')
+const modes = ['ngay', 'thang', 'nam'] as const
 
-const now = ref(new Date());
-const timeRefresh = ref("");
+const now = ref(new Date())
+const timeRefresh = ref('')
 
 const updateClock = () => {
-  now.value = new Date();
-  timeRefresh.value = now.value.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
-};
+  now.value = new Date()
+  timeRefresh.value = now.value.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
 
 const load = async () => {
   try {
-    const [db, mon, nv, dNgay, dThang, dNam, coc, ttCoc, kv, dGio, kh, km] =
-      await Promise.all([
-        ThongKeApi.dashboard(),
-        ThongKeApi.topMon(0, 5),
-        ThongKeApi.topNhanVien(),
-        ThongKeApi.theoNgay("2026-01-01", "2026-12-31"),
-        ThongKeApi.theoThang(),
-        ThongKeApi.theoNam(),
-        ThongKeApi.tienCocTheoNgay(),
-        ThongKeApi.trangThaiCoc(),
-        ThongKeApi.doanhThuTheoKhuVuc(),
-        ThongKeApi.doanhThuTheoGio(),
-        ThongKeApi.topKhachHangThanThiet(),
-        ThongKeApi.hieuQuaKhuyenMai()
-      ]);
+    const [db, mon, nv, dNgay, dThang, dNam, coc, ttCoc, kv, dGio, kh, km] = await Promise.all([
+      ThongKeApi.dashboard(),
+      ThongKeApi.topMon(0, 5),
+      ThongKeApi.topNhanVien(),
+      ThongKeApi.theoNgay('2026-01-01', '2026-12-31'),
+      ThongKeApi.theoThang(),
+      ThongKeApi.theoNam(),
+      ThongKeApi.tienCocTheoNgay(),
+      ThongKeApi.trangThaiCoc(),
+      ThongKeApi.doanhThuTheoKhuVuc(),
+      ThongKeApi.doanhThuTheoGio(),
+      ThongKeApi.topKhachHangThanThiet(),
+      ThongKeApi.hieuQuaKhuyenMai(),
+    ])
 
-    dashboard.value = db?.data || {};
-    topMon.value = mon?.data || [];
-    topNhanVien.value = nv?.data || [];
-    ngay.value = dNgay?.data || [];
-    thang.value = dThang?.data || [];
-    nam.value = dNam?.data || [];
-    tienCoc.value = coc?.data || [];
-    trangThaiCoc.value = ttCoc?.data || [];
-    khuVuc.value = kv?.data || [];
-    doanhThuGio.value = dGio?.data || [];
-    topKhachHang.value = kh?.data || [];
-    khuyenMai.value = km?.data || [];
-
+    dashboard.value = db?.data || {}
+    topMon.value = mon?.data || []
+    topNhanVien.value = nv?.data || []
+    ngay.value = dNgay?.data || []
+    thang.value = dThang?.data || []
+    nam.value = dNam?.data || []
+    tienCoc.value = coc?.data || []
+    trangThaiCoc.value = ttCoc?.data || []
+    khuVuc.value = kv?.data || []
+    doanhThuGio.value = dGio?.data || []
+    topKhachHang.value = kh?.data || []
+    khuyenMai.value = km?.data || []
   } catch (err) {
-    console.error("LOAD ERROR:", err);
+    console.error('LOAD ERROR:', err)
   }
-};
+}
 
 const chartData = computed(() => {
-  let data: any[] = [];
-  if (mode.value === "ngay") data = ngay.value;
-  else if (mode.value === "nam") data = nam.value;
-  else data = thang.value;
+  let data: any[] = []
+  if (mode.value === 'ngay') data = ngay.value
+  else if (mode.value === 'nam') data = nam.value
+  else data = thang.value
 
-  return (data || []).map(i => {
-    let thoiGian = "";
-    if (mode.value === "ngay") thoiGian = i?.thoiGian ? i.thoiGian.slice(5) : "";
-    else if (mode.value === "thang") thoiGian = i?.thoiGian || "";
-    else if (mode.value === "nam") thoiGian = i?.thoiGian ? i.thoiGian.toString().slice(0, 4) : "";
+  return (data || []).map((i) => {
+    let thoiGian = ''
+    if (mode.value === 'ngay') thoiGian = i?.thoiGian ? i.thoiGian.slice(5) : ''
+    else if (mode.value === 'thang') thoiGian = i?.thoiGian || ''
+    else if (mode.value === 'nam') thoiGian = i?.thoiGian ? i.thoiGian.toString().slice(0, 4) : ''
 
     return {
       thoiGian,
-      tongDoanhThu: i?.tongDoanhThu || i?.doanhThu || i?.tongTien || 0
-    };
-  });
-});
+      tongDoanhThu: i?.tongDoanhThu || i?.doanhThu || i?.tongTien || 0,
+    }
+  })
+})
 
 onMounted(() => {
-  load();
-  updateClock();
-  setInterval(updateClock, 1000);
-});
+  load()
+  updateClock()
+  setInterval(updateClock, 1000)
+})
 </script>
 
 <template>
   <div class="pos-dashboard">
-
     <!-- ====== TOP BAR ====== -->
     <div class="topbar">
       <div class="logo-area">
@@ -109,7 +106,14 @@ onMounted(() => {
         </div>
       </div>
       <div class="right-info">
-        <span class="date">{{ now.toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+        <span class="date">{{
+          now.toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        }}</span>
         <span class="clock">{{ timeRefresh }}</span>
       </div>
     </div>
@@ -120,7 +124,9 @@ onMounted(() => {
         <div class="kpi-icon">💰</div>
         <div class="kpi-content">
           <span class="kpi-label">Tổng doanh thu</span>
-          <span class="kpi-value">{{ Number(dashboard.tongDoanhThu || 0).toLocaleString() }} đ</span>
+          <span class="kpi-value"
+            >{{ Number(dashboard.tongDoanhThu || 0).toLocaleString() }} đ</span
+          >
         </div>
       </div>
 
@@ -167,21 +173,16 @@ onMounted(() => {
 
     <!-- ====== MAIN LAYOUT 2 CỘT ====== -->
     <div class="main-grid">
-
       <!-- CỘT TRÁI -->
       <div class="col-left">
-
         <!-- DOANH THU CHART -->
         <div class="card">
           <div class="card-header">
             <h3>📊 Doanh thu</h3>
             <div class="filter-chip">
-              <button
-                v-for="m in modes"
-                :key="m"
-                @click="mode = m"
-                :class="{ active: mode === m }"
-              >{{ m === 'ngay' ? 'Ngày' : m === 'thang' ? 'Tháng' : 'Năm' }}</button>
+              <button v-for="m in modes" :key="m" @click="mode = m" :class="{ active: mode === m }">
+                {{ m === 'ngay' ? 'Ngày' : m === 'thang' ? 'Tháng' : 'Năm' }}
+              </button>
             </div>
           </div>
           <div class="card-body">
@@ -208,12 +209,10 @@ onMounted(() => {
             <KhuVucChart :data="khuVuc" />
           </div>
         </div>
-
       </div>
 
       <!-- CỘT PHẢI -->
       <div class="col-right">
-
         <!-- TRẠNG THÁI CỌC -->
         <div class="card">
           <div class="card-header">
@@ -283,10 +282,8 @@ onMounted(() => {
             <div v-if="khuyenMai.length === 0" class="empty">Chưa có dữ liệu</div>
           </div>
         </div>
-
       </div>
     </div>
-
   </div>
 </template>
 
@@ -299,7 +296,11 @@ onMounted(() => {
 }
 
 .pos-dashboard {
-  font-family: 'SF Pro Display', 'Inter', -apple-system, sans-serif;
+  font-family:
+    'SF Pro Display',
+    'Inter',
+    -apple-system,
+    sans-serif;
   background: #f0f2f5;
   min-height: 100vh;
   padding: 20px 24px;
@@ -315,7 +316,7 @@ onMounted(() => {
   padding: 16px 24px;
   border-radius: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .logo-area {
@@ -374,7 +375,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: transform 0.15s;
 }
 
@@ -392,12 +393,24 @@ onMounted(() => {
   border-radius: 14px;
 }
 
-.kpi-green .kpi-icon { background: #dcfce7; }
-.kpi-blue .kpi-icon { background: #dbeafe; }
-.kpi-purple .kpi-icon { background: #ede9fe; }
-.kpi-orange .kpi-icon { background: #ffedd5; }
-.kpi-teal .kpi-icon { background: #ccfbf1; }
-.kpi-red .kpi-icon { background: #fee2e2; }
+.kpi-green .kpi-icon {
+  background: #dcfce7;
+}
+.kpi-blue .kpi-icon {
+  background: #dbeafe;
+}
+.kpi-purple .kpi-icon {
+  background: #ede9fe;
+}
+.kpi-orange .kpi-icon {
+  background: #ffedd5;
+}
+.kpi-teal .kpi-icon {
+  background: #ccfbf1;
+}
+.kpi-red .kpi-icon {
+  background: #fee2e2;
+}
 
 .kpi-content {
   display: flex;
@@ -428,7 +441,7 @@ onMounted(() => {
 .card {
   background: #fff;
   border-radius: 18px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   margin-bottom: 18px;
   overflow: hidden;
 }
@@ -475,7 +488,7 @@ onMounted(() => {
 .filter-chip button.active {
   background: #fff;
   color: #0f172a;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* ========== LIST ROW ========== */

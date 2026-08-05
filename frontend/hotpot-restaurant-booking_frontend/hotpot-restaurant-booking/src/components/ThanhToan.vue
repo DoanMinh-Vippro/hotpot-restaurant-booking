@@ -14,7 +14,9 @@ import { useShiftStore } from '@/stores/ShiftStore'
 import { useAuthStore } from '@/stores/AuthStore'
 import printJS from 'print-js'
 import DanhMucApi from '@/api/DanhMucApi.ts'
+import { useOrderStore } from '@/stores/OrderStore'
 
+const orderStore = useOrderStore()
 // ================= PROPS =================
 const props = defineProps<{
   ban: any
@@ -91,10 +93,17 @@ const layTenQuay = (item: any): string => {
   if (String(quay).toUpperCase() === 'BAR') {
     return 'Quầy Bar'
   }
-  
+
   return 'Quầy Bếp'
 }
 
+const loadOrderFromStore = () => {
+  if (!props.ban?.idBan) return
+
+  const ds = orderStore.getByBan(props.ban.idBan)
+
+  danhSachMonPhucVu.value = structuredClone(ds)
+}
 // ================= LOAD DATA =================
 // const loadData = async () => {
 //   const combo = await ComBoApi.hienThiComBo()
@@ -109,7 +118,7 @@ const loadData = async () => {
     const [comboRes, monRes, danhMucRes] = await Promise.all([
       ComBoApi.hienThiComBo(),
       MonApi.hienThiMon(),
-      DanhMucApi.getDanhSach()
+      DanhMucApi.getDanhSach(),
     ])
 
     const dsDanhMuc = danhMucRes.data || []
@@ -121,11 +130,11 @@ const loadData = async () => {
       .map((m: any) => {
         // Tìm danh mục tương ứng
         const dm = dsDanhMuc.find((d: any) => d.idDanhMuc === m.idDanhMuc)
-        
+
         return {
           ...m,
           // Ưu tiên m.quay, nếu null thì lấy dm.quay, nếu vẫn ko có mới lấy 'BEP'
-          quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP'
+          quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP',
         }
       })
 
@@ -499,16 +508,17 @@ const markReservationCompleted = async () => {
 
   const updateReservationToCompleted = async (reservation: any) => {
     if (!reservation?.idDatBan) return
-  if (reservationId && props.datBan) {
-    try {
-      const payload = buildReservationUpdatePayload(reservation)
-      if (payload) {
-        await DatBanQuanLyApi.update(reservation.idDatBan, payload)
+    if (reservationId && props.datBan) {
+      try {
+        const payload = buildReservationUpdatePayload(reservation)
+        if (payload) {
+          await DatBanQuanLyApi.update(reservation.idDatBan, payload)
+        }
+      } catch (error) {
+        console.warn('Không thể cập nhật đơn đặt bàn sau thanh toán:', error)
       }
-    } catch (error) {
-      console.warn('Không thể cập nhật đơn đặt bàn sau thanh toán:', error)
     }
-  }}
+  }
 
   // Nếu có reservation hiện tại thì cập nhật trực tiếp
   if (reservationId && props.datBan) {
@@ -518,10 +528,11 @@ const markReservationCompleted = async () => {
     try {
       const reservationRes = await DatBanQuanLyApi.getAll()
       const reservationList = Array.isArray(reservationRes?.data) ? reservationRes.data : []
-      const matchedReservation = reservationList.find((reservation: any) =>
-        Array.isArray(reservation?.dsBan) &&
-        reservation.dsBan.some((ban: any) => Number(ban?.idBan) === Number(banId)) &&
-        ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || ''))
+      const matchedReservation = reservationList.find(
+        (reservation: any) =>
+          Array.isArray(reservation?.dsBan) &&
+          reservation.dsBan.some((ban: any) => Number(ban?.idBan) === Number(banId)) &&
+          ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || '')),
       )
       if (matchedReservation) {
         await updateReservationToCompleted(matchedReservation)
@@ -604,8 +615,8 @@ const luuTam = async () => {
         style: `
           @page { size: 80mm auto; margin: 0; }
           body { margin: 0; padding: 0; }
-          .phieu-in-bep { 
-            font-family: 'Courier New', Courier, monospace; 
+          .phieu-in-bep {
+            font-family: 'Courier New', Courier, monospace;
             color: #000000; width: 72mm; margin: 0 auto; padding: 6mm 0; box-sizing: border-box;
           }
           .phieu-header { text-align: center; }
@@ -696,6 +707,16 @@ watch(
     await syncReservationToSeated()
   },
   { immediate: true },
+)
+
+watch(
+  () => props.ban?.idBan,
+  () => {
+    loadOrderFromStore()
+  },
+  {
+    immediate: true,
+  },
 )
 
 onMounted(() => {

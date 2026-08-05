@@ -2,6 +2,7 @@ export interface OrderBan {
   idBan: number
   tenBan: string
   sucChua: number
+  trangThai: 'TRONG' | 'DA_DAT' | 'DANG_SU_DUNG'
 }
 
 export interface OrderKhuVuc {

@@ -1,7 +1,8 @@
-package com.example.hotpotrestaurantbooking_backend.service;
+package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.*;
 import com.example.hotpotrestaurantbooking_backend.repository.ThongKeRepository;
+import com.example.hotpotrestaurantbooking_backend.service.ThongKeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

@@ -65,7 +65,7 @@ public class OrderServiceImpl implements OrderSevice {
     @Override
     public DTOOrderHoaDonResponse chonBan(Integer idBan) {
         HoaDon hoaDon = hoaDonRepository
-                .findByBan_IdBanAndTrangThaiHoaDon(idBan, 1)
+                .findByBan_IdBanAndTrangThaiHoaDon(idBan, 0)
                 .orElseThrow(() -> new RuntimeException("Bàn này chưa có hóa đơn đang hoạt động."));
         return mapper.map(hoaDon, DTOOrderHoaDonResponse.class);
     }
