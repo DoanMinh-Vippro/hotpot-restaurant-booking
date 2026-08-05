@@ -289,6 +289,45 @@ const giamSoLuong = (item: any) => {
   }
 }
 
+const tangSoLuong = (item: any) => {
+  const index = gioHang.value.findIndex(
+    (x) =>
+      x.loai === item.loai &&
+      (item.loai === 'COMBO' ? x.idCombo === item.idCombo : x.idMon === item.idMon),
+  )
+  if (index === -1) return
+  gioHang.value[index].soLuong++
+}
+
+const updateQuantity = (item: any, value: number) => {
+  const index = gioHang.value.findIndex(
+    (x) =>
+      x.loai === item.loai &&
+      (item.loai === 'COMBO' ? x.idCombo === item.idCombo : x.idMon === item.idMon),
+  )
+  if (index === -1) return
+  const newQty = Number(value || 0)
+  if (newQty <= 0) {
+    gioHang.value.splice(index, 1)
+  } else {
+    gioHang.value[index].soLuong = newQty
+  }
+}
+
+const showPaymentReview = ref(false)
+const itemsToReview = computed(() =>
+  danhSachMonPhucVu.value.filter((item: any) => Number(item.soLuong) > 0),
+)
+
+const proceedToPayment = () => {
+  showPaymentReview.value = false
+  phuongThucThanhToan.value = true
+}
+
+const closePaymentReview = () => {
+  showPaymentReview.value = false
+}
+
 // ================= XỬ LÝ LÊN MÓN =================
 const xacNhanTungMon = async (item: any) => {
   if (item.daLen < item.soLuong) {
@@ -314,7 +353,7 @@ const optionPay = async () => {
     alert('Chưa có món nào được gửi vào bếp để thanh toán!')
     return
   }
-  phuongThucThanhToan.value = true
+  showPaymentReview.value = true
 }
 const closePopup = () => {
   phuongThucThanhToan.value = false
@@ -987,7 +1026,17 @@ onMounted(async () => {
             :key="`cart-${item.loai}-${item.idMon ?? item.idCombo}`"
             class="cart-item"
           >
-            <button class="btn-minus" @click="giamSoLuong(item)">-</button>
+            <div class="qty-control">
+              <button class="btn-minus" @click="giamSoLuong(item)">-</button>
+              <input
+                class="qty-input"
+                type="number"
+                min="1"
+                v-model.number="item.soLuong"
+                @change="updateQuantity(item, item.soLuong)"
+              />
+              <button class="btn-plus" @click="tangSoLuong(item)">+</button>
+            </div>
             <div class="item-info">
               <div class="item-name">{{ itemName(item) }}</div>
               <div v-if="item.comboItems?.length" class="mon-combo">
@@ -1091,6 +1140,37 @@ onMounted(async () => {
           </select>
         </div>
         <button class="btn-thanh-toan" :disabled="isShiftClosedForUi" @click="optionPay">Thanh toán</button>
+      </div>
+    </div>
+
+    <div v-if="showPaymentReview" class="payment-review-overlay">
+      <div class="payment-review-dialog">
+        <div class="review-header">
+          <div class="review-title">Xác nhận thanh toán</div>
+          <div class="review-subtitle">Vui lòng kiểm tra lại các món chuẩn bị thanh toán trước khi tiếp tục.</div>
+        </div>
+        <div v-if="itemsToReview.length === 0" class="empty-cart">
+          Không có món nào để thanh toán.
+        </div>
+        <div v-else class="payment-review-list">
+          <div
+            v-for="item in itemsToReview"
+            :key="`review-${item.loai}-${item.idMon ?? item.idCombo}`"
+            class="review-item"
+          >
+            <div class="review-name">{{ itemName(item) }}</div>
+            <div class="review-detail">
+              x{{ item.soLuong }} · {{ ((item.gia ?? 0) * item.soLuong).toLocaleString('vi-VN') }} đ
+            </div>
+          </div>
+          <div class="review-total">
+            Tổng thanh toán: {{ tongThanhToan.toLocaleString('vi-VN') }} đ
+          </div>
+        </div>
+        <div class="review-actions">
+          <button class="btn-primary" @click="proceedToPayment">Tiếp tục thanh toán</button>
+          <button class="btn-secondary" @click="closePaymentReview">Hủy</button>
+        </div>
       </div>
     </div>
 
@@ -1429,7 +1509,30 @@ onMounted(async () => {
   margin-bottom: 6px;
   font-style: italic;
 }
-.btn-minus {
+.qty-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+}
+.qty-input {
+  width: 58px;
+  min-width: 58px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 216, 107, 0.35);
+  border-radius: 8px;
+  background: #2c2c2c;
+  color: #ffd86b;
+  text-align: center;
+  font-weight: 700;
+}
+.qty-input:focus {
+  outline: none;
+  border-color: #ffd86b;
+  box-shadow: 0 0 0 3px rgba(255, 216, 107, 0.15);
+}
+.btn-minus,
+.btn-plus {
   width: 32px;
   height: 32px;
   border: 1px solid rgba(255, 216, 107, 0.25);
@@ -1439,7 +1542,8 @@ onMounted(async () => {
   font-size: 16px;
   cursor: pointer;
 }
-.btn-minus:hover {
+.btn-minus:hover,
+.btn-plus:hover {
   background: #ffd86b;
   color: #111;
 }
@@ -1524,4 +1628,101 @@ onMounted(async () => {
   background: rgba(255, 216, 107, 0.3);
   border-radius: 10px;
 }
+  .payment-review-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(10, 10, 10, 0.64);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .payment-review-dialog {
+    width: min(560px, 100%);
+    background: linear-gradient(180deg, #fff8eb, #fff1d3);
+    border-radius: 26px;
+    border: 1px solid rgba(212, 175, 55, 0.24);
+    box-shadow: 0 26px 68px rgba(0, 0, 0, 0.22);
+    padding: 24px;
+    color: #4e3511;
+  }
+  .review-header {
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(255, 234, 187, 0.97), rgba(255, 239, 213, 0.95));
+    border-radius: 18px;
+    border: 1px solid rgba(255, 210, 115, 0.35);
+  }
+  .review-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #7b4d14;
+    margin-bottom: 8px;
+  }
+  .review-subtitle {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #735623;
+  }
+  .payment-review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .review-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 16px;
+    background: rgba(255, 244, 224, 0.95);
+    border: 1px solid rgba(255, 210, 114, 0.28);
+  }
+  .review-name {
+    font-weight: 700;
+    color: #563812;
+  }
+  .review-detail {
+    color: #7a5728;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .review-total {
+    padding: 16px;
+    border-radius: 16px;
+    background: #fff3d2;
+    border: 1px solid rgba(255, 200, 88, 0.32);
+    font-weight: 800;
+    color: #6d4a1d;
+    text-align: right;
+  }
+  .review-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .review-actions button {
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .review-actions button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #f6c24b, #d49b13);
+    color: #111;
+  }
+  .btn-secondary {
+    background: #fff7e7;
+    color: #7b4f19;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+  }
 </style>
