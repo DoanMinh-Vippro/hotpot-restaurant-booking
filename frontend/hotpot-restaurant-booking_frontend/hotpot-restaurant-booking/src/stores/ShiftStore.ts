@@ -136,6 +136,13 @@ export const normalizeShiftPaymentMethod = (value: unknown): ShiftPaymentMethod 
   return 'other'
 }
 
+export const isShiftClosed = (shift?: ShiftSession | null) => !shift || shift.isOpen === false
+
+export const getShiftDisplayStatus = (shift?: ShiftSession | null) => {
+  if (!shift) return 'Closed'
+  return shift.isOpen === false ? 'Closed' : 'Open'
+}
+
 export const isValidShiftInvoice = (bill: unknown) => {
   const invoice = (bill || {}) as Partial<ShiftInvoice> & { trangThaiHoaDon?: unknown; invoiceStatus?: unknown }
   const total = Number(invoice.total ?? 0)
