@@ -5,6 +5,7 @@ import About from '../components/AboutSection.vue'
 import Menu from '../components/MenuSection.vue'
 import Contact from '../components/ContactSection.vue'
 import Hero from '../components/HeroSection.vue'
+import ChatWidget from '../components/ChatWidget.vue'
 </script>
 
 <template>
@@ -17,6 +18,8 @@ import Hero from '../components/HeroSection.vue'
     <Menu />
 
     <Contact />
+
+    <ChatWidget />
 
     <footer class="simple-copyright">
       <p>© 2026 CÁI BANG RESTO</p>

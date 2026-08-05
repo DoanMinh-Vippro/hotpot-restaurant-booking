@@ -91,6 +91,16 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     ],
   },
   {
+    key: 'message',
+    label: 'Tin nhắn',
+    actions: [
+      { key: 'message.view', label: 'Xem' },
+      { key: 'message.create', label: 'Thêm' },
+      { key: 'message.update', label: 'Sửa' },
+      { key: 'message.delete', label: 'Xóa' },
+    ],
+  },
+  {
     key: 'statistics',
     label: 'Thống kê',
     actions: [
@@ -142,9 +152,13 @@ const saveStorage = (data: Record<string, string[]>) => {
   }
 }
 
+export const normalizePermissionValue = (permission: string | null | undefined): string =>
+  (permission || '').trim().toLowerCase()
+
 export const normalizePermissions = (permissions: string[] | undefined): string[] => {
   const safePermissions = (Array.isArray(permissions) ? permissions : [])
     .filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+    .map((permission) => normalizePermissionValue(permission))
 
   const detailPermissions = safePermissions.filter((permission) => permission.includes('.'))
   const baseModulePermissions = detailPermissions

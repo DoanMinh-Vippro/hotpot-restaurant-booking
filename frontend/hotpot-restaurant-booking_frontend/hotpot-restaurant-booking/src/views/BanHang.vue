@@ -107,7 +107,27 @@ const loadSoLuongHoaDon = async () => {
   }
 }
 
+const canContinueServingClosedShift = (ban: any | null) => {
+  if (!ban?.idBan) return false
+
+  const activeInvoice = ban?.hoaDonInfo
+  const hasUnpaidInvoice =
+    activeInvoice &&
+    Number(activeInvoice.trangThaiThanhToan) === 0 &&
+    Number(activeInvoice.trangThaiHoaDon) === 0
+
+  return Boolean(hasUnpaidInvoice)
+}
+
 const chuyenManHinhThanhToan = async () => {
+  const isShiftClosed = !shiftStore.currentShift || shiftStore.currentShift.isOpen === false
+  const canContinue = canContinueServingClosedShift(banDangChon.value)
+
+  if (isShiftClosed && !canContinue) {
+    alert('Ca làm việc đã đóng, không thể thực hiện thao tác gọi món mới')
+    return
+  }
+
   showPopup.value = false
   if (banDangChon.value) {
     await markBanDangSuDung(banDangChon.value)
@@ -545,7 +565,8 @@ onMounted(async () => {
                   </div>
                   <div class="ban-info">
                     <span class="ban-name">{{ ban.tenBan }}</span>
-                    <span class="ban-capacity">👥 {{ ban.soLuongNguoi || ban.soNguoi || 4 }}</span>
+                    <!-- <span class="ban-capacity">👥 {{ ban.soLuongNguoi || ban.soNguoi || 4 }}</span> -->
+                    <span class="ban-capacity">👥</span>
                   </div>
                   <div class="ban-status">
                     <span class="status-badge" :class="ban.trangThai.toLowerCase()">

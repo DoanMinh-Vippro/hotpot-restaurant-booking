@@ -1,13 +1,12 @@
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/AuthStore'
+import { normalizePermissionValue } from '@/utils/rolePermissions'
 
 export type PermissionState = 'none' | 'view' | 'full'
 
-const normalizePermission = (permission: string | null | undefined) =>
-  (permission || '').trim().toLowerCase()
+const normalizePermission = (permission: string | null | undefined) => normalizePermissionValue(permission)
 
-const normalizeModule = (moduleKey: string | null | undefined) =>
-  (moduleKey || '').trim().toLowerCase()
+const normalizeModule = (moduleKey: string | null | undefined) => normalizePermissionValue(moduleKey)
 
 export const getModulePermissionState = (
   permissions: string[] | undefined,
@@ -19,13 +18,12 @@ export const getModulePermissionState = (
   if (!normalizedModule || !normalizedPermissions.length) return 'none'
 
   const hasBaseModule = normalizedPermissions.includes(normalizedModule)
-  const hasViewPermission = hasBaseModule || normalizedPermissions.includes(`${normalizedModule}.view`)
   const hasActionPermission = normalizedPermissions.some(
     (permission) => permission.startsWith(`${normalizedModule}.`) && permission !== `${normalizedModule}.view`,
   )
 
-  if (hasActionPermission) return 'full'
-  if (hasViewPermission) return 'view'
+  if (hasBaseModule || hasActionPermission) return 'full'
+  if (normalizedPermissions.includes(`${normalizedModule}.view`)) return 'view'
   return 'none'
 }
 
