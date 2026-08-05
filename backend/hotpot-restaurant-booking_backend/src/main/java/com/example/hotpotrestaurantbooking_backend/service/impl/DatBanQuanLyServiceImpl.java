@@ -464,9 +464,10 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         db.setNgayDat(LocalDate.now());
         db.setGioDat(Time.valueOf(LocalTime.now()));
 
-        if (db.getSoTienCoc() == null) {
+        if (db.getSoTienCoc() == null || db.getSoTienCoc().compareTo(BigDecimal.ZERO) <= 0) {
             db.setSoTienCoc(BigDecimal.ZERO);
-        }else{
+            db.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
+        } else {
             db.setTrangThaiCoc(TrangThaiDatBanCoc.DA_COC);
         }
 

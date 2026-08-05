@@ -7,6 +7,7 @@ import Order from '@/api/Order.ts'
 import OrderMenu from '@/components/Order/OrderMenu.vue'
 import OrderDetail from '@/components/Order/OrderDetail.vue'
 import { useOrderStore } from '@/stores/OrderStore'
+import MayInApi from '@/api/MayInApi'
 
 const orderStore = useOrderStore()
 const currentTab = ref<'MON' | 'COMBO' | 'DO_UONG'>('MON')
@@ -17,8 +18,8 @@ const showSuccessPopup = ref(false)
 const pendingItems = ref<any[]>([])
 
 async function confirmOrder() {
+  const itemsCanPrint = [...pendingItems.value]
   if (!hoaDon.value) return
-
   showConfirmOrder.value = false
 
   for (const item of pendingItems.value) {
@@ -36,13 +37,33 @@ async function confirmOrder() {
       })
     }
   }
-
+  await inPhieuOrder(itemsCanPrint)
   pendingItems.value = []
-
   await loadHoaDon()
   showSuccessPopup.value = true
   orderStore.updateItems(selectedBan.value!.idBan, convertChiTietToStore())
   console.log('ORDER SUCCESS')
+}
+
+async function inPhieuOrder(items: any[]) {
+  if (!hoaDon.value || !selectedBan.value) return
+
+  const now = new Date()
+
+  const thoiGianFormatted = `${now.toLocaleTimeString('vi-VN')} ${now.toLocaleDateString('vi-VN')}`
+
+  await MayInApi.sendTicket({
+    tenQuay: 'Quầy Bếp',
+    maHoaDon: hoaDon.value.maHoaDon,
+    tenBan: selectedBan.value.tenBan,
+    tenNhanVien: 'Nhân viên',
+    thoiGian: thoiGianFormatted,
+
+    danhSachMon: items.map((item) => ({
+      tenMon: item.tenMon ?? item.tenCombo,
+      soLuong: item.soLuong,
+    })),
+  })
 }
 
 const chiTiet = ref<any>({
