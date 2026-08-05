@@ -89,21 +89,11 @@ const isAvailableTable = (ban: any) => normalizeStatus(ban?.trangThai) === 'TRON
 // ======================== METHODS ========================
 const loadSoLuongHoaDon = async () => {
   try {
-    const [reservationRes] = await Promise.all([
-      DatBanQuanLyApi.getAll(),
-    ])
-
-    if (reservationRes?.data) {
-      checkedInReservations.value = reservationRes.data.filter((item: any) => item?.trangThai === 'DA_NHAN_BAN')
-      soLuongHoaDon.value = checkedInReservations.value.length
-    } else {
-      soLuongHoaDon.value = 0
-      checkedInReservations.value = []
-    }
+    const res = await HoaDonApi.getActiveCount()
+    soLuongHoaDon.value = typeof res.data === 'number' ? res.data : 0
   } catch (error) {
-    console.error('Không thể tải đơn đã check-in:', error)
+    console.error('Không thể tải số lượng hóa đơn:', error)
     soLuongHoaDon.value = 0
-    checkedInReservations.value = []
   }
 }
 
@@ -254,6 +244,13 @@ const moPopupDatBan = async (ban: any) => {
 
   if (isAvailableTable(ban)) {
     showPopup.value = true
+    return
+  }
+
+  // Nếu bàn đang dùng thì không hiện popup đặt bàn, đi thẳng sang màn thanh toán.
+  if (normalizeStatus(ban.trangThai) === 'DANG_SU_DUNG') {
+    datBanDangChon.value = null
+    manHinhHienTai.value = 'thanhToan'
     return
   }
 

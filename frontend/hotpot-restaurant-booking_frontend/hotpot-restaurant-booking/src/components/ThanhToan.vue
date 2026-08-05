@@ -1128,9 +1128,6 @@ onMounted(async () => {
         <div v-if="depositDaCoc > 0" class="tong-tien">
           Tiền cọc đã trừ: {{ depositDaCoc.toLocaleString('vi-VN') }} đ
         </div>
-        <div class="tong-tien main-total-center">
-          Còn phải thanh toán: {{ tongThanhToan.toLocaleString('vi-VN') }} đ
-        </div>
         <div>
           <select class="discount-input" v-model="giamGiaDangChon">
             <option :value="null">Chọn mã giảm giá</option>
@@ -1139,7 +1136,9 @@ onMounted(async () => {
             </option>
           </select>
         </div>
-        <button class="btn-thanh-toan" :disabled="isShiftClosedForUi" @click="optionPay">Thanh toán</button>
+        <button class="btn-thanh-toan pay-button" :disabled="isShiftClosedForUi" @click="optionPay">
+          Thanh toán • {{ tongThanhToan.toLocaleString('vi-VN') }} đ
+        </button>
       </div>
     </div>
 
@@ -1258,43 +1257,44 @@ onMounted(async () => {
 }
 
 .thanh-toan-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr) minmax(320px, 380px);
   gap: 20px;
   width: 100%;
-  height: calc(100vh - 100px);
-  padding: 20px;
+  min-height: 100vh;
+  padding: 24px;
   overflow: hidden;
-  background: rgba(255, 248, 234, 0.96);
+  background: linear-gradient(180deg, #1b120a, #2c1f16);
 }
 
 .danh-muc,
 .danh-sach-mon,
 .gio-hang {
-  background: linear-gradient(180deg, #2a2a2a, #1d1d1d);
-  border-radius: 16px;
+  background: linear-gradient(180deg, #2d241d, #1f1914);
+  border-radius: 24px;
   padding: 20px;
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  border: 1px solid rgba(255, 210, 130, 0.15);
   box-shadow:
-    0 8px 25px rgba(0, 0, 0, 0.4),
-    0 0 12px rgba(212, 175, 55, 0.08);
-  height: 100%;
+    0 12px 30px rgba(0, 0, 0, 0.35),
+    0 0 18px rgba(255, 182, 102, 0.06);
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.danh-muc {
-  width: 20%;
-}
-
+.danh-muc,
 .danh-sach-mon {
-  width: 50%;
+  min-height: 0;
 }
 
 .gio-hang {
-  width: 30%;
+  min-height: 0;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
 }
-
 .action-bottom-group {
   margin-top: auto;
   display: flex;
@@ -1304,7 +1304,7 @@ onMounted(async () => {
 
 .food-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   flex: 1;
   overflow-y: auto;
@@ -1314,34 +1314,76 @@ onMounted(async () => {
   align-content: start;
 }
 
-.gio-hang-tabs {
-  display: flex;
-  background: #242424;
-  border-radius: 10px;
-  padding: 4px;
-  margin-bottom: 12px;
-  border: 1px solid rgba(212, 175, 55, 0.15);
-  flex-shrink: 0;
+@media (max-width: 1380px) {
+  .thanh-toan-container {
+    grid-template-columns: minmax(220px, 1fr) minmax(320px, 1fr);
+  }
 }
 
-.gio-hang-tab-content {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+@media (max-width: 980px) {
+  .thanh-toan-container {
+    grid-template-columns: 1fr;
+  }
+
+  .food-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.gio-hang-list {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 4px;
-}
+@media (max-width: 640px) {
+  .thanh-toan-container {
+    grid-template-columns: 1fr;
+  }
 
-.gio-hang-footer {
-  flex-shrink: 0;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 216, 107, 0.15);
+  .food-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gio-hang-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    background: #242424;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    flex-shrink: 0;
+  }
+
+  .gio-hang-tab-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gio-hang-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .gio-hang-footer {
+    flex-shrink: 0;
+    margin-top: 0;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 216, 107, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .gio-hang-footer .discount-input {
+    margin-bottom: 0;
+  }
+
+  .gio-hang-footer .tong-tien {
+    text-align: left;
+  }
+
+  .gio-hang-footer .btn-thanh-toan {
+    margin-top: 8px;
+  }
 }
 
 .btn-luu-don {
@@ -1463,15 +1505,30 @@ onMounted(async () => {
   box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25);
 }
 .cart-item {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
   gap: 12px;
-  padding: 12px;
+  padding: 16px;
   background: linear-gradient(145deg, #353535, #2b2b2b);
   color: white;
-  border-radius: 12px;
-  margin-bottom: 10px;
+  border-radius: 16px;
+  margin-bottom: 12px;
   border-left: 4px solid #ffd86b;
+  align-items: center;
+}
+.cart-item .qty-control {
+  grid-row: 1 / span 2;
+}
+.cart-item .item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cart-item .item-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .pending-item {
   border-left-color: #f57c00;
@@ -1590,9 +1647,15 @@ onMounted(async () => {
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .btn-thanh-toan:hover {
   box-shadow: 0 0 16px rgba(255, 216, 107, 0.35);
+}
+.btn-thanh-toan.pay-button {
+  gap: 12px;
 }
 .discount-input {
   width: 100%;
