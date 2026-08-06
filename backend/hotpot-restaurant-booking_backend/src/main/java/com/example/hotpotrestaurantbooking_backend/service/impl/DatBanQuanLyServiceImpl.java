@@ -497,6 +497,18 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 .toList();
     }
 
+    @Override
+    public DTODatBanQuanLyResponse hoanThanh(Integer id) {
+        DatBan db = datBanRepository.findById(id)
+                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
+        db.setTrangThai(TrangThaiDatBan.HOAN_THANH);
+        datBanRepository.save(db);
+        for (ChiTietDatBanBan ct : db.getChiTietDatBanBans()) {
+            capNhatTrangThaiBan(ct.getBan().getIdBan());
+        }
+        return mapToResponse(db);
+    }
+
     //=============================================================
     @Override
     public DTODatBanQuanLyResponse update(Integer id, DTODatBanQuanLyRequest d) {

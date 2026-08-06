@@ -85,4 +85,9 @@ public class DatBanQuanLyController {
                 tuNgay == null ? null : tuNgay.atStartOfDay(), denNgay == null ? null : denNgay.atTime(LocalTime.MAX))
         );
     }
+
+    @PutMapping("/{id}/hoan-thanh")
+    public ResponseEntity<DTODatBanQuanLyResponse> hoanThanh(@PathVariable Integer id) {
+        return ResponseEntity.ok(datBanQuanLyService.hoanThanh(id));
+    }
 }

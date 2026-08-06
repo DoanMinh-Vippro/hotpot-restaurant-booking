@@ -41,4 +41,6 @@ public interface DatBanQuanLyService {
             LocalDateTime tuNgay,
             LocalDateTime denNgay
     );
+
+    DTODatBanQuanLyResponse hoanThanh(Integer id);
 }

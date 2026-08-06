@@ -12,7 +12,6 @@ import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import BanApi from '@/api/BanApi'
 import { useShiftStore } from '@/stores/ShiftStore'
 import { useAuthStore } from '@/stores/AuthStore'
-import printJS from 'print-js'
 import DanhMucApi from '@/api/DanhMucApi.ts'
 import MayInApi from '@/api/MayInApi'
 
@@ -29,16 +28,15 @@ const authStore = useAuthStore()
 
 const SHIFT_CLOSED_MESSAGE = 'Ca làm việc đã đóng, không thể thực hiện thao tác gọi món mới'
 
-const isShiftClosed = computed(() => !shiftStore.currentShift || shiftStore.currentShift.isOpen === false)
+const isShiftClosed = computed(
+  () => !shiftStore.currentShift || shiftStore.currentShift.isOpen === false,
+)
 
 const hasActiveUnpaidInvoice = computed(() => {
   const invoice = hoaDonHienTai.value
   if (!invoice) return false
 
-  return (
-    Number(invoice.trangThaiThanhToan) === 0 &&
-    Number(invoice.trangThaiHoaDon) === 0
-  )
+  return Number(invoice.trangThaiThanhToan) === 0 && Number(invoice.trangThaiHoaDon) === 0
 })
 
 const isShiftClosedForUi = computed(() => isShiftClosed.value && !hasActiveUnpaidInvoice.value)
@@ -112,7 +110,15 @@ const normalizeDiscountType = (value: any) => {
     .toUpperCase()
 
   if (normalized.includes('PERCENT') || normalized.includes('PHANTRAM')) return 'PHANTRAM'
-  if (normalized.includes('TIEN') || normalized.includes('MAT') || normalized.includes('GIATRI') || normalized.includes('VALUE') || normalized.includes('VND') || normalized.includes('FIXED')) return 'TIEN'
+  if (
+    normalized.includes('TIEN') ||
+    normalized.includes('MAT') ||
+    normalized.includes('GIATRI') ||
+    normalized.includes('VALUE') ||
+    normalized.includes('VND') ||
+    normalized.includes('FIXED')
+  )
+    return 'TIEN'
   return normalized
 }
 
@@ -137,11 +143,7 @@ const getDiscountRawMax = (discount: any) =>
 
 const getDiscountPayload = (discount: any) => {
   const rawDiscountType =
-    discount?.loaiGiam ??
-    discount?.discountType ??
-    discount?.discount_type ??
-    discount?.type ??
-    ''
+    discount?.loaiGiam ?? discount?.discountType ?? discount?.discount_type ?? discount?.type ?? ''
 
   return {
     type: normalizeDiscountType(rawDiscountType),
@@ -151,9 +153,7 @@ const getDiscountPayload = (discount: any) => {
 }
 
 const isPercentDiscountType = (type: string) =>
-  type.includes('PHANTRAM') ||
-  type.includes('PERCENT') ||
-  type.includes('PERCENTAGE')
+  type.includes('PHANTRAM') || type.includes('PERCENT') || type.includes('PERCENTAGE')
 
 const isFixedDiscountType = (type: string) =>
   type.includes('TIEN') ||
@@ -212,7 +212,7 @@ const loadData = async () => {
     const [comboRes, monRes, danhMucRes] = await Promise.all([
       ComBoApi.hienThiComBo(),
       MonApi.hienThiMon(),
-      DanhMucApi.getDanhSach()
+      DanhMucApi.getDanhSach(),
     ])
 
     const dsDanhMuc = danhMucRes.data || []
@@ -224,7 +224,7 @@ const loadData = async () => {
         const dm = dsDanhMuc.find((d: any) => d.idDanhMuc === m.idDanhMuc)
         return {
           ...m,
-          quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP'
+          quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP',
         }
       })
 
@@ -401,7 +401,9 @@ const tongTienTamTinhCotGiua = computed(() =>
 
 const selectedDiscount = computed(() => {
   if (!giamGiaDangChon.value) return null
-  return danhSachGiamGia.value.find((g) => Number(g.idGiamGia) === Number(giamGiaDangChon.value)) ?? null
+  return (
+    danhSachGiamGia.value.find((g) => Number(g.idGiamGia) === Number(giamGiaDangChon.value)) ?? null
+  )
 })
 
 const discountAmount = computed(() => {
@@ -731,12 +733,9 @@ const markReservationCompleted = async () => {
   const reservationId = props.datBan?.idDatBan
   const banId = props.ban?.idBan
 
-  if (reservationId && props.datBan) {
+  if (reservationId) {
     try {
-      const payload = buildReservationUpdatePayload(props.datBan)
-      if (payload) {
-        await DatBanQuanLyApi.update(reservationId, payload)
-      }
+      await DatBanQuanLyApi.hoanThanh(reservationId)
     } catch (error) {
       console.warn('Không thể cập nhật đơn đặt bàn sau thanh toán:', error)
     }
@@ -750,6 +749,7 @@ const markReservationCompleted = async () => {
         idKhuVuc: props.ban?.idKhuVuc ?? null,
         trangThai: 'TRONG',
       }
+
       await BanApi.update(banId, payload)
     } catch (error) {
       console.warn('Không thể cập nhật trạng thái bàn sau thanh toán:', error)
@@ -780,9 +780,10 @@ const luuTam = async () => {
     monVuaGuiBep.value = [...currentCart]
 
     currentCart.forEach((cartItem) => {
-      const trungMon = danhSachMonPhucVu.value.find((p: any) =>
-        p.loai === cartItem.loai &&
-        (cartItem.loai === 'MON' ? p.idMon === cartItem.idMon : p.idCombo === cartItem.idCombo)
+      const trungMon = danhSachMonPhucVu.value.find(
+        (p: any) =>
+          p.loai === cartItem.loai &&
+          (cartItem.loai === 'MON' ? p.idMon === cartItem.idMon : p.idCombo === cartItem.idCombo),
       )
       if (trungMon) {
         trungMon.soLuong += cartItem.soLuong
@@ -816,7 +817,7 @@ const luuTam = async () => {
           tenMon: itemName(item),
           soLuong: item.soLuong,
         })),
-      })
+      }),
     )
 
     await Promise.all(printRequests)
@@ -914,7 +915,7 @@ watch(
     }
 
     await syncReservationToSeated()
-  }
+  },
 )
 
 onMounted(async () => {
@@ -1058,15 +1059,24 @@ onMounted(async () => {
             class="tab-action-header"
             v-if="danhSachMonPhucVu.some((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)"
           >
-            <button class="btn-xac-nhan-all" :disabled="isShiftClosedForUi" @click="xacNhanTatCaMon">
+            <button
+              class="btn-xac-nhan-all"
+              :disabled="isShiftClosedForUi"
+              @click="xacNhanTatCaMon"
+            >
               ✓ Xác nhận tất cả lên đồ
             </button>
           </div>
-          <div v-if="!danhSachMonPhucVu.some((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)" class="empty-cart">
+          <div
+            v-if="!danhSachMonPhucVu.some((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)"
+            class="empty-cart"
+          >
             Không có món đang chờ.
           </div>
           <div
-            v-for="item in danhSachMonPhucVu.filter((i) => Number(i.soLuong) - Number(i.daLen || 0) > 0)"
+            v-for="item in danhSachMonPhucVu.filter(
+              (i) => Number(i.soLuong) - Number(i.daLen || 0) > 0,
+            )"
             :key="`pending-${item.loai}-${item.idMon ?? item.idCombo}`"
             class="cart-item pending-item"
           >
@@ -1080,11 +1090,23 @@ onMounted(async () => {
                   Còn: {{ Number(item.soLuong) - Number(item.daLen || 0) }} / {{ item.soLuong }}
                 </div>
                 <div class="item-price">
-                  Giá: {{ ((Number(item.soLuong) - Number(item.daLen || 0)) * item.gia).toLocaleString('vi-VN') }} đ
+                  Giá:
+                  {{
+                    ((Number(item.soLuong) - Number(item.daLen || 0)) * item.gia).toLocaleString(
+                      'vi-VN',
+                    )
+                  }}
+                  đ
                 </div>
               </div>
             </div>
-            <button class="btn-check-item" :disabled="isShiftClosedForUi" @click="xacNhanTungMon(item)">✓ Lên</button>
+            <button
+              class="btn-check-item"
+              :disabled="isShiftClosedForUi"
+              @click="xacNhanTungMon(item)"
+            >
+              ✓ Lên
+            </button>
           </div>
         </div>
 
@@ -1117,7 +1139,12 @@ onMounted(async () => {
       <!-- CỤM TÍNH TIỀN GIO-HANG-FOOTER -->
       <div class="gio-hang-footer">
         <hr />
-        <button v-if="tabGioHang === 'goi-mon'" class="btn-luu-phu" :disabled="isShiftClosedForUi" @click="luuTam()">
+        <button
+          v-if="tabGioHang === 'goi-mon'"
+          class="btn-luu-phu"
+          :disabled="isShiftClosedForUi"
+          @click="luuTam()"
+        >
           🔥 Xác nhận gửi vào bếp / Bar
         </button>
 
@@ -1146,7 +1173,9 @@ onMounted(async () => {
       <div class="payment-review-dialog">
         <div class="review-header">
           <div class="review-title">Xác nhận thanh toán</div>
-          <div class="review-subtitle">Vui lòng kiểm tra lại các món chuẩn bị thanh toán trước khi tiếp tục.</div>
+          <div class="review-subtitle">
+            Vui lòng kiểm tra lại các món chuẩn bị thanh toán trước khi tiếp tục.
+          </div>
         </div>
         <div v-if="itemsToReview.length === 0" class="empty-cart">
           Không có món nào để thanh toán.
@@ -1691,101 +1720,103 @@ onMounted(async () => {
   background: rgba(255, 216, 107, 0.3);
   border-radius: 10px;
 }
-  .payment-review-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    background: rgba(10, 10, 10, 0.64);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
-  .payment-review-dialog {
-    width: min(560px, 100%);
-    background: linear-gradient(180deg, #fff8eb, #fff1d3);
-    border-radius: 26px;
-    border: 1px solid rgba(212, 175, 55, 0.24);
-    box-shadow: 0 26px 68px rgba(0, 0, 0, 0.22);
-    padding: 24px;
-    color: #4e3511;
-  }
-  .review-header {
-    margin-bottom: 18px;
-    padding: 14px 16px;
-    background: linear-gradient(135deg, rgba(255, 234, 187, 0.97), rgba(255, 239, 213, 0.95));
-    border-radius: 18px;
-    border: 1px solid rgba(255, 210, 115, 0.35);
-  }
-  .review-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: #7b4d14;
-    margin-bottom: 8px;
-  }
-  .review-subtitle {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #735623;
-  }
-  .payment-review-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .review-item {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 18px;
-    border-radius: 16px;
-    background: rgba(255, 244, 224, 0.95);
-    border: 1px solid rgba(255, 210, 114, 0.28);
-  }
-  .review-name {
-    font-weight: 700;
-    color: #563812;
-  }
-  .review-detail {
-    color: #7a5728;
-    font-size: 13px;
-    white-space: nowrap;
-  }
-  .review-total {
-    padding: 16px;
-    border-radius: 16px;
-    background: #fff3d2;
-    border: 1px solid rgba(255, 200, 88, 0.32);
-    font-weight: 800;
-    color: #6d4a1d;
-    text-align: right;
-  }
-  .review-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-  }
-  .review-actions button {
-    padding: 12px 18px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    font-weight: 700;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .review-actions button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, #f6c24b, #d49b13);
-    color: #111;
-  }
-  .btn-secondary {
-    background: #fff7e7;
-    color: #7b4f19;
-    border: 1px solid rgba(212, 175, 55, 0.25);
-  }
+.payment-review-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(10, 10, 10, 0.64);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.payment-review-dialog {
+  width: min(560px, 100%);
+  background: linear-gradient(180deg, #fff8eb, #fff1d3);
+  border-radius: 26px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  box-shadow: 0 26px 68px rgba(0, 0, 0, 0.22);
+  padding: 24px;
+  color: #4e3511;
+}
+.review-header {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255, 234, 187, 0.97), rgba(255, 239, 213, 0.95));
+  border-radius: 18px;
+  border: 1px solid rgba(255, 210, 115, 0.35);
+}
+.review-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #7b4d14;
+  margin-bottom: 8px;
+}
+.review-subtitle {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #735623;
+}
+.payment-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.review-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(255, 244, 224, 0.95);
+  border: 1px solid rgba(255, 210, 114, 0.28);
+}
+.review-name {
+  font-weight: 700;
+  color: #563812;
+}
+.review-detail {
+  color: #7a5728;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.review-total {
+  padding: 16px;
+  border-radius: 16px;
+  background: #fff3d2;
+  border: 1px solid rgba(255, 200, 88, 0.32);
+  font-weight: 800;
+  color: #6d4a1d;
+  text-align: right;
+}
+.review-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.review-actions button {
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.review-actions button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+}
+.btn-primary {
+  background: linear-gradient(135deg, #f6c24b, #d49b13);
+  color: #111;
+}
+.btn-secondary {
+  background: #fff7e7;
+  color: #7b4f19;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
 </style>
