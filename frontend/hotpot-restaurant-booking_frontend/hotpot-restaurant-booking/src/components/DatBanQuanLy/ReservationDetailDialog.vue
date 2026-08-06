@@ -205,6 +205,19 @@ const formatDateTime = (value?: string) => {
 
             <div v-else class="empty">Không có combo đặt trước</div>
           </div>
+
+          <div class="card">
+            <h3>Món đặt trước</h3>
+
+            <div v-if="reservation?.dsMon?.length" class="combo-list">
+              <div v-for="mon in reservation.dsMon" :key="mon.idMon" class="combo-item">
+                <strong>{{ mon.tenMon }}</strong>
+                <span>x{{ mon.soLuong }}</span>
+              </div>
+            </div>
+
+            <div v-else class="empty">Không có món đặt trước</div>
+          </div>
         </div>
 
         <!-- Footer -->

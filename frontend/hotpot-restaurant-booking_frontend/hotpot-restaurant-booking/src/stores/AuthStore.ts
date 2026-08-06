@@ -106,13 +106,17 @@ export const useAuthStore = defineStore('auth', {
       userRole: savedRole,
       accountName: localStorage.getItem('tenDangNhap') || null,
       customerInfo: {
-        khachHangId: localStorage.getItem('khachHangId') ? parseInt(localStorage.getItem('khachHangId')!) : null,
+        khachHangId: localStorage.getItem('khachHangId')
+          ? parseInt(localStorage.getItem('khachHangId')!)
+          : null,
         tenKhachHang: localStorage.getItem('tenKhachHang'),
         soDienThoai: localStorage.getItem('soDienThoai'),
         email: localStorage.getItem('email'),
         diaChi: localStorage.getItem('diaChi'),
-        gioiTinh: localStorage.getItem('gioiTinh') ? JSON.parse(localStorage.getItem('gioiTinh')!) : null,
-        maKhachHang: localStorage.getItem('maKhachHang')
+        gioiTinh: localStorage.getItem('gioiTinh')
+          ? JSON.parse(localStorage.getItem('gioiTinh')!)
+          : null,
+        maKhachHang: localStorage.getItem('maKhachHang'),
       },
       permissions: loadPermissions(),
     }
@@ -149,32 +153,32 @@ export const useAuthStore = defineStore('auth', {
         this.customerInfo.khachHangId = info.khachHangId
         localStorage.setItem('khachHangId', info.khachHangId?.toString() || '')
       }
-      
+
       if (info.tenKhachHang !== undefined) {
         this.customerInfo.tenKhachHang = info.tenKhachHang
         localStorage.setItem('tenKhachHang', info.tenKhachHang || '')
       }
-      
+
       if (info.soDienThoai !== undefined) {
         this.customerInfo.soDienThoai = info.soDienThoai
         localStorage.setItem('soDienThoai', info.soDienThoai || '')
       }
-      
+
       if (info.email !== undefined) {
         this.customerInfo.email = info.email
         localStorage.setItem('email', info.email || '')
       }
-      
+
       if (info.diaChi !== undefined) {
         this.customerInfo.diaChi = info.diaChi
         localStorage.setItem('diaChi', info.diaChi || '')
       }
-      
+
       if (info.gioiTinh !== undefined) {
         this.customerInfo.gioiTinh = info.gioiTinh
         localStorage.setItem('gioiTinh', JSON.stringify(info.gioiTinh))
       }
-      
+
       if (info.maKhachHang !== undefined) {
         this.customerInfo.maKhachHang = info.maKhachHang
         localStorage.setItem('maKhachHang', info.maKhachHang || '')
@@ -212,7 +216,7 @@ export const useAuthStore = defineStore('auth', {
         email: null,
         diaChi: null,
         gioiTinh: null,
-        maKhachHang: null
+        maKhachHang: null,
       }
       localStorage.removeItem('token')
       localStorage.removeItem('tenDangNhap')
@@ -231,14 +235,9 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (state) => !!state.token,
     isAdmin: (state) => {
       const role = String(state.userRole || '').toUpperCase()
-      return [
-        'ROLE_ADMIN',
-        'ADMIN',
-        'ROLE_STAFF',
-        'STAFF',
-        'CASHIER',
-        'ROLE_CASHIER',
-      ].includes(role)
+      return ['ROLE_ADMIN', 'ADMIN', 'ROLE_STAFF', 'STAFF', 'CASHIER', 'ROLE_CASHIER'].includes(
+        role,
+      )
     },
     isUser: (state) => {
       const role = String(state.userRole || '').toUpperCase()
@@ -246,5 +245,6 @@ export const useAuthStore = defineStore('auth', {
     },
     khachHangId: (state) => state.customerInfo.khachHangId,
     tenKhachHang: (state) => state.customerInfo.tenKhachHang,
+    soDienThoai: (state) => state.customerInfo.soDienThoai,
   },
 })
