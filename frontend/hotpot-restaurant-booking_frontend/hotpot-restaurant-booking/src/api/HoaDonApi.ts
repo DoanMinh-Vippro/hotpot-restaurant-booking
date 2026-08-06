@@ -50,6 +50,14 @@ class HoaDonApi {
     return ApiClient.get<HoaDon[]>('/api/hoa-don')
   }
 
+  getActiveBills() {
+    return ApiClient.get<HoaDon[]>('/api/hoa-don/active')
+  }
+
+  getActiveCount() {
+    return ApiClient.get<number>('/api/hoa-don/active/count')
+  }
+
   /**
    * Lấy chi tiết hóa đơn (danh sách items)
    */

@@ -68,22 +68,12 @@ const tongDoanhThu = computed(() => {
 
 // ======================== METHODS ========================
 const loadHoaDon = async () => {
- isLoading.value = true
+  isLoading.value = true
 
   try {
-    const res = await HoaDonApi.getDanhSach()
+    const res = await HoaDonApi.getActiveBills()
 
-    const invoices = Array.isArray(res.data)
-      ? res.data
-      : []
-
-    danhSachHoaDon.value = invoices.filter((hd: any) => {
-      return (
-        Number(hd.trangThaiHoaDon) === 0 &&
-        Number(hd.trangThaiThanhToan) === 0 &&
-        hd.idBan != null
-      )
-    })
+    danhSachHoaDon.value = Array.isArray(res.data) ? res.data : []
   } catch (e) {
     console.error(e)
     danhSachHoaDon.value = []
