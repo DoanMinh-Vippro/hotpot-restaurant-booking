@@ -207,6 +207,27 @@ const layTenQuay = (item: any): string => {
 }
 
 // ================= LOAD DATA =================
+const searchQuery = ref('')
+
+// Computed lọc danh sách Combo theo từ khóa
+const danhSachComboFilter = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return danhSachCombo.value
+  return danhSachCombo.value.filter((cb: any) =>
+    (cb.tenCombo || '').toLowerCase().includes(query)
+  )
+})
+
+// Computed lọc danh sách Món ăn theo từ khóa
+const danhSachMonAnFilter = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return danhSachMonAn.value
+  return danhSachMonAn.value.filter((mon: any) =>
+    (mon.tenMon || '').toLowerCase().includes(query)
+  )
+})
+
+
 const loadData = async () => {
   try {
     const [comboRes, monRes, danhMucRes] = await Promise.all([
@@ -917,40 +938,58 @@ onMounted(async () => {
 
     <!-- CỘT DANH SÁCH MÓN GIỮA -->
     <div class="danh-sach-mon">
-      <div class="title">
-        {{ danhMucDangChon === 'combo' ? 'Danh sách Combo' : 'Danh sách Món ăn' }}
+      <div class="header-danh-sach">
+    <div class="title">
+      {{ danhMucDangChon === 'combo' ? 'Danh sách Combo' : 'Danh sách Món ăn' }}
+    </div>
+    <div class="search-box">
+      <input
+        v-model="searchQuery"
+        type="text"
+        :placeholder="danhMucDangChon === 'combo' ? 'Tìm combo...' : 'Tìm món ăn...'"
+        class="search-input"
+      />
+      <button v-if="searchQuery" class="btn-clear-search" @click="searchQuery = ''">✕</button>
+    </div>
+  </div>
+
+  <div class="food-grid">
+    <template v-if="danhMucDangChon === 'combo'">
+      <div
+        v-for="combo in danhSachComboFilter"
+        :key="combo.idCombo"
+        class="food-card"
+        :class="combo.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
+        :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
+        @click="!isShiftClosedForUi && themVaoGio(combo, 'COMBO')"
+      >
+        {{ combo.tenCombo }}
       </div>
-      <div class="food-grid">
-        <template v-if="danhMucDangChon === 'combo'">
-          <div
-            v-for="combo in danhSachCombo"
-            :key="combo.idCombo"
-            class="food-card"
-            :class="combo.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
-            :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
-            @click="!isShiftClosedForUi && themVaoGio(combo, 'COMBO')"
-          >
-            {{ combo.tenCombo }}
-          </div>
-        </template>
-        <template v-else>
-          <div
-            v-for="mon in danhSachMonAn"
-            :key="mon.idMon"
-            class="food-card"
-            :class="mon.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
-            :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
-            @click="!isShiftClosedForUi && themVaoGio(mon, 'MON')"
-          >
-            {{ mon.tenMon }}
-          </div>
-        </template>
+      <div v-if="danhSachComboFilter.length === 0" class="empty-search">
+        Không tìm thấy combo nào phù hợp
       </div>
+    </template>
+    <template v-else>
+      <div
+        v-for="mon in danhSachMonAnFilter"
+        :key="mon.idMon"
+        class="food-card"
+        :class="mon.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
+        :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
+        @click="!isShiftClosedForUi && themVaoGio(mon, 'MON')"
+      >
+        {{ mon.tenMon }}
+      </div>
+      <div v-if="danhSachMonAnFilter.length === 0" class="empty-search">
+        Không tìm thấy món ăn nào phù hợp
+      </div>
+    </template>
+  </div>
     </div>
 
     <!-- CỘT GIỎ HÀNG PHẢI -->
     <div class="gio-hang">
-      <div class="title">Giỏ hàng: {{ props.ban.tenBan }}</div>
+      <div class="title">Giỏ hàng bàn {{ props.ban.tenBan }} - MãHD: {{ hoaDonHienTai?.maHoaDon }}</div>
       <div v-if="props.datBan" class="reservation-status-pill">
         {{
           normalizeReservationStatus(props.datBan?.trangThai) === 'DA_XAC_NHAN'
@@ -1505,5 +1544,74 @@ onMounted(async () => {
 .food-grid::-webkit-scrollbar-thumb {
   background: rgba(255, 216, 107, 0.3);
   border-radius: 10px;
+}
+
+/* Layout Header Flexbox giữa Tiêu đề và Ô Tìm kiếm */
+.header-danh-sach {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  padding-bottom: 8px;
+  flex-shrink: 0;
+}
+
+/* Bỏ border-bottom cũ của .title khi ở trong header-danh-sach */
+.header-danh-sach .title {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Container của input tìm kiếm */
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 220px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 30px 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.search-input:focus {
+  border-color: #ffd86b;
+  box-shadow: 0 0 8px rgba(255, 216, 107, 0.2);
+}
+
+/* Nút xóa nhanh từ khóa (dấu X) */
+.btn-clear-search {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px;
+}
+
+.btn-clear-search:hover {
+  color: #ffd86b;
+}
+
+/* Text báo không tìm thấy món/combo */
+.empty-search {
+  grid-column: span 3;
+  color: #888;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+  font-size: 14px;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, onBeforeUnmount } from 'vue'
+import { onMounted, ref } from 'vue'
 import ComBoApi from '@/api/ComBoApi'
 import type { Combo } from '@/api/ComBoApi'
 
@@ -10,7 +10,6 @@ interface ComboDatBan {
   soLuong: number
 }
 
-// v-model có thể là mảng combo hoặc id combo đơn giản tùy nơi dùng
 const props = defineProps<{
   modelValue: ComboDatBan[] | number | null
 }>()
@@ -19,16 +18,13 @@ const emit = defineEmits(['update:modelValue', 'selectedCombo'])
 
 const danhSachCombo = ref<Combo[]>([])
 const loading = ref(false)
-const gridRef = ref<HTMLElement | null>(null)
-let wheelHandler: ((e: WheelEvent) => void) | null = null
 
-// load danh sách combo
+// Load danh sách combo
 const loadComboGoiY = async () => {
   loading.value = true
 
   try {
     const res = await ComBoApi.hienThiComBo()
-    // Chỉ lấy combo đang kinh doanh (trangThai === 1)
     danhSachCombo.value = (res.data || []).filter((cb: Combo) => cb.trangThai === 1)
   } catch (error) {
     console.error('Không thể tải danh sách combo:', error)
@@ -37,12 +33,13 @@ const loadComboGoiY = async () => {
   }
 }
 
-// chọn hoặc bỏ chọn combo
+// Lấy item đã chọn
 const getSelectedItems = () => {
   if (Array.isArray(props.modelValue)) return props.modelValue
   return []
 }
 
+// Chọn hoặc tăng số lượng combo
 const selectCombo = (combo: Combo) => {
   if (combo.trangThaiBan === 0) {
     alert(`Combo "${combo.tenCombo}" hiện đã hết hàng, vui lòng chọn combo khác!`)
@@ -50,17 +47,14 @@ const selectCombo = (combo: Combo) => {
   }
 
   const dsCombo = [...getSelectedItems()]
-
   const index = dsCombo.findIndex((item) => item.idCombo === combo.idCombo)
 
-  // Nếu đã có thì tăng số lượng
   if (index >= 0) {
     const currentItem = dsCombo[index]
     if (currentItem) {
       currentItem.soLuong++
     }
   } else {
-    // Nếu chưa có thì thêm mới
     dsCombo.push({
       idCombo: combo.idCombo,
       tenCombo: combo.tenCombo,
@@ -70,14 +64,12 @@ const selectCombo = (combo: Combo) => {
   }
 
   emit('update:modelValue', dsCombo)
-
   emit('selectedCombo', dsCombo)
 }
 
-// giảm số lượng combo
+// Giảm số lượng combo
 const giamSoLuong = (idCombo: number) => {
   const dsCombo = [...getSelectedItems()]
-
   const index = dsCombo.findIndex((item) => item.idCombo === idCombo)
 
   if (index >= 0) {
@@ -92,74 +84,50 @@ const giamSoLuong = (idCombo: number) => {
   }
 
   emit('update:modelValue', dsCombo)
-
   emit('selectedCombo', dsCombo)
 }
 
-// xóa toàn bộ combo
+// Xóa tất cả
 const xoaTatCa = () => {
   emit('update:modelValue', [])
-
   emit('selectedCombo', [])
 }
+
 onMounted(async () => {
   await loadComboGoiY()
-
-  if (!gridRef.value) return
-
-  wheelHandler = (e: WheelEvent) => {
-    e.preventDefault()
-    gridRef.value!.scrollLeft += e.deltaY
-  }
-
-  gridRef.value.addEventListener('wheel', wheelHandler, {
-    passive: false,
-  })
-})
-
-onBeforeUnmount(() => {
-  if (gridRef.value && wheelHandler) {
-    gridRef.value.removeEventListener('wheel', wheelHandler)
-  }
 })
 </script>
 
 <template>
   <div class="combo-select-box">
     <div class="combo-header">
-      <span> 🍱 Gói Combo Ưu Đãi </span>
-
+      <span>🍱 Gói Combo Ưu Đãi</span>
       <button v-if="getSelectedItems().length > 0" @click="xoaTatCa">Bỏ chọn</button>
     </div>
 
     <div v-if="loading" class="loading-text">Đang tải...</div>
 
-    <div v-else ref="gridRef" class="luoi-combo-mini">
+    <div v-else class="luoi-combo-mini">
       <div
         v-for="cb in danhSachCombo"
         :key="cb.idCombo"
         class="card-combo-mini"
+        :class="{ active: getSelectedItems().some((item) => item.idCombo === cb.idCombo) }"
         @click="selectCombo(cb)"
       >
         <div class="khung-anh">
           <img v-if="cb.hinhAnh" :src="cb.hinhAnh" />
-
           <div v-else class="no-img">No Image</div>
         </div>
 
         <div class="chi-tiet">
-          <h4 class="ten">
-            {{ cb.tenCombo }}
-          </h4>
-
-          <span class="gia"> {{ Number(cb.giaSauGiam).toLocaleString('vi-VN') }} đ </span>
+          <h4 class="ten" :title="cb.tenCombo">{{ cb.tenCombo }}</h4>
+          <span class="gia">{{ Number(cb.giaSauGiam).toLocaleString('vi-VN') }} đ</span>
 
           <div v-if="getSelectedItems().some((item) => item.idCombo === cb.idCombo)">
             <span>
-              SL:
-              {{ getSelectedItems().find((item) => item.idCombo === cb.idCombo)?.soLuong }}
+              SL: {{ getSelectedItems().find((item) => item.idCombo === cb.idCombo)?.soLuong }}
             </span>
-
             <button @click.stop="giamSoLuong(cb.idCombo)">-</button>
           </div>
         </div>
@@ -195,7 +163,6 @@ onBeforeUnmount(() => {
   letter-spacing: 0.5px;
 }
 
-/* nút bỏ chọn */
 .combo-header button {
   background: transparent;
   color: #ff6b6b;
@@ -212,49 +179,56 @@ onBeforeUnmount(() => {
   color: white;
 }
 
-/* ================= DANH SÁCH COMBO ================= */
+/* ================= DANH SÁCH COMBO SỔ DỌC (2-3 MÓN/HÀNG) ================= */
 
 .luoi-combo-mini {
-  display: flex;
+  display: grid;
+  /* Mặc định chia 3 cột (3 món trên 1 hàng) */
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  padding-bottom: 6px;
-  scroll-behavior: smooth;
+  /* Giới hạn chiều cao & Cuộn dọc */
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
+/* Responsive: Trên màn hình nhỏ đổi thành 2 cột */
+@media (max-width: 480px) {
+  .luoi-combo-mini {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Thanh cuộn dọc */
 .luoi-combo-mini::-webkit-scrollbar {
-  height: 6px;
+  width: 6px;
 }
 
 .luoi-combo-mini::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 20px;
+  background: #c5a059;
+  border-radius: 10px;
 }
 
 .luoi-combo-mini::-webkit-scrollbar-track {
-  background: transparent;
+  background: #111;
 }
 
 /* ================= CARD ================= */
 
 .card-combo-mini {
-  flex: 0 0 145px;
-  flex-shrink: 0;
-  width: 145px;
-
+  width: 100%;
   background: #1a1a1a;
   border: 2px solid transparent;
   border-radius: 8px;
-
   overflow: hidden;
+
   display: flex;
   flex-direction: column;
 
   cursor: pointer;
   transition: all 0.25s ease;
+  box-sizing: border-box;
 }
 
 .card-combo-mini:hover {
@@ -262,7 +236,6 @@ onBeforeUnmount(() => {
   transform: translateY(-2px);
 }
 
-/* Khi được chọn */
 .card-combo-mini.active {
   border-color: #ff8c00;
   background: #292019;
@@ -282,11 +255,11 @@ onBeforeUnmount(() => {
 }
 
 .no-img {
+  width: 100%;
   height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-
   font-size: 11px;
   color: #555;
 }
@@ -304,7 +277,6 @@ onBeforeUnmount(() => {
   color: white;
   font-size: 12px;
   font-weight: 600;
-
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -316,7 +288,7 @@ onBeforeUnmount(() => {
   font-weight: bold;
 }
 
-/* Khu vực số lượng */
+/* Số lượng */
 .chi-tiet > div {
   display: flex;
   justify-content: space-between;
@@ -324,18 +296,15 @@ onBeforeUnmount(() => {
 
   margin-top: 5px;
   padding-top: 5px;
-
   border-top: 1px solid #333;
 
   color: #ddd;
-  font-size: 16px;
+  font-size: 12px;
 }
 
-/* Nút giảm số lượng */
 .chi-tiet button {
-  width: 25px;
-  height: 25px;
-
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: none;
 
@@ -357,9 +326,7 @@ onBeforeUnmount(() => {
   transform: scale(1.1);
 }
 
-/* Loading */
-.loading-text,
-.trong-text {
+.loading-text {
   text-align: center;
   font-size: 12px;
   color: #888;
