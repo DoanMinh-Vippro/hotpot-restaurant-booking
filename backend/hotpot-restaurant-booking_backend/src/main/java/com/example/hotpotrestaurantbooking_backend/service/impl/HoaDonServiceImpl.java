@@ -88,12 +88,12 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
         return hoaDonRepository.findAll()
                 .stream()
-                .filter(hoaDon -> 
-                    (hoaDon.getMaHoaDon() != null && hoaDon.getMaHoaDon().toLowerCase().contains(keyword.toLowerCase())) ||
-                    (hoaDon.getSdtKhachHang() != null && hoaDon.getSdtKhachHang().toLowerCase().contains(keyword.toLowerCase())) ||
-                    (hoaDon.getKhachHang() != null && hoaDon.getKhachHang().getTenKhachHang() != null && 
-                     hoaDon.getKhachHang().getTenKhachHang().toLowerCase().contains(keyword.toLowerCase())) ||
-                    (hoaDon.getMaGiaoDich() != null && hoaDon.getMaGiaoDich().toLowerCase().contains(keyword.toLowerCase()))
+                .filter(hoaDon ->
+                        (hoaDon.getMaHoaDon() != null && hoaDon.getMaHoaDon().toLowerCase().contains(keyword.toLowerCase())) ||
+                                (hoaDon.getSdtKhachHang() != null && hoaDon.getSdtKhachHang().toLowerCase().contains(keyword.toLowerCase())) ||
+                                (hoaDon.getKhachHang() != null && hoaDon.getKhachHang().getTenKhachHang() != null &&
+                                        hoaDon.getKhachHang().getTenKhachHang().toLowerCase().contains(keyword.toLowerCase())) ||
+                                (hoaDon.getMaGiaoDich() != null && hoaDon.getMaGiaoDich().toLowerCase().contains(keyword.toLowerCase()))
                 )
                 .map(this::convertToResponse)
                 .toList();

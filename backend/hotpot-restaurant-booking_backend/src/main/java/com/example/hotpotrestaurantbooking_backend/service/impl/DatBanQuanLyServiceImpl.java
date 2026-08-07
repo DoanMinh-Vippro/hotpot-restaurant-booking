@@ -360,7 +360,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
     }
-//=================================================================
+    //=================================================================
     @Override
     public DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d) {
         return add(d, getCurrentTaiKhoan());
@@ -464,10 +464,9 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         db.setNgayDat(LocalDate.now());
         db.setGioDat(Time.valueOf(LocalTime.now()));
 
-        if (db.getSoTienCoc() == null || db.getSoTienCoc().compareTo(BigDecimal.ZERO) <= 0) {
+        if (db.getSoTienCoc() == null) {
             db.setSoTienCoc(BigDecimal.ZERO);
-            db.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
-        } else {
+        }else{
             db.setTrangThaiCoc(TrangThaiDatBanCoc.DA_COC);
         }
 
@@ -571,7 +570,6 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                             Mon mon = monRepository.findById(item.getIdMon())
                                     .orElseThrow(() ->
                                             new CustomResourceNotFoundException("Không tìm thấy món"));
-
                             ChiTietDatBanMon chiTiet = new ChiTietDatBanMon();
                             chiTiet.setDatBan(db);
                             chiTiet.setMon(mon);
@@ -728,7 +726,6 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         if (datBan.getTrangThai() != TrangThaiDatBan.CHO_XAC_NHAN) {
             throw new IllegalArgumentException("Chỉ được xác nhận đơn đang chờ xác nhận.");
         }
-
         datBan.setTrangThai(TrangThaiDatBan.DA_XAC_NHAN);
 
         // Ghi nhận tài khoản xác nhận

@@ -15,4 +15,6 @@ public interface HoaDonRepository extends JpaRepository<HoaDon,Integer> {
     Optional<HoaDon> findByDatBan_IdDatBan(Integer idDatBan);
     List<HoaDon> findByTrangThaiHoaDon(Integer trangThaiHoaDon);
     List<HoaDon> findByIdHoaDonIn(List<Integer> ids);
+    List<HoaDon> findByTrangThaiHoaDonAndTrangThaiThanhToanAndBanIsNotNull(Integer trangThaiHoaDon, Integer trangThaiThanhToan);
+    long countByTrangThaiHoaDonAndTrangThaiThanhToanAndBanIsNotNull(Integer trangThaiHoaDon, Integer trangThaiThanhToan);
 }
