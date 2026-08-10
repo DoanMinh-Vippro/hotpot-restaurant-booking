@@ -1,6 +1,7 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.Validation.HoaDonValidator;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOBanResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
@@ -320,13 +321,53 @@ public class HoaDonServiceImpl implements HoaDonService {
         response.setThoiGianXuat(hoaDon.getThoiGianXuat());
         response.setTrangThaiThanhToan(hoaDon.getTrangThaiThanhToan());
         response.setPhuongThucThanhToan(hoaDon.getPhuongThucThanhToan());
+
         if (hoaDon.getBan() != null) {
             response.setIdBan(hoaDon.getBan().getIdBan());
             response.setLoaiBan(hoaDon.getBan().getLoaiBan());
+            response.setTenBan(hoaDon.getBan().getTenBan());
         }
+
         if (hoaDon.getDatBan() != null) {
             response.setIdDatBan(hoaDon.getDatBan().getIdDatBan());
+            response.setGioVaoBan(hoaDon.getDatBan().getThoiGianDenDuKien());
+            if (hoaDon.getDatBan().getThoiGianDenDuKien() != null) {
+                response.setGioRoiBan(hoaDon.getDatBan().getThoiGianDenDuKien().plusHours(2));
+            }
+
+            List<DTOBanResponse> dsBan = hoaDon.getDatBan().getChiTietDatBanBans() == null
+                    ? List.of()
+                    : hoaDon.getDatBan().getChiTietDatBanBans().stream()
+                            .filter(ct -> ct != null && ct.getBan() != null)
+                            .map(ct -> {
+                                DTOBanResponse dto = new DTOBanResponse();
+                                dto.setIdBan(ct.getBan().getIdBan());
+                                dto.setTenBan(ct.getBan().getTenBan());
+                                dto.setLoaiBan(ct.getBan().getLoaiBan());
+                                return dto;
+                            })
+                            .distinct()
+                            .toList();
+            response.setDsBan(dsBan);
+            if (!dsBan.isEmpty()) {
+                response.setTenBan(dsBan.stream()
+                        .map(DTOBanResponse::getTenBan)
+                        .filter(name -> name != null && !name.isBlank())
+                        .distinct()
+                        .sorted()
+                        .toList()
+                        .stream()
+                        .collect(java.util.stream.Collectors.joining(", ")));
+            }
         }
+
+        if (response.getGioVaoBan() == null) {
+            response.setGioVaoBan(hoaDon.getThoiGianXuat());
+        }
+        if (response.getGioRoiBan() == null && response.getGioVaoBan() != null) {
+            response.setGioRoiBan(response.getGioVaoBan().plusHours(2));
+        }
+
         if (hoaDon.getGiamGia() != null) {
             response.setIdGiamGia(hoaDon.getGiamGia().getIdGiamGia());
             response.setMaGiamGia(hoaDon.getGiamGia().getMaGiamGia());

@@ -80,6 +80,40 @@ public class DatBanServiceImpl implements DatBanService {
         res.setDsMon(dsMon);
     }
 
+    private void setBanInfo(DatBan db, DTODatBanResponse res) {
+        List<DTOBanResponse> dsBan = new ArrayList<>();
+
+        try {
+            dsBan = chiTietDatBanBanRepository.findByDatBan_IdDatBan(db.getIdDatBan())
+                    .stream()
+                    .filter(ct -> ct.getBan() != null)
+                    .map(ct -> {
+                        Ban ban = ct.getBan();
+                        DTOBanResponse dto = new DTOBanResponse();
+                        dto.setIdBan(ban.getIdBan());
+                        dto.setTenBan(ban.getTenBan());
+                        if (ban.getLoaiBan() != null) {
+                            dto.setSucChua(ban.getLoaiBan().getSucChua());
+                        }
+                        return dto;
+                    })
+                    .toList();
+        } catch (DataAccessException ignored) {
+            dsBan = new ArrayList<>();
+        }
+
+        res.setDsBan(dsBan);
+        if (dsBan.isEmpty()) {
+            res.setGhiChu(res.getGhiChu());
+            return;
+        }
+
+        List<String> tenBanList = dsBan.stream().map(DTOBanResponse::getTenBan).filter(name -> name != null && !name.isBlank()).toList();
+        if (!tenBanList.isEmpty()) {
+            res.setGhiChu((res.getGhiChu() == null ? "" : res.getGhiChu()) + "");
+        }
+    }
+
     private void validateDsBan(List<Integer> dsBan, LocalDateTime thoiGianDenDuKien) {
 
         List<DatBan> dsDatBan = datBanRepository.findByTrangThaiIn(
@@ -256,6 +290,7 @@ public class DatBanServiceImpl implements DatBanService {
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
             setMonInfo(db, res);
+            setBanInfo(db, res);
             return res;
         }).toList();
     }
@@ -266,6 +301,7 @@ public class DatBanServiceImpl implements DatBanService {
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
             setMonInfo(db, res);
+            setBanInfo(db, res);
             return res;
         }).orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay don dat ban"));
     }
@@ -350,6 +386,7 @@ public class DatBanServiceImpl implements DatBanService {
         DTODatBanResponse res = mapper.map(d, DTODatBanResponse.class);
         setComboInfo(d, res);
         setMonInfo(d, res);
+        setBanInfo(d, res);
 
         return res;
     }
@@ -421,6 +458,7 @@ public class DatBanServiceImpl implements DatBanService {
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
             setMonInfo(db, res);
+            setBanInfo(db, res);
             return res;
 
         }).orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
@@ -441,6 +479,7 @@ public class DatBanServiceImpl implements DatBanService {
             DTODatBanResponse res = mapper.map(db, DTODatBanResponse.class);
             setComboInfo(db, res);
             setMonInfo(db, res);
+            setBanInfo(db, res);
             return res;
         }).toList();
     }

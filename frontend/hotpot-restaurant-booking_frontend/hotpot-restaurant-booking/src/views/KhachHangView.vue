@@ -171,6 +171,30 @@ const formatDateTime = (dateTimeStr: string) => {
   if (isNaN(date.getTime())) return dateTimeStr
   return `${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ngày ${date.toLocaleDateString('vi-VN')}`
 }
+
+const formatBookingTableLabel = (booking: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(booking?.dsBan)) {
+    booking.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(booking?.tenBan || booking?.ten || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return 'Tự động xếp'
+}
 </script>
 
 <template>
@@ -353,7 +377,7 @@ const formatDateTime = (dateTimeStr: string) => {
                 </tr>
                 <tr>
                   <td class="lbl">Vị Trí Bàn / Ghi Chú:</td>
-                  <td class="val">{{ booking.tenBan || 'Tự động xếp' }} <span v-if="booking.ghiChu" style="color:#aaa;">— "{{ booking.ghiChu }}"</span></td>
+                  <td class="val">{{ formatBookingTableLabel(booking) }} <span v-if="booking.ghiChu" style="color:#aaa;">— "{{ booking.ghiChu }}"</span></td>
                 </tr>
                 <tr>
                   <td class="lbl">Thông Tin Tiền Cọc:</td>
