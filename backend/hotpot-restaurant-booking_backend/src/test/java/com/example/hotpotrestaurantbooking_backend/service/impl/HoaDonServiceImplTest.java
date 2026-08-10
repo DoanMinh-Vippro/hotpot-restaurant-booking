@@ -161,4 +161,44 @@ class HoaDonServiceImplTest {
         assertEquals(TrangThaiDatBan.HOAN_THANH, datBan.getTrangThai());
         assertEquals(TrangThaiBan.TRONG, linkedBan.getTrangThai());
     }
+
+    @Test
+    void updateShouldNotCompleteLinkedReservationWhenInvoiceStillPending() {
+        DTOHoaDonRequest request = new DTOHoaDonRequest();
+        request.setIdDatBan(7);
+        request.setIdBan(4);
+        request.setTrangThaiHoaDon(0);
+        request.setTrangThaiThanhToan(0);
+
+        Ban ban = new Ban();
+        ban.setIdBan(4);
+        ban.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
+
+        Ban linkedBan = new Ban();
+        linkedBan.setIdBan(5);
+        linkedBan.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
+
+        DatBan datBan = new DatBan();
+        datBan.setIdDatBan(7);
+        datBan.setTrangThai(TrangThaiDatBan.DA_NHAN_BAN);
+        datBan.setChiTietDatBanBans(Collections.singletonList(new ChiTietDatBanBan() {{
+            setBan(linkedBan);
+        }}));
+
+        HoaDon existingHoaDon = new HoaDon();
+        existingHoaDon.setIdHoaDon(1);
+        existingHoaDon.setBan(ban);
+        existingHoaDon.setDatBan(datBan);
+
+        when(hoaDonRepository.findById(1)).thenReturn(Optional.of(existingHoaDon));
+        when(banRepository.findById(4)).thenReturn(Optional.of(ban));
+        when(datBanRepository.findById(7)).thenReturn(Optional.of(datBan));
+        when(hoaDonChiTietRepository.findByHoaDon_IdHoaDon(any())).thenReturn(Collections.emptyList());
+        when(hoaDonRepository.save(any(HoaDon.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        hoaDonService.update(1, request);
+
+        assertEquals(TrangThaiDatBan.DA_NHAN_BAN, datBan.getTrangThai());
+        assertEquals(TrangThaiBan.DANG_SU_DUNG, linkedBan.getTrangThai());
+    }
 }

@@ -3,6 +3,7 @@ package com.example.hotpotrestaurantbooking_backend.controller;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietResponse;
+import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonService;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonChiTietService;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ public class HoaDonController {
 
     private final HoaDonService hoaDonService;
     private final HoaDonChiTietService hoaDonChiTietService;
+    private final HoaDonRepository hoaDonRepository;
 
     @GetMapping({"", "/hienthi"})
     public ResponseEntity<List<DTOHoaDonResponse>> getAll() {
@@ -67,5 +69,11 @@ public class HoaDonController {
         return ResponseEntity.ok(
                 hoaDonService.findByBanAndStatus(idBan, trangThai)
         );
+    }
+    @GetMapping("/active/count")
+    public ResponseEntity<Long> getActiveInvoiceCount() {
+        // Đếm số lượng hóa đơn chưa thanh toán (trangThaiThanhToan = 0)
+        long count = hoaDonRepository.countByTrangThaiThanhToan(0);
+        return ResponseEntity.ok(count);
     }
 }

@@ -35,6 +35,7 @@ public class SercurityConfig {
                         .requestMatchers("/api/payment/vnpay-return").permitAll()
 
                         .requestMatchers("/api/quan-ly-payment/vnpay-return").permitAll()
+                        .requestMatchers("/api/sepay-hoadon/webhook").permitAll()
 
                         .requestMatchers("/api/dat-ban-quan-ly/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")

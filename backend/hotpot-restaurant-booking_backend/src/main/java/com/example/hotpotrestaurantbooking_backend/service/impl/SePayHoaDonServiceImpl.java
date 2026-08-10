@@ -1,10 +1,14 @@
 package com.example.hotpotrestaurantbooking_backend.service.Impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTOSepayWebhook;
+import com.example.hotpotrestaurantbooking_backend.entity.Ban;
+import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.entity.HoaDon;
 import com.example.hotpotrestaurantbooking_backend.entity.Transaction;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.repository.BanRepository;
+import com.example.hotpotrestaurantbooking_backend.repository.DatBanRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.repository.TransactionRepository;
 import com.example.hotpotrestaurantbooking_backend.service.SePayHoaDonService;
@@ -20,6 +24,7 @@ public class SePayHoaDonServiceImpl implements SePayHoaDonService {
 
     private final HoaDonRepository hoaDonRepository;
     private final BanRepository banRepository;
+    private final DatBanRepository datBanRepository;
     private final TransactionRepository transactionRepository;
 
     @Override
@@ -57,7 +62,25 @@ public class SePayHoaDonServiceImpl implements SePayHoaDonService {
         hoaDon.setPhuongThucThanhToan(2);   // Chuyển khoản ngân hàng (quy ước riêng của quán)
         hoaDon.setMaGiaoDich(payload.getReferenceCode()); // Gắn mã giao dịch từ SePay
 
-        // 5. Giải phóng trạng thái bàn ăn từ ĐANG_SU_DUNG về TRONG
+        // 5. Nếu có đặt bàn liên quan, hoàn thành đặt bàn và giải phóng toàn bộ bàn liên quan.
+        DatBan datBan = hoaDon.getDatBan();
+        if (datBan != null) {
+            if (datBan.getTrangThai() == null || datBan.getTrangThai() != TrangThaiDatBan.HOAN_THANH) {
+                datBan.setTrangThai(TrangThaiDatBan.HOAN_THANH);
+            }
+            if (datBan.getChiTietDatBanBans() != null) {
+                datBan.getChiTietDatBanBans().forEach(ct -> {
+                    Ban relatedBan = ct.getBan();
+                    if (relatedBan != null && relatedBan.getTrangThai() != TrangThaiBan.TRONG) {
+                        relatedBan.setTrangThai(TrangThaiBan.TRONG);
+                        banRepository.save(relatedBan);
+                    }
+                });
+            }
+            datBanRepository.save(datBan);
+        }
+
+        // 6. Giải phóng trạng thái bàn ăn từ ĐANG_SU_DUNG về TRONG nếu hóa đơn có bàn riêng
         if (hoaDon.getBan() != null) {
             hoaDon.getBan().setTrangThai(TrangThaiBan.TRONG);
             banRepository.save(hoaDon.getBan());
