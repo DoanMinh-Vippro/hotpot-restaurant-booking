@@ -160,7 +160,7 @@ const openDatBan = () => {
           <!-- Admin menu (visible only to admin/staff) - keep admin-specific pages only -->
           <template v-else>
             <li>
-              <button class="nav-link-button" @click="router.push('/thucDon')">QUẢN LÝ THỰC ĐƠN</button>
+            <button class="nav-link-button" @click="router.push('/thucDon')">QUẢN LÝ THỰC ĐƠN</button>
             </li>
             <li>
               <button class="nav-link-button" @click="router.push('/hoa-don')">HÓA ĐƠN</button>

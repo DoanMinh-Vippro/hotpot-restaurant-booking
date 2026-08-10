@@ -13,5 +13,6 @@ public interface HoaDonService {
     void delete(Integer id);
     List<DTOHoaDonResponse> search(String keyword);
     List<DTOHoaDonResponse> findByKhachHangId(Integer khachHangId);
+    List<DTOHoaDonResponse> getActiveTableInvoices();
     DTOHoaDonResponse findByBanAndStatus(Integer idBan, Integer trangThaiHoaDon);
 }

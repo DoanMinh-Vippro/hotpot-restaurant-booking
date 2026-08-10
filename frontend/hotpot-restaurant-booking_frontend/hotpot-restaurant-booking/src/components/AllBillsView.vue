@@ -67,25 +67,32 @@ const tongDoanhThu = computed(() => {
 })
 
 // ======================== METHODS ========================
+const isActiveTableInvoice = (invoice: any) => {
+  return (
+    Number(invoice?.trangThaiHoaDon) === 0 &&
+    Number(invoice?.trangThaiThanhToan) === 0 &&
+    invoice?.idBan != null
+  )
+}
+
 const loadHoaDon = async () => {
- isLoading.value = true
+  isLoading.value = true
 
   try {
-    const res = await HoaDonApi.getDanhSach()
+    const activeRes = await HoaDonApi.getActiveBills()
+    const activeBills = Array.isArray(activeRes.data) ? activeRes.data : []
 
-    const invoices = Array.isArray(res.data)
-      ? res.data
-      : []
+    if (activeBills.length > 0) {
+      danhSachHoaDon.value = activeBills
+      return
+    }
 
-    danhSachHoaDon.value = invoices.filter((hd: any) => {
-      return (
-        Number(hd.trangThaiHoaDon) === 0 &&
-        Number(hd.trangThaiThanhToan) === 0 &&
-        hd.idBan != null
-      )
-    })
+    // Fallback: nếu endpoint active không trả về, lấy tất cả và lọc các hóa đơn bàn đang mở
+    const allRes = await HoaDonApi.getDanhSach()
+    const allBills = Array.isArray(allRes.data) ? allRes.data : []
+    danhSachHoaDon.value = allBills.filter(isActiveTableInvoice)
   } catch (e) {
-    console.error(e)
+    console.error('Không lấy được danh sách hóa đơn đang hoạt động:', e)
     danhSachHoaDon.value = []
   } finally {
     isLoading.value = false
@@ -134,6 +141,30 @@ const formatCurrency = (amount: number | string | null | undefined) => {
     style: 'currency',
     currency: 'VND'
   }).format(numericAmount)
+}
+
+const formatInvoiceTableLabel = (invoice: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(invoice?.dsBan)) {
+    invoice.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(invoice?.tenBan || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return invoice?.loaiBan || `Bàn ${invoice?.idBan ?? '-'}`
 }
 
 const formatTime = (dateString: string | number[] | null) => {
@@ -258,7 +289,7 @@ onBeforeUnmount(() => {
         >
           <div class="bill-card-header">
             <div class="bill-info-left">
-              <span class="bill-ban">{{ getBanName(hd.dsBan?.[0]?.idBan || hd.idBan) }}</span>
+              <span class="bill-ban">{{ formatInvoiceTableLabel(hd) }}</span>
               <span class="bill-khuvuc">{{ getKhuVucName(hd.dsBan?.[0]?.idBan || hd.idBan) }}</span>
             </div>
               <span class="bill-time">{{ formatTime(hd.thoiGianXuat) }}</span>    

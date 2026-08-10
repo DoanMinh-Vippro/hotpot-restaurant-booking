@@ -154,6 +154,42 @@ const getShiftSummary = () => ({
   endingCash: endingCash.value,
 })
 
+const hasValidInvoiceCode = (invoice: HoaDon) => {
+  const code = String(invoice.maHoaDon ?? '').trim()
+  return code.length > 0
+}
+
+const isMeaningfulPendingTable = (item: ShiftHandoverTable) => {
+  const amount = Number(item.total || 0)
+  if (!Number.isFinite(amount) || amount <= 0) return false
+  if (item.billId && String(item.billId).trim() !== '' && !String(item.code || '').trim()) return false
+  return true
+}
+
+const closeShiftReport = computed(() => ({
+  grossSales: grossSales.value,
+  discountSales: discountSales.value,
+  netRevenue: netRevenue.value,
+  cashSales: cashSales.value,
+  transferSales: transferSales.value,
+  electronicSales: electronicSales.value,
+  otherSales: otherSales.value,
+  cashIncome: cashIncome.value,
+  transferIncome: transferIncome.value,
+  electronicIncome: electronicIncome.value,
+  otherIncome: otherIncome.value,
+  totalIncome: totalIncome.value,
+  cashExpense: cashExpense.value,
+  transferExpense: transferExpense.value,
+  electronicExpense: electronicExpense.value,
+  otherExpense: otherExpense.value,
+  totalExpense: totalExpense.value,
+  endingCash: endingCash.value,
+  cashInShift: cashInShift.value,
+  transferInShift: transferInShift.value,
+  totalShiftFunds: totalShiftFunds.value,
+}))
+
 const resolvePendingTables = async () => {
   try {
     const [tableRes, invoiceRes] = await Promise.all([BanApi.getAll(), HoaDonApi.getDanhSach()])
@@ -164,12 +200,14 @@ const resolvePendingTables = async () => {
 
     invoices
       .filter((invoice: HoaDon) => Number(invoice.trangThaiThanhToan) === 0)
+      .filter((invoice: HoaDon) => hasValidInvoiceCode(invoice))
+      .filter((invoice: HoaDon) => Number(invoice.tongTien || 0) > 0)
       .forEach((invoice: HoaDon) => {
         const key = `invoice-${invoice.idHoaDon}`
         pendingMap.set(key, {
           idBan: invoice.idBan ?? null,
           code: invoice.maHoaDon || `HD-${invoice.idHoaDon}`,
-          name: invoice.tenKhachHang || `Bàn ${invoice.idBan ?? '-'}`,
+          name: invoice.tenKhachHang || 'Khách lẻ',
           total: Number(invoice.tongTien || 0),
           status: 'unpaid-bill',
           billId: String(invoice.idHoaDon),
@@ -187,20 +225,23 @@ const resolvePendingTables = async () => {
 
       if (!isInService) return
 
+      const tableTotal = Number(table?.tongTien ?? table?.total ?? 0)
+      if (!Number.isFinite(tableTotal) || tableTotal <= 0) return
+
       const key = `table-${table?.idBan ?? ''}`
       if (!pendingMap.has(key)) {
         pendingMap.set(key, {
           idBan: table?.idBan ?? null,
           code: `Bàn ${table?.tenBan || table?.idBan || '-'}`,
           name: table?.tenBan || 'Bàn đang phục vụ',
-          total: 0,
+          total: tableTotal,
           status: 'in-service',
           billId: null,
         })
       }
     })
 
-    const pending = Array.from(pendingMap.values())
+    const pending = Array.from(pendingMap.values()).filter(isMeaningfulPendingTable)
     pendingTables.value = pending
     return pending
   } catch {
@@ -1089,10 +1130,10 @@ onMounted(() => {
                 <strong>{{ selectedHistoryEntry.handoverContext.note }}</strong>
               </div>
               <div v-if="selectedHistoryEntry.handoverContext.pendingTables?.length" class="pending-table-list">
-                <div class="section-title">Danh sách bàn/đơn còn treo</div>
+                <div class="section-title">Danh sách hóa đơn còn treo</div>
                 <ul>
                   <li v-for="item in selectedHistoryEntry.handoverContext.pendingTables" :key="`${item.idBan}-${item.billId}`">
-                    <span>{{ item.code }} · {{ item.name }}</span>
+                    <span>{{ item.code }} · {{ item.name || 'Khách lẻ' }}</span>
                     <strong>{{ moneyFormatter.format(item.total) }}</strong>
                   </li>
                 </ul>
@@ -1161,6 +1202,48 @@ onMounted(() => {
 
         <div v-if="closeShiftError" class="handover-alert">{{ closeShiftError }}</div>
 
+        <div class="report-review-panel">
+          <div class="section-title">BÁO CÁO CHỐT CA (kiểm tra lại trước khi xác nhận)</div>
+          <div class="review-report-grid">
+            <div class="review-item">
+              <span>Doanh thu gross</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.grossSales) }}</strong>
+            </div>
+            <div class="review-item">
+              <span>Giảm giá</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.discountSales) }}</strong>
+            </div>
+            <div class="review-item emphasis">
+              <span>Doanh thu NET</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.netRevenue) }}</strong>
+            </div>
+            <div class="review-item">
+              <span>Tiền mặt</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.cashSales) }}</strong>
+            </div>
+            <div class="review-item">
+              <span>Chuyển khoản</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.transferSales + closeShiftReport.electronicSales + closeShiftReport.otherSales) }}</strong>
+            </div>
+            <div class="review-item">
+              <span>Thu phát sinh</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.totalIncome) }}</strong>
+            </div>
+            <div class="review-item">
+              <span>Chi phát sinh</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.totalExpense) }}</strong>
+            </div>
+            <div class="review-item">
+              <span>Tiền mặt thực tế</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.endingCash) }}</strong>
+            </div>
+            <div class="review-item">
+              <span>Tổng tiền chung</span>
+              <strong>{{ moneyFormatter.format(closeShiftReport.totalShiftFunds) }}</strong>
+            </div>
+          </div>
+        </div>
+
         <div class="handover-options">
           <p class="handover-hint">Chọn một trong hai cách đóng ca:</p>
           <div class="mode-choice-row">
@@ -1180,17 +1263,17 @@ onMounted(() => {
         </div>
 
         <div v-if="pendingTables.length > 0" class="pending-table-list">
-          <div class="section-title">DANH SÁCH BÀN CÒN TREO (Click để xử lý)</div>
+          <div class="section-title">DANH SÁCH HÓA ĐƠN CÒN TREO (Click để xử lý)</div>
           <ul>
             <li
               v-for="item in pendingTables"
               :key="`${item.idBan}-${item.billId}`"
               class="pending-table-item-clickable"
               @click="goToSalesScreen(item)"
-              title="Click để tới màn hình Bán hàng mở bàn này"
+              title="Click để tới màn hình Bán hàng xử lý hóa đơn này"
               style="cursor: pointer;"
             >
-              <span>{{ item.code }} · {{ item.name }}</span>
+              <span>{{ item.code }} · {{ item.name || 'Khách lẻ' }}</span>
               <div class="pending-item-action">
                 <strong>{{ moneyFormatter.format(item.total) }}</strong>
                 <span class="action-link-text">Xử lý ngay →</span>
@@ -1432,6 +1515,47 @@ p {
 .btn-report-preview.compact {
   margin-top: 14px;
   padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
+.report-review-panel {
+  margin-top: 18px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #edd7af;
+  background: rgba(255, 249, 240, 0.85);
+}
+
+.review-report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #f0dfbe;
+  color: #68421e;
+}
+
+.review-item.emphasis {
+  background: #fff5e7;
+  border-color: #d69d58;
+}
+
+.review-item span {
+  font-size: 0.82rem;
+}
+
+.review-item strong {
   font-size: 0.82rem;
 }
 

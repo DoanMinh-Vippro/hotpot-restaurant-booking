@@ -360,7 +360,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new CustomResourceNotFoundException("khong tim thay don dat ban"));
     }
-//=================================================================
+    //=================================================================
     @Override
     public DTODatBanQuanLyResponse add(DTODatBanQuanLyRequest d) {
         return add(d, getCurrentTaiKhoan());
@@ -464,11 +464,14 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         db.setNgayDat(LocalDate.now());
         db.setGioDat(Time.valueOf(LocalTime.now()));
 
-        if (db.getSoTienCoc() == null) {
+        if (db.getSoTienCoc() == null || db.getSoTienCoc().compareTo(BigDecimal.ZERO) <= 0) {
             db.setSoTienCoc(BigDecimal.ZERO);
-        }else{
+            db.setTrangThaiCoc(TrangThaiDatBanCoc.CHUA_COC);
+        } else {
             db.setTrangThaiCoc(TrangThaiDatBanCoc.DA_COC);
         }
+
+        db.setTrangThai(TrangThaiDatBan.DA_XAC_NHAN);
 
         validateThoiGianHoatDong(d.getThoiGianDenDuKien());
         validateSucChuaBan(d.getDsBan(), d.getSoNguoi());
@@ -492,6 +495,18 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Override
+    public DTODatBanQuanLyResponse hoanThanh(Integer id) {
+        DatBan db = datBanRepository.findById(id)
+                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
+        db.setTrangThai(TrangThaiDatBan.HOAN_THANH);
+        datBanRepository.save(db);
+        for (ChiTietDatBanBan ct : db.getChiTietDatBanBans()) {
+            capNhatTrangThaiBan(ct.getBan().getIdBan());
+        }
+        return mapToResponse(db);
     }
 
     //=============================================================
@@ -907,7 +922,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             return false;
         }
 
-        return !now.isBefore(referenceTime.plusHours(1));
+        return !now.isBefore(referenceTime.plusMinutes(15));
     }
 
     private boolean isVisibleReservation(DatBan datBan) {

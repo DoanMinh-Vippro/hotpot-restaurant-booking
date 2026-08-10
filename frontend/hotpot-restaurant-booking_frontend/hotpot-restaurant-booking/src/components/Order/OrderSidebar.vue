@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import OrderApi from '@/api/Order'
 import type { OrderBan, OrderKhuVuc } from '@/types/Order'
 
 const khuVucs = ref<OrderKhuVuc[]>([])
 const loading = ref(false)
-const expanded = ref<number[]>([])
+
+// Khu vực đang chọn
+const selectedKhuVuc = ref<number | null>(null)
+// Bàn đang chọn
+const selectedBanId = ref<number | null>(null)
 
 const emit = defineEmits<{
   (e: 'select-ban', value: OrderBan): void
@@ -19,23 +23,26 @@ async function loadBan() {
 
     khuVucs.value = res.data as OrderKhuVuc[]
 
-    expanded.value = khuVucs.value.map((i) => i.idKhuVuc)
+    // mặc định chọn khu vực đầu tiên
+    if (khuVucs.value.length > 0) {
+      selectedKhuVuc.value = khuVucs.value[0]!.idKhuVuc
+    }
   } finally {
     loading.value = false
   }
 }
 
-function toggleKhuVuc(id: number) {
-  const index = expanded.value.indexOf(id)
+// Danh sách bàn của khu vực đang chọn
+const danhSachBan = computed(() => {
+  return khuVucs.value.find((kv) => kv.idKhuVuc === selectedKhuVuc.value)?.dsBan || []
+})
 
-  if (index >= 0) {
-    expanded.value.splice(index, 1)
-  } else {
-    expanded.value.push(id)
-  }
+function changeKhuVuc(id: number) {
+  selectedKhuVuc.value = id
 }
 
 function selectBan(ban: OrderBan) {
+  selectedBanId.value = ban.idBan
   emit('select-ban', ban)
 }
 
@@ -51,35 +58,47 @@ onMounted(() => {
     <div v-if="loading" class="loading">Đang tải danh sách bàn...</div>
 
     <template v-else>
-      <div v-for="kv in khuVucs" :key="kv.idKhuVuc" class="khu-vuc">
-        <div class="header" @click="toggleKhuVuc(kv.idKhuVuc)">
-          <span class="arrow">
-            {{ expanded.includes(kv.idKhuVuc) ? '▼' : '▶' }}
-          </span>
-
-          <span class="name">
-            {{ kv.tenKhuVuc }}
-          </span>
+      <!-- Tabs khu vực -->
+      <div class="tabs">
+        <div
+          v-for="kv in khuVucs"
+          :key="kv.idKhuVuc"
+          class="tab"
+          :class="{ active: selectedKhuVuc === kv.idKhuVuc }"
+          @click="changeKhuVuc(kv.idKhuVuc)"
+        >
+          {{ kv.tenKhuVuc }}
         </div>
-
-        <Transition name="collapse">
-          <div v-if="expanded.includes(kv.idKhuVuc)" class="list-ban">
-            <div v-for="ban in kv.dsBan" :key="ban.idBan" class="ban" @click="selectBan(ban)">
-              <div class="left">
-                <span class="check">🍽️</span>
-
-                <span class="ten-ban">
-                  {{ ban.tenBan }}
-                </span>
-              </div>
-
-              <div class="right">{{ ban.sucChua }} khách</div>
-            </div>
-          </div>
-        </Transition>
       </div>
 
-      <div v-if="!khuVucs.length" class="empty">Không có bàn nào đang hoạt động.</div>
+      <!-- Grid bàn -->
+      <div v-if="danhSachBan.length" class="grid">
+        <div
+          v-for="ban in danhSachBan"
+          :key="ban.idBan"
+          class="ban-card"
+          :class="{ active: selectedBanId === ban.idBan }"
+          @click="selectBan(ban)"
+        >
+          <div class="status">
+            <span
+              class="dot"
+              :class="{
+                green: ban.trangThai === 'DANG_SU_DUNG',
+                orange: ban.trangThai === 'DA_DAT',
+              }"
+            ></span>
+          </div>
+
+          <div class="ban-name">
+            {{ ban.tenBan }}
+          </div>
+
+          <div class="capacity">{{ ban.sucChua }} người</div>
+        </div>
+      </div>
+
+      <div v-else class="empty">Không có bàn trong khu vực này.</div>
     </template>
   </div>
 </template>
@@ -87,149 +106,248 @@ onMounted(() => {
 <style scoped>
 .sidebar {
   height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background: #f7f3eb;
   padding: 16px;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .title {
   font-size: 22px;
   font-weight: 700;
-  margin-bottom: 18px;
   color: #5a4634;
+  margin-bottom: 16px;
 }
+
+/* ================= Tabs ================= */
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: white;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b5644;
+  border: 1px solid #e5d6c4;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: #f4ece2;
+}
+
+.tab.active {
+  background: #b7793f;
+  color: white;
+  border-color: #b7793f;
+}
+
+/* ================= Grid ================= */
+
+.grid {
+  flex: 1;
+  overflow-y: auto;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 14px;
+
+  align-content: start;
+
+  padding-right: 4px;
+}
+
+/* ================= Card ================= */
+
+.ban-card {
+  aspect-ratio: 1 / 1;
+
+  background: #efebe5;
+
+  border: 2px solid #ddd2c3;
+
+  border-radius: 18px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+
+  transition: all 0.22s ease;
+
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.ban-card:hover {
+  background: #e8e1d7;
+
+  transform: translateY(-3px);
+
+  border-color: #b7793f;
+
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.ban-card.active {
+  background: #b7793f;
+  color: white;
+  border-color: #a66b36;
+
+  box-shadow: 0 12px 22px rgba(183, 121, 63, 0.3);
+}
+
+.ban-card.active .capacity {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ================= Status ================= */
+
+.status {
+  margin-bottom: 8px;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.green {
+  background: #35c759;
+}
+
+.orange {
+  background: #ff9500;
+}
+
+.ban-card.active .dot {
+  background: white;
+}
+
+/* ================= Text ================= */
+
+.ban-name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.capacity {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #7d6b59;
+}
+
+/* ================= Empty ================= */
 
 .loading,
 .empty {
+  flex: 1;
+
   display: flex;
   justify-content: center;
   align-items: center;
+
   color: #8d7967;
-  padding: 40px 0;
   font-size: 14px;
 }
 
-.khu-vuc {
-  background: #fffdf9;
-  border-radius: 18px;
-  margin-bottom: 16px;
-  overflow: hidden;
-  box-shadow:
-    0 3px 10px rgba(84, 60, 37, 0.06),
-    0 1px 2px rgba(84, 60, 37, 0.04);
+/* ================= Tablet ================= */
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+  }
+
+  .ban-name {
+    font-size: 16px;
+  }
+
+  .capacity {
+    font-size: 11px;
+  }
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 18px;
-  cursor: pointer;
-  user-select: none;
-  transition: 0.25s;
+/* ================= Mobile ================= */
+
+@media (max-width: 768px) {
+  .sidebar {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+
+  .tabs {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .tab {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .ban-card {
+    aspect-ratio: 1;
+    width: 80%;
+    justify-self: center;
+  }
+
+  .ban-name {
+    font-size: 15px;
+  }
+
+  .capacity {
+    font-size: 10px;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+  }
 }
 
-.header:hover {
-  background: #f6f0e8;
-}
-
-.arrow {
-  width: 18px;
-  text-align: center;
-  color: #8c745f;
-  font-size: 13px;
-}
-
-.name {
-  flex: 1;
-  font-size: 16px;
-  font-weight: 700;
-  color: #5a4634;
-}
-
-.list-ban {
-  padding: 8px 12px 14px;
-}
-
-.ban {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-top: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.ban:hover {
-  background: #f6f1ea;
-}
-
-.ban.active {
-  background: #efe3d2;
-  border: 1px solid #cfb391;
-}
-
-.left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.check {
-  width: 22px;
-  font-size: 17px;
-  color: #8b5e34;
-}
-
-.ten-ban {
-  font-weight: 600;
-  color: #5a4634;
-}
-
-.right {
-  font-size: 13px;
-  color: #9b8772;
-  font-weight: 500;
-}
-
-.ban.active .ten-ban,
-.ban.active .right,
-.ban.active .check {
-  color: #8b5e34;
-}
-
-.collapse-enter-active,
-.collapse-leave-active {
-  transition: all 0.25s ease;
-  overflow: hidden;
-}
-
-.collapse-enter-from,
-.collapse-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-  max-height: 0;
-}
-
-.collapse-enter-to,
-.collapse-leave-from {
-  opacity: 1;
-  transform: translateY(0);
-  max-height: 600px;
-}
+/* ================= Scroll ================= */
 
 ::-webkit-scrollbar {
-  width: 7px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d7c7b5;
+  background: #d3c2ae;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bda791;
+  background: #bca48b;
 }
 </style>

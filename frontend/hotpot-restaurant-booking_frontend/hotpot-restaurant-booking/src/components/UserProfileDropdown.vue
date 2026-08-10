@@ -60,6 +60,30 @@ const formatCurrency = (value: any) => {
   }).format(num)
 }
 
+const formatInvoiceTableLabel = (invoice: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(invoice?.dsBan)) {
+    invoice.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(invoice?.tenBan || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return invoice?.loaiBan || `Bàn ${invoice?.idBan ?? '-'}`
+}
+
 const formatDate = (date: any) => {
   if (!date) return '-'
   if (Array.isArray(date)) {
@@ -142,7 +166,15 @@ const getStatusText = (status: number) => {
               </div>
               <div class="detail-row">
                 <span class="label">Bàn:</span>
-                <span class="value">{{ invoice.loaiBan || '-' }}</span>
+                <span class="value">{{ formatInvoiceTableLabel(invoice) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Giờ vào:</span>
+                <span class="value">{{ invoice.gioVaoBan ? new Date(invoice.gioVaoBan).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : formatDate(invoice.thoiGianXuat) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Giờ rời:</span>
+                <span class="value">{{ invoice.gioRoiBan ? new Date(invoice.gioRoiBan).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Chưa có' }}</span>
               </div>
               <div class="detail-row">
                 <span class="label">Tổng tiền:</span>

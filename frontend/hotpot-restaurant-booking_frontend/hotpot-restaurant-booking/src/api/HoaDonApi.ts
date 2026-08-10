@@ -11,7 +11,11 @@ export interface HoaDon {
   tienGiamGia: number | string | null
   tongTien: number | string | null
   thoiGianXuat: string | number[] | null
+  gioVaoBan?: string | number[] | null
+  gioRoiBan?: string | number[] | null
   idBan: number | null
+  tenBan?: string | null
+  dsBan?: Array<{ idBan?: number | null; tenBan?: string | null; name?: string | null; ten?: string | null }> | null
   loaiBan: string | null
   idDatBan: number | null
   idGiamGia?: number | null
@@ -48,6 +52,14 @@ class HoaDonApi {
    */
   getDanhSach() {
     return ApiClient.get<HoaDon[]>('/api/hoa-don')
+  }
+
+  getActiveBills() {
+    return ApiClient.get<HoaDon[]>('/api/hoa-don/active')
+  }
+
+  getActiveCount() {
+    return ApiClient.get<number>('/api/hoa-don/active/count')
   }
 
   /**

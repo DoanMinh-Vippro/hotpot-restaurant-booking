@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-export type MenuItem = {
+export interface MenuItem {
   idMon?: number
   idCombo?: number
 
@@ -12,16 +12,14 @@ export type MenuItem = {
   anhMon?: string
   anhCombo?: string
 
-  // Giá gốc (được dùng làm fallback)
   donGiaHienTai?: number
   giaCombo?: number
-  
-  // Trường dùng chung sau khi áp mã giảm giá
   giaSauGiam?: number
 
-  // Trạng thái kinh doanh
+  // trạng thái kinh doanh
   trangThai?: number
-  // Trạng thái kho hàng
+
+  // trạng thái bán
   trangThaiBan?: number
 }
 
@@ -33,53 +31,57 @@ const emit = defineEmits<{
   (e: 'select', item: MenuItem): void
 }>()
 
-// Phân biệt Món hay Combo dựa vào ID
-const isMon = (item: MenuItem) => item.idMon !== undefined
+const isMon = (item: MenuItem) => item.idMon != null
 
-// 1. Kiểm tra TRẠNG THÁI KINH DOANH 
+// ==============================
+// Kinh doanh
+// ==============================
+
 const isDangKinhDoanh = (item: MenuItem) => {
-  if (isMon(item)) {
-    // Món: 0 là Đang kinh doanh
-    return item.trangThai === 0
-  }
-  // Combo: 1 là Đang kinh doanh
-  return item.trangThai === 1
+  return isMon(item) ? item.trangThai === 0 : item.trangThai === 1
 }
 
-// 2. Kiểm tra TRẠNG THÁI BÁN (Hết hàng = 0)
+// ==============================
+// Hết hàng
+// ==============================
+
 const isOutOfStock = (item: MenuItem) => {
   return item.trangThaiBan === 0
 }
 
-// Lọc bỏ món Ngừng bán
-const activeItems = computed(() => {
-  return (props.items || []).filter((item) => isDangKinhDoanh(item))
-})
+// ==============================
+// Danh sách hiển thị
+// ==============================
 
-const getName = (item: MenuItem) => item.tenMon || item.tenCombo || 'Chưa đặt tên'
+const activeItems = computed(() => (props.items ?? []).filter(isDangKinhDoanh))
+
+// ==============================
+// Helpers
+// ==============================
+
+const getName = (item: MenuItem) => item.tenMon ?? item.tenCombo ?? 'Chưa có tên'
 
 const getImage = (item: MenuItem) =>
-  item.hinhAnh || item.anhMon || item.anhCombo || '/images/no-image.png'
+  item.hinhAnh ?? item.anhMon ?? item.anhCombo ?? '/images/no-image.png'
 
-// 3. Lấy trực tiếp giaSauGiam
 const getPrice = (item: MenuItem) => {
-  if (item.giaSauGiam !== undefined && item.giaSauGiam !== null && Number(item.giaSauGiam) > 0) {
+  if ((item.giaSauGiam ?? 0) > 0) {
     return Number(item.giaSauGiam)
   }
-  return item.donGiaHienTai ?? item.giaCombo ?? 0
+
+  return Number(item.donGiaHienTai ?? item.giaCombo ?? 0)
 }
 
-const formatMoney = (value?: number) => {
-  return (value ?? 0).toLocaleString('vi-VN') + ' đ'
-}
+const formatMoney = (value?: number) => new Intl.NumberFormat('vi-VN').format(value ?? 0) + ' đ'
 
-// 4. Chọn món / combo
+// ==============================
+// Events
+// ==============================
+
 function selectItem(item: MenuItem) {
-  if (isOutOfStock(item)) {
-    const name = getName(item)
-    alert(`"${name}" hiện tại đã HẾT HÀNG! Vui lòng chọn món khác hợp lệ.`)
-    return
-  }
+  console.log('CLICK MENU', item)
+
+  if (isOutOfStock(item)) return
 
   emit('select', item)
 }
@@ -91,23 +93,32 @@ function selectItem(item: MenuItem) {
       v-for="item in activeItems"
       :key="item.idMon ? `mon-${item.idMon}` : `combo-${item.idCombo}`"
       class="card"
-      :class="{ 'out-of-stock': isOutOfStock(item) }"
+      :class="{ disabled: isOutOfStock(item) }"
       @click="selectItem(item)"
     >
       <div class="image-wrapper">
-        <img :src="getImage(item)" class="image" loading="lazy" :alt="getName(item)" />
+        <img :src="getImage(item)" :alt="getName(item)" class="image" loading="lazy" />
 
-        <span v-if="isOutOfStock(item)" class="badge badge-het-hang"> Hết hàng </span>
+        <div class="overlay" v-if="isOutOfStock(item)">HẾT HÀNG</div>
+
+        <div class="type">
+          {{ item.idCombo ? 'COMBO' : 'MÓN' }}
+        </div>
       </div>
 
-      <div class="info">
-        <div class="name" :title="getName(item)">
+      <div class="content">
+        <div class="name">
           {{ getName(item) }}
         </div>
 
-        <!-- Giá hiển thị luôn là giaSauGiam -->
-        <div class="price">
-          {{ formatMoney(getPrice(item)) }}
+        <div class="bottom">
+          <div class="price">
+            {{ formatMoney(getPrice(item)) }}
+          </div>
+
+          <button class="add-btn" :disabled="isOutOfStock(item)" @click.stop="selectItem(item)">
+            +
+          </button>
         </div>
       </div>
     </div>
@@ -117,25 +128,39 @@ function selectItem(item: MenuItem) {
 <style scoped>
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
 }
 
 .card {
-  background: #fffdf9;
+  background: #fff;
   border-radius: 18px;
   overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+
   cursor: pointer;
-  transition: all 0.25s ease;
-  border: 1px solid #eee4d6;
-  box-shadow: 0 6px 18px rgba(70, 45, 20, 0.08);
-  position: relative;
+
+  border: 2px solid transparent;
+
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s,
+    border-color 0.25s;
 }
 
 .card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(70, 45, 20, 0.15);
+  transform: translateY(-3px);
+
+  border-color: #b7793f;
+
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
+
+/* ========================= */
 
 .image-wrapper {
   position: relative;
@@ -143,55 +168,270 @@ function selectItem(item: MenuItem) {
 
 .image {
   width: 100%;
-  height: 180px;
+  height: 150px;
   object-fit: cover;
   display: block;
 }
 
-.badge {
+.type {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
+  top: 10px;
+  left: 10px;
 
-.badge-het-hang {
-  background: rgba(220, 53, 69, 0.95);
+  background: rgba(0, 0, 0, 0.65);
   color: white;
+
+  padding: 4px 10px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 700;
 }
 
-.info {
-  padding: 14px 16px 18px;
+.overlay {
+  position: absolute;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.55);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  color: white;
+
+  font-size: 18px;
+  font-weight: 800;
+
+  letter-spacing: 1px;
+}
+
+/* ========================= */
+
+.content {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 14px;
 }
 
 .name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
+
   color: #5a4634;
-  min-height: 46px;
+
+  min-height: 40px;
+
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+
   overflow: hidden;
 }
 
+.bottom {
+  margin-top: auto;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .price {
-  margin-top: 12px;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 800;
+
   color: #b7793f;
 }
 
-.card.out-of-stock {
-  opacity: 0.65;
-  filter: grayscale(0.3);
+.add-btn {
+  width: 38px;
+  height: 38px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: #b7793f;
+  color: white;
+
+  font-size: 20px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s;
 }
 
-.card.out-of-stock:hover {
-  border-color: #dc3545;
+.add-btn:hover:not(:disabled) {
+  transform: scale(1.08);
+  background: #9f6735;
+}
+
+.add-btn:disabled {
+  background: #bfbfbf;
+  cursor: not-allowed;
+}
+
+/* ========================= */
+
+.card.disabled {
+  opacity: 0.7;
+  filter: grayscale(0.45);
+}
+
+.card.disabled:hover {
+  transform: none;
+  border-color: transparent;
+}
+/* ========================= */
+/* TABLET */
+/* ========================= */
+
+@media (max-width: 1200px) {
+  .menu-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .image {
+    height: 160px;
+  }
+
+  .content {
+    padding: 15px;
+  }
+
+  .name {
+    font-size: 15px;
+    min-height: 42px;
+  }
+
+  .price {
+    font-size: 17px;
+  }
+
+  .add-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+}
+
+/* ========================= */
+/* MOBILE */
+/* ========================= */
+
+@media (max-width: 768px) {
+  .menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    border-radius: 16px;
+  }
+
+  .image {
+    height: 120px;
+  }
+
+  .content {
+    padding: 12px;
+  }
+
+  .name {
+    font-size: 14px;
+    min-height: 36px;
+  }
+
+  .price {
+    font-size: 15px;
+  }
+
+  .add-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+  }
+
+  .type {
+    top: 8px;
+    left: 8px;
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .overlay {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+}
+
+/* ========================= */
+/* ĐIỆN THOẠI NHỎ */
+/* ========================= */
+
+@media (max-width: 480px) {
+  .menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card {
+    border-radius: 14px;
+  }
+
+  .image {
+    height: 100px;
+  }
+
+  .content {
+    padding: 10px;
+  }
+
+  .name {
+    font-size: 13px;
+    min-height: 32px;
+  }
+
+  .price {
+    font-size: 14px;
+  }
+
+  .add-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .type {
+    font-size: 9px;
+    padding: 3px 7px;
+  }
+
+  .overlay {
+    font-size: 14px;
+  }
+}
+
+/* ========================= */
+/* SCROLLBAR */
+/* ========================= */
+
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d3c2ae;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bea58a;
 }
 </style>

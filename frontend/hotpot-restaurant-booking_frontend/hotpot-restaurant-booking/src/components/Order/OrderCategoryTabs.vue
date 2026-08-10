@@ -9,22 +9,46 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: OrderCategory): void
 }>()
 
-const changeTab = (tab: OrderCategory) => {
+const tabs = [
+  {
+    key: 'MON',
+    icon: '🍲',
+    label: 'Món ăn',
+  },
+  {
+    key: 'COMBO',
+    icon: '🎁',
+    label: 'Combo',
+  },
+  {
+    key: 'DO_UONG',
+    icon: '🥤',
+    label: 'Đồ uống',
+  },
+] as const
+
+function changeTab(tab: OrderCategory) {
   emit('update:modelValue', tab)
 }
 </script>
 
 <template>
   <div class="tabs">
-    <button :class="{ active: modelValue === 'MON' }" @click="changeTab('MON')">🍲 MÓN ĂN</button>
+    <div
+      v-for="tab in tabs"
+      :key="tab.key"
+      class="tab"
+      :class="{ active: modelValue === tab.key }"
+      @click="changeTab(tab.key)"
+    >
+      <div class="icon">
+        {{ tab.icon }}
+      </div>
 
-    <button :class="{ active: modelValue === 'COMBO' }" @click="changeTab('COMBO')">
-      🎁 COMBO
-    </button>
-
-    <button :class="{ active: modelValue === 'DO_UONG' }" @click="changeTab('DO_UONG')">
-      🥤 ĐỒ UỐNG
-    </button>
+      <div class="label">
+        {{ tab.label }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -32,39 +56,148 @@ const changeTab = (tab: OrderCategory) => {
 .tabs {
   display: flex;
   gap: 14px;
-  padding: 18px 22px;
 
-  background: #fffdf9;
+  padding: 18px;
 
-  border-bottom: 1px solid #eadfce;
+  background: white;
+
+  border-bottom: 1px solid #ece2d4;
 }
 
-.tabs button {
-  padding: 10px 22px;
+.tab {
+  flex: 1;
+  min-width: 0;
 
-  border: none;
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 
-  background: #efe6da;
+  gap: 6px;
 
-  color: #705842;
+  padding: 12px;
 
-  font-size: 14px;
-  font-weight: 700;
+  border-radius: 18px;
+
+  background: #f7f3eb;
 
   cursor: pointer;
 
-  transition: all 0.25s ease;
+  user-select: none;
+
+  transition:
+    background 0.25s,
+    color 0.25s,
+    transform 0.2s,
+    box-shadow 0.25s;
 }
 
-.tabs button:hover {
-  background: #e3d3bf;
+.tab:hover {
+  background: #efe5d8;
 }
 
-.tabs button.active {
+.tab:active {
+  transform: scale(0.98);
+}
+
+.tab.active {
   background: #b7793f;
   color: white;
 
-  box-shadow: 0 6px 18px rgba(183, 121, 63, 0.25);
+  box-shadow: 0 8px 18px rgba(183, 121, 63, 0.28);
+}
+
+.icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.25;
+}
+
+/* ================= TABLET ================= */
+
+@media (max-width: 992px) {
+  .tabs {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .tab {
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .icon {
+    font-size: 22px;
+  }
+
+  .label {
+    font-size: 12px;
+  }
+}
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 768px) {
+  .tabs {
+    gap: 8px;
+    padding: 10px;
+
+    display: flex;
+  }
+
+  .tab {
+    flex: 1;
+
+    min-height: 70px;
+
+    padding: 8px;
+
+    border-radius: 12px;
+
+    touch-action: manipulation;
+  }
+
+  .tab.active {
+    box-shadow: 0 5px 12px rgba(183, 121, 63, 0.22);
+  }
+
+  .icon {
+    font-size: 20px;
+  }
+
+  .label {
+    font-size: 11px;
+  }
+}
+
+/* ================= SMALL MOBILE ================= */
+
+@media (max-width: 480px) {
+  .tabs {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .tab {
+    min-height: 62px;
+
+    padding: 6px;
+
+    border-radius: 10px;
+  }
+
+  .icon {
+    font-size: 18px;
+  }
+
+  .label {
+    font-size: 10px;
+  }
 }
 </style>

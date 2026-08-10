@@ -68,6 +68,11 @@ const DatBanQuanLyApi = {
       },
     })
   },
+
+  // ✅ Hoàn thành đơn đặt bàn
+  hoanThanh(id: number) {
+    return ApiClient.put(`/api/dat-ban-quan-ly/${id}/hoan-thanh`)
+  },
 }
 
 export default DatBanQuanLyApi

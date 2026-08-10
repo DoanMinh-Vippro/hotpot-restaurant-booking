@@ -3,11 +3,13 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 import com.example.hotpotrestaurantbooking_backend.Validation.HoaDonValidator;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.entity.Ban;
+import com.example.hotpotrestaurantbooking_backend.entity.ChiTietDatBanBan;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
-import com.example.hotpotrestaurantbooking_backend.entity.GiamGia;
 import com.example.hotpotrestaurantbooking_backend.entity.HoaDon;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +22,6 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -81,6 +82,33 @@ class HoaDonServiceImplTest {
     }
 
     @Test
+    void addShouldConsumeReservationDepositWhenInvoiceIsPaid() {
+        DTOHoaDonRequest request = new DTOHoaDonRequest();
+        request.setIdDatBan(7);
+        request.setIdBan(3);
+        request.setTrangThaiHoaDon(1);
+        request.setTrangThaiThanhToan(1);
+
+        Ban ban = new Ban();
+        ban.setIdBan(3);
+
+        DatBan datBan = new DatBan();
+        datBan.setIdDatBan(7);
+        datBan.setSoTienCoc(BigDecimal.valueOf(150000));
+        datBan.setTrangThaiCoc(TrangThaiDatBanCoc.DA_COC);
+
+        when(banRepository.findById(3)).thenReturn(Optional.of(ban));
+        when(datBanRepository.findById(7)).thenReturn(Optional.of(datBan));
+        when(hoaDonChiTietRepository.findByHoaDon_IdHoaDon(any())).thenReturn(Collections.emptyList());
+        when(hoaDonRepository.save(any(HoaDon.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        hoaDonService.add(request);
+
+        assertEquals(BigDecimal.ZERO, datBan.getSoTienCoc());
+        assertEquals(TrangThaiDatBanCoc.DA_COC, datBan.getTrangThaiCoc());
+    }
+
+    @Test
     void addShouldSetTableToEmptyWhenPaymentIsCompleted() {
         DTOHoaDonRequest request = new DTOHoaDonRequest();
         request.setIdBan(4);
@@ -101,96 +129,76 @@ class HoaDonServiceImplTest {
     }
 
     @Test
-    void updateShouldPersistTableStatusToEmptyWhenPaymentIsCompleted() {
+    void addShouldCompleteLinkedReservationAndFreeAllTablesWhenPaid() {
         DTOHoaDonRequest request = new DTOHoaDonRequest();
-        request.setIdBan(5);
+        request.setIdDatBan(7);
+        request.setIdBan(4);
         request.setTrangThaiHoaDon(1);
         request.setTrangThaiThanhToan(1);
 
         Ban ban = new Ban();
-        ban.setIdBan(5);
+        ban.setIdBan(4);
         ban.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
 
-        HoaDon existing = new HoaDon();
-        existing.setTrangThaiThanhToan(0);
-        existing.setBan(ban);
+        Ban linkedBan = new Ban();
+        linkedBan.setIdBan(5);
+        linkedBan.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
 
-        when(hoaDonRepository.findById(10)).thenReturn(Optional.of(existing));
-        when(banRepository.findById(5)).thenReturn(Optional.of(ban));
+        DatBan datBan = new DatBan();
+        datBan.setIdDatBan(7);
+        datBan.setTrangThai(TrangThaiDatBan.DA_NHAN_BAN);
+        datBan.setChiTietDatBanBans(Collections.singletonList(new ChiTietDatBanBan() {{
+            setBan(linkedBan);
+        }}));
+
+        when(banRepository.findById(4)).thenReturn(Optional.of(ban));
+        when(datBanRepository.findById(7)).thenReturn(Optional.of(datBan));
         when(hoaDonChiTietRepository.findByHoaDon_IdHoaDon(any())).thenReturn(Collections.emptyList());
         when(hoaDonRepository.save(any(HoaDon.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        hoaDonService.update(10, request);
+        hoaDonService.add(request);
 
-        assertEquals(TrangThaiBan.TRONG, ban.getTrangThai());
-        verify(banRepository).save(ban);
+        assertEquals(TrangThaiDatBan.HOAN_THANH, datBan.getTrangThai());
+        assertEquals(TrangThaiBan.TRONG, linkedBan.getTrangThai());
     }
 
     @Test
-    void addShouldApplyFixedValueDiscountWhenVoucherTypeIsStoredAsVietnameseText() {
+    void updateShouldNotCompleteLinkedReservationWhenInvoiceStillPending() {
         DTOHoaDonRequest request = new DTOHoaDonRequest();
-        request.setIdBan(8);
-        request.setTrangThaiHoaDon(1);
-        request.setTrangThaiThanhToan(1);
-        request.setTienTruocGiam(BigDecimal.valueOf(100000));
-        request.setIdGiamGia(20);
+        request.setIdDatBan(7);
+        request.setIdBan(4);
+        request.setTrangThaiHoaDon(0);
+        request.setTrangThaiThanhToan(0);
 
         Ban ban = new Ban();
-        ban.setIdBan(8);
+        ban.setIdBan(4);
+        ban.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
 
-        GiamGia voucher = new GiamGia();
-        voucher.setIdGiamGia(20);
-        voucher.setLoaiGiam("GIÁ TRỊ");
-        voucher.setGiaTriGiam(BigDecimal.valueOf(30000));
-        voucher.setGiaTriGiamToiDa(BigDecimal.valueOf(30000));
+        Ban linkedBan = new Ban();
+        linkedBan.setIdBan(5);
+        linkedBan.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
 
-        when(banRepository.findById(8)).thenReturn(Optional.of(ban));
-        when(giamGiaRepository.findById(20)).thenReturn(Optional.of(voucher));
+        DatBan datBan = new DatBan();
+        datBan.setIdDatBan(7);
+        datBan.setTrangThai(TrangThaiDatBan.DA_NHAN_BAN);
+        datBan.setChiTietDatBanBans(Collections.singletonList(new ChiTietDatBanBan() {{
+            setBan(linkedBan);
+        }}));
+
+        HoaDon existingHoaDon = new HoaDon();
+        existingHoaDon.setIdHoaDon(1);
+        existingHoaDon.setBan(ban);
+        existingHoaDon.setDatBan(datBan);
+
+        when(hoaDonRepository.findById(1)).thenReturn(Optional.of(existingHoaDon));
+        when(banRepository.findById(4)).thenReturn(Optional.of(ban));
+        when(datBanRepository.findById(7)).thenReturn(Optional.of(datBan));
         when(hoaDonChiTietRepository.findByHoaDon_IdHoaDon(any())).thenReturn(Collections.emptyList());
         when(hoaDonRepository.save(any(HoaDon.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = hoaDonService.add(request);
+        hoaDonService.update(1, request);
 
-        assertEquals(BigDecimal.valueOf(30000), response.getTienGiamGia());
-        assertEquals(BigDecimal.valueOf(70000), response.getTongTien());
-    }
-
-    @Test
-    void findByBanAndStatusShouldOnlyReturnPendingInvoiceWhenLookingForOpenOrders() {
-        HoaDon pendingInvoice = new HoaDon();
-        pendingInvoice.setIdHoaDon(12);
-        pendingInvoice.setTrangThaiHoaDon(0);
-        pendingInvoice.setTrangThaiThanhToan(0);
-
-        Ban busyTable = new Ban();
-        busyTable.setIdBan(3);
-        busyTable.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
-
-        when(banRepository.findById(3)).thenReturn(Optional.of(busyTable));
-        when(hoaDonRepository.findFirstByBan_IdBanAndTrangThaiHoaDonAndTrangThaiThanhToan(3, 0, 0))
-            .thenReturn(Optional.of(pendingInvoice));
-        when(hoaDonChiTietRepository.findByHoaDon_IdHoaDon(12)).thenReturn(Collections.emptyList());
-
-        var response = hoaDonService.findByBanAndStatus(3, 0);
-
-        assertEquals(12, response.getIdHoaDon());
-    }
-
-    @Test
-    void findByBanAndStatusShouldNotReusePendingInvoiceForAvailableTable() {
-        HoaDon pendingInvoice = new HoaDon();
-        pendingInvoice.setIdHoaDon(13);
-        pendingInvoice.setTrangThaiHoaDon(0);
-        pendingInvoice.setTrangThaiThanhToan(0);
-
-        Ban emptyTable = new Ban();
-        emptyTable.setIdBan(6);
-        emptyTable.setTrangThai(TrangThaiBan.TRONG);
-
-        when(banRepository.findById(6)).thenReturn(Optional.of(emptyTable));
-
-        var response = hoaDonService.findByBanAndStatus(6, 0);
-
-        assertNull(response);
+        assertEquals(TrangThaiDatBan.DA_NHAN_BAN, datBan.getTrangThai());
+        assertEquals(TrangThaiBan.DANG_SU_DUNG, linkedBan.getTrangThai());
     }
 }

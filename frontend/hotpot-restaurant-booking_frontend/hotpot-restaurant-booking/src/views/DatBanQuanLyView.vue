@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import ReservationToolbar from '@/components/DatBanQuanLy/ReservationToolbar.vue'
 import ReservationTable from '@/components/DatBanQuanLy/ReservationTable.vue'
@@ -45,6 +46,8 @@ const loadData = async () => {
 
   dsDatBan.value = res.data
 }
+
+const router = useRouter()
 
 const loadToday = async () => {
   const today = new Date().toISOString().substring(0, 10)
@@ -180,9 +183,26 @@ const handleCreate = async (data: any) => {
 }
 
 const handleCheckIn = async (item: any) => {
-  await DatBanQuanLyApi.checkIn(item.idDatBan)
-  closeAllDialog()
-  await loadData()
+  try {
+    await DatBanQuanLyApi.checkIn(item.idDatBan)
+    closeAllDialog()
+    await loadData()
+
+    const tableId = item?.dsBan?.[0]?.idBan
+    const tableName = item?.dsBan?.[0]?.tenBan
+    if (tableId != null) {
+      router.push({
+        name: 'ban-hang',
+        query: {
+          pendingTableId: String(tableId),
+          pendingDatBanId: String(item.idDatBan),
+          pendingTableName: tableName || '',
+        },
+      })
+    }
+  } catch (error) {
+    console.error('Lỗi check-in:', error)
+  }
 }
 
 const handleHuy = (item: any) => {
