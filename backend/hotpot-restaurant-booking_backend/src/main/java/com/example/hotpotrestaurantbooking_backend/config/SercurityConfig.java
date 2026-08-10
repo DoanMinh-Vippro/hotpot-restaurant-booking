@@ -3,6 +3,7 @@ package com.example.hotpotrestaurantbooking_backend.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -36,9 +37,10 @@ public class SercurityConfig {
 
                         .requestMatchers("/api/quan-ly-payment/vnpay-return").permitAll()
 
-                        .requestMatchers("/api/dat-ban-quan-ly/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF")
-
+                        .requestMatchers(HttpMethod.GET, "/api/dat-ban-quan-ly/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF", "ROLE_USER")
+                        .requestMatchers(HttpMethod.GET, "/api/dat-bans/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_STAFF", "ROLE_USER")
 
                         .requestMatchers("/phanTrangMon", "/phanTrangComBo").permitAll()
                         .requestMatchers("/upload").permitAll()

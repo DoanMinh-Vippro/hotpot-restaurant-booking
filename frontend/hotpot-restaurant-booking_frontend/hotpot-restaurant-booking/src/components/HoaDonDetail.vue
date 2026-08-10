@@ -28,7 +28,31 @@ const formatCurrency = (value: number | string | null) =>
     maximumFractionDigits: 0,
   }).format(Number(value ?? 0))
 
-const formatDateTime = (value: string | number[] | null) => {
+const formatInvoiceTableLabel = (invoice?: HoaDon) => {
+  const names: string[] = []
+
+  if (Array.isArray(invoice?.dsBan)) {
+    invoice.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(invoice?.tenBan || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return invoice?.loaiBan || `Bàn ${invoice?.idBan ?? '-'}`
+}
+
+const formatDateTime = (value: string | number[] | null | undefined) => {
   if (!value) return 'Chưa xuất'
 
   let date: Date
@@ -102,7 +126,15 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
         </div>
         <div>
           <span>Bàn</span>
-          <strong>{{ selectedHoaDon.loaiBan ?? `Bàn ${selectedHoaDon.idBan ?? '-'}` }}</strong>
+          <strong>{{ formatInvoiceTableLabel(selectedHoaDon) }}</strong>
+        </div>
+        <div>
+          <span>Giờ vào bàn</span>
+          <strong>{{ formatDateTime(selectedHoaDon.gioVaoBan || selectedHoaDon.thoiGianXuat) }}</strong>
+        </div>
+        <div>
+          <span>Giờ rời bàn</span>
+          <strong>{{ formatDateTime(selectedHoaDon.gioRoiBan) }}</strong>
         </div>
         <div>
           <span>Nhân viên</span>

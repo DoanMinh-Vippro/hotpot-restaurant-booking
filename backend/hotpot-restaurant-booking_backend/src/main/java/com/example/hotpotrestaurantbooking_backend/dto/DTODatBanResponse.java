@@ -23,6 +23,7 @@ public class DTODatBanResponse {
     private LocalDate ngayDat;
     private Time gioDat;
     private String sdtKhachHang;
+    private List<DTOBanResponse> dsBan;
     private List<DTOChiTietDatBanComboResponse> dsCombo;
     private List<DTOChiTietDatBanMonResponse> dsMon;
     private TrangThaiDatBan trangThai;

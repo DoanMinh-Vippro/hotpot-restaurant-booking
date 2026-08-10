@@ -62,6 +62,30 @@ const formatCurrency = (value: any) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num)
 }
 
+const formatInvoiceTableLabel = (invoice: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(invoice?.dsBan)) {
+    invoice.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(invoice?.tenBan || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return invoice?.loaiBan || `Bàn ${invoice?.idBan ?? '-'}`
+}
+
 const formatDate = (date: any) => {
   if (!date) return '-'
   if (Array.isArray(date)) {
@@ -110,6 +134,9 @@ onMounted(() => {
               <span :class="['history-status', getStatusClass(invoice.trangThaiThanhToan)]">{{ getStatusText(invoice.trangThaiThanhToan) }}</span>
             </div>
             <div class="history-meta">{{ formatDate(invoice.thoiGianXuat) }}</div>
+            <div class="history-meta">Bàn: {{ formatInvoiceTableLabel(invoice) }}</div>
+            <div class="history-meta">Vào: {{ invoice.gioVaoBan ? new Date(invoice.gioVaoBan).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : formatDate(invoice.thoiGianXuat) }}</div>
+            <div class="history-meta">Rời: {{ invoice.gioRoiBan ? new Date(invoice.gioRoiBan).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Chưa có' }}</div>
             <div class="history-meta">{{ formatCurrency(invoice.tongTien) }}</div>
           </div>
         </div>

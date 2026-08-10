@@ -25,7 +25,11 @@ public class DTOHoaDonResponse {
     private BigDecimal tienGiamGia;
     private BigDecimal tongTien;
     private LocalDateTime thoiGianXuat;
+    private LocalDateTime gioVaoBan;
+    private LocalDateTime gioRoiBan;
     private Integer idBan;
+    private String tenBan;
+    private List<DTOBanResponse> dsBan;
     private LoaiBan loaiBan;
     private Integer idDatBan;
     private Integer idGiamGia;

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { getAllKhachHang, updateKhachHang } from '@/api/khachhang'
 import HoaDonApi from '@/api/HoaDonApi'
+import DatBanApi from '@/api/DatBanApi'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import type { HoaDon, HoaDonChiTiet } from '@/api/HoaDonApi'
 import { printInvoiceReceipt } from '@/utils/printInvoice'
@@ -148,40 +149,100 @@ const loadInvoiceHistory = async () => {
   }
 }
 
+const normalizePhone = (value: any) => (value ? String(value).replace(/\D/g, '') : '')
+const normalizeText = (value: any) => (value ? String(value).trim().toLowerCase() : '')
+
+const extractBookingTableNames = (booking: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(booking?.dsBan)) {
+    booking.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  if (booking?.tenBan) return String(booking.tenBan)
+  return 'Tự động xếp'
+}
+
+const formatInvoiceTableLabel = (invoice: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(invoice?.dsBan)) {
+    invoice.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(invoice?.tenBan || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return invoice?.loaiBan || `Bàn ${invoice?.idBan ?? '-'}`
+}
+
+const matchesBookingToCustomer = (booking: any, identity: any) => {
+  if (!booking) return false
+
+  const recordId = booking?.idKhachHang ?? booking?.khachHangId ?? booking?.customerId ?? null
+  if (identity.khachHangId && recordId && Number(recordId) === Number(identity.khachHangId)) return true
+
+  const phone = normalizePhone(identity.soDienThoai)
+  const recordPhone = normalizePhone(booking?.sdtKhachHang ?? booking?.soDienThoai ?? booking?.phone ?? booking?.sdt)
+  if (phone && recordPhone && (recordPhone === phone || recordPhone.endsWith(phone) || phone.endsWith(recordPhone))) return true
+
+  const code = normalizeText(identity.maKhachHang)
+  const recordCode = normalizeText(booking?.maKhachHang ?? booking?.customerCode ?? booking?.ma)
+  if (code && recordCode && (recordCode === code || code.includes(recordCode) || recordCode.includes(code))) return true
+
+  const name = normalizeText(identity.tenKhachHang)
+  const recordName = normalizeText(booking?.tenKhachHang ?? booking?.hoTen ?? booking?.customerName ?? booking?.name)
+  if (name && recordName && (recordName.includes(name) || name.includes(recordName))) return true
+
+  return false
+}
+
 const loadBookingHistory = async () => {
   bookingLoading.value = true
   try {
     const identity = normalizeCustomerIdentity(authStore.customerInfo)
     const custId = identity.khachHangId
-    const custPhoneRaw = identity.soDienThoai || ''
-    const custPhone = String(custPhoneRaw).replace(/\D/g, '')
-    const custCode = (identity.maKhachHang || '').toString()
-    const custName = (identity.tenKhachHang || '').toLowerCase()
+    const custPhone = normalizePhone(identity.soDienThoai)
+    const custCode = normalizeText(identity.maKhachHang)
+    const custName = normalizeText(identity.tenKhachHang)
 
     if (!custId && !custPhone && !custCode && !custName) {
       customerBookings.value = []
       return
     }
 
-    const res = await DatBanQuanLyApi.getAll()
-    const all = Array.isArray(res?.data) ? res.data : []
+    let all: any[] = []
+    try {
+      const res = await DatBanQuanLyApi.getAll()
+      all = Array.isArray(res?.data) ? res.data : []
+    } catch (adminErr) {
+      console.warn('Không lấy được đặt bàn quản lý, thử endpoint đặt bàn của khách hàng:', adminErr)
+      const res = await DatBanApi.getAll()
+      all = Array.isArray(res?.data) ? res.data : []
+    }
 
-    const normalizePhone = (p: any) => (p ? String(p).replace(/\D/g, '') : '')
-    const normalizeText = (value: any) => (value ? String(value).toLowerCase() : '')
-
-    customerBookings.value = all.filter((b: any) => {
-      if (custId && b.idKhachHang && Number(b.idKhachHang) === Number(custId)) return true
-
-      const bPhone = normalizePhone(b.sdtKhachHang)
-      if (custPhone && bPhone && (bPhone === custPhone || bPhone.endsWith(custPhone) || custPhone.endsWith(bPhone))) return true
-
-      if (custCode && (normalizeText(b.maKhachHang) === normalizeText(custCode) || normalizeText(b.customerCode) === normalizeText(custCode))) return true
-
-      const bookingName = normalizeText(b.tenKhachHang || b.hoTen || b.customerName)
-      if (custName && bookingName && (bookingName.includes(custName) || custName.includes(bookingName))) return true
-
-      return false
-    })
+    customerBookings.value = all
+      .filter((booking: any) => matchesBookingToCustomer(booking, identity))
+      .sort((a: any, b: any) => {
+        const aTime = new Date(a?.thoiGianDenDuKien || a?.ngayDat || 0).getTime()
+        const bTime = new Date(b?.thoiGianDenDuKien || b?.ngayDat || 0).getTime()
+        return bTime - aTime
+      })
   } catch (err) {
     console.error('Lỗi khi tải lịch sử đặt bàn:', err)
     customerBookings.value = []
@@ -558,7 +619,15 @@ const exportInvoicePdf = (invoice: HoaDon) => {
                 </div>
                 <div>
                   <span>Bàn</span>
-                  <strong>{{ invoice.loaiBan || `Bàn ${invoice.idBan || '-'}` }}</strong>
+                  <strong>{{ formatInvoiceTableLabel(invoice) }}</strong>
+                </div>
+                <div>
+                  <span>Giờ vào bàn</span>
+                  <strong>{{ formatDateTime(invoice.gioVaoBan || invoice.thoiGianXuat) }}</strong>
+                </div>
+                <div>
+                  <span>Giờ rời bàn</span>
+                  <strong>{{ formatDateTime(invoice.gioRoiBan) }}</strong>
                 </div>
                 <div>
                   <span>Nhân viên</span>
@@ -702,8 +771,11 @@ const exportInvoicePdf = (invoice: HoaDon) => {
                       <td class="value"><span class="badge-count">{{ b.soNguoi || 0 }} Người</span></td>
                     </tr>
                     <tr>
-                      <td class="label">Bàn / Ghi chú:</td>
-                      <td class="value">{{ b.tenBan || 'Tự động xếp' }} <span v-if="b.ghiChu" class="booking-note">— "{{ b.ghiChu }}"</span></td>
+                      <td class="label">Bàn đã đặt:</td>
+                      <td class="value">
+                        <span>{{ extractBookingTableNames(b) }}</span>
+                        <span v-if="b.ghiChu" class="booking-note">— "{{ b.ghiChu }}"</span>
+                      </td>
                     </tr>
                     <tr>
                       <td class="label">Tiền cọc:</td>

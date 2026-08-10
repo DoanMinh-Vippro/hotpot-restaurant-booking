@@ -126,6 +126,30 @@ const formatCurrency = (amount: number | string | null | undefined) => {
   }).format(numericAmount)
 }
 
+const formatInvoiceTableLabel = (invoice: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(invoice?.dsBan)) {
+    invoice.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(invoice?.tenBan || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return invoice?.loaiBan || `Bàn ${invoice?.idBan ?? '-'}`
+}
+
 const formatTime = (dateString: string | number[] | null) => {
   if (!dateString) return 'Chưa xác định'
   
@@ -248,7 +272,7 @@ onBeforeUnmount(() => {
         >
           <div class="bill-card-header">
             <div class="bill-info-left">
-              <span class="bill-ban">{{ getBanName(hd.dsBan?.[0]?.idBan || hd.idBan) }}</span>
+              <span class="bill-ban">{{ formatInvoiceTableLabel(hd) }}</span>
               <span class="bill-khuvuc">{{ getKhuVucName(hd.dsBan?.[0]?.idBan || hd.idBan) }}</span>
             </div>
               <span class="bill-time">{{ formatTime(hd.thoiGianXuat) }}</span>    
