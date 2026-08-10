@@ -1005,8 +1005,8 @@ onMounted(async () => {
       <div v-if="props.datBan" class="reservation-status-pill">
         {{
           normalizeReservationStatus(props.datBan?.trangThai) === 'DA_XAC_NHAN'
-            ? 'Đã cọc'
-            : 'Đã nhận bàn'
+            ? ''
+            : ''
         }}
       </div>
 
@@ -1045,13 +1045,7 @@ onMounted(async () => {
           >
             <div class="qty-control">
               <button class="btn-minus" @click="giamSoLuong(item)">-</button>
-              <input
-                class="qty-input"
-                type="number"
-                min="1"
-                v-model.number="item.soLuong"
-                @change="updateQuantity(item, item.soLuong)"
-              />
+              <span class="qty-display">{{ item.soLuong }}</span>
               <button class="btn-plus" @click="tangSoLuong(item)">+</button>
             </div>
             <div class="item-info">
@@ -1060,7 +1054,6 @@ onMounted(async () => {
                 Gồm: {{ item.comboItems.join(', ') }}
               </div>
               <div class="item-bottom">
-                <div class="item-qty">x{{ item.soLuong }}</div>
                 <div class="item-price">
                   <b>{{ ((item.gia ?? 0) * item.soLuong).toLocaleString('vi-VN') }} đ</b>
                 </div>
@@ -1394,6 +1387,25 @@ onMounted(async () => {
   }
 }
 
+.gio-hang-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 8px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(179, 117, 255, 0.16);
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.gio-hang-tabs .tab-item {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+}
+
 @media (max-width: 640px) {
   .thanh-toan-container {
     grid-template-columns: 1fr;
@@ -1405,13 +1417,20 @@ onMounted(async () => {
 
   .gio-hang-tabs {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 14px;
     padding: 8px;
     margin-bottom: 12px;
     border: 1px solid rgba(179, 117, 255, 0.16);
     flex-shrink: 0;
+    overflow-x: auto;
+  }
+
+  .gio-hang-tabs .tab-item {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
   }
 
   .gio-hang-tab-content {
@@ -1576,7 +1595,7 @@ onMounted(async () => {
 .cart-item {
   display: grid;
   grid-template-columns: 74px minmax(0, 1fr);
-  gap: 14px;
+  gap: 22px;
   padding: 20px;
   background: linear-gradient(145deg, rgba(35, 10, 50, 0.96), rgba(15, 6, 30, 0.98));
   color: #f9f4ff;
@@ -1611,7 +1630,7 @@ onMounted(async () => {
 .cart-item .item-bottom {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 .pending-item {
