@@ -465,46 +465,52 @@ const initializeReservationItems = (db: any) => {
 const checkHoaDonTam = async () => {
   if (isDataLoaded.value) return
   try {
+    const res = await HoaDonApi.findByBanAndStatus(props.ban.idBan, 0)
+    const hd = res.data
+
+    if (hd) {
+      hoaDonHienTai.value = hd
+
+      danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => {
+        const soLuong = Number(item.soLuong || 0)
+        let daLen = item.daLen !== undefined && item.daLen !== null ? Number(item.daLen) : 0
+        if (item.trangThaiMonAn === 'DA_LEN' || item.trangThaiMonAn === 'DA_PHUC_VU') {
+          daLen = soLuong
+        }
+
+        return {
+          idMon: item.idMon,
+          idCombo: item.idCombo,
+          tenMon: item.tenMon,
+          tenCombo: item.tenCombo,
+          tenQuay: item.tenQuay || 'Quầy Bếp',
+          gia: Number(
+            item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0,
+          ),
+          soLuong: soLuong,
+          daLen: daLen,
+          loai: item.idMon ? 'MON' : 'COMBO',
+          comboItems: item.comboItems ?? [],
+        }
+      })
+
+      giamGiaDangChon.value = hd.idGiamGia ?? null
+      isDataLoaded.value = true
+      return
+    }
+
     if (initializeReservationItems(props.datBan)) {
       isDataLoaded.value = true
       return
     }
 
-    const res = await HoaDonApi.findByBanAndStatus(props.ban.idBan, 0)
-    const hd = res.data
-    if (!hd) {
-      isDataLoaded.value = true
-      return
-    }
-    hoaDonHienTai.value = hd
-
-    danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => {
-      const soLuong = Number(item.soLuong || 0)
-      let daLen = item.daLen !== undefined && item.daLen !== null ? Number(item.daLen) : 0
-      if (item.trangThaiMonAn === 'DA_LEN' || item.trangThaiMonAn === 'DA_PHUC_VU') {
-        daLen = soLuong
-      }
-
-      return {
-        idMon: item.idMon,
-        idCombo: item.idCombo,
-        tenMon: item.tenMon,
-        tenCombo: item.tenCombo,
-        tenQuay: item.tenQuay || 'Quầy Bếp',
-        gia: Number(
-          item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0,
-        ),
-        soLuong: soLuong,
-        daLen: daLen,
-        loai: item.idMon ? 'MON' : 'COMBO',
-        comboItems: item.comboItems ?? [],
-      }
-    })
-
-    giamGiaDangChon.value = hd.idGiamGia ?? null
     isDataLoaded.value = true
   } catch {
     console.log('Không có hóa đơn tạm')
+    if (initializeReservationItems(props.datBan)) {
+      isDataLoaded.value = true
+      return
+    }
     isDataLoaded.value = true
   }
 }
@@ -1332,7 +1338,26 @@ onMounted(async () => {
   position: relative;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  gap: 16px;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(138, 43, 226, 0.16), transparent 18%),
+    linear-gradient(180deg, #20162f 0%, #120812 100%);
+  box-shadow: 0 18px 46px rgba(92, 35, 148, 0.22), inset 0 0 40px rgba(255, 255, 255, 0.05);
+  border-radius: 28px;
+  overflow: hidden;
+}
+.gio-hang::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18), transparent 10%),
+    radial-gradient(circle at 80% 10%, rgba(174, 112, 255, 0.22), transparent 8%),
+    radial-gradient(circle at 50% 80%, rgba(230, 150, 255, 0.12), transparent 12%);
+  opacity: 0.9;
+  mix-blend-mode: screen;
 }
 .action-bottom-group {
   margin-top: auto;
@@ -1381,11 +1406,11 @@ onMounted(async () => {
   .gio-hang-tabs {
     display: flex;
     flex-wrap: wrap;
-    background: #242424;
-    border-radius: 10px;
-    padding: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+    padding: 8px;
     margin-bottom: 12px;
-    border: 1px solid rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(179, 117, 255, 0.16);
     flex-shrink: 0;
   }
 
@@ -1512,25 +1537,30 @@ onMounted(async () => {
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 10px 4px;
+  padding: 12px 10px;
   font-size: 13px;
   font-weight: 600;
-  color: #b5b5b5;
+  color: #d8c4ff;
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: 14px;
+  transition: all 0.25s ease;
 }
 .tab-item.active {
-  background: linear-gradient(135deg, #ffd86b, #d4af37);
-  color: #111;
+  background: linear-gradient(135deg, rgba(165, 92, 255, 0.24), rgba(87, 23, 255, 0.32));
+  color: #ffffff;
   font-weight: 700;
+  box-shadow: 0 0 20px rgba(127, 76, 255, 0.28);
+}
+.tab-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
 }
 .tong-tien {
-  background: linear-gradient(135deg, rgba(255, 216, 107, 0.12), rgba(212, 175, 55, 0.05));
-  border: 1px solid rgba(255, 216, 107, 0.15);
-  border-radius: 12px;
-  padding: 10px;
-  color: #ffd86b;
+  background: linear-gradient(135deg, rgba(138, 92, 255, 0.16), rgba(77, 29, 156, 0.08));
+  border: 1px solid rgba(171, 130, 255, 0.24);
+  border-radius: 14px;
+  padding: 12px;
+  color: #e7d8ff;
   font-size: 14px;
   font-weight: 700;
   text-align: center;
@@ -1545,15 +1575,30 @@ onMounted(async () => {
 }
 .cart-item {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
-  gap: 12px;
-  padding: 16px;
-  background: linear-gradient(145deg, #353535, #2b2b2b);
-  color: white;
-  border-radius: 16px;
-  margin-bottom: 12px;
-  border-left: 4px solid #ffd86b;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 14px;
+  padding: 20px;
+  background: linear-gradient(145deg, rgba(35, 10, 50, 0.96), rgba(15, 6, 30, 0.98));
+  color: #f9f4ff;
+  border-radius: 22px;
+  margin-bottom: 16px;
+  border-left: 4px solid rgba(190, 160, 255, 0.85);
   align-items: center;
+  border: 1px solid rgba(193, 146, 255, 0.18);
+  box-shadow: 0 14px 34px rgba(102, 16, 180, 0.22);
+  position: relative;
+  overflow: hidden;
+}
+.cart-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(142, 96, 255, 0.08), transparent 24%);
+  pointer-events: none;
+}
+.cart-item:hover {
+  transform: translateY(-1px);
 }
 .cart-item .qty-control {
   grid-row: 1 / span 2;
@@ -1570,11 +1615,12 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 .pending-item {
-  border-left-color: #f57c00;
+  border-left-color: #f39c12;
+  background: linear-gradient(145deg, rgba(82, 34, 105, 0.96), rgba(37, 17, 42, 0.95));
 }
 .done-item {
-  border-left-color: #2e7d32;
-  background: linear-gradient(145deg, #242b24, #1c221c);
+  border-left-color: #5dcb80;
+  background: linear-gradient(145deg, rgba(25, 34, 38, 0.92), rgba(8, 15, 28, 0.96));
 }
 .item-info {
   flex: 1;
@@ -1678,48 +1724,75 @@ onMounted(async () => {
 }
 .btn-thanh-toan {
   width: 100%;
-  padding: 14px;
+  padding: 16px 20px;
   border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #ffd86b, #d4af37);
-  color: #111;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #b448ff, #6d32ff 45%, #f69cff 90%);
+  color: #fff;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 20px 40px rgba(143, 95, 255, 0.35);
+  animation: pulseGlow 3.8s ease-in-out infinite;
 }
 .btn-thanh-toan:hover {
-  box-shadow: 0 0 16px rgba(255, 216, 107, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 24px 48px rgba(168, 108, 255, 0.5);
+  background: linear-gradient(135deg, #c86eff, #7f49ff 45%, #ffb8ff 90%);
 }
 .btn-thanh-toan.pay-button {
-  gap: 12px;
+  gap: 14px;
 }
 .discount-input {
   width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  background: #2f2f2f;
-  color: white;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(142, 83, 255, 0.28);
+  background: rgba(25, 12, 44, 0.92);
+  color: #f4e8ff;
   margin-bottom: 10px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.06);
+}
+.discount-input option {
+  background: #160b25;
+  color: #f4e8ff;
 }
 .title {
-  color: #ffd86b;
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 15px;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
-  padding-bottom: 8px;
+  color: #f9eeff;
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 18px;
+  position: relative;
+  padding-bottom: 10px;
   flex-shrink: 0;
+  text-shadow: 0 0 12px rgba(158, 114, 255, 0.25);
+}
+.title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 60px;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(214, 155, 255, 0.95), rgba(130, 79, 255, 0.95));
+  box-shadow: 0 0 18px rgba(214, 155, 255, 0.35);
 }
 .empty-cart {
-  color: #666;
+  color: #d5c1ff;
   text-align: center;
-  margin-top: 30px;
+  margin-top: 32px;
   font-style: italic;
   font-size: 13px;
+  background: rgba(86, 25, 115, 0.16);
+  border: 1px dashed rgba(213, 193, 255, 0.45);
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: inset 0 0 20px rgba(255, 254, 255, 0.08);
 }
 .gio-hang-list::-webkit-scrollbar,
 .food-grid::-webkit-scrollbar {
@@ -1734,7 +1807,7 @@ onMounted(async () => {
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: rgba(10, 10, 10, 0.64);
+  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 20%), rgba(10, 10, 10, 0.82);
   display: flex;
   align-items: center;
   justify-content: center;
