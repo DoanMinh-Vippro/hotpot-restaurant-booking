@@ -4,6 +4,7 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.dto.DTOKhachHangSearchResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOBanResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DatBanResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.KhachHangRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.KhachHangResponse;
@@ -98,6 +99,25 @@ public class KhachHangServiceImpl implements KhachHangService {
                     dbDto.setThoiGianDenDuKien(datBan.getThoiGianDenDuKien());
                     dbDto.setGhiChu(datBan.getGhiChu());
                     dbDto.setSdtKhachHang(datBan.getSdtKhachHang());
+
+                    if (datBan.getChiTietDatBanBans() != null && !datBan.getChiTietDatBanBans().isEmpty()) {
+                        List<DTOBanResponse> dsBanDto = datBan.getChiTietDatBanBans().stream()
+                                .filter(ct -> ct.getBan() != null)
+                                .map(ct -> {
+                                    DTOBanResponse dto = new DTOBanResponse();
+                                    dto.setIdBan(ct.getBan().getIdBan());
+                                    dto.setTenBan(ct.getBan().getTenBan());
+                                    if (ct.getBan().getLoaiBan() != null) {
+                                        dto.setSucChua(ct.getBan().getLoaiBan().getSucChua());
+                                    }
+                                    return dto;
+                                })
+                                .toList();
+                        dbDto.setDsBan(dsBanDto);
+                        dbDto.setTenBan(dsBanDto.stream().map(DTOBanResponse::getTenBan).filter(name -> name != null && !name.isBlank()).distinct().sorted().toList().stream().collect(java.util.stream.Collectors.joining(", ")));
+                    } else {
+                        dbDto.setDsBan(new java.util.ArrayList<>());
+                    }
 
                     // Lấy thông tin loại bàn từ liên kết Entity
 //                    if (datBan.getBan() != null) {

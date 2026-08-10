@@ -62,8 +62,7 @@ const xacNhan = () => {
       <div class="btn">
         <button class="btn-cancel" :disabled="props.isProcessing" @click="huy">Hủy</button>
 
-        <button class="btn-confirm" :disabled="props.isProcessing" @click="xacNhan">{{ props.isProcessing ? 'Đang xử lý...' : 'Tạo hóa đơn' }}</button>
-      </div>
+        <button class="btn-confirm" :disabled="props.isProcessing" @click="xacNhan">{{ props.isProcessing ? 'Đang xử lý...' : 'Thanh toán' }}</button>      </div>
     </div>
   </div>
 </template>

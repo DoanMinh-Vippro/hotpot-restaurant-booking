@@ -1,14 +1,17 @@
 package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.Validation.HoaDonValidator;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOBanResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
 import com.example.hotpotrestaurantbooking_backend.entity.*;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
+import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -44,22 +47,28 @@ public class HoaDonServiceImpl implements HoaDonService {
     }
 
     @Override
+    @Transactional
     public DTOHoaDonResponse add(DTOHoaDonRequest request) {
         hoaDonValidator.validateAdd(request);
         HoaDon hd = new HoaDon();
         updateEntityFromRequest(hd, request);
 
-        // Chuyển trạng thái bàn khi tạo hóa đơn lần đầu
+        // Lưu hóa đơn trước, sau đó cập nhật trạng thái bàn dựa trên trạng thái hóa đơn đã lưu
+        hoaDonRepository.save(hd);
+
         if (hd.getBan() != null) {
             applyTableStateFromInvoice(hd.getBan(), hd);
             banRepository.save(hd.getBan());
         }
+        if (hd.getDatBan() != null && isInvoicePaid(hd)) {
+            completeDatBanAndFreeTables(hd.getDatBan());
+        }
 
-        hoaDonRepository.save(hd);
         return convertToResponse(hd);
     }
 
     @Override
+    @Transactional // 👈 THÊM ANNOTATION NÀY
     public DTOHoaDonResponse update(Integer id, DTOHoaDonRequest request) {
         hoaDonValidator.validateUpdate(id, request);
         HoaDon hd = hoaDonRepository.findById(id)
@@ -71,9 +80,22 @@ public class HoaDonServiceImpl implements HoaDonService {
             applyTableStateFromInvoice(hd.getBan(), hd);
             banRepository.save(hd.getBan());
         }
+        if (hd.getDatBan() != null && isInvoicePaid(hd)) {
+            completeDatBanAndFreeTables(hd.getDatBan());
+        }
 
-        hoaDonRepository.save(hd);
-        return convertToResponse(hd);
+        HoaDon saved = hoaDonRepository.save(hd);
+
+        // Sau khi lưu, đảm bảo trạng thái bàn khớp với trạng thái hóa đơn (tránh race condition)
+        if (saved.getBan() != null) {
+            applyTableStateFromInvoice(saved.getBan(), saved);
+            banRepository.save(saved.getBan());
+        }
+        if (saved.getDatBan() != null && isInvoicePaid(saved)) {
+            completeDatBanAndFreeTables(saved.getDatBan());
+        }
+
+        return convertToResponse(saved);
     }
 
     @Override
@@ -88,12 +110,12 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
         return hoaDonRepository.findAll()
                 .stream()
-                .filter(hoaDon -> 
-                    (hoaDon.getMaHoaDon() != null && hoaDon.getMaHoaDon().toLowerCase().contains(keyword.toLowerCase())) ||
-                    (hoaDon.getSdtKhachHang() != null && hoaDon.getSdtKhachHang().toLowerCase().contains(keyword.toLowerCase())) ||
-                    (hoaDon.getKhachHang() != null && hoaDon.getKhachHang().getTenKhachHang() != null && 
-                     hoaDon.getKhachHang().getTenKhachHang().toLowerCase().contains(keyword.toLowerCase())) ||
-                    (hoaDon.getMaGiaoDich() != null && hoaDon.getMaGiaoDich().toLowerCase().contains(keyword.toLowerCase()))
+                .filter(hoaDon ->
+                        (hoaDon.getMaHoaDon() != null && hoaDon.getMaHoaDon().toLowerCase().contains(keyword.toLowerCase())) ||
+                                (hoaDon.getSdtKhachHang() != null && hoaDon.getSdtKhachHang().toLowerCase().contains(keyword.toLowerCase())) ||
+                                (hoaDon.getKhachHang() != null && hoaDon.getKhachHang().getTenKhachHang() != null &&
+                                        hoaDon.getKhachHang().getTenKhachHang().toLowerCase().contains(keyword.toLowerCase())) ||
+                                (hoaDon.getMaGiaoDich() != null && hoaDon.getMaGiaoDich().toLowerCase().contains(keyword.toLowerCase()))
                 )
                 .map(this::convertToResponse)
                 .toList();
@@ -109,13 +131,16 @@ public class HoaDonServiceImpl implements HoaDonService {
     }
 
     @Override
+    public List<DTOHoaDonResponse> getActiveTableInvoices() {
+        return hoaDonRepository.findByTrangThaiHoaDonAndTrangThaiThanhToanAndBanIsNotNull(0, 0)
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
+    @Override
     public DTOHoaDonResponse findByBanAndStatus(Integer idBan, Integer trangThaiHoaDon) {
         if (idBan == null || trangThaiHoaDon == null) {
-            return null;
-        }
-
-        Ban ban = banRepository.findById(idBan).orElse(null);
-        if (ban != null && ban.getTrangThai() == TrangThaiBan.TRONG) {
             return null;
         }
 
@@ -193,8 +218,14 @@ public class HoaDonServiceImpl implements HoaDonService {
     }
 
     private boolean isInvoicePaid(HoaDon hoaDon) {
-        boolean paidByPaymentStatus = hoaDon.getTrangThaiThanhToan() != null && hoaDon.getTrangThaiThanhToan() == 1;
-        boolean completedByInvoiceStatus = hoaDon.getTrangThaiHoaDon() != null && hoaDon.getTrangThaiHoaDon() == 1;
+        if (hoaDon == null) return false;
+
+        // Kiểm tra trạng thái thanh toán (1: Đã thanh toán)
+        boolean paidByPaymentStatus = hoaDon.getTrangThaiThanhToan() != null && hoaDon.getTrangThaiThanhToan().equals(1);
+
+        // Kiểm tra trạng thái hóa đơn (1: Đã hoàn thành/xuất)
+        boolean completedByInvoiceStatus = hoaDon.getTrangThaiHoaDon() != null && hoaDon.getTrangThaiHoaDon().equals(1);
+
         return paidByPaymentStatus || completedByInvoiceStatus;
     }
 
@@ -203,11 +234,35 @@ public class HoaDonServiceImpl implements HoaDonService {
             return;
         }
 
-        if (Boolean.TRUE.equals(isInvoicePaid(hoaDon))) {
-            ban.setTrangThai(TrangThaiBan.TRONG);
+        if (isInvoicePaid(hoaDon)) {
+            ban.setTrangThai(TrangThaiBan.TRONG); // Chuyển bàn về TRỐNG
         } else {
-            ban.setTrangThai(TrangThaiBan.DANG_SU_DUNG);
+            ban.setTrangThai(TrangThaiBan.DANG_SU_DUNG); // Giữ bàn ĐANG SỬ DỤNG
         }
+    }
+
+    private void completeDatBanAndFreeTables(DatBan datBan) {
+        if (datBan == null) {
+            return;
+        }
+
+        // Khi hóa đơn hoàn thành / thanh toán với đặt bàn, cập nhật đặt bàn thành HOAN_THANH
+        if (datBan.getTrangThai() == null || datBan.getTrangThai() != TrangThaiDatBan.HOAN_THANH) {
+            datBan.setTrangThai(TrangThaiDatBan.HOAN_THANH);
+        }
+
+        // Giải phóng toàn bộ bàn đã liên quan đến DatBan này
+        if (datBan.getChiTietDatBanBans() != null) {
+            datBan.getChiTietDatBanBans().forEach(ct -> {
+                Ban relatedBan = ct.getBan();
+                if (relatedBan != null && relatedBan.getTrangThai() != TrangThaiBan.TRONG) {
+                    relatedBan.setTrangThai(TrangThaiBan.TRONG);
+                    banRepository.save(relatedBan);
+                }
+            });
+        }
+
+        datBanRepository.save(datBan);
     }
 
     private BigDecimal applyGiamGiaDiscount(BigDecimal tienTruocGiam, GiamGia giamGia) {
@@ -272,13 +327,53 @@ public class HoaDonServiceImpl implements HoaDonService {
         response.setThoiGianXuat(hoaDon.getThoiGianXuat());
         response.setTrangThaiThanhToan(hoaDon.getTrangThaiThanhToan());
         response.setPhuongThucThanhToan(hoaDon.getPhuongThucThanhToan());
+
         if (hoaDon.getBan() != null) {
             response.setIdBan(hoaDon.getBan().getIdBan());
             response.setLoaiBan(hoaDon.getBan().getLoaiBan());
+            response.setTenBan(hoaDon.getBan().getTenBan());
         }
+
         if (hoaDon.getDatBan() != null) {
             response.setIdDatBan(hoaDon.getDatBan().getIdDatBan());
+            response.setGioVaoBan(hoaDon.getDatBan().getThoiGianDenDuKien());
+            if (hoaDon.getDatBan().getThoiGianDenDuKien() != null) {
+                response.setGioRoiBan(hoaDon.getDatBan().getThoiGianDenDuKien().plusHours(2));
+            }
+
+            List<DTOBanResponse> dsBan = hoaDon.getDatBan().getChiTietDatBanBans() == null
+                    ? List.of()
+                    : hoaDon.getDatBan().getChiTietDatBanBans().stream()
+                            .filter(ct -> ct != null && ct.getBan() != null)
+                            .map(ct -> {
+                                DTOBanResponse dto = new DTOBanResponse();
+                                dto.setIdBan(ct.getBan().getIdBan());
+                                dto.setTenBan(ct.getBan().getTenBan());
+                                dto.setLoaiBan(ct.getBan().getLoaiBan());
+                                return dto;
+                            })
+                            .distinct()
+                            .toList();
+            response.setDsBan(dsBan);
+            if (!dsBan.isEmpty()) {
+                response.setTenBan(dsBan.stream()
+                        .map(DTOBanResponse::getTenBan)
+                        .filter(name -> name != null && !name.isBlank())
+                        .distinct()
+                        .sorted()
+                        .toList()
+                        .stream()
+                        .collect(java.util.stream.Collectors.joining(", ")));
+            }
         }
+
+        if (response.getGioVaoBan() == null) {
+            response.setGioVaoBan(hoaDon.getThoiGianXuat());
+        }
+        if (response.getGioRoiBan() == null && response.getGioVaoBan() != null) {
+            response.setGioRoiBan(response.getGioVaoBan().plusHours(2));
+        }
+
         if (hoaDon.getGiamGia() != null) {
             response.setIdGiamGia(hoaDon.getGiamGia().getIdGiamGia());
             response.setMaGiamGia(hoaDon.getGiamGia().getMaGiamGia());

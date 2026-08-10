@@ -13,13 +13,11 @@ const router = createRouter({
     {
       path: '/about',
       name: 'about',
-      // Cách 1: Lazy-loading (Tải chậm khi truy cập - Khuyên dùng cho trang phụ)
       component: () => import('../views/AboutView.vue'),
     },
     {
       path: '/auth',
       name: 'auth',
-      // Tương tự, dùng lazy-loading giúp tối ưu hóa dung lượng ứng dụng ban đầu
       component: () => import('@/views/AuthView.vue'),
     },
     {
@@ -77,11 +75,6 @@ const router = createRouter({
       name: 'thucDon',
       component: () => import('../views/ThucDonView.vue'),
     },
-    //     {
-    //   path: '/menu',
-    //   name: 'menu',
-    //   component: () => import('../views/MenuView.vue'),
-    // },
     {
       path: '/ban',
       name: 'ban',
@@ -105,12 +98,12 @@ const router = createRouter({
     {
       path: '/khu-vuc',
       name: 'khu-vuc',
-      component: () => import('@/views/KhuVucList.vue'), // Sửa khuvuc/KhuVucList
+      component: () => import('@/views/KhuVucList.vue'),
     },
     {
       path: '/coc',
       name: 'coc',
-      component: () => import('@/views/TienCocList.vue'), // Sửa coc/TienCocList
+      component: () => import('@/views/TienCocList.vue'),
     },
     {
       path: '/nhan-vien',
@@ -170,7 +163,8 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+// Cập nhật Navigation Guard sử dụng 'return' thay vì callback 'next()'
+router.beforeEach((to) => {
   const authStore = useAuthStore()
   const authRoutes = ['auth', 'register']
   const internalPages = [
@@ -197,40 +191,32 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated
   const isUser = authStore.isUser
 
+  // Trang đăng nhập/đăng ký cho phép truy cập
   if (authRoutes.includes(to.name as string)) {
-    next()
     return
   }
 
-  // Allow public access for unauthenticated users except internal admin pages
+  // Chưa đăng nhập: Cho phép truy cập các trang public, chặn trang nội bộ
   if (!isAuthenticated) {
     if (internalPages.includes(to.name as string)) {
-      next({ name: 'auth', query: { redirect: to.fullPath } })
-      return
+      return { name: 'auth', query: { redirect: to.fullPath } }
     }
-    next()
     return
   }
 
-  // If authenticated as regular USER, block access to internal pages
+  // Đã đăng nhập tài khoản khách hàng (isUser)
   if (isUser) {
     if (internalPages.includes(to.name as string)) {
-      next({ name: 'home' })
-      return
+      return { name: 'home' }
     }
   } else {
-    // For internal users, prefer admin area. If they try to access a non-admin non-home page,
-    // redirect them to admin reservation as a safe default.
-    // Cho phép các trang public của nhân viên
+    // Tài khoản nhân viên/quản trị
     const allowPages = ['home', 'payment-success', 'payment-failed']
 
     if (!internalPages.includes(to.name as string) && !allowPages.includes(to.name as string)) {
-      next({ name: 'dat-ban-quan-ly' })
-      return
+      return { name: 'dat-ban-quan-ly' }
     }
   }
-
-  next()
 })
 
 export default router

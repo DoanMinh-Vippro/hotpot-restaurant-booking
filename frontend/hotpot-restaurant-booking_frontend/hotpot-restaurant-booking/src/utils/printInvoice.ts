@@ -55,6 +55,30 @@ const escapeHtml = (value: string | number | null | undefined) =>
 
 const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món chưa đặt tên'
 
+const formatInvoiceTableLabel = (invoice: HoaDon) => {
+  const names: string[] = []
+
+  if (Array.isArray((invoice as any)?.dsBan)) {
+    ;(invoice as any).dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String((invoice as any)?.tenBan || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return invoice.loaiBan || `Bàn ${invoice.idBan ?? '-'}`
+}
+
 export const printInvoiceReceipt = (invoice: HoaDon | null | undefined, items: HoaDonChiTiet[] = []) => {
   if (!invoice) return
 
@@ -198,7 +222,7 @@ export const printInvoiceReceipt = (invoice: HoaDon | null | undefined, items: H
           </div>
           <div class="card">
             <span class="label">Bàn</span>
-            <div class="value">${escapeHtml(invoice.loaiBan || `Bàn ${invoice.idBan ?? '-'}`)}</div>
+            <div class="value">${escapeHtml(formatInvoiceTableLabel(invoice))}</div>
           </div>
           <div class="card">
             <span class="label">Nhân viên</span>

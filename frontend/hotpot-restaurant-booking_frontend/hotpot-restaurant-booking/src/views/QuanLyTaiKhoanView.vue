@@ -7,6 +7,7 @@ import ChucVuApi from '@/api/ChucVuApi'
 import { createKhachHang, getAllKhachHang, getKhachHangByTaiKhoanId } from '@/api/khachhang'
 import HoaDonApi from '@/api/HoaDonApi'
 import DatBanApi from '@/api/DatBanApi'
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 import { PERMISSION_MODULES, getPermissionsForRole, savePermissionsForRole, deletePermissionsForRole, generateRoleCode } from '@/utils/rolePermissions'
 import type { HoaDonChiTiet } from '@/api/HoaDonApi'
 const router = useRouter()
@@ -114,15 +115,71 @@ const availableAccountRoles = computed(() => {
 const loadCustomerBookings = async (khachHangId: number) => {
   bookingLoading.value = true
   try {
-    const res = await DatBanApi.getAll()
-    const all = Array.isArray(res?.data) ? res.data : []
-    customerBookings.value = all.filter((b: any) => Number(b.idKhachHang) === Number(khachHangId))
+    let all: any[] = []
+    try {
+      const res = await DatBanQuanLyApi.getAll()
+      all = Array.isArray(res?.data) ? res.data : []
+    } catch (errAdmin) {
+      console.warn('Không lấy được danh sách đặt bàn quản lý, thử endpoint khách hàng:', errAdmin)
+      const res = await DatBanApi.getAll()
+      all = Array.isArray(res?.data) ? res.data : []
+    }
+
+    customerBookings.value = all.filter((b: any) => Number(b.idKhachHang ?? b.khachHangId) === Number(khachHangId))
   } catch (err) {
     console.error('Không lấy được lịch sử đặt bàn của khách:', err)
     customerBookings.value = []
   } finally {
     bookingLoading.value = false
   }
+}
+
+const formatBookingTableLabel = (booking: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(booking?.dsBan)) {
+    booking.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(booking?.tenBan || booking?.ten || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return 'Tự động xếp'
+}
+
+const formatInvoiceTableLabel = (invoice: any) => {
+  const names: string[] = []
+
+  if (Array.isArray(invoice?.dsBan)) {
+    invoice.dsBan.forEach((ban: any) => {
+      const name = String(ban?.tenBan || ban?.name || ban?.ten || '').trim()
+      if (name && !names.includes(name)) names.push(name)
+    })
+  }
+
+  if (names.length === 0) {
+    const raw = String(invoice?.tenBan || '').trim()
+    if (raw) {
+      const splitNames = raw.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+      splitNames.forEach((name: string) => {
+        if (name && !names.includes(name)) names.push(name)
+      })
+    }
+  }
+
+  if (names.length > 0) return `${names.join(', ')} (${names.length} bàn)`
+  return invoice?.loaiBan || `Bàn ${invoice?.idBan ?? '-'}`
 }
 
 const clearCreateAccountError = (field: string) => {
@@ -1600,7 +1657,15 @@ const handleDeleteAccount = async (id: number) => {
                     </div>
                     <div>
                       <span>Bàn</span>
-                      <strong>{{ inv.loaiBan || `Bàn ${inv.idBan || '-'}` }}</strong>
+                      <strong>{{ formatInvoiceTableLabel(inv) }}</strong>
+                    </div>
+                    <div>
+                      <span>Giờ vào bàn</span>
+                      <strong>{{ formatDateTime(inv.gioVaoBan || inv.thoiGianXuat) }}</strong>
+                    </div>
+                    <div>
+                      <span>Giờ rời bàn</span>
+                      <strong>{{ formatDateTime(inv.gioRoiBan) }}</strong>
                     </div>
                     <div>
                       <span>Nhân viên</span>
@@ -1707,7 +1772,7 @@ const handleDeleteAccount = async (id: number) => {
                       </tr>
                       <tr>
                         <td class="lbl">Bàn / Ghi chú:</td>
-                        <td class="val">{{ booking.tenBan || 'Tự động xếp' }} <span v-if="booking.ghiChu" style="color:#aaa;">— "{{ booking.ghiChu }}"</span></td>
+                        <td class="val">{{ formatBookingTableLabel(booking) }} <span v-if="booking.ghiChu" style="color:#aaa;">— "{{ booking.ghiChu }}"</span></td>
                       </tr>
                       <tr>
                         <td class="lbl">Tiền cọc:</td>

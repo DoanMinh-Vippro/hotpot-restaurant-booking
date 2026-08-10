@@ -1,6 +1,6 @@
 <!-- src/views/BanHang.vue -->
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import BanApi from '@/api/BanApi'
 import { getAllKhuVuc } from '@/api/khuvuc'
@@ -86,13 +86,13 @@ const isAvailableTable = (ban: any) => normalizeStatus(ban?.trangThai) === 'TRON
 // ======================== METHODS ========================
 const loadSoLuongHoaDon = async () => {
   try {
-    const res = await HoaDonApi.getActiveCount()
-    soLuongHoaDon.value = typeof res.data === 'number' ? res.data : 0
+    const res = await HoaDonApi.getActiveCount();
+    soLuongHoaDon.value = typeof res.data === 'number' ? res.data : 0;
   } catch (error) {
-    console.error('Không thể tải số lượng hóa đơn:', error)
-    soLuongHoaDon.value = 0
+    console.error('Không thể tải số lượng hóa đơn:', error);
+    soLuongHoaDon.value = 0;
   }
-}
+};
 
 const canContinueServingClosedShift = (ban: any | null) => {
   if (!ban?.idBan) return false
@@ -244,6 +244,22 @@ const handleSelectBan = (ban: any) => {
   banDangChon.value = ban
 }
 
+const findMatchedReservationForBan = async (banId: number) => {
+  try {
+    const reservationRes = await DatBanQuanLyApi.getAll()
+    const reservations = Array.isArray(reservationRes?.data) ? reservationRes.data : []
+    return reservations.find(
+      (reservation: any) =>
+        Array.isArray(reservation?.dsBan) &&
+        reservation.dsBan.some((ban: any) => Number(ban?.idBan) === Number(banId)) &&
+        ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || '')),
+    )
+  } catch (error) {
+    console.warn('Không thể tìm đơn đặt bàn cho bàn hiện tại:', error)
+    return null
+  }
+}
+
 const moPopupDatBan = async (ban: any) => {
   handleSelectBan(ban)
 
@@ -252,9 +268,19 @@ const moPopupDatBan = async (ban: any) => {
     return
   }
 
-  // Nếu bàn đang dùng thì không hiện popup đặt bàn, đi thẳng sang màn thanh toán.
   if (normalizeStatus(ban.trangThai) === 'DANG_SU_DUNG') {
+    const matchedReservation = await findMatchedReservationForBan(ban.idBan)
+    if (matchedReservation) {
+      datBanDangChon.value = matchedReservation
+      showPopup.value = false
+      showPopupDaXacNhan.value = false
+      manHinhHienTai.value = 'thanhToan'
+      return
+    }
+
     datBanDangChon.value = null
+    showPopup.value = false
+    showPopupDaXacNhan.value = false
     manHinhHienTai.value = 'thanhToan'
     return
   }
@@ -263,6 +289,16 @@ const moPopupDatBan = async (ban: any) => {
     const res = await HoaDonApi.findByBanAndStatus(ban.idBan, 0)
     if (res.data) {
       datBanDangChon.value = null
+
+      if (res.data.idDatBan) {
+        const matchedReservation = await findMatchedReservationForBan(ban.idBan)
+        if (matchedReservation) {
+          datBanDangChon.value = matchedReservation
+        }
+      }
+
+      showPopup.value = false
+      showPopupDaXacNhan.value = false
       manHinhHienTai.value = 'thanhToan'
       return
     }
@@ -369,76 +405,59 @@ const openPendingTarget = async () => {
   const pendingTableId = route.query.pendingTableId ? String(route.query.pendingTableId) : ''
   const pendingBillId = route.query.pendingBillId ? String(route.query.pendingBillId) : ''
   const pendingTableName = route.query.pendingTableName ? String(route.query.pendingTableName) : ''
+  const pendingDatBanId = route.query.pendingDatBanId ? String(route.query.pendingDatBanId) : ''
 
-  if (!pendingTableId && !pendingBillId) return
-
-  if (pendingTableId) {
-    const matchedBan = danhSachBan.value.find(
-      (item: any) => Number(item.idBan) === Number(pendingTableId),
-    )
-    if (matchedBan && isAvailableTable(matchedBan)) {
-      clearPosOrderCache(pendingTableId)
-      shiftStore.clearSettledTableReferences({
-        tableId: pendingTableId,
-        billId: pendingBillId || null,
-      })
-      return
-    }
-
-    if (pendingBillId) {
-      try {
-        const billRes = await HoaDonApi.getById(Number(pendingBillId))
-        const invoice = billRes?.data
-        if (
-          !invoice ||
-          Number(invoice.trangThaiThanhToan) === 1 ||
-          Number(invoice.trangThaiHoaDon) === 1
-        ) {
-          clearPosOrderCache(pendingTableId)
-          shiftStore.clearSettledTableReferences({ tableId: pendingTableId, billId: pendingBillId })
-          return
+  const loadReservation = async (datBanId: number) => {
+    try {
+      const reservationRes = await DatBanQuanLyApi.findById(datBanId)
+      if (reservationRes?.data) {
+        datBanDangChon.value = reservationRes.data
+        const tableFromReservation = reservationRes.data?.dsBan?.[0]
+        if (tableFromReservation?.idBan != null) {
+          const matchedBan = danhSachBan.value.find(
+            (item: any) => Number(item.idBan) === Number(tableFromReservation.idBan),
+          )
+          banDangChon.value = matchedBan
+            ? { ...matchedBan }
+            : { idBan: tableFromReservation.idBan, tenBan: tableFromReservation.tenBan, trangThai: 'DANG_SU_DUNG' }
         }
-      } catch (error) {
-        console.warn('Không thể kiểm tra hóa đơn treo từ link chốt ca:', error)
+        manHinhHienTai.value = 'thanhToan'
+        showPopup.value = false
+        return true
       }
+    } catch (err) {
+      console.warn('Không thể tải đơn đặt bàn từ query:', err)
     }
+    return false
+  }
 
-    if (matchedBan) {
-      banDangChon.value = {
-        ...matchedBan,
-        tenBan: matchedBan.tenBan || pendingTableName || `Bàn ${pendingTableId}`,
-      }
-      manHinhHienTai.value = 'thanhToan'
-      showPopup.value = false
-      return
-    } else {
-      banDangChon.value = {
-        idBan: Number(pendingTableId),
-        tenBan: pendingTableName || `Bàn ${pendingTableId}`,
-        trangThai: 'DANG_SU_DUNG',
-      }
-      manHinhHienTai.value = 'thanhToan'
-      showPopup.value = false
-      return
-    }
+  if (!pendingTableId && !pendingBillId && !pendingDatBanId) return
+
+  if (pendingDatBanId) {
+    const loaded = await loadReservation(Number(pendingDatBanId))
+    if (loaded) return
   }
 
   if (pendingBillId) {
     try {
       const billRes = await HoaDonApi.getById(Number(pendingBillId))
       const invoice = billRes?.data
+      if (!invoice) return
+
+      if (invoice.idDatBan) {
+        const loaded = await loadReservation(invoice.idDatBan)
+        if (loaded) return
+      }
+
       if (
-        !invoice ||
         Number(invoice.trangThaiThanhToan) === 1 ||
         Number(invoice.trangThaiHoaDon) === 1
       ) {
         clearPosOrderCache(invoice?.idBan ?? null)
-        shiftStore.clearSettledTableReferences({
-          tableId: invoice?.idBan ?? null,
-          billId: pendingBillId,
-        })
+        shiftStore.clearSettledTableReferences({ tableId: invoice?.idBan ?? null, billId: pendingBillId })
         return
       }
+
       if (invoice?.idBan) {
         const matchedBan = danhSachBan.value.find(
           (item: any) => Number(item.idBan) === Number(invoice.idBan),
@@ -456,10 +475,40 @@ const openPendingTarget = async () => {
           : { idBan: Number(invoice.idBan), tenBan: pendingTableName || `Bàn ${invoice.idBan}` }
         manHinhHienTai.value = 'thanhToan'
         showPopup.value = false
+        return
       }
     } catch (error) {
       console.warn('Không thể mở hóa đơn treo từ link chốt ca:', error)
     }
+  }
+
+  if (pendingTableId) {
+    const matchedBan = danhSachBan.value.find(
+      (item: any) => Number(item.idBan) === Number(pendingTableId),
+    )
+
+    if (matchedBan && matchedBan.datBanInfo) {
+      datBanDangChon.value = matchedBan.datBanInfo
+    }
+
+    if (matchedBan && isAvailableTable(matchedBan)) {
+      clearPosOrderCache(pendingTableId)
+      shiftStore.clearSettledTableReferences({
+        tableId: pendingTableId,
+        billId: pendingBillId || null,
+      })
+      return
+    }
+
+    banDangChon.value = matchedBan
+      ? {
+          ...matchedBan,
+          tenBan: matchedBan.tenBan || pendingTableName || `Bàn ${pendingTableId}`,
+        }
+      : { idBan: Number(pendingTableId), tenBan: pendingTableName || `Bàn ${pendingTableId}`, trangThai: 'DANG_SU_DUNG' }
+    manHinhHienTai.value = 'thanhToan'
+    showPopup.value = false
+    return
   }
 }
 
@@ -483,31 +532,41 @@ const handlePaymentComplete = async (payload: {
   trangThai: string
   billId?: number | string | null
 }) => {
-  const normalizedStatus = payload?.trangThai || 'TRONG'
-  clearPosOrderCache(payload?.idBan)
-  shiftStore.clearSettledTableReferences({ tableId: payload?.idBan, billId: payload?.billId })
+  try {
+    const normalizedStatus = payload?.trangThai || 'TRONG';
+    clearPosOrderCache(payload?.idBan);
+    shiftStore.clearSettledTableReferences({ tableId: payload?.idBan, billId: payload?.billId });
 
-  const targetIndex = danhSachBan.value.findIndex(
-    (item: any) => Number(item.idBan) === Number(payload.idBan),
-  )
-  if (targetIndex >= 0) {
-    danhSachBan.value[targetIndex] = {
-      ...danhSachBan.value[targetIndex],
-      trangThai: normalizedStatus,
-      current_order_id: null,
-      invoice_id: null,
-      idHoaDon: null,
+    const targetIndex = danhSachBan.value.findIndex(
+      (item: any) => Number(item.idBan) === Number(payload.idBan),
+    );
+    if (targetIndex >= 0) {
+      danhSachBan.value[targetIndex] = {
+        ...danhSachBan.value[targetIndex],
+        trangThai: normalizedStatus,
+        current_order_id: null,
+        invoice_id: null,
+        idHoaDon: null,
+      };
     }
-  }
 
-  if (banDangChon.value && Number(banDangChon.value.idBan) === Number(payload.idBan)) {
-    banDangChon.value = null
-  }
+    if (banDangChon.value && Number(banDangChon.value.idBan) === Number(payload.idBan)) {
+      banDangChon.value = null;
+    }
 
-  manHinhHienTai.value = 'danhSachBan'
-  datBanDangChon.value = null
-  await Promise.all([loadBan(), loadSoLuongHoaDon()])
-}
+    manHinhHienTai.value = 'danhSachBan';
+    datBanDangChon.value = null;
+
+    // 1. Tách Promise.all: Ưu tiên sync danh sách bàn trước
+    await loadBan();
+
+    // 2. Load số lượng hóa đơn sau
+    await loadSoLuongHoaDon();
+
+  } catch (err) {
+    console.error('Lỗi trong quá trình hoàn tất thanh toán:', err);
+  }
+};
 
 // ======================== HOOKS ========================
 watch(
@@ -518,13 +577,39 @@ watch(
   { deep: true },
 )
 
+let messageListener: any = null
+
 onMounted(async () => {
   await loadBan()
   await loadKhuVuc()
   await loadSoLuongHoaDon()
   await openPendingTarget()
 
+  // Periodically refresh invoice count
   setInterval(loadSoLuongHoaDon, 30000)
+
+  // Listen for cross-window payment notifications (from payment return page)
+  messageListener = (event: MessageEvent) => {
+    try {
+      const payload = event.data || {}
+      if (payload && payload.type === 'payment-complete' && payload.idBan) {
+        // Call the same handler used by ThanhToan @payment-complete
+        void handlePaymentComplete({
+          idBan: payload.idBan,
+          trangThai: payload.trangThai || 'TRONG',
+          billId: payload.billId || null,
+        })
+      }
+    } catch (e) {
+      console.warn('Invalid payment message received', e)
+    }
+  }
+
+  window.addEventListener('message', messageListener)
+})
+
+onUnmounted(() => {
+  if (messageListener) window.removeEventListener('message', messageListener)
 })
 </script>
 

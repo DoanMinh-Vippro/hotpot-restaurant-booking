@@ -8,15 +8,31 @@ const getApiBaseUrl = () => {
 
 const ApiClient = axios.create({
     baseURL: getApiBaseUrl(),
-    headers: {
-        "Content-Type": "application/json"
-    }
+    headers: { "Content-Type": "application/json" }
 });
+
 ApiClient.interceptors.request.use((config) => {
     const authStore = useAuthStore();
-    if(authStore.token){
-        config.headers.Authorization = `Bearer ${authStore.token}`
+    // Lấy token từ Pinia, nếu mất thì lấy từ localStorage
+    const token = authStore.token || localStorage.getItem("token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
-    return config
-})
+    return config;
+});
+
+ApiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            console.warn("Phiên đăng nhập hết hạn!");
+            localStorage.removeItem("token");
+            if (!window.location.pathname.includes("/auth")) {
+                window.location.href = "/auth";
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default ApiClient;

@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import HoaDonApi from '@/api/HoaDonApi'
+import BanApi from '@/api/BanApi'
+import DatBanQuanLyApi from '@/api/DatBanQuanLy'
 
 const router = useRouter()
 
@@ -10,6 +14,90 @@ const goHome = () => {
 const goBooking = () => {
   router.push('/dat-ban')
 }
+
+/**
+ * Sau khi VNPay redirect về trang thành công, backend đã cập nhật trạng thái hóa đơn.
+ * Ở đây cố gắng tìm hóa đơn đã thanh toán gần nhất có idBan và cập nhật trạng thái bàn về 'TRONG'.
+ * Nếu hóa đơn liên quan đến đơn đặt bàn (idDatBan) thì gọi API hoàn thành đơn đặt bàn.
+ */
+const markTablesEmptyAfterPayment = async () => {
+  try {
+    const res = await HoaDonApi.getDanhSach()
+    const bills = res.data || []
+
+    // Lọc các hóa đơn đã thanh toán và có idBan
+    const paidWithBan = bills.filter((b: any) => Number(b.trangThaiThanhToan) === 1 && b.idBan)
+
+    if (!paidWithBan.length) return
+
+    // Lấy hóa đơn gần nhất (idHoaDon lớn nhất)
+    paidWithBan.sort((a: any, b: any) => (b.idHoaDon || 0) - (a.idHoaDon || 0))
+    const latest = paidWithBan[0]
+
+    const banId = latest.idBan
+    const datBanId = latest.idDatBan
+
+    if (banId) {
+      try {
+        await BanApi.update(banId, {
+          loaiBan: latest.loaiBan ?? null,
+          tenBan: latest.tenBan ?? null,
+          idKhuVuc: latest.idKhuVuc ?? null,
+          trangThai: 'TRONG',
+        })
+      } catch (updateErr) {
+        console.warn('Không thể cập nhật trạng thái bàn:', updateErr)
+      }
+    }
+
+    if (datBanId) {
+        try {
+          await DatBanQuanLyApi.hoanThanh(datBanId)
+        } catch (resErr) {
+          console.warn('Không thể hoàn thành đơn đặt bàn liên quan:', resErr)
+        }
+      }
+
+      // Notify opener window (if payment opened a new window) so POS can react immediately
+      try {
+        if (window && (window.opener as any) && !(window.opener as any).closed) {
+          ;(window.opener as any).postMessage(
+            {
+              type: 'payment-complete',
+              idBan: banId,
+              billId: latest?.idHoaDon ?? null,
+              trangThai: 'TRONG',
+            },
+            '*',
+          )
+        }
+      } catch (postErr) {
+        console.warn('Không thể postMessage tới cửa sổ cha:', postErr)
+      }
+
+      // Redirect current tab to Ban Hàng with query so that BanHang's openPendingTarget can handle it
+      try {
+        void router.push({
+          name: 'ban-hang',
+          query: {
+            pendingTableId: String(banId || ''),
+            pendingBillId: String(latest?.idHoaDon ?? ''),
+            pendingDatBanId: String(datBanId || ''),
+          },
+        })
+      } catch (navErr) {
+        // ignore
+      }
+    }
+  } catch (err) {
+    console.warn('Lỗi khi kiểm tra hóa đơn sau khi thanh toán:', err)
+  }
+}
+
+onMounted(() => {
+  // Thực hiện cập nhật không chặn UI
+  void markTablesEmptyAfterPayment()
+})
 </script>
 
 <template>

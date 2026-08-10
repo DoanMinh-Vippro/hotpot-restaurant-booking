@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,6 +27,7 @@ public class DatBanResponse {
     private LocalDateTime thoiGianDenDuKien;
     private String tenKhachHang;
     private String tenBan;
+    private List<DTOBanResponse> dsBan;
 
     // Tiền cọc
     private BigDecimal soTienCoc;
