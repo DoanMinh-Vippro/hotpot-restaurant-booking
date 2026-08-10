@@ -17,4 +17,4 @@ export const getTienCocByKhachHang = (khachHangId: number) => {
 export const getTongTienDaThu = () => {
   return ApiClient.get(`${API_URL}/tong-tien-da-thu`)
 }
-//kiểm tra lại trạng thái bàn sau khi thanh toán ở màn bán hàng bên backend đang bị lỗi
+//cd frontend\hotpot-restaurant-booking_frontend\hotpot-restaurant-booking

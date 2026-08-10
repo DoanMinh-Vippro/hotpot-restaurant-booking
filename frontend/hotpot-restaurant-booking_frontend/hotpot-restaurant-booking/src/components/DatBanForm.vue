@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import DatBanApi from '@/api/DatBanApi'
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import ComBoInDatBan from './ComBoInDatBan.vue'
 import MonInDatBan from './MonInDatBan.vue'
 import { paymentApi } from '@/api/PaymentApi.ts'
@@ -118,6 +118,13 @@ const formData = ref({
   dsCombo: [] as any[],
   dsMon: [] as any[],
 })
+
+onMounted(() => {
+  if (authStore.soDienThoai) {
+    formData.value.sdtKhachHang = authStore.soDienThoai
+  }
+})
+
 const flatpickrConfig = {
   enableTime: true,
   time_24hr: true,

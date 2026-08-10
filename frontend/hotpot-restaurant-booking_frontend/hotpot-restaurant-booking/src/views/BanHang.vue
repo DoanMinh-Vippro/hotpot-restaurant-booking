@@ -1,12 +1,11 @@
 <!-- src/views/BanHang.vue -->
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import BanApi from '@/api/BanApi'
 import { getAllKhuVuc } from '@/api/khuvuc'
 import PopupListDatBan from '@/components/PopupListDatBan.vue'
 import DatBanQLTab from '@/components/DatBanQLTab.vue'
-import DatBanQLListBan from '@/components/DatBanQLListBan.vue'
 import DatBanPopupCheck from '@/components/DatBanPopupCheck.vue'
 import ThanhToan from '@/components/ThanhToan.vue'
 import HoaDonApi from '@/api/HoaDonApi'
@@ -49,15 +48,13 @@ const activeTabDatBan = ref('daXepBan') // 'daXepBan' | 'chuaXepBan'
 
 // ======================== COMPUTED ========================
 const danhSachDaXepBan = computed(() => {
-  return danhSachBan.value.filter(ban => 
-    ban.trangThai === 'DA_DAT' || ban.trangThai === 'DANG_SU_DUNG'
+  return danhSachBan.value.filter(
+    (ban) => ban.trangThai === 'DA_DAT' || ban.trangThai === 'DANG_SU_DUNG',
   )
 })
 
 const danhSachChuaXepBan = computed(() => {
-  return danhSachBan.value.filter(ban => 
-    ban.trangThai === 'TRONG'
-  )
+  return danhSachBan.value.filter((ban) => ban.trangThai === 'TRONG')
 })
 
 // ======================== HELPER FUNCTIONS ========================
@@ -89,13 +86,13 @@ const isAvailableTable = (ban: any) => normalizeStatus(ban?.trangThai) === 'TRON
 // ======================== METHODS ========================
 const loadSoLuongHoaDon = async () => {
   try {
-    const res = await HoaDonApi.getActiveCount()
-    soLuongHoaDon.value = typeof res.data === 'number' ? res.data : 0
+    const res = await HoaDonApi.getActiveCount();
+    soLuongHoaDon.value = typeof res.data === 'number' ? res.data : 0;
   } catch (error) {
-    console.error('Không thể tải số lượng hóa đơn:', error)
-    soLuongHoaDon.value = 0
+    console.error('Không thể tải số lượng hóa đơn:', error);
+    soLuongHoaDon.value = 0;
   }
-}
+};
 
 const canContinueServingClosedShift = (ban: any | null) => {
   if (!ban?.idBan) return false
@@ -129,9 +126,9 @@ const loadBan = async () => {
   const [banRes, reservationRes, invoiceRes] = await Promise.all([
     BanApi.getAll(),
     DatBanQuanLyApi.getAll(),
-    HoaDonApi.getDanhSach().catch(() => ({ data: [] }))
+    HoaDonApi.getDanhSach().catch(() => ({ data: [] })),
   ])
-  
+
   const rawBan = Array.isArray(banRes?.data) ? banRes.data : []
   const reservations = Array.isArray(reservationRes?.data) ? reservationRes.data : []
   const invoices = Array.isArray(invoiceRes?.data) ? invoiceRes.data : []
@@ -139,7 +136,9 @@ const loadBan = async () => {
   const rawBanStatusById = new Map<number, string>(
     rawBan.map((ban: any) => [Number(ban.idBan), normalizeStatus(ban.trangThai)]),
   )
-  const unpaidInvoices = invoices.filter((inv: any) => Number(inv.trangThaiThanhToan) === 0 && inv.idBan != null)
+  const unpaidInvoices = invoices.filter(
+    (inv: any) => Number(inv.trangThaiThanhToan) === 0 && inv.idBan != null,
+  )
   const unpaidBillIds = new Set<string>(unpaidInvoices.map((inv: any) => String(inv.idHoaDon)))
   const unpaidBanIds = new Set<number>()
   unpaidInvoices.forEach((inv: any) => unpaidBanIds.add(Number(inv.idBan)))
@@ -175,9 +174,10 @@ const loadBan = async () => {
   }
 
   const getReservationInfoForBan = (banId: number, reservations: any[]) => {
-    const banReservations = reservations.filter((reservation: any) =>
-      Array.isArray(reservation?.dsBan) &&
-      reservation.dsBan.some((ban: any) => Number(ban?.idBan) === banId),
+    const banReservations = reservations.filter(
+      (reservation: any) =>
+        Array.isArray(reservation?.dsBan) &&
+        reservation.dsBan.some((ban: any) => Number(ban?.idBan) === banId),
     )
 
     if (!banReservations.length) {
@@ -194,9 +194,11 @@ const loadBan = async () => {
   danhSachBan.value = rawBan.map((ban: any) => {
     const banId = Number(ban.idBan)
     const activeReservation = getReservationInfoForBan(banId, reservations)
-    const reservationStatus = activeReservation ? normalizeReservationStatus(activeReservation.trangThai) : null
+    const reservationStatus = activeReservation
+      ? normalizeReservationStatus(activeReservation.trangThai)
+      : null
     const activeInvoice = unpaidInvoices.find((inv: any) => Number(inv.idBan) === banId)
-    
+
     const banStatus = normalizeBanStatus(ban.trangThai)
     let nextStatus = banStatus
 
@@ -206,15 +208,18 @@ const loadBan = async () => {
       nextStatus = 'DANG_SU_DUNG'
     } else if (reservationStatus === 'DA_XAC_NHAN' && banStatus === 'TRONG') {
       nextStatus = 'DA_DAT'
-    } else if (!['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus) && reservationStatus === 'DA_XAC_NHAN') {
+    } else if (
+      !['TRONG', 'DA_DAT', 'DANG_SU_DUNG'].includes(banStatus) &&
+      reservationStatus === 'DA_XAC_NHAN'
+    ) {
       nextStatus = 'DA_DAT'
     }
 
-    return { 
-      ...ban, 
+    return {
+      ...ban,
       trangThai: nextStatus,
       datBanInfo: activeReservation,
-      hoaDonInfo: activeInvoice
+      hoaDonInfo: activeInvoice,
     }
   })
 }
@@ -278,12 +283,12 @@ const markBanDangSuDung = async (ban: any) => {
   try {
     await BanApi.update(ban.idBan, { trangThai: 'DANG_SU_DUNG' })
     const targetIndex = danhSachBan.value.findIndex(
-      (item: any) => Number(item.idBan) === Number(ban.idBan)
+      (item: any) => Number(item.idBan) === Number(ban.idBan),
     )
     if (targetIndex >= 0) {
-      danhSachBan.value[targetIndex] = { 
-        ...danhSachBan.value[targetIndex], 
-        trangThai: 'DANG_SU_DUNG' 
+      danhSachBan.value[targetIndex] = {
+        ...danhSachBan.value[targetIndex],
+        trangThai: 'DANG_SU_DUNG',
       }
     }
     banDangChon.value = { ...ban, trangThai: 'DANG_SU_DUNG' }
@@ -304,10 +309,13 @@ const moDanhSachDatBan = async () => {
   try {
     const reservationRes = await DatBanQuanLyApi.getAll()
     const reservations = Array.isArray(reservationRes?.data) ? reservationRes.data : []
-    const matchedReservation = reservations.find((reservation: any) =>
-      Array.isArray(reservation?.dsBan) &&
-      reservation.dsBan.some((ban: any) => Number(ban?.idBan) === Number(banDangChon.value.idBan)) &&
-      ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || ''))
+    const matchedReservation = reservations.find(
+      (reservation: any) =>
+        Array.isArray(reservation?.dsBan) &&
+        reservation.dsBan.some(
+          (ban: any) => Number(ban?.idBan) === Number(banDangChon.value.idBan),
+        ) &&
+        ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || '')),
     )
 
     if (matchedReservation) {
@@ -353,7 +361,7 @@ const layThuTrongTuan = () => {
 const handleViewBill = (hoaDon: any) => {
   showAllBills.value = false
   datBanDangChon.value = null
-  banDangChon.value = danhSachBan.value.find(b => b.idBan === hoaDon.idBan)
+  banDangChon.value = danhSachBan.value.find((b) => b.idBan === hoaDon.idBan)
   manHinhHienTai.value = 'thanhToan'
 }
 
@@ -361,69 +369,110 @@ const openPendingTarget = async () => {
   const pendingTableId = route.query.pendingTableId ? String(route.query.pendingTableId) : ''
   const pendingBillId = route.query.pendingBillId ? String(route.query.pendingBillId) : ''
   const pendingTableName = route.query.pendingTableName ? String(route.query.pendingTableName) : ''
+  const pendingDatBanId = route.query.pendingDatBanId ? String(route.query.pendingDatBanId) : ''
 
-  if (!pendingTableId && !pendingBillId) return
-
-  if (pendingTableId) {
-    const matchedBan = danhSachBan.value.find((item: any) => Number(item.idBan) === Number(pendingTableId))
-    if (matchedBan && isAvailableTable(matchedBan)) {
-      clearPosOrderCache(pendingTableId)
-      shiftStore.clearSettledTableReferences({ tableId: pendingTableId, billId: pendingBillId || null })
-      return
-    }
-
-    if (pendingBillId) {
-      try {
-        const billRes = await HoaDonApi.getById(Number(pendingBillId))
-        const invoice = billRes?.data
-        if (!invoice || Number(invoice.trangThaiThanhToan) === 1 || Number(invoice.trangThaiHoaDon) === 1) {
-          clearPosOrderCache(pendingTableId)
-          shiftStore.clearSettledTableReferences({ tableId: pendingTableId, billId: pendingBillId })
-          return
+  const loadReservation = async (datBanId: number) => {
+    try {
+      const reservationRes = await DatBanQuanLyApi.findById(datBanId)
+      if (reservationRes?.data) {
+        datBanDangChon.value = reservationRes.data
+        const tableFromReservation = reservationRes.data?.dsBan?.[0]
+        if (tableFromReservation?.idBan != null) {
+          const matchedBan = danhSachBan.value.find(
+            (item: any) => Number(item.idBan) === Number(tableFromReservation.idBan),
+          )
+          banDangChon.value = matchedBan
+            ? { ...matchedBan }
+            : { idBan: tableFromReservation.idBan, tenBan: tableFromReservation.tenBan, trangThai: 'DANG_SU_DUNG' }
         }
-      } catch (error) {
-        console.warn('Không thể kiểm tra hóa đơn treo từ link chốt ca:', error)
+        manHinhHienTai.value = 'thanhToan'
+        showPopup.value = false
+        return true
       }
+    } catch (err) {
+      console.warn('Không thể tải đơn đặt bàn từ query:', err)
     }
+    return false
+  }
 
-    if (matchedBan) {
-      banDangChon.value = { ...matchedBan, tenBan: matchedBan.tenBan || pendingTableName || `Bàn ${pendingTableId}` }
-      manHinhHienTai.value = 'thanhToan'
-      showPopup.value = false
-      return
-    } else {
-      banDangChon.value = { idBan: Number(pendingTableId), tenBan: pendingTableName || `Bàn ${pendingTableId}`, trangThai: 'DANG_SU_DUNG' }
-      manHinhHienTai.value = 'thanhToan'
-      showPopup.value = false
-      return
-    }
+  if (!pendingTableId && !pendingBillId && !pendingDatBanId) return
+
+  if (pendingDatBanId) {
+    const loaded = await loadReservation(Number(pendingDatBanId))
+    if (loaded) return
   }
 
   if (pendingBillId) {
     try {
       const billRes = await HoaDonApi.getById(Number(pendingBillId))
       const invoice = billRes?.data
-      if (!invoice || Number(invoice.trangThaiThanhToan) === 1 || Number(invoice.trangThaiHoaDon) === 1) {
+      if (!invoice) return
+
+      if (invoice.idDatBan) {
+        const loaded = await loadReservation(invoice.idDatBan)
+        if (loaded) return
+      }
+
+      if (
+        Number(invoice.trangThaiThanhToan) === 1 ||
+        Number(invoice.trangThaiHoaDon) === 1
+      ) {
         clearPosOrderCache(invoice?.idBan ?? null)
         shiftStore.clearSettledTableReferences({ tableId: invoice?.idBan ?? null, billId: pendingBillId })
         return
       }
+
       if (invoice?.idBan) {
-        const matchedBan = danhSachBan.value.find((item: any) => Number(item.idBan) === Number(invoice.idBan))
+        const matchedBan = danhSachBan.value.find(
+          (item: any) => Number(item.idBan) === Number(invoice.idBan),
+        )
         if (matchedBan && isAvailableTable(matchedBan)) {
           clearPosOrderCache(invoice.idBan)
           shiftStore.clearSettledTableReferences({ tableId: invoice.idBan, billId: pendingBillId })
           return
         }
         banDangChon.value = matchedBan
-          ? { ...matchedBan, tenBan: matchedBan.tenBan || pendingTableName || `Bàn ${invoice.idBan}` }
+          ? {
+              ...matchedBan,
+              tenBan: matchedBan.tenBan || pendingTableName || `Bàn ${invoice.idBan}`,
+            }
           : { idBan: Number(invoice.idBan), tenBan: pendingTableName || `Bàn ${invoice.idBan}` }
         manHinhHienTai.value = 'thanhToan'
         showPopup.value = false
+        return
       }
     } catch (error) {
       console.warn('Không thể mở hóa đơn treo từ link chốt ca:', error)
     }
+  }
+
+  if (pendingTableId) {
+    const matchedBan = danhSachBan.value.find(
+      (item: any) => Number(item.idBan) === Number(pendingTableId),
+    )
+
+    if (matchedBan && matchedBan.datBanInfo) {
+      datBanDangChon.value = matchedBan.datBanInfo
+    }
+
+    if (matchedBan && isAvailableTable(matchedBan)) {
+      clearPosOrderCache(pendingTableId)
+      shiftStore.clearSettledTableReferences({
+        tableId: pendingTableId,
+        billId: pendingBillId || null,
+      })
+      return
+    }
+
+    banDangChon.value = matchedBan
+      ? {
+          ...matchedBan,
+          tenBan: matchedBan.tenBan || pendingTableName || `Bàn ${pendingTableId}`,
+        }
+      : { idBan: Number(pendingTableId), tenBan: pendingTableName || `Bàn ${pendingTableId}`, trangThai: 'DANG_SU_DUNG' }
+    manHinhHienTai.value = 'thanhToan'
+    showPopup.value = false
+    return
   }
 }
 
@@ -442,30 +491,46 @@ const clearPosOrderCache = (tableId?: number | string | null) => {
   }
 }
 
-const handlePaymentComplete = async (payload: { idBan: number; trangThai: string; billId?: number | string | null }) => {
-  const normalizedStatus = payload?.trangThai || 'TRONG'
-  clearPosOrderCache(payload?.idBan)
-  shiftStore.clearSettledTableReferences({ tableId: payload?.idBan, billId: payload?.billId })
+const handlePaymentComplete = async (payload: {
+  idBan: number
+  trangThai: string
+  billId?: number | string | null
+}) => {
+  try {
+    const normalizedStatus = payload?.trangThai || 'TRONG';
+    clearPosOrderCache(payload?.idBan);
+    shiftStore.clearSettledTableReferences({ tableId: payload?.idBan, billId: payload?.billId });
 
-  const targetIndex = danhSachBan.value.findIndex((item: any) => Number(item.idBan) === Number(payload.idBan))
-  if (targetIndex >= 0) {
-    danhSachBan.value[targetIndex] = {
-      ...danhSachBan.value[targetIndex],
-      trangThai: normalizedStatus,
-      current_order_id: null,
-      invoice_id: null,
-      idHoaDon: null,
+    const targetIndex = danhSachBan.value.findIndex(
+      (item: any) => Number(item.idBan) === Number(payload.idBan),
+    );
+    if (targetIndex >= 0) {
+      danhSachBan.value[targetIndex] = {
+        ...danhSachBan.value[targetIndex],
+        trangThai: normalizedStatus,
+        current_order_id: null,
+        invoice_id: null,
+        idHoaDon: null,
+      };
     }
-  }
 
-  if (banDangChon.value && Number(banDangChon.value.idBan) === Number(payload.idBan)) {
-    banDangChon.value = null
-  }
+    if (banDangChon.value && Number(banDangChon.value.idBan) === Number(payload.idBan)) {
+      banDangChon.value = null;
+    }
 
-  manHinhHienTai.value = 'danhSachBan'
-  datBanDangChon.value = null
-  await Promise.all([loadBan(), loadSoLuongHoaDon()])
-}
+    manHinhHienTai.value = 'danhSachBan';
+    datBanDangChon.value = null;
+
+    // 1. Tách Promise.all: Ưu tiên sync danh sách bàn trước
+    await loadBan();
+
+    // 2. Load số lượng hóa đơn sau
+    await loadSoLuongHoaDon();
+
+  } catch (err) {
+    console.error('Lỗi trong quá trình hoàn tất thanh toán:', err);
+  }
+};
 
 // ======================== HOOKS ========================
 watch(
@@ -476,13 +541,39 @@ watch(
   { deep: true },
 )
 
+let messageListener: any = null
+
 onMounted(async () => {
   await loadBan()
   await loadKhuVuc()
   await loadSoLuongHoaDon()
   await openPendingTarget()
 
+  // Periodically refresh invoice count
   setInterval(loadSoLuongHoaDon, 30000)
+
+  // Listen for cross-window payment notifications (from payment return page)
+  messageListener = (event: MessageEvent) => {
+    try {
+      const payload = event.data || {}
+      if (payload && payload.type === 'payment-complete' && payload.idBan) {
+        // Call the same handler used by ThanhToan @payment-complete
+        void handlePaymentComplete({
+          idBan: payload.idBan,
+          trangThai: payload.trangThai || 'TRONG',
+          billId: payload.billId || null,
+        })
+      }
+    } catch (e) {
+      console.warn('Invalid payment message received', e)
+    }
+  }
+
+  window.addEventListener('message', messageListener)
+})
+
+onUnmounted(() => {
+  if (messageListener) window.removeEventListener('message', messageListener)
 })
 </script>
 
@@ -521,42 +612,77 @@ onMounted(async () => {
       </div>
 
       <!-- TAB KHU VỰC -->
-      <DatBanQLTab 
-        :listKhuVuc="danhSachKhuVuc" 
-        @change="handleChangeTab"
-      >
+      <DatBanQLTab :listKhuVuc="danhSachKhuVuc" @change="handleChangeTab">
         <template #default="{ idKhuVuc }">
           <div class="ban-list-container">
             <div class="ban-grid">
-              <div 
-                v-for="ban in danhSachBan.filter(b => b.idKhuVuc === idKhuVuc)" 
+              <div
+                v-for="ban in danhSachBan.filter((b) => b.idKhuVuc === idKhuVuc)"
                 :key="ban.idBan"
                 class="ban-item-wrapper"
               >
                 <!-- CARD BÀN -->
-                <div 
+                <div
                   class="ban-item"
                   :class="{
-                    'trong': ban.trangThai === 'TRONG',
+                    trong: ban.trangThai === 'TRONG',
                     'da-dat': ban.trangThai === 'DA_DAT',
-                    'dang-su-dung': ban.trangThai === 'DANG_SU_DUNG'
+                    'dang-su-dung': ban.trangThai === 'DANG_SU_DUNG',
                   }"
                   @click="handleSelectBan(ban)"
                   @dblclick="moPopupDatBan(ban)"
                 >
                   <div class="ban-icon">
-                    <svg v-if="ban.trangThai === 'TRONG'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#4CAF50" stroke-width="2"/>
-                      <circle cx="12" cy="12" r="2" fill="#4CAF50"/>
+                    <svg
+                      v-if="ban.trangThai === 'TRONG'"
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <rect
+                        x="4"
+                        y="4"
+                        width="16"
+                        height="16"
+                        rx="3"
+                        stroke="#4CAF50"
+                        stroke-width="2"
+                      />
+                      <circle cx="12" cy="12" r="2" fill="#4CAF50" />
                     </svg>
-                    <svg v-else-if="ban.trangThai === 'DA_DAT'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#FF9800" stroke-width="2"/>
-                      <circle cx="12" cy="12" r="2" fill="#FF9800"/>
-                      <text x="12" y="20" text-anchor="middle" font-size="8" fill="#FF9800">⏳</text>
+                    <svg
+                      v-else-if="ban.trangThai === 'DA_DAT'"
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <rect
+                        x="4"
+                        y="4"
+                        width="16"
+                        height="16"
+                        rx="3"
+                        stroke="#FF9800"
+                        stroke-width="2"
+                      />
+                      <circle cx="12" cy="12" r="2" fill="#FF9800" />
+                      <text x="12" y="20" text-anchor="middle" font-size="8" fill="#FF9800">
+                        ⏳
+                      </text>
                     </svg>
                     <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none">
-                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#F44336" stroke-width="2"/>
-                      <circle cx="12" cy="12" r="2" fill="#F44336"/>
+                      <rect
+                        x="4"
+                        y="4"
+                        width="16"
+                        height="16"
+                        rx="3"
+                        stroke="#F44336"
+                        stroke-width="2"
+                      />
+                      <circle cx="12" cy="12" r="2" fill="#F44336" />
                       <text x="12" y="20" text-anchor="middle" font-size="8" fill="#F44336">●</text>
                     </svg>
                   </div>
@@ -566,8 +692,13 @@ onMounted(async () => {
                   </div>
                   <div class="ban-status">
                     <span class="status-badge" :class="ban.trangThai.toLowerCase()">
-                      {{ ban.trangThai === 'TRONG' ? 'Trống' : 
-                         ban.trangThai === 'DA_DAT' ? 'Đã đặt' : 'Đang dùng' }}
+                      {{
+                        ban.trangThai === 'TRONG'
+                          ? 'Trống'
+                          : ban.trangThai === 'DA_DAT'
+                            ? 'Đã đặt'
+                            : 'Đang dùng'
+                      }}
                     </span>
                   </div>
                 </div>
@@ -587,7 +718,9 @@ onMounted(async () => {
                     <div class="tooltip-row">
                       <span class="label">Khách hàng:</span>
                       <span class="value">
-                        {{ ban.datBanInfo?.tenKhachHang || ban.hoaDonInfo?.tenKhachHang || 'Khách lẻ' }}
+                        {{
+                          ban.datBanInfo?.tenKhachHang || ban.hoaDonInfo?.tenKhachHang || 'Khách lẻ'
+                        }}
                       </span>
                     </div>
                     <div class="tooltip-row">
@@ -599,7 +732,9 @@ onMounted(async () => {
                     <div class="tooltip-row">
                       <span class="label">Thời gian đến:</span>
                       <span class="value">
-                        {{ formatDateTime(ban.datBanInfo?.thoiGianDenDuKien) || 'Khách vào trực tiếp' }}
+                        {{
+                          formatDateTime(ban.datBanInfo?.thoiGianDenDuKien) || 'Khách vào trực tiếp'
+                        }}
                       </span>
                     </div>
                     <div class="tooltip-row">
@@ -619,7 +754,7 @@ onMounted(async () => {
       <!-- PHẦN TAB ĐƠN ĐẶT BÀN -->
       <div class="dat-ban-tabs-section">
         <div class="tabs-header">
-          <button 
+          <button
             class="tab-btn"
             :class="{ active: activeTabDatBan === 'daXepBan' }"
             @click="activeTabDatBan = 'daXepBan'"
@@ -627,7 +762,7 @@ onMounted(async () => {
             📋 Đã sắp bàn
             <span class="tab-count">{{ danhSachDaXepBan.length }}</span>
           </button>
-          <button 
+          <button
             class="tab-btn"
             :class="{ active: activeTabDatBan === 'chuaXepBan' }"
             @click="activeTabDatBan = 'chuaXepBan'"
@@ -644,11 +779,7 @@ onMounted(async () => {
               <p>Chưa có bàn nào được sắp xếp</p>
             </div>
             <div v-else class="ban-list-mini">
-              <div 
-                v-for="ban in danhSachDaXepBan" 
-                :key="ban.idBan"
-                class="ban-mini-item"
-              >
+              <div v-for="ban in danhSachDaXepBan" :key="ban.idBan" class="ban-mini-item">
                 <span class="ban-mini-name">{{ ban.tenBan }}</span>
                 <span class="ban-mini-status" :class="ban.trangThai.toLowerCase()">
                   {{ ban.trangThai === 'DA_DAT' ? 'Đã đặt' : 'Đang dùng' }}
@@ -664,11 +795,7 @@ onMounted(async () => {
               <p>Tất cả bàn đều đã được sắp xếp</p>
             </div>
             <div v-else class="ban-list-mini">
-              <div 
-                v-for="ban in danhSachChuaXepBan" 
-                :key="ban.idBan"
-                class="ban-mini-item"
-              >
+              <div v-for="ban in danhSachChuaXepBan" :key="ban.idBan" class="ban-mini-item">
                 <span class="ban-mini-name">{{ ban.tenBan }}</span>
                 <span class="ban-mini-status trong">Trống</span>
               </div>
@@ -722,7 +849,11 @@ onMounted(async () => {
   padding: 20px;
   box-sizing: border-box;
   color: #4a3520;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 /* ========== HEADER ========== */
@@ -753,7 +884,7 @@ onMounted(async () => {
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #8B6B4A, #5F3D22);
+  background: linear-gradient(135deg, #8b6b4a, #5f3d22);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -771,12 +902,12 @@ onMounted(async () => {
 
 .date-day {
   font-weight: 500;
-  color: #8B6B4A;
+  color: #8b6b4a;
 }
 
 .date-number {
   font-weight: 600;
-  color: #5F3D22;
+  color: #5f3d22;
   background: white;
   padding: 2px 12px;
   border-radius: 20px;
@@ -815,11 +946,11 @@ onMounted(async () => {
 }
 
 .stat-dot.busy {
-  background: #FF9800;
+  background: #ff9800;
 }
 
 .stat-dot.free {
-  background: #4CAF50;
+  background: #4caf50;
 }
 
 /* ========== BUTTON BILLS ========== */
@@ -851,7 +982,7 @@ onMounted(async () => {
 }
 
 .badge {
-  background: #8B6B4A;
+  background: #8b6b4a;
   color: white;
   padding: 2px 10px;
   border-radius: 20px;
@@ -975,32 +1106,32 @@ onMounted(async () => {
 }
 
 .ban-item.trong {
-  border-color: #4CAF50;
+  border-color: #4caf50;
   background: linear-gradient(135deg, #fafffe, #f0faf0);
 }
 
 .ban-item.trong:hover {
-  border-color: #388E3C;
+  border-color: #388e3c;
   background: linear-gradient(135deg, #f0faf0, #e0f0e0);
 }
 
 .ban-item.da-dat {
-  border-color: #FF9800;
+  border-color: #ff9800;
   background: linear-gradient(135deg, #fffbf0, #fef5e6);
 }
 
 .ban-item.da-dat:hover {
-  border-color: #F57C00;
+  border-color: #f57c00;
   background: linear-gradient(135deg, #fef5e6, #fde8cc);
 }
 
 .ban-item.dang-su-dung {
-  border-color: #F44336;
+  border-color: #f44336;
   background: linear-gradient(135deg, #fff5f5, #fde8e8);
 }
 
 .ban-item.dang-su-dung:hover {
-  border-color: #D32F2F;
+  border-color: #d32f2f;
   background: linear-gradient(135deg, #fde8e8, #fcd0d0);
 }
 
@@ -1042,18 +1173,18 @@ onMounted(async () => {
 }
 
 .status-badge.trong {
-  background: #E8F5E9;
-  color: #2E7D32;
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .status-badge.da-dat {
-  background: #FFF3E0;
-  color: #E65100;
+  background: #fff3e0;
+  color: #e65100;
 }
 
 .status-badge.dang-su-dung {
-  background: #FFEBEE;
-  color: #C62828;
+  background: #ffebee;
+  color: #c62828;
 }
 
 /* ================= TOOLTIP DESIGN ================= */
@@ -1073,7 +1204,9 @@ onMounted(async () => {
   bottom: 105%;
   left: 50%;
   transform: translateX(-50%);
-  transition: opacity 0.25s ease, visibility 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease;
   pointer-events: none;
 }
 
@@ -1162,11 +1295,11 @@ onMounted(async () => {
 
 .tab-btn:hover {
   background: rgba(139, 107, 74, 0.05);
-  color: #5F3D22;
+  color: #5f3d22;
 }
 
 .tab-btn.active {
-  color: #5F3D22;
+  color: #5f3d22;
   background: white;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
 }
@@ -1178,7 +1311,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #8B6B4A, #5F3D22);
+  background: linear-gradient(90deg, #8b6b4a, #5f3d22);
   border-radius: 4px;
 }
 
@@ -1258,18 +1391,18 @@ onMounted(async () => {
 }
 
 .ban-mini-status.trong {
-  background: #E8F5E9;
-  color: #2E7D32;
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .ban-mini-status.da-dat {
-  background: #FFF3E0;
-  color: #E65100;
+  background: #fff3e0;
+  color: #e65100;
 }
 
 .ban-mini-status.dang-su-dung {
-  background: #FFEBEE;
-  color: #C62828;
+  background: #ffebee;
+  color: #c62828;
 }
 
 .ban-mini-time {

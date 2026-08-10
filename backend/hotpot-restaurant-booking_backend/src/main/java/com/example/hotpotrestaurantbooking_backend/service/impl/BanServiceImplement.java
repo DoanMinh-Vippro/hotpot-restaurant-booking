@@ -30,8 +30,7 @@ public class BanServiceImplement implements BanService {
                 .stream()
                 .map(b -> {
                     DTOBanResponse response = mapper.map(b,DTOBanResponse.class);
-                    response.setTenKhuVuc(
-                            b.getKhuVuc().getTenKhuVuc());
+                    response.setTenKhuVuc(b.getKhuVuc().getTenKhuVuc());
                     return response;
                 })
                 .toList();

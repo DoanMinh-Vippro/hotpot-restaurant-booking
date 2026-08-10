@@ -12,11 +12,8 @@ const emit = defineEmits(['search', 'reset', 'today'])
 
 const filter = reactive({
   keyword: props.keyword,
-
   trangThai: props.trangThai,
-
   tuNgay: props.tuNgay,
-
   denNgay: props.denNgay,
 })
 

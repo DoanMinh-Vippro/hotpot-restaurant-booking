@@ -195,6 +195,7 @@ const handleCheckIn = async (item: any) => {
         name: 'ban-hang',
         query: {
           pendingTableId: String(tableId),
+          pendingDatBanId: String(item.idDatBan),
           pendingTableName: tableName || '',
         },
       })

@@ -470,6 +470,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             db.setTrangThaiCoc(TrangThaiDatBanCoc.DA_COC);
         }
 
+        db.setTrangThai(TrangThaiDatBan.DA_XAC_NHAN);
+
         validateThoiGianHoatDong(d.getThoiGianDenDuKien());
         validateSucChuaBan(d.getDsBan(), d.getSoNguoi());
         validateDanhSachBan(d.getDsBan(), d.getThoiGianDenDuKien(), null);
@@ -492,6 +494,18 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Override
+    public DTODatBanQuanLyResponse hoanThanh(Integer id) {
+        DatBan db = datBanRepository.findById(id)
+                .orElseThrow(() -> new CustomResourceNotFoundException("Không tìm thấy đơn đặt bàn"));
+        db.setTrangThai(TrangThaiDatBan.HOAN_THANH);
+        datBanRepository.save(db);
+        for (ChiTietDatBanBan ct : db.getChiTietDatBanBans()) {
+            capNhatTrangThaiBan(ct.getBan().getIdBan());
+        }
+        return mapToResponse(db);
     }
 
     //=============================================================
@@ -905,7 +919,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             return false;
         }
 
-        return !now.isBefore(referenceTime.plusHours(1));
+        return !now.isBefore(referenceTime.plusMinutes(15));
     }
 
     private boolean isVisibleReservation(DatBan datBan) {
