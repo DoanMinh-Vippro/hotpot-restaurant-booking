@@ -724,7 +724,6 @@ onUnmounted(() => {
                   </div>
                   <div class="ban-info">
                     <span class="ban-name">{{ ban.tenBan }}</span>
-                    <!-- <span class="ban-capacity">👥 {{ ban.soLuongNguoi || ban.soNguoi || 4 }}</span> -->
                     <span class="ban-capacity">👥</span>
                   </div>
                   <div class="ban-status">

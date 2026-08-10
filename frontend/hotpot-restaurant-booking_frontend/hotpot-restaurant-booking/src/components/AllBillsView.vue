@@ -71,7 +71,10 @@ const isActiveTableInvoice = (invoice: any) => {
   return (
     Number(invoice?.trangThaiHoaDon) === 0 &&
     Number(invoice?.trangThaiThanhToan) === 0 &&
-    invoice?.idBan != null
+    (
+      invoice?.idBan != null ||
+      (Array.isArray(invoice?.dsBan) && invoice.dsBan.length > 0)
+    )
   )
 }
 
@@ -79,18 +82,14 @@ const loadHoaDon = async () => {
   isLoading.value = true
 
   try {
-    const activeRes = await HoaDonApi.getActiveBills()
+    // Try to get active bills from API and always merge with any reservation-created invoices
+    const [activeRes, allRes] = await Promise.all([HoaDonApi.getActiveBills(), HoaDonApi.getDanhSach()])
     const activeBills = Array.isArray(activeRes.data) ? activeRes.data : []
-
-    if (activeBills.length > 0) {
-      danhSachHoaDon.value = activeBills
-      return
-    }
-
-    // Fallback: nếu endpoint active không trả về, lấy tất cả và lọc các hóa đơn bàn đang mở
-    const allRes = await HoaDonApi.getDanhSach()
     const allBills = Array.isArray(allRes.data) ? allRes.data : []
-    danhSachHoaDon.value = allBills.filter(isActiveTableInvoice)
+
+    // Include active bills first, then add any additional active-like invoices (e.g., created from reservations)
+    const extraFromAll = allBills.filter((b) => isActiveTableInvoice(b) && !activeBills.some((a) => a.idHoaDon === b.idHoaDon))
+    danhSachHoaDon.value = [...activeBills, ...extraFromAll]
   } catch (e) {
     console.error('Không lấy được danh sách hóa đơn đang hoạt động:', e)
     danhSachHoaDon.value = []
