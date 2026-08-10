@@ -244,6 +244,22 @@ const handleSelectBan = (ban: any) => {
   banDangChon.value = ban
 }
 
+const findMatchedReservationForBan = async (banId: number) => {
+  try {
+    const reservationRes = await DatBanQuanLyApi.getAll()
+    const reservations = Array.isArray(reservationRes?.data) ? reservationRes.data : []
+    return reservations.find(
+      (reservation: any) =>
+        Array.isArray(reservation?.dsBan) &&
+        reservation.dsBan.some((ban: any) => Number(ban?.idBan) === Number(banId)) &&
+        ['DA_NHAN_BAN', 'DA_XAC_NHAN'].includes(String(reservation?.trangThai || '')),
+    )
+  } catch (error) {
+    console.warn('Không thể tìm đơn đặt bàn cho bàn hiện tại:', error)
+    return null
+  }
+}
+
 const moPopupDatBan = async (ban: any) => {
   handleSelectBan(ban)
 
@@ -252,9 +268,19 @@ const moPopupDatBan = async (ban: any) => {
     return
   }
 
-  // Nếu bàn đang dùng thì không hiện popup đặt bàn, đi thẳng sang màn thanh toán.
   if (normalizeStatus(ban.trangThai) === 'DANG_SU_DUNG') {
+    const matchedReservation = await findMatchedReservationForBan(ban.idBan)
+    if (matchedReservation) {
+      datBanDangChon.value = matchedReservation
+      showPopup.value = false
+      showPopupDaXacNhan.value = false
+      manHinhHienTai.value = 'thanhToan'
+      return
+    }
+
     datBanDangChon.value = null
+    showPopup.value = false
+    showPopupDaXacNhan.value = false
     manHinhHienTai.value = 'thanhToan'
     return
   }
@@ -263,6 +289,16 @@ const moPopupDatBan = async (ban: any) => {
     const res = await HoaDonApi.findByBanAndStatus(ban.idBan, 0)
     if (res.data) {
       datBanDangChon.value = null
+
+      if (res.data.idDatBan) {
+        const matchedReservation = await findMatchedReservationForBan(ban.idBan)
+        if (matchedReservation) {
+          datBanDangChon.value = matchedReservation
+        }
+      }
+
+      showPopup.value = false
+      showPopupDaXacNhan.value = false
       manHinhHienTai.value = 'thanhToan'
       return
     }

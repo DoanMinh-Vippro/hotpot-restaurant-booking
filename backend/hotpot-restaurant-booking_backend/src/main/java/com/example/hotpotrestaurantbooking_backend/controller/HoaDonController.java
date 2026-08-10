@@ -30,12 +30,12 @@ public class HoaDonController {
 
 
 
-    @GetMapping("{id}")
+    @GetMapping("{id:\\d+}")
     public ResponseEntity<DTOHoaDonResponse> findById(@PathVariable Integer id) {
         return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.findById(id));
     }
 
-    @GetMapping("{id}/chi-tiet")
+    @GetMapping("{id:\\d+}/chi-tiet")
     public ResponseEntity<List<DTOHoaDonChiTietResponse>> getChiTietByHoaDonId(@PathVariable Integer id) {
         return ResponseEntity.status(HttpStatus.OK).body(hoaDonChiTietService.getChiTietByHoaDonId(id));
     }
@@ -70,10 +70,16 @@ public class HoaDonController {
                 hoaDonService.findByBanAndStatus(idBan, trangThai)
         );
     }
+    @GetMapping("/active")
+    public ResponseEntity<List<DTOHoaDonResponse>> getActiveInvoices() {
+        return ResponseEntity.ok(hoaDonService.getActiveTableInvoices());
+    }
+
     @GetMapping("/active/count")
     public ResponseEntity<Long> getActiveInvoiceCount() {
-        // Đếm số lượng hóa đơn chưa thanh toán (trangThaiThanhToan = 0)
-        long count = hoaDonRepository.countByTrangThaiThanhToan(0);
+        // Đếm số lượng hóa đơn đang hoạt động trên bàn (trangThaiHoaDon = 0, trangThaiThanhToan = 0, có bàn)
+        long count = hoaDonRepository.countByTrangThaiHoaDonAndTrangThaiThanhToanAndBanIsNotNull(0, 0);
         return ResponseEntity.ok(count);
     }
 }
+

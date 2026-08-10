@@ -67,15 +67,32 @@ const tongDoanhThu = computed(() => {
 })
 
 // ======================== METHODS ========================
+const isActiveTableInvoice = (invoice: any) => {
+  return (
+    Number(invoice?.trangThaiHoaDon) === 0 &&
+    Number(invoice?.trangThaiThanhToan) === 0 &&
+    invoice?.idBan != null
+  )
+}
+
 const loadHoaDon = async () => {
   isLoading.value = true
 
   try {
-    const res = await HoaDonApi.getActiveBills()
+    const activeRes = await HoaDonApi.getActiveBills()
+    const activeBills = Array.isArray(activeRes.data) ? activeRes.data : []
 
-    danhSachHoaDon.value = Array.isArray(res.data) ? res.data : []
+    if (activeBills.length > 0) {
+      danhSachHoaDon.value = activeBills
+      return
+    }
+
+    // Fallback: nếu endpoint active không trả về, lấy tất cả và lọc các hóa đơn bàn đang mở
+    const allRes = await HoaDonApi.getDanhSach()
+    const allBills = Array.isArray(allRes.data) ? allRes.data : []
+    danhSachHoaDon.value = allBills.filter(isActiveTableInvoice)
   } catch (e) {
-    console.error(e)
+    console.error('Không lấy được danh sách hóa đơn đang hoạt động:', e)
     danhSachHoaDon.value = []
   } finally {
     isLoading.value = false

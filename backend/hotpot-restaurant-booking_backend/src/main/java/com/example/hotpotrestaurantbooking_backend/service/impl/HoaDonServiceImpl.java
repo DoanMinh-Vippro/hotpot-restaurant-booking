@@ -131,12 +131,18 @@ public class HoaDonServiceImpl implements HoaDonService {
     }
 
     @Override
+    public List<DTOHoaDonResponse> getActiveTableInvoices() {
+        return hoaDonRepository.findByTrangThaiHoaDonAndTrangThaiThanhToanAndBanIsNotNull(0, 0)
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
+    @Override
     public DTOHoaDonResponse findByBanAndStatus(Integer idBan, Integer trangThaiHoaDon) {
         if (idBan == null || trangThaiHoaDon == null) {
             return null;
         }
-
-
 
         Integer pendingPaymentStatus = 0;
         return hoaDonRepository
