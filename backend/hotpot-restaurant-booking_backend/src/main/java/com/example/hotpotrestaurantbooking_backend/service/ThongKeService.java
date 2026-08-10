@@ -6,43 +6,72 @@ import com.example.hotpotrestaurantbooking_backend.dto.*;
 import java.util.List;
 
 public interface ThongKeService {
-    List<DTOThongKeDoanhThu> theoNgay(String from, String to);
 
-    List<DTOThongKeDoanhThu> theoThang();
+        List<DTOThongKeDoanhThu> theoNgay(String from, String to);
 
-    List<DTOThongKeDoanhThu> theoNam();
+        List<DTOThongKeDoanhThu> theoThang(String from, String to);
 
-    List<DTOThongKeNhanVien> topNhanVien();
+        List<DTOThongKeDoanhThu> theoNam(String from, String to);
 
-    List<DTOThongKeTheoMon> topMon(int page, int size);
+        List<DTOThongKeNhanVien> topNhanVien(String from, String to);
 
-    DTODashboard dashboard();
-    List<DTOThongKeDoanhThu> tienCocTheoNgay();
+        List<DTOThongKeTheoMon> topMon(
+                int page,
+                int size,
+                String from,
+                String to
+        );
 
-    List<DTOTrangThaiCoc> trangThaiCoc();
+        DTODashboard dashboard(String from, String to);
 
-    List<DTOThongKeKhachHangThanThiet> topKhachHangThanThiet();
+        List<DTOThongKeDoanhThu> tienCocTheoNgay(
+                String from,
+                String to
+        );
 
-    // 2. Doanh thu theo khu vực
-    List<DTOThongKeKhuVuc> doanhThuTheoKhuVuc();
+        List<DTOTrangThaiCoc> trangThaiCoc(
+                String from,
+                String to
+        );
 
-    // 3. Hiệu suất bàn
-    List<DTOThongKeHieuSuatBan> hieuSuatBan();
+        List<DTOThongKeKhachHangThanThiet> topKhachHangThanThiet(
+                String from,
+                String to
+        );
 
-    // 4. Top sản phẩm bán chạy (cả món & combo)
-    List<DTOThongKeSanPhamBanChay> topSanPhamBanChay();
+        List<DTOThongKeKhuVuc> doanhThuTheoKhuVuc(
+                String from,
+                String to
+        );
 
-    // 5. Hiệu quả khuyến mãi
-    List<DTOThongKeKhuyenMai> hieuQuaKhuyenMai();
+        List<DTOThongKeHieuSuatBan> hieuSuatBan(
+                String from,
+                String to
+        );
 
-    // 6. Doanh thu theo giờ (phân tích giờ cao điểm)
-    List<DTOThongKeDoanhThu> doanhThuTheoGio();
+        List<DTOThongKeSanPhamBanChay> topSanPhamBanChay(
+                String from,
+                String to
+        );
 
+        List<DTOThongKeKhuyenMai> hieuQuaKhuyenMai(
+                String from,
+                String to
+        );
 
+        List<DTOThongKeDoanhThu> doanhThuTheoGio(
+                String from,
+                String to
+        );
 
+        List<DTOThongKeHuyDatBan> tyLeHuyDatBan(
+                String from,
+                String to
+        );
 
-    // 8. Tỉ lệ hủy đặt bàn
-    List<DTOThongKeHuyDatBan> tyLeHuyDatBan(String fromDate, String toDate);
-    List<DTOThongKeDanhMuc> doanhThuTheoDanhMuc();
-
+        List<DTOThongKeDanhMuc> doanhThuTheoDanhMuc(
+                String from,
+                String to
+        );
+        byte[] exportExcel(String from, String to);
 }

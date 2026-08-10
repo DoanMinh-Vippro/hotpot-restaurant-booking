@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class DTODashboard {
     private Double tongDoanhThu;
+    private Double doanhThuTienMat;
+    private Double doanhThuChuyenKhoan;
     private Long tongHoaDon;
     private Long tongKhachHang;
     private Double tongTienCoc;
