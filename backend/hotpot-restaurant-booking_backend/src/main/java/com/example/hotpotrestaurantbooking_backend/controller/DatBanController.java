@@ -1,7 +1,6 @@
 package com.example.hotpotrestaurantbooking_backend.controller;
 
-import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
 import com.example.hotpotrestaurantbooking_backend.service.KhachHangService;
 import jakarta.validation.Valid;
@@ -10,9 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOCheckBanRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOCheckBanResponse;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -20,19 +18,6 @@ import java.util.List;
 @RestController
 public class DatBanController {
     private final DatBanService datBanService;
-    private final KhachHangService khachHangService;
-
-//    @PreAuthorize("hasRole('USER')")
-//    @GetMapping("khach")
-//    public ResponseEntity<List<DTODatBanResponse>> getMyReservations(Principal principal) {
-//        // Lấy username từ token
-//        String username = principal.getName();
-//        // Tìm khách hàng dựa trên tài khoản/email
-//        Integer khachHangId = khachHangService.findByUsername(username).getIdKhachHang();
-//
-//        return ResponseEntity.status(HttpStatus.OK)
-//                .body(datBanService.getDatBanByKhachHang(khachHangId));
-//    }
 
     @PreAuthorize("hasRole('USER')")
     @GetMapping
@@ -65,5 +50,10 @@ public class DatBanController {
     public ResponseEntity<Void> delete(@PathVariable Integer id){
         datBanService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/tinh-trang-ban")
+    public ResponseEntity<DTOTinhTrangBanResponse> tinhTrangBan(@RequestParam LocalDateTime thoiGianDenDuKien) {
+        return ResponseEntity.ok(datBanService.tinhTrangBan(thoiGianDenDuKien));
     }
 }

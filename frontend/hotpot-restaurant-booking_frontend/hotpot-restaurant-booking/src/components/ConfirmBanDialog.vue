@@ -29,36 +29,42 @@ const emit = defineEmits<{
   <Teleport to="body">
     <div v-if="show && result" class="overlay">
       <div class="dialog">
+        <!-- HEADER (Đứng yên) -->
         <div class="header" :class="result.trangThai === 'KHONG_CO_BAN' ? 'error' : 'success'">
           <h2>
             {{ result.trangThai === 'KHONG_CO_BAN' ? 'Không tìm thấy bàn' : 'Đề xuất bàn' }}
           </h2>
         </div>
 
+        <!-- CONTENT -->
         <div class="content">
           <p class="message">
             {{ result.message }}
           </p>
 
           <template v-if="result.trangThai !== 'KHONG_CO_BAN'">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Bàn</th>
-                  <th>Khu vực</th>
-                  <th>Loại bàn</th>
-                </tr>
-              </thead>
+            <!-- TABLE CONTAINER (Phần có scroll và giữ cố định header của bảng) -->
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Bàn</th>
+                    <th>Khu vực</th>
+                    <th>Loại bàn</th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                <tr v-for="ban in result.dsBan" :key="ban.idBan">
-                  <td>{{ ban.tenBan }}</td>
-                  <td>{{ ban.tenKhuVuc }}</td>
-                  <td>{{ ban.loaiBan }}</td>
-                </tr>
-              </tbody>
-            </table>
+                <tbody>
+                  <tr v-for="ban in result.dsBan" :key="ban.idBan">
+                    <td>{{ ban.tenBan }}</td>
+                    <td>{{ ban.tenKhuVuc }}</td>
+                    <td>{{ ban.loaiBan }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
+            <!-- CAPACITY (Đứng yên) -->
             <div class="capacity">
               Tổng sức chứa:
               <strong>{{ result.tongSucChua }}</strong>
@@ -66,6 +72,7 @@ const emit = defineEmits<{
           </template>
         </div>
 
+        <!-- FOOTER (Đứng yên) -->
         <div class="footer">
           <template v-if="result.trangThai === 'KHONG_CO_BAN'">
             <button class="btn btn-confirm" @click="emit('cancel')">Đã hiểu</button>
@@ -102,6 +109,9 @@ const emit = defineEmits<{
 .dialog {
   width: 760px;
   max-width: 94%;
+  max-height: 90vh; /* Giới hạn chiều cao popup */
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border-radius: 22px;
   background: linear-gradient(180deg, #fffefb 0%, #faf6ef 100%);
@@ -112,12 +122,13 @@ const emit = defineEmits<{
   animation: popup 0.3s ease;
 }
 
-/* ================= HEADER ================= */
+/* ================= HEADER (Đứng yên) ================= */
 
 .header {
   position: relative;
   padding: 26px 34px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .header::before {
@@ -155,6 +166,8 @@ const emit = defineEmits<{
 
 .content {
   padding: 30px;
+  overflow-y: auto; /* Cho phép cuộn phần nội dung bên trong */
+  flex-grow: 1;
 }
 
 .message {
@@ -169,19 +182,26 @@ const emit = defineEmits<{
   margin-bottom: 24px;
 }
 
-/* ================= TABLE ================= */
+/* ================= TABLE CONTAINER (Phần scroll bảng) ================= */
+
+.table-container {
+  max-height: 250px; /* Chiều cao tối đa của vùng chứa bảng */
+  overflow-y: auto;
+  border-radius: 16px;
+  border: 1px solid #e6d6ac;
+}
 
 .table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid #e6d6ac;
   background: white;
 }
 
 .table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: linear-gradient(180deg, #2c2c2c, #181818);
 }
 
@@ -217,7 +237,7 @@ const emit = defineEmits<{
   transform: scale(1.005);
 }
 
-/* ================= CAPACITY ================= */
+/* ================= CAPACITY (Đứng yên) ================= */
 
 .capacity {
   margin-top: 24px;
@@ -227,6 +247,7 @@ const emit = defineEmits<{
   border: 1px solid #ead8a4;
   color: #6b531c;
   font-size: 15px;
+  flex-shrink: 0;
 }
 
 .capacity strong {
@@ -235,7 +256,7 @@ const emit = defineEmits<{
   margin-left: 6px;
 }
 
-/* ================= FOOTER ================= */
+/* ================= FOOTER (Đứng yên) ================= */
 
 .footer {
   display: flex;
@@ -244,6 +265,7 @@ const emit = defineEmits<{
   padding: 24px 30px;
   background: #f8f5ef;
   border-top: 1px solid #ebe0c4;
+  flex-shrink: 0;
 }
 
 /* ================= BUTTON ================= */

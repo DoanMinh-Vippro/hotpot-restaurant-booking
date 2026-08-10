@@ -21,11 +21,7 @@ public interface DatBanQuanLyService {
 
     void delete(Integer id);
 
-    List<DTOBanResponse> getDanhSachBanTrong(
-            LocalDateTime thoiGianDenDuKien,
-            Integer soNguoi,
-            Integer idDatBan
-    );
+    List<DTOBanResponse> getDanhSachBanTrong(LocalDateTime thoiGianDenDuKien, Integer soNguoi, Integer idDatBan);
 
     DTODatBanQuanLyResponse xacNhan(Integer id);
 
@@ -35,12 +31,9 @@ public interface DatBanQuanLyService {
 
     DTODatBanQuanLyResponse doiGio(Integer id, DTODoiGioRequest request);
 
-    List<DTODatBanQuanLyResponse> search(
-            String keyword,
-            TrangThaiDatBan trangThai,
-            LocalDateTime tuNgay,
-            LocalDateTime denNgay
-    );
+    List<DTODatBanQuanLyResponse> search(String keyword, TrangThaiDatBan trangThai, LocalDateTime tuNgay, LocalDateTime denNgay);
 
     DTODatBanQuanLyResponse hoanThanh(Integer id);
+
+    List<DTOBanResponse> tinhTrangBan(LocalDateTime thoiGianDenDuKien);
 }

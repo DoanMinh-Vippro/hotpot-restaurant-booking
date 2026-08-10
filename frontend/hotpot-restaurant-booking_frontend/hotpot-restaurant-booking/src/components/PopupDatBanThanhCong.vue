@@ -13,10 +13,11 @@ const emit = defineEmits(['close'])
       <div class="dialog">
         <div class="icon">✓</div>
 
-        <h2>Đặt bàn thành công!</h2>
-
+        <h2>Tạo đơn đặt bàn thành công!</h2>
         <p>
-          {{ message || 'Nhà hàng đã ghi nhận thông tin đặt bàn của bạn.' }}
+          {{
+            message || 'Nhà hàng đã ghi nhận đơn đặt bàn của bạn. Vui lòng chờ nhà hàng xác nhận.'
+          }}
         </p>
 
         <button @click="emit('close')">Xác nhận</button>

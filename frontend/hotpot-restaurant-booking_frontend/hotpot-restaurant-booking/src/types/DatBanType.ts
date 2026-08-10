@@ -18,3 +18,7 @@ export interface DTOCheckBanResponse {
 
   dsBan: DTOBanResponse[]
 }
+export interface DTOTinhTrangBanResponse {
+  soBanConLai: number
+  tongSucChua: number
+}

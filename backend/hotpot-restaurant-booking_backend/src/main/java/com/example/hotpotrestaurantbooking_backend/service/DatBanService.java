@@ -1,11 +1,9 @@
 package com.example.hotpotrestaurantbooking_backend.service;
 
-import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.DTODatBanResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.*;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOCheckBanRequest;
-import com.example.hotpotrestaurantbooking_backend.dto.DTOCheckBanResponse;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface DatBanService {
@@ -17,4 +15,5 @@ public interface DatBanService {
     List<DTODatBanResponse> getDatBanByKhachHang(Integer id);
     DatBan createBookingAfterPayment(Integer idKhachHang, DTODatBanRequest datBan);
     DTOCheckBanResponse checkBan(DTOCheckBanRequest request);
+    DTOTinhTrangBanResponse tinhTrangBan(LocalDateTime thoiGianDenDuKien);
 }

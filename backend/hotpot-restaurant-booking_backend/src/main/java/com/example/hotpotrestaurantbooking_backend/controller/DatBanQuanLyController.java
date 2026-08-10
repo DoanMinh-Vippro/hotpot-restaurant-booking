@@ -90,4 +90,9 @@ public class DatBanQuanLyController {
     public ResponseEntity<DTODatBanQuanLyResponse> hoanThanh(@PathVariable Integer id) {
         return ResponseEntity.ok(datBanQuanLyService.hoanThanh(id));
     }
+
+    @GetMapping("/tinh-trang-ban")
+    public ResponseEntity<List<DTOBanResponse>> tinhTrangBan(@RequestParam LocalDateTime thoiGianDenDuKien) {
+        return ResponseEntity.ok(datBanQuanLyService.tinhTrangBan(thoiGianDenDuKien));
+    }
 }

@@ -613,5 +613,66 @@ public class DatBanServiceImpl implements DatBanService {
         return response;
     }
 
+    private List<Ban> timTatCaBanTrong(LocalDateTime thoiGianDenDuKien) {
+        List<Ban> dsBan = banRepository.findAll();
+        List<DatBan> dsDatBan = datBanRepository.findByTrangThaiIn(List.of(TrangThaiDatBan.CHO_XAC_NHAN, TrangThaiDatBan.DA_XAC_NHAN));
+        List<Ban> ketQua = new ArrayList<>();
+        for (Ban ban : dsBan) {
+            // Bàn đang bảo trì
+            if (ban.getTrangThai() == TrangThaiBan.BAO_TRI) {
+                continue;
+            }
+            // Bàn bị trùng lịch
+            if (banBiTrungLich(ban, thoiGianDenDuKien, dsDatBan)) {
+                continue;
+            }
+            ketQua.add(ban);
+        }
+        return ketQua;
+    }
+
+    @Override
+    public DTOTinhTrangBanResponse tinhTrangBan(LocalDateTime thoiGianDenDuKien) {
+
+        validateThoiGianHoatDong(thoiGianDenDuKien);
+
+        List<Ban> dsBan = banRepository.findAll();
+
+        List<DatBan> dsDatBan = datBanRepository.findByTrangThaiIn(
+                List.of(
+                        TrangThaiDatBan.CHO_XAC_NHAN,
+                        TrangThaiDatBan.DA_XAC_NHAN
+                )
+        );
+
+        List<Ban> dsBanTrong = new ArrayList<>();
+
+        for (Ban ban : dsBan) {
+
+            if (ban.getTrangThai() == TrangThaiBan.BAO_TRI) {
+                continue;
+            }
+
+            if (banBiTrungLich(ban, thoiGianDenDuKien, dsDatBan)) {
+                continue;
+            }
+
+            dsBanTrong.add(ban);
+        }
+
+        int soBanConLai = dsBanTrong.size();
+
+        int tongSucChua = dsBanTrong.stream()
+                .mapToInt(ban -> ban.getLoaiBan().getSucChua())
+                .sum();
+
+        DTOTinhTrangBanResponse response = new DTOTinhTrangBanResponse();
+
+        response.setSoBanConLai(soBanConLai);
+        response.setTongSucChua(tongSucChua);
+
+        return response;
+    }
+
 
 }

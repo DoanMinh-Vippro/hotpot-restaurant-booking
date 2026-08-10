@@ -9,6 +9,7 @@ import TaoDatBanDialog from '@/components/DatBanQuanLy/TaoDatBanDialog.vue'
 import DoiBanDialog from '@/components/DatBanQuanLy/DoiBanDialog.vue'
 import DoiGioDialog from '@/components/DatBanQuanLy/DoiGioDialog.vue'
 import XacNhanDialog from '@/components/DatBanQuanLy/XacNhanDialog.vue'
+import TinhTrangBanDialog from '@/components/DatBanQuanLy/TinhTrangBanDialog.vue'
 
 //===============state=======================================================================
 const dsDatBan = ref([])
@@ -34,6 +35,7 @@ const filter = ref({
 const confirmTitle = ref('')
 const confirmMessage = ref('')
 const confirmAction = ref<Function>()
+const showTinhTrangBan = ref(false)
 
 //=========================================================================================================
 const loadData = async () => {
@@ -231,7 +233,11 @@ onMounted(() => {
         <p>Quản lý đơn đặt trước, xác nhận bàn và điều chỉnh lịch đặt</p>
       </div>
 
-      <button class="btn-create" @click="openCreate">+ Tạo đơn đặt bàn</button>
+      <div class="action-group">
+        <button class="btn-create" @click="openCreate">+ Tạo đơn đặt bàn</button>
+
+        <button class="btn-status" @click="showTinhTrangBan = true">Tình trạng bàn</button>
+      </div>
     </div>
 
     <!-- Bộ lọc -->
@@ -295,14 +301,14 @@ onMounted(() => {
       @confirm="confirmAction && confirmAction()"
     />
   </div>
+  <!-- Tình trạng bàn -->
+  <TinhTrangBanDialog :show="showTinhTrangBan" @close="showTinhTrangBan = false" />
 </template>
 
 <style scoped>
 .page-container {
   min-height: 100%;
-
   padding: 24px;
-
   background: #f7f3eb;
 }
 
@@ -310,59 +316,66 @@ onMounted(() => {
 
 .page-header {
   display: flex;
-
   justify-content: space-between;
-
   align-items: center;
-
   margin-bottom: 24px;
 }
 
 .page-header h1 {
   margin: 0;
-
   font-size: 28px;
-
   font-weight: 700;
-
   color: #4a3824;
-
   letter-spacing: 0.5px;
 }
 
 .page-header p {
   margin-top: 8px;
-
   color: #8b7658;
-
   font-size: 14px;
 }
 
-/* ================= CREATE BUTTON ================= */
+/* ================= ACTION BUTTONS ================= */
+
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-create,
+.btn-status {
+  border: none;
+  padding: 13px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+/* Tạo đơn */
 
 .btn-create {
   background: #b9975b;
-
   color: white;
-
-  border: none;
-
-  padding: 13px 24px;
-
-  border-radius: 12px;
-
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: 0.25s;
-
   box-shadow: 0 8px 18px rgba(185, 151, 91, 0.25);
 }
 
 .btn-create:hover {
   background: #a27f45;
+  transform: translateY(-2px);
+}
 
+/* Tình trạng bàn */
+
+.btn-status {
+  background: #4a3824;
+  color: white;
+  box-shadow: 0 8px 18px rgba(74, 56, 36, 0.18);
+}
+
+.btn-status:hover {
+  background: #352819;
   transform: translateY(-2px);
 }
 
@@ -381,14 +394,17 @@ onMounted(() => {
 @media (max-width: 900px) {
   .page-header {
     flex-direction: column;
-
     align-items: flex-start;
-
     gap: 16px;
   }
 
-  .btn-create {
+  .action-group {
     width: 100%;
+  }
+
+  .btn-create,
+  .btn-status {
+    flex: 1;
   }
 }
 </style>

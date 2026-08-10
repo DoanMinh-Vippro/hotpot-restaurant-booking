@@ -509,6 +509,94 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         return mapToResponse(db);
     }
 
+    @Override
+    public List<DTOBanResponse> tinhTrangBan(LocalDateTime thoiGianDenDuKien) {
+
+        if (thoiGianDenDuKien == null) {
+            throw new IllegalArgumentException("Thời gian muốn kiểm tra không được để trống.");
+        }
+        LocalDateTime thoiGianKetThuc = thoiGianDenDuKien.plusHours(THOI_GIAN_GIU_BAN);
+
+        // Lấy toàn bộ bàn
+        List<Ban> dsBan = banRepository.findAll();
+
+        // Các đơn có khả năng chiếm bàn
+        List<DatBan> dsDatBan = datBanRepository.
+                findByTrangThaiIn(List.of(TrangThaiDatBan.CHO_XAC_NHAN, TrangThaiDatBan.DA_XAC_NHAN, TrangThaiDatBan.DA_NHAN_BAN));
+
+        /*
+         * Lưu trạng thái tạm của từng bàn.
+         * Không sửa trạng thái thật trong entity Ban.
+         */
+        java.util.Map<Integer, TrangThaiBan> trangThaiTam = new java.util.HashMap<>();
+
+        // Khởi tạo trạng thái từ trạng thái thật hiện tại của bàn
+        for (Ban ban : dsBan) {
+            trangThaiTam.put(ban.getIdBan(), ban.getTrangThai());
+        }
+
+        // Kiểm tra các đơn giao với khoảng thời gian đang xem
+        for (DatBan datBan : dsDatBan) {
+            if (datBan.getThoiGianDenDuKien() == null) {
+                continue;
+            }
+
+            LocalDateTime batDau = datBan.getThoiGianDenDuKien();
+            LocalDateTime ketThuc = batDau.plusHours(THOI_GIAN_GIU_BAN);
+
+            boolean trungThoiGian = thoiGianDenDuKien.isBefore(ketThuc) && thoiGianKetThuc.isAfter(batDau);
+
+            if (!trungThoiGian) {
+                continue;
+            }
+
+            if (datBan.getChiTietDatBanBans() == null) {
+                continue;
+            }
+
+            for (ChiTietDatBanBan ct : datBan.getChiTietDatBanBans()) {
+                if (ct.getBan() == null) {
+                    continue;
+                }
+                Integer idBan = ct.getBan().getIdBan();
+
+                // Bàn bảo trì luôn giữ nguyên
+                if (ct.getBan().getTrangThai() == TrangThaiBan.BAO_TRI) {
+                    continue;
+                }
+
+                /*
+                 * Ưu tiên:
+                 * DANG_SU_DUNG > DA_DAT > TRONG
+                 */
+                if (datBan.getTrangThai() == TrangThaiDatBan.DA_NHAN_BAN) {
+                    trangThaiTam.put(idBan, TrangThaiBan.DANG_SU_DUNG);
+
+                } else if (datBan.getTrangThai() == TrangThaiDatBan.DA_XAC_NHAN
+                        || datBan.getTrangThai() == TrangThaiDatBan.CHO_XAC_NHAN) {
+                    TrangThaiBan trangThaiHienTai = trangThaiTam.get(idBan);
+
+                    if (trangThaiHienTai != TrangThaiBan.DANG_SU_DUNG) {
+                        trangThaiTam.put(idBan, TrangThaiBan.DA_DAT);
+                    }
+                }
+            }
+        }
+
+        // Convert sang DTO
+        return dsBan.stream()
+                .map(ban -> {
+                    DTOBanResponse dto = mapper.map(ban, DTOBanResponse.class);
+                    dto.setSucChua(ban.getLoaiBan().getSucChua());
+
+                    // Gán trạng thái tạm để trả về FE
+                    dto.setTrangThai(trangThaiTam.get(ban.getIdBan()));
+
+                    return dto;
+                })
+                .toList();
+    }
+
     //=============================================================
     @Override
     public DTODatBanQuanLyResponse update(Integer id, DTODatBanQuanLyRequest d) {

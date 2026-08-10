@@ -118,7 +118,49 @@ const formData = ref({
   dsCombo: [] as any[],
   dsMon: [] as any[],
 })
+//===============================================
+// Kiểm tra tình trạng bàn độc lập
+const tinhTrangBanData = ref({
+  thoiGianDenDuKien: null as Date | string | null,
+})
 
+const tinhTrangBanResult = ref<{
+  soBanConLai: number
+  tongSucChua: number
+} | null>(null)
+
+const tinhTrangBanError = ref('')
+
+const flatpickrTinhTrangConfig = {
+  enableTime: true,
+  time_24hr: true,
+  dateFormat: 'Y-m-d H:i',
+  minuteIncrement: 30,
+  locale: Vietnamese,
+  minDate: new Date(),
+}
+const checkTinhTrangBan = async () => {
+  tinhTrangBanError.value = ''
+  tinhTrangBanResult.value = null
+
+  if (!tinhTrangBanData.value.thoiGianDenDuKien) {
+    tinhTrangBanError.value = 'Vui lòng chọn thời gian muốn đến'
+    return
+  }
+
+  try {
+    const thoiGian = String(tinhTrangBanData.value.thoiGianDenDuKien).replace(' ', 'T')
+
+    const res = await DatBanApi.tinhTrangBan(thoiGian)
+
+    tinhTrangBanResult.value = res.data
+  } catch (error: any) {
+    console.error('Lỗi kiểm tra tình trạng bàn:', error)
+
+    tinhTrangBanError.value = error?.response?.data?.message || 'Không thể kiểm tra tình trạng bàn'
+  }
+}
+//=====================================
 onMounted(() => {
   if (authStore.soDienThoai) {
     formData.value.sdtKhachHang = authStore.soDienThoai
@@ -499,7 +541,55 @@ const closePaymentDialog = () => {
     <div class="combo-section">
       <div class="menu-wrapper">
         <ComBoInDatBan v-model="formData.dsCombo" @selectedCombo="chonCombo" />
+
         <MonInDatBan v-model="formData.dsMon" @selectedMon="chonMon" />
+
+        <!-- KIỂM TRA TÌNH TRẠNG BÀN ĐỘC LẬP -->
+        <div class="tinh-trang-ban-box">
+          <div class="tinh-trang-ban-header">
+            <div>
+              <h4>🔎 Kiểm tra tình trạng bàn</h4>
+              <p>Xem tình trạng bàn theo thời gian muốn đến</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Thời gian muốn đến</label>
+
+            <VueFlatPickr
+              v-model="tinhTrangBanData.thoiGianDenDuKien"
+              :config="flatpickrTinhTrangConfig"
+              placeholder="Chọn ngày giờ"
+            />
+          </div>
+
+          <div class="gio-nhan-dat-ban">
+            <span>Nhà hàng nhận đặt bàn:</span>
+            <strong>10:00–14:00 và 18:00–24:00</strong>
+          </div>
+
+          <button type="button" class="btn-check-tinh-trang" @click="checkTinhTrangBan">
+            Kiểm tra
+          </button>
+
+          <p v-if="tinhTrangBanError" class="tinh-trang-error">
+            {{ tinhTrangBanError }}
+          </p>
+
+          <div v-if="tinhTrangBanResult" class="tinh-trang-result">
+            <div class="result-title">KẾT QUẢ</div>
+
+            <div class="result-item">
+              <span>🪑 Còn</span>
+              <strong> {{ tinhTrangBanResult.soBanConLai }} bàn </strong>
+            </div>
+
+            <div class="result-item">
+              <span>👥 Có thể nhận tối đa</span>
+              <strong> {{ tinhTrangBanResult.tongSucChua }} người </strong>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -777,5 +867,114 @@ textarea::placeholder {
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+/* =========================================================
+   KIỂM TRA TÌNH TRẠNG BÀN
+   Độc lập với luồng tạo đơn đặt bàn
+   ========================================================= */
+
+.tinh-trang-ban-box {
+  margin-top: 4px;
+  padding: 20px;
+  background: #181818;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 12px;
+}
+
+.tinh-trang-ban-header {
+  margin-bottom: 18px;
+}
+
+.tinh-trang-ban-header h4 {
+  margin: 0 0 6px;
+  color: #f2d57c;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.tinh-trang-ban-header p {
+  margin: 0;
+  color: #888;
+  font-size: 13px;
+}
+
+.tinh-trang-ban-box .form-group {
+  margin-bottom: 16px;
+}
+
+.gio-nhan-dat-ban {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 18px;
+  padding: 11px 13px;
+  background: rgba(212, 175, 55, 0.06);
+  border-left: 3px solid #d4af37;
+  border-radius: 7px;
+}
+
+.gio-nhan-dat-ban span {
+  color: #999;
+  font-size: 12px;
+}
+
+.gio-nhan-dat-ban strong {
+  color: #d8c38d;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-check-tinh-trang {
+  width: 100%;
+  height: 44px;
+  background: #292929;
+  color: #f2d57c;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 9px;
+}
+
+.btn-check-tinh-trang:hover {
+  background: #d4af37;
+  color: #1a1a1a;
+}
+
+.tinh-trang-error {
+  margin: 10px 0 0;
+  color: #ff6b6b;
+  font-size: 13px;
+}
+
+.tinh-trang-result {
+  margin-top: 18px;
+  padding: 15px;
+  background: #202020;
+  border: 1px solid #333;
+  border-radius: 9px;
+}
+
+.result-title {
+  margin-bottom: 12px;
+  color: #888;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  color: #cfcfcf;
+  font-size: 14px;
+}
+
+.result-item + .result-item {
+  border-top: 1px solid #303030;
+}
+
+.result-item strong {
+  color: #f2d57c;
+  font-size: 16px;
 }
 </style>

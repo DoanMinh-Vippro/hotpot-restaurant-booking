@@ -448,7 +448,49 @@ const tongThanhToan = computed(() => finalTotal.value)
 // ================= HÓA ĐƠN API =================
 const checkHoaDonTam = async () => {
   if (isDataLoaded.value) return
+
   try {
+    // Ưu tiên lấy hóa đơn đã tồn tại
+    const res = await HoaDonApi.findByBanAndStatus(props.ban.idBan, 0)
+    const hd = res.data
+
+    if (hd) {
+      hoaDonHienTai.value = hd
+
+      danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => {
+        const soLuong = Number(item.soLuong || 0)
+
+        let daLen = item.daLen !== undefined && item.daLen !== null ? Number(item.daLen) : 0
+
+        if (item.trangThaiMonAn === 'DA_LEN' || item.trangThaiMonAn === 'DA_PHUC_VU') {
+          daLen = soLuong
+        }
+
+        return {
+          idMon: item.idMon,
+          idCombo: item.idCombo,
+          tenMon: item.tenMon,
+          tenCombo: item.tenCombo,
+          tenQuay: item.tenQuay || 'Quầy Bếp',
+          gia: Number(
+            item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0,
+          ),
+          soLuong,
+          daLen,
+          loai: item.idMon ? 'MON' : 'COMBO',
+          comboItems: item.comboItems ?? [],
+          orderedBy: item.orderedBy,
+          orderedAt: item.orderedAt,
+        }
+      })
+
+      giamGiaDangChon.value = hd.idGiamGia ?? null
+      tabGioHang.value = 'mon-da-goi'
+      isDataLoaded.value = true
+      return
+    }
+
+    // Nếu chưa có hóa đơn thì lấy dữ liệu từ đơn đặt bàn
     const reservationItems = props.datBan?.idDatBan ? buildReservationItems(props.datBan) : []
 
     if (reservationItems.length > 0) {
@@ -457,45 +499,11 @@ const checkHoaDonTam = async () => {
       tabGioHang.value = 'mon-da-goi'
       hoaDonHienTai.value = null
       giamGiaDangChon.value = null
-      isDataLoaded.value = true
-      return
     }
 
-    const res = await HoaDonApi.findByBanAndStatus(props.ban.idBan, 0)
-    const hd = res.data
-    if (!hd) {
-      isDataLoaded.value = true
-      return
-    }
-    hoaDonHienTai.value = hd
-
-    danhSachMonPhucVu.value = (hd.chiTiet || []).map((item: any) => {
-      const soLuong = Number(item.soLuong || 0)
-      let daLen = item.daLen !== undefined && item.daLen !== null ? Number(item.daLen) : 0
-      if (item.trangThaiMonAn === 'DA_LEN' || item.trangThaiMonAn === 'DA_PHUC_VU') {
-        daLen = soLuong
-      }
-
-      return {
-        idMon: item.idMon,
-        idCombo: item.idCombo,
-        tenMon: item.tenMon,
-        tenCombo: item.tenCombo,
-        tenQuay: item.tenQuay || 'Quầy Bếp',
-        gia: Number(
-          item.giaBanTaiThoiDiem ?? item.giaSauGiam ?? item.donGiaHienTai ?? item.giaCombo ?? 0,
-        ),
-        soLuong: soLuong,
-        daLen: daLen,
-        loai: item.idMon ? 'MON' : 'COMBO',
-        comboItems: item.comboItems ?? [],
-      }
-    })
-
-    giamGiaDangChon.value = hd.idGiamGia ?? null
     isDataLoaded.value = true
-  } catch {
-    console.log('Không có hóa đơn tạm')
+  } catch (error) {
+    console.error('Không load được hóa đơn:', error)
     isDataLoaded.value = true
   }
 }
