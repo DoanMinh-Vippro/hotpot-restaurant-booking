@@ -7,26 +7,64 @@ import KhuVucChart from './KhuVucChart.vue'
 import GioCaoDiemChart from './GioCaoDiemChart.vue'
 
 const dashboard = ref<any>({})
+
 const topMon = ref<any[]>([])
 const topNhanVien = ref<any[]>([])
 const tienCoc = ref<any[]>([])
 const trangThaiCoc = ref<any[]>([])
+
 const ngay = ref<any[]>([])
 const thang = ref<any[]>([])
 const nam = ref<any[]>([])
+const from = ref("");
+const to = ref("");
 const khuVuc = ref<any[]>([])
 const doanhThuGio = ref<any[]>([])
 const topKhachHang = ref<any[]>([])
 const khuyenMai = ref<any[]>([])
+const danhMuc = ref<any[]>([])
+const hieuSuatBan = ref<any[]>([])
 
 const mode = ref<'ngay' | 'thang' | 'nam'>('thang')
 const modes = ['ngay', 'thang', 'nam'] as const
+
+// =========================
+// BỘ LỌC THỜI GIAN
+// =========================
+
+const today = new Date()
+
+const formatDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+const fromDate = ref(
+  `${today.getFullYear()}-01-01`
+)
+
+const toDate = ref(
+  formatDate(today)
+)
+
+const selectedPeriod = ref('thisYear')
+
+const loading = ref(false)
+const exporting = ref(false)
+
+// =========================
+// CLOCK
+// =========================
 
 const now = ref(new Date())
 const timeRefresh = ref('')
 
 const updateClock = () => {
   now.value = new Date()
+
   timeRefresh.value = now.value.toLocaleTimeString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
@@ -34,256 +72,830 @@ const updateClock = () => {
   })
 }
 
-const load = async () => {
+// =========================
+// LOAD STATISTICS
+// =========================
+
+const loadStatistics = async () => {
+
+  if (!fromDate.value || !toDate.value) {
+    alert('Vui lòng chọn đầy đủ từ ngày và đến ngày')
+    return
+  }
+
+  if (fromDate.value > toDate.value) {
+    alert('Từ ngày không được lớn hơn đến ngày')
+    return
+  }
+
+  loading.value = true
+
   try {
-    const [db, mon, nv, dNgay, dThang, dNam, coc, ttCoc, kv, dGio, kh, km] = await Promise.all([
-      ThongKeApi.dashboard(),
-      ThongKeApi.topMon(0, 5),
-      ThongKeApi.topNhanVien(),
-      ThongKeApi.theoNgay('2026-01-01', '2026-12-31'),
-      ThongKeApi.theoThang(),
-      ThongKeApi.theoNam(),
-      ThongKeApi.tienCocTheoNgay(),
-      ThongKeApi.trangThaiCoc(),
-      ThongKeApi.doanhThuTheoKhuVuc(),
-      ThongKeApi.doanhThuTheoGio(),
-      ThongKeApi.topKhachHangThanThiet(),
-      ThongKeApi.hieuQuaKhuyenMai(),
+
+    const from = fromDate.value
+    const to = toDate.value
+
+    const [
+      db,
+      mon,
+      nv,
+      dNgay,
+      dThang,
+      dNam,
+      coc,
+      ttCoc,
+      kv,
+      dGio,
+      kh,
+      km,
+      dm,
+      ban
+    ] = await Promise.all([
+
+      // Dashboard
+      ThongKeApi.dashboard(from, to),
+
+      // Top món
+      ThongKeApi.topMon(0, 5, from, to),
+
+      // Top nhân viên
+      ThongKeApi.topNhanVien(from, to),
+
+      // Doanh thu
+      ThongKeApi.theoNgay(from, to),
+      ThongKeApi.theoThang(from, to),
+      ThongKeApi.theoNam(from, to),
+
+      // Tiền cọc
+      ThongKeApi.tienCocTheoNgay(from, to),
+
+      // Trạng thái cọc
+      ThongKeApi.trangThaiCoc(from, to),
+
+      // Khu vực
+      ThongKeApi.doanhThuTheoKhuVuc(from, to),
+
+      // Giờ cao điểm
+      ThongKeApi.doanhThuTheoGio(from, to),
+
+      // Khách hàng
+      ThongKeApi.topKhachHangThanThiet(from, to),
+
+      // Khuyến mãi
+      ThongKeApi.hieuQuaKhuyenMai(from, to),
+
+      // Danh mục
+      ThongKeApi.doanhThuTheoDanhMuc(from, to),
+
+      // Hiệu suất bàn
+      ThongKeApi.hieuSuatBan(from, to),
     ])
 
     dashboard.value = db?.data || {}
+
     topMon.value = mon?.data || []
     topNhanVien.value = nv?.data || []
+
     ngay.value = dNgay?.data || []
     thang.value = dThang?.data || []
     nam.value = dNam?.data || []
+
     tienCoc.value = coc?.data || []
     trangThaiCoc.value = ttCoc?.data || []
+
     khuVuc.value = kv?.data || []
     doanhThuGio.value = dGio?.data || []
+
     topKhachHang.value = kh?.data || []
     khuyenMai.value = km?.data || []
+
+    danhMuc.value = dm?.data || []
+    hieuSuatBan.value = ban?.data || []
+
   } catch (err) {
-    console.error('LOAD ERROR:', err)
+
+    console.error('LOAD STATISTICS ERROR:', err)
+
+    alert('Không thể tải dữ liệu thống kê')
+
+  } finally {
+
+    loading.value = false
+
+  }
+}
+const handlePeriodChange = () => {
+  const today = new Date()
+
+  switch (selectedPeriod.value) {
+
+    case 'today': {
+      fromDate.value = formatDate(today)
+      toDate.value = formatDate(today)
+      break
+    }
+
+    case '7days': {
+      const from = new Date(today)
+      from.setDate(today.getDate() - 6)
+
+      fromDate.value = formatDate(from)
+      toDate.value = formatDate(today)
+      break
+    }
+
+    case '30days': {
+      const from = new Date(today)
+      from.setDate(today.getDate() - 29)
+
+      fromDate.value = formatDate(from)
+      toDate.value = formatDate(today)
+      break
+    }
+
+    case 'thisMonth': {
+      const from = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+      )
+
+      fromDate.value = formatDate(from)
+      toDate.value = formatDate(today)
+      break
+    }
+
+    case 'lastMonth': {
+      const from = new Date(
+        today.getFullYear(),
+        today.getMonth() - 1,
+        1
+      )
+
+      const to = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        0
+      )
+
+      fromDate.value = formatDate(from)
+      toDate.value = formatDate(to)
+      break
+    }
+
+    case 'thisYear': {
+      const from = new Date(
+        today.getFullYear(),
+        0,
+        1
+      )
+
+      fromDate.value = formatDate(from)
+      toDate.value = formatDate(today)
+      break
+    }
+
+    case 'custom':
+      return
+  }
+
+  loadStatistics()
+}
+// =========================
+// ĐỔI MODE BIỂU ĐỒ
+// =========================
+
+const changeMode = (newMode: 'ngay' | 'thang' | 'nam') => {
+  mode.value = newMode
+}
+// =========================
+// EXPORT EXCEL
+// =========================
+
+const exportExcel = async () => {
+  try {
+    exporting.value = true
+
+    const response = await ThongKeApi.exportExcel(
+      fromDate.value,
+      toDate.value
+    )
+
+    const blob = new Blob(
+      [response.data],
+      {
+        type: "application/vnd.openxml  formats-officedocument.spreadsheetml.sheet"
+      }
+    )
+
+    const url = window.URL.createObjectURL(blob)
+
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `Bao-cao-thong-ke-${fromDate.value}-${toDate.value}.xlsx`
+
+    document.body.appendChild(link)
+    link.click()
+
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+  } catch (error) {
+    console.error("Lỗi xuất Excel:", error)
+    alert("Không thể xuất file Excel")
+  } finally {
+    exporting.value = false
   }
 }
 
+// =========================
+// CHART DATA
+// =========================
+
 const chartData = computed(() => {
+
   let data: any[] = []
-  if (mode.value === 'ngay') data = ngay.value
-  else if (mode.value === 'nam') data = nam.value
-  else data = thang.value
+
+  if (mode.value === 'ngay') {
+    data = ngay.value
+  }
+  else if (mode.value === 'nam') {
+    data = nam.value
+  }
+  else {
+    data = thang.value
+  }
 
   return (data || []).map((i) => {
+
     let thoiGian = ''
-    if (mode.value === 'ngay') thoiGian = i?.thoiGian ? i.thoiGian.slice(5) : ''
-    else if (mode.value === 'thang') thoiGian = i?.thoiGian || ''
-    else if (mode.value === 'nam') thoiGian = i?.thoiGian ? i.thoiGian.toString().slice(0, 4) : ''
+
+    if (mode.value === 'ngay') {
+
+      thoiGian = i?.thoiGian
+        ? i.thoiGian.slice(5)
+        : ''
+
+    }
+    else if (mode.value === 'thang') {
+
+      thoiGian = i?.thoiGian || ''
+
+    }
+    else if (mode.value === 'nam') {
+
+      thoiGian = i?.thoiGian
+        ? i.thoiGian.toString().slice(0, 4)
+        : ''
+
+    }
 
     return {
       thoiGian,
-      tongDoanhThu: i?.tongDoanhThu || i?.doanhThu || i?.tongTien || 0,
+
+      tongDoanhThu:
+        i?.tongDoanhThu ||
+        i?.doanhThu ||
+        i?.tongTien ||
+        0,
     }
+
   })
+
 })
 
+// =========================
+// ON MOUNT
+// =========================
+
 onMounted(() => {
-  load()
+
+  loadStatistics()
+
   updateClock()
+
   setInterval(updateClock, 1000)
+
 })
 </script>
 
 <template>
-  <div class="pos-dashboard">
-    <!-- ====== TOP BAR ====== -->
-    <div class="topbar">
-      <div class="logo-area">
-        <span class="logo-icon">🍲</span>
-        <div>
-          <h1>Hotpot Restaurant</h1>
-          <span class="subtitle">POS Dashboard · Real-time</span>
-        </div>
-      </div>
-      <div class="right-info">
-        <span class="date">{{
-          now.toLocaleDateString('vi-VN', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
-        }}</span>
-        <span class="clock">{{ timeRefresh }}</span>
-      </div>
-    </div>
-
-    <!-- ====== KPI CARDS ====== -->
+  <div class="thong-ke-page">
+    <!-- =========================
+         KPI CARDS
+    ========================== -->
     <div class="kpi-grid">
-      <div class="kpi kpi-green">
-        <div class="kpi-icon">💰</div>
-        <div class="kpi-content">
-          <span class="kpi-label">Tổng doanh thu</span>
-          <span class="kpi-value"
-            >{{ Number(dashboard.tongDoanhThu || 0).toLocaleString() }} đ</span
-          >
-        </div>
-      </div>
-
-      <div class="kpi kpi-blue">
-        <div class="kpi-icon">🧾</div>
-        <div class="kpi-content">
-          <span class="kpi-label">Tổng hóa đơn</span>
-          <span class="kpi-value">{{ dashboard.tongHoaDon || 0 }}</span>
-        </div>
-      </div>
-
-      <div class="kpi kpi-purple">
-        <div class="kpi-icon">👥</div>
-        <div class="kpi-content">
-          <span class="kpi-label">Khách hàng</span>
-          <span class="kpi-value">{{ dashboard.tongKhachHang || 0 }}</span>
-        </div>
-      </div>
-
+      <!-- TIỀN MẶT -->
       <div class="kpi kpi-orange">
         <div class="kpi-icon">💵</div>
+
+        <div class="kpi-content">
+          <span class="kpi-label">Doanh thu tiền mặt</span>
+
+          <span class="kpi-value">
+            {{ Number(dashboard.doanhThuTienMat || 0).toLocaleString() }} đ
+          </span>
+        </div>
+      </div>
+
+
+      <!-- CHUYỂN KHOẢN -->
+      <div class="kpi kpi-blue">
+        <div class="kpi-icon">🏦</div>
+
+        <div class="kpi-content">
+          <span class="kpi-label">Doanh thu chuyển khoản</span>
+
+          <span class="kpi-value">
+            {{ Number(dashboard.doanhThuChuyenKhoan || 0).toLocaleString() }} đ
+          </span>
+        </div>
+      </div>
+
+
+      <!-- TỔNG HÓA ĐƠN -->
+      <div class="kpi kpi-purple">
+        <div class="kpi-icon">🧾</div>
+
+        <div class="kpi-content">
+          <span class="kpi-label">Tổng hóa đơn</span>
+
+          <span class="kpi-value">
+            {{ dashboard.tongHoaDon || 0 }}
+          </span>
+        </div>
+      </div>
+
+
+      <!-- KHÁCH HÀNG -->
+      <div class="kpi kpi-teal">
+        <div class="kpi-icon">👥</div>
+
+        <div class="kpi-content">
+          <span class="kpi-label">Khách hàng</span>
+
+          <span class="kpi-value">
+            {{ dashboard.tongKhachHang || 0 }}
+          </span>
+        </div>
+      </div>
+
+
+      <!-- TIỀN CỌC -->
+      <div class="kpi kpi-orange">
+        <div class="kpi-icon">💳</div>
+
         <div class="kpi-content">
           <span class="kpi-label">Tiền cọc</span>
-          <span class="kpi-value">{{ Number(dashboard.tongTienCoc || 0).toLocaleString() }} đ</span>
+
+          <span class="kpi-value">
+            {{ Number(dashboard.tongTienCoc || 0).toLocaleString() }} đ
+          </span>
         </div>
       </div>
 
+
+      <!-- ĐÃ CỌC -->
       <div class="kpi kpi-teal">
         <div class="kpi-icon">✅</div>
+
         <div class="kpi-content">
           <span class="kpi-label">Đã cọc</span>
-          <span class="kpi-value">{{ dashboard.soDonDaCoc || 0 }}</span>
+
+          <span class="kpi-value">
+            {{ dashboard.soDonDaCoc || 0 }}
+          </span>
         </div>
       </div>
 
+
+      <!-- CHƯA CỌC -->
       <div class="kpi kpi-red">
         <div class="kpi-icon">⏳</div>
+
         <div class="kpi-content">
           <span class="kpi-label">Chưa cọc</span>
-          <span class="kpi-value">{{ dashboard.soDonChuaCoc || 0 }}</span>
+
+          <span class="kpi-value">
+            {{ dashboard.soDonChuaCoc || 0 }}
+          </span>
         </div>
       </div>
-    </div>
 
-    <!-- ====== MAIN LAYOUT 2 CỘT ====== -->
+    </div>
+<!-- BỘ LỌC -->
+<div class="period-filter">
+  <select
+    v-model="selectedPeriod"
+    @change="handlePeriodChange"
+  >
+    <option value="today">Hôm nay</option>
+    <option value="7days">7 ngày qua</option>
+    <option value="30days">30 ngày qua</option>
+    <option value="thisMonth">Tháng này</option>
+    <option value="lastMonth">Tháng trước</option>
+    <option value="thisYear">Năm nay</option>
+    <option value="custom">Tùy chỉnh</option>
+  </select>
+
+  <template v-if="selectedPeriod === 'custom'">
+    <input
+      v-model="fromDate"
+      type="date"
+    />
+
+    <span>→</span>
+
+    <input
+      v-model="toDate"
+      type="date"
+    />
+
+    <button
+      class="btn-filter"
+      @click="loadStatistics"
+      :disabled="loading"
+    >
+      🔍
+    </button>
+  </template>
+
+  <button
+    class="btn-excel"
+    @click="exportExcel"
+    :disabled="loading || exporting"
+  >
+    📥 Excel
+  </button>
+</div>
+
+    <!-- =========================
+         MAIN LAYOUT
+    ========================== -->
     <div class="main-grid">
-      <!-- CỘT TRÁI -->
+
+      <!-- =========================
+           CỘT TRÁI
+      ========================== -->
       <div class="col-left">
-        <!-- DOANH THU CHART -->
+
+
+        <!-- DOANH THU -->
         <div class="card">
+
           <div class="card-header">
+
             <h3>📊 Doanh thu</h3>
+
             <div class="filter-chip">
-              <button v-for="m in modes" :key="m" @click="mode = m" :class="{ active: mode === m }">
-                {{ m === 'ngay' ? 'Ngày' : m === 'thang' ? 'Tháng' : 'Năm' }}
+
+              <button
+                v-for="m in modes"
+                :key="m"
+                @click="changeMode(m)"
+                :class="{ active: mode === m }"
+              >
+                {{
+                  m === "ngay"
+                    ? "Ngày"
+                    : m === "thang"
+                      ? "Tháng"
+                      : "Năm"
+                }}
               </button>
+
             </div>
+
           </div>
+
           <div class="card-body">
-            <RevenueChart :key="mode + chartData.length" :data="chartData" :mode="mode" />
+
+            <RevenueChart
+              :key="mode + chartData.length"
+              :data="chartData"
+              :mode="mode"
+            />
+
           </div>
+
         </div>
+
 
         <!-- GIỜ CAO ĐIỂM -->
         <div class="card">
+
           <div class="card-header">
             <h3>⏰ Doanh thu theo khung giờ</h3>
           </div>
+
           <div class="card-body">
-            <GioCaoDiemChart :data="doanhThuGio" />
+
+            <GioCaoDiemChart
+              :data="doanhThuGio"
+            />
+
           </div>
+
         </div>
+
 
         <!-- KHU VỰC -->
         <div class="card">
+
           <div class="card-header">
             <h3>📍 Doanh thu theo khu vực</h3>
           </div>
+
           <div class="card-body">
-            <KhuVucChart :data="khuVuc" />
+
+            <KhuVucChart
+              :data="khuVuc"
+            />
+
           </div>
+
         </div>
+
+
+        <!-- DANH MỤC -->
+        <div class="card">
+
+          <div class="card-header">
+            <h3>🍲 Doanh thu theo danh mục</h3>
+          </div>
+
+          <div class="card-body">
+
+            <div
+              class="list-row"
+              v-for="(dm, idx) in danhMuc"
+              :key="dm.danhMuc"
+            >
+
+              <span class="rank">
+                {{ idx + 1 }}
+              </span>
+
+              <span class="name">
+                {{ dm.danhMuc }}
+              </span>
+
+              <span class="count">
+                {{ dm.soLuongBan }} món
+              </span>
+
+              <span class="amount">
+                {{ Number(dm.tongThu || 0).toLocaleString() }} đ
+              </span>
+
+            </div>
+
+            <div
+              v-if="danhMuc.length === 0"
+              class="empty"
+            >
+              Chưa có dữ liệu
+            </div>
+
+          </div>
+
+        </div>
+
       </div>
 
-      <!-- CỘT PHẢI -->
+
+      <!-- =========================
+           CỘT PHẢI
+      ========================== -->
       <div class="col-right">
+
+
         <!-- TRẠNG THÁI CỌC -->
         <div class="card">
+
           <div class="card-header">
             <h3>📌 Trạng thái cọc</h3>
           </div>
+
           <div class="card-body">
-            <DepositStatusChart :data="trangThaiCoc" />
+
+            <DepositStatusChart
+              :data="trangThaiCoc"
+            />
+
           </div>
+
         </div>
+
 
         <!-- TOP MÓN -->
         <div class="card">
+
           <div class="card-header">
             <h3>🔥 Top món bán chạy</h3>
           </div>
+
           <div class="card-body">
-            <div class="list-row" v-for="(m, idx) in topMon" :key="m.tenMon">
-              <span class="rank">{{ idx + 1 }}</span>
-              <span class="name">{{ m.tenMon }}</span>
-              <span class="count">{{ m.soLuongBan }} món</span>
+
+            <div
+              class="list-row"
+              v-for="(m, idx) in topMon"
+              :key="m.tenMon"
+            >
+
+              <span class="rank">
+                {{ idx + 1 }}
+              </span>
+
+              <span class="name">
+                {{ m.tenMon }}
+              </span>
+
+              <span class="count">
+                {{ m.soLuongBan }} món
+              </span>
+
             </div>
-            <div v-if="topMon.length === 0" class="empty">Chưa có dữ liệu</div>
+
+            <div
+              v-if="topMon.length === 0"
+              class="empty"
+            >
+              Chưa có dữ liệu
+            </div>
+
           </div>
+
         </div>
+
 
         <!-- TOP NHÂN VIÊN -->
         <div class="card">
+
           <div class="card-header">
             <h3>👨‍🍳 Top nhân viên</h3>
           </div>
+
           <div class="card-body">
-            <div class="list-row" v-for="(nv, idx) in topNhanVien" :key="nv.tenNhanVien">
-              <span class="rank">{{ idx + 1 }}</span>
-              <span class="name">{{ nv.tenNhanVien }}</span>
-              <span class="amount">{{ Number(nv.tongDoanhThu).toLocaleString() }} đ</span>
+
+            <div
+              class="list-row"
+              v-for="(nv, idx) in topNhanVien"
+              :key="nv.tenNhanVien"
+            >
+
+              <span class="rank">
+                {{ idx + 1 }}
+              </span>
+
+              <span class="name">
+                {{ nv.tenNhanVien }}
+              </span>
+
+              <span class="amount">
+                {{ Number(nv.tongDoanhThu || 0).toLocaleString() }} đ
+              </span>
+
             </div>
-            <div v-if="topNhanVien.length === 0" class="empty">Chưa có dữ liệu</div>
+
+            <div
+              v-if="topNhanVien.length === 0"
+              class="empty"
+            >
+              Chưa có dữ liệu
+            </div>
+
           </div>
+
         </div>
+
 
         <!-- TOP KHÁCH HÀNG -->
         <div class="card">
+
           <div class="card-header">
             <h3>⭐ Khách hàng VIP</h3>
           </div>
+
           <div class="card-body">
-            <div class="list-row" v-for="(kh, idx) in topKhachHang" :key="kh.soDienThoai">
-              <span class="rank">{{ idx + 1 }}</span>
-              <span class="name">{{ kh.tenKhachHang }}</span>
-              <span class="amount">{{ Number(kh.tongChiTieu).toLocaleString() }} đ</span>
+
+            <div
+              class="list-row"
+              v-for="(kh, idx) in topKhachHang"
+              :key="kh.soDienThoai"
+            >
+
+              <span class="rank">
+                {{ idx + 1 }}
+              </span>
+
+              <span class="name">
+                {{ kh.tenKhachHang }}
+              </span>
+
+              <span class="amount">
+                {{ Number(kh.tongChiTieu || 0).toLocaleString() }} đ
+              </span>
+
             </div>
-            <div v-if="topKhachHang.length === 0" class="empty">Chưa có dữ liệu</div>
+
+            <div
+              v-if="topKhachHang.length === 0"
+              class="empty"
+            >
+              Chưa có dữ liệu
+            </div>
+
           </div>
+
         </div>
+
 
         <!-- KHUYẾN MÃI -->
         <div class="card">
+
           <div class="card-header">
             <h3>🎫 Hiệu quả khuyến mãi</h3>
           </div>
+
           <div class="card-body">
-            <div class="list-row" v-for="km in khuyenMai" :key="km.maGiamGia">
-              <span class="tag">{{ km.maGiamGia }}</span>
-              <span class="name">{{ km.soLanSuDung }} lần</span>
-              <span class="discount">-{{ Number(km.tongTienDaGiam).toLocaleString() }} đ</span>
+
+            <div
+              class="list-row"
+              v-for="km in khuyenMai"
+              :key="km.maGiamGia"
+            >
+
+              <span class="tag">
+                {{ km.maGiamGia }}
+              </span>
+
+              <span class="name">
+                {{ km.soLanSuDung }} lần
+              </span>
+
+              <span class="discount">
+                -{{ Number(km.tongTienDaGiam || 0).toLocaleString() }} đ
+              </span>
+
             </div>
-            <div v-if="khuyenMai.length === 0" class="empty">Chưa có dữ liệu</div>
+
+            <div
+              v-if="khuyenMai.length === 0"
+              class="empty"
+            >
+              Chưa có dữ liệu
+            </div>
+
           </div>
+
         </div>
+
+
+        <!-- HIỆU SUẤT BÀN -->
+        <div class="card">
+
+          <div class="card-header">
+            <h3>🪑 Hiệu suất bàn</h3>
+          </div>
+
+          <div class="card-body">
+
+            <div
+              class="list-row"
+              v-for="ban in hieuSuatBan"
+              :key="ban.tenBan"
+            >
+
+              <span class="name">
+                {{ ban.tenBan }}
+              </span>
+
+              <span class="count">
+                {{ ban.soLanPhucVu }} lần
+              </span>
+
+              <span class="amount">
+                {{ Number(ban.tongDoanhThu || 0).toLocaleString() }} đ
+              </span>
+
+            </div>
+
+            <div
+              v-if="hieuSuatBan.length === 0"
+              class="empty"
+            >
+              Chưa có dữ liệu
+            </div>
+
+          </div>
+
+        </div>
+
       </div>
+
     </div>
+
   </div>
 </template>
 
@@ -580,5 +1192,59 @@ onMounted(() => {
   .right-info {
     align-items: center;
   }
+}
+.period-filter {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 20px;
+}
+
+.period-filter select {
+  height: 40px;
+  min-width: 160px;
+  padding: 0 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+
+.period-filter input {
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.period-filter select:focus,
+.period-filter input:focus {
+  border-color: #409eff;
+}
+
+.period-filter .btn-excel {
+  height: 40px;
+  padding: 0 15px;
+  border: none;
+  border-radius: 8px;
+  background: #198754;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.period-filter .btn-excel:hover {
+  background: #157347;
+}
+
+.period-filter .btn-filter {
+  height: 40px;
+  width: 42px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
 }
 </style>
