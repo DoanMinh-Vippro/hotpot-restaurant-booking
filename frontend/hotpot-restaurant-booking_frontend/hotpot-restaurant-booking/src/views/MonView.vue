@@ -20,6 +20,8 @@
         :total-pages="tongSoTrang"
         @change-page="chuyenTrang"
       />
+
+      <MonPreview :monDaChon="monDaChon" />
     </div>
 
     <div class="cot-bieu-mau">
@@ -29,8 +31,6 @@
         :danhSachMon="danhSachMon"
         @submit="xuLySubmitForm"
       />
-
-      <MonPreview :monDaChon="monDaChon" />
     </div>
   </div>
 </template>

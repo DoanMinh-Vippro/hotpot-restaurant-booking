@@ -169,6 +169,8 @@ router.beforeEach((to) => {
   const authRoutes = ['auth', 'register']
   const internalPages = [
     'thucDon',
+    'combo',
+    'mon',
     'danhMuc',
     'hoa-don',
     'ban-hang',

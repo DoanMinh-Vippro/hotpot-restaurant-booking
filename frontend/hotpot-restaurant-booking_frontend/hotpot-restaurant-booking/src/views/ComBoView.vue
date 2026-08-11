@@ -19,6 +19,8 @@
         :total-pages="tongSoTrang"
         @change-page="chuyenTrang"
       />
+
+      <ComboPreview :comboDaChon="comboDaChon" />
     </div>
 
     <div class="cot-bieu-mau">
@@ -27,8 +29,6 @@
         :danhSachCombo="danhSachCombo"
         @submit="xuLySubmitForm"
       />
-
-      <ComboPreview :comboDaChon="comboDaChon" />
     </div>
   </div>
 </template>

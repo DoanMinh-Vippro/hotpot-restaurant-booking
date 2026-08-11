@@ -14,11 +14,25 @@ const isSidebarCollapsed = ref(false)
 const unreadRefreshTick = ref(0)
 let unreadRefreshTimer: number | null = null
 
-const adminRouteNames = ['thucDon', 'hoa-don', 'ban-hang', 'giam-gia', 'ban', 'dat-ban-quan-ly', 'tai-khoan', 'tin-nhan', 'thong-ke', 'khu-vuc', 'coc', 'shift-management']
+// Biến trạng thái bật/tắt menu con Quản lý thực đơn
+const isThucDonOpen = ref(false)
+
+const adminRouteNames = ['thucDon', 'hoa-don', 'ban-hang', 'giam-gia', 'ban', 'dat-ban-quan-ly', 'tai-khoan', 'tin-nhan', 'thong-ke', 'khu-vuc', 'coc', 'shift-management', 'danhMuc', 'combo', 'mon']
 
 const menuItems = [
   { label: 'Bán hàng', routeName: 'ban-hang', permission: 'pos', icon: '🛒' },
-  { label: 'Quản lý thực đơn', routeName: 'thucDon', permission: 'menu', icon: '🍜' },
+  { 
+    label: 'Quản lý thực đơn', 
+    routeName: 'thucDon', 
+    permission: 'menu', 
+    icon: '🍜',
+    hasChildren: true,
+    children: [
+      { label: 'Quản lý danh mục', routeName: 'danhMuc', permission: 'menu', icon: '📁' },
+      { label: 'Quản lý combo', routeName: 'combo', permission: 'menu', icon: '🍱' },
+      { label: 'Quản lý món', routeName: 'mon', permission: 'menu', icon: '🍲' },
+    ]
+  },
   { label: 'Hóa đơn', routeName: 'hoa-don', permission: 'invoice', icon: '🧾' },
   { label: 'Giảm giá', routeName: 'giam-gia', permission: 'discount', icon: '🏷️' },
   { label: 'Bàn', routeName: 'ban', permission: 'table', icon: '🪑' },
@@ -53,11 +67,29 @@ const isAdminLayout = computed(
     !['auth', 'register', 'home'].includes(String(route.name)),
 )
 
+// Xử lý Click vào Item Menu
+const handleMenuClick = (item: any) => {
+  if (item.hasChildren) {
+    isThucDonOpen.value = !isThucDonOpen.value
+  } else {
+    goTo(item.routeName)
+  }
+}
+
 const goTo = (routeName: string) => {
   router.push({ name: routeName })
 }
 
+// Tự động mở menu con nếu đang ở 1 trong các trang thuộc Quản lý thực đơn
+const checkActiveSubmenu = () => {
+  const currentRoute = String(route.name)
+  if (['thucDon', 'danhMuc', 'combo', 'mon'].includes(currentRoute)) {
+    isThucDonOpen.value = true
+  }
+}
+
 onMounted(() => {
+  checkActiveSubmenu()
   refreshUnreadBadge()
   window.addEventListener('storage', refreshUnreadBadge)
   unreadRefreshTimer = window.setInterval(refreshUnreadBadge, 1500)
@@ -83,24 +115,48 @@ onUnmounted(() => {
       </div>
 
       <nav class="sidebar-nav">
-        <button
-          v-for="item in permittedMenuItems"
-          :key="item.routeName"
-          class="nav-item"
-          :class="{ active: route.name === item.routeName, collapsed: isSidebarCollapsed }"
-          @click="goTo(item.routeName)"
-        >
-          <span class="nav-icon">{{ item.icon }}</span>
-          <span v-if="!isSidebarCollapsed" class="nav-label">{{ item.label }}</span>
-          <span
-            v-if="item.routeName === 'tin-nhan' && totalUnreadMessages > 0"
-            class="menu-badge"
-            :class="{ collapsed: isSidebarCollapsed }"
-            :title="`${totalUnreadMessages} tin nhắn chưa đọc`"
+        <template v-for="item in permittedMenuItems" :key="item.routeName">
+          <!-- Item chính -->
+          <button
+            class="nav-item"
+            :class="{ 
+              active: route.name === item.routeName || (item.hasChildren && ['danhMuc', 'combo', 'mon'].includes(String(route.name))), 
+              collapsed: isSidebarCollapsed 
+            }"
+            @click="handleMenuClick(item)"
           >
-            {{ totalUnreadMessages }}
-          </span>
-        </button>
+            <span class="nav-icon">{{ item.icon }}</span>
+            <span v-if="!isSidebarCollapsed" class="nav-label">{{ item.label }}</span>
+            
+            <!-- Biểu tượng Mũi tên đóng/mở nhánh con -->
+            <span v-if="item.hasChildren && !isSidebarCollapsed" class="menu-arrow">
+              {{ isThucDonOpen ? '▾' : '▸' }}
+            </span>
+
+            <span
+              v-if="item.routeName === 'tin-nhan' && totalUnreadMessages > 0"
+              class="menu-badge"
+              :class="{ collapsed: isSidebarCollapsed }"
+              :title="`${totalUnreadMessages} tin nhắn chưa đọc`"
+            >
+              {{ totalUnreadMessages }}
+            </span>
+          </button>
+
+          <!-- Danh sách 3 nút con xổ ra khi Click -->
+          <div v-if="item.hasChildren && isThucDonOpen && !isSidebarCollapsed" class="sub-menu">
+            <button
+              v-for="sub in item.children"
+              :key="sub.routeName"
+              class="nav-item sub-nav-item"
+              :class="{ active: route.name === sub.routeName }"
+              @click="goTo(sub.routeName)"
+            >
+              <span class="nav-icon">{{ sub.icon }}</span>
+              <span class="nav-label">{{ sub.label }}</span>
+            </button>
+          </div>
+        </template>
 
         <div class="sidebar-account-panel">
           <AdminAccountPanel />
@@ -256,6 +312,33 @@ textarea {
 
 .nav-label {
   white-space: nowrap;
+}
+
+.menu-arrow {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #8b5e34;
+}
+
+.sub-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 20px;
+  margin-top: -2px;
+}
+
+.sub-nav-item {
+  font-size: 0.86rem;
+  padding: 8px 10px;
+  background: #fffbf2;
+  border-color: #eeddbb;
+}
+
+.sub-nav-item:hover,
+.sub-nav-item.active {
+  background: #e2b770;
+  color: #2c1a0b;
 }
 
 .menu-badge {

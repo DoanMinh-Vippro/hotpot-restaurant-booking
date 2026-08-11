@@ -207,6 +207,27 @@ const layTenQuay = (item: any): string => {
 }
 
 // ================= LOAD DATA =================
+const searchQuery = ref('')
+
+// Computed lọc danh sách Combo theo từ khóa
+const danhSachComboFilter = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return danhSachCombo.value
+  return danhSachCombo.value.filter((cb: any) =>
+    (cb.tenCombo || '').toLowerCase().includes(query)
+  )
+})
+
+// Computed lọc danh sách Món ăn theo từ khóa
+const danhSachMonAnFilter = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return danhSachMonAn.value
+  return danhSachMonAn.value.filter((mon: any) =>
+    (mon.tenMon || '').toLowerCase().includes(query)
+  )
+})
+
+
 const loadData = async () => {
   try {
     const [comboRes, monRes, danhMucRes] = await Promise.all([
@@ -289,6 +310,7 @@ const giamSoLuong = (item: any) => {
   }
 }
 
+// ================= XỬ LÝ LÊN MÓN (ĐÃ FIX KHÔNG BỊ TRÁO/GỌI LẠI MÓN ĐÃ LÊN) =================
 const tangSoLuong = (item: any) => {
   const index = gioHang.value.findIndex(
     (x) =>
@@ -515,35 +537,83 @@ const checkHoaDonTam = async () => {
   }
 }
 
+// const saveChiTietHoaDon = async (idHoaDon: number) => {
+//   for (const item of danhSachMonPhucVu.value) {
+//     const gia = item.gia ?? 0
+//     let trangThaiMonAn = 'DANG_LEN'
+//     if (item.daLen >= item.soLuong) {
+//       trangThaiMonAn = 'DA_LEN'
+//     }
+
+//     await HoaDonChiTietApi.add({
+//       maHoaDonChiTiet: `HDCT${Date.now()}${item.idMon || item.idCombo}`,
+//       idHoaDon,
+//       idMon: item.idMon,
+//       idCombo: item.idCombo,
+//       soLuong: item.soLuong,
+//       giaBanTaiThoiDiem: gia,
+//       tienGiamGiaMon: 0,
+//       thanhTien: gia * item.soLuong,
+//       trangThaiMonAn,
+//       daLen: item.daLen || 0,
+//       orderedBy: item.orderedBy || getCurrentOperatorName(),
+//       orderedAt: item.orderedAt || getLocalDateTimeNow(),
+//     } as any)
+//   }
+// }
+
+
 const saveChiTietHoaDon = async (idHoaDon: number) => {
   for (const item of danhSachMonPhucVu.value) {
-    const gia = item.gia ?? 0
-    let trangThaiMonAn = 'DANG_LEN'
-    if (item.daLen >= item.soLuong) {
-      trangThaiMonAn = 'DA_LEN'
-    }
+    const gia = Number(item.gia ?? 0)
+    const soLuong = Number(item.soLuong || 0)
+    const daLen = Number(item.daLen || 0)
+
+    const trangThaiMonAn =
+      daLen >= soLuong && soLuong > 0
+        ? 'DA_LEN'
+        : 'DANG_LEN'
 
     await HoaDonChiTietApi.add({
       maHoaDonChiTiet: `HDCT${Date.now()}${item.idMon || item.idCombo}`,
       idHoaDon,
-      idMon: item.idMon,
-      idCombo: item.idCombo,
-      soLuong: item.soLuong,
+
+      idMon: item.idMon ?? null,
+      idCombo: item.idCombo ?? null,
+
+      soLuong,
+
       giaBanTaiThoiDiem: gia,
+
       tienGiamGiaMon: 0,
-      thanhTien: gia * item.soLuong,
+
+      thanhTien: gia * soLuong,
+
       trangThaiMonAn,
-      daLen: item.daLen || 0,
+      daLen,
+
       orderedBy: item.orderedBy || getCurrentOperatorName(),
       orderedAt: item.orderedAt || getLocalDateTimeNow(),
     } as any)
   }
 }
 
+// const capNhatDatabaseNoRebuild = async () => {
+//   if (!hoaDonHienTai.value?.idHoaDon) return
+//   await HoaDonChiTietApi.deleteByHoaDon(hoaDonHienTai.value.idHoaDon)
+//   await saveChiTietHoaDon(hoaDonHienTai.value.idHoaDon)
+// }
+
 const capNhatDatabaseNoRebuild = async () => {
   if (!hoaDonHienTai.value?.idHoaDon) return
-  await HoaDonChiTietApi.deleteByHoaDon(hoaDonHienTai.value.idHoaDon)
-  await saveChiTietHoaDon(hoaDonHienTai.value.idHoaDon)
+
+  await HoaDonChiTietApi.deleteByHoaDon(
+    hoaDonHienTai.value.idHoaDon
+  )
+
+  await saveChiTietHoaDon(
+    hoaDonHienTai.value.idHoaDon
+  )
 }
 
 const addHoaDon = async (payload: any) => {
@@ -560,18 +630,56 @@ const updateHoaDon = async (idHoaDon: number, payload: any) => {
   await saveChiTietHoaDon(idHoaDon)
 }
 
+// const buildChiTietPayload = () =>
+//   danhSachMonPhucVu.value.map((item: any, index: number) => ({
+//     maHoaDonChiTiet: `HDCT${Date.now()}${index + 1}${item.idMon || item.idCombo || ''}`,
+//     idMon: item.idMon ?? null,
+//     idCombo: item.idCombo ?? null,
+//     soLuong: Number(item.soLuong || 0),
+//     giaBanTaiThoiDiem: Number(item.gia || 0),
+//     tienGiamGiaMon: 0,
+//     thanhTien: Number((item.gia || 0) * (item.soLuong || 0)),
+//     orderedBy: item.orderedBy || getCurrentOperatorName(),
+//     orderedAt: item.orderedAt || getLocalDateTimeNow(),
+//   }))
+
 const buildChiTietPayload = () =>
-  danhSachMonPhucVu.value.map((item: any, index: number) => ({
-    maHoaDonChiTiet: `HDCT${Date.now()}${index + 1}${item.idMon || item.idCombo || ''}`,
-    idMon: item.idMon ?? null,
-    idCombo: item.idCombo ?? null,
-    soLuong: Number(item.soLuong || 0),
-    giaBanTaiThoiDiem: Number(item.gia || 0),
-    tienGiamGiaMon: 0,
-    thanhTien: Number((item.gia || 0) * (item.soLuong || 0)),
-    orderedBy: item.orderedBy || getCurrentOperatorName(),
-    orderedAt: item.orderedAt || getLocalDateTimeNow(),
-  }))
+  danhSachMonPhucVu.value.map((item: any, index: number) => {
+    const soLuong = Number(item.soLuong || 0)
+    const daLen = Number(item.daLen || 0)
+
+    const trangThaiMonAn =
+      daLen >= soLuong && soLuong > 0
+        ? 'DA_LEN'
+        : 'DANG_LEN'
+
+    return {
+      maHoaDonChiTiet:
+        `HDCT${Date.now()}${index + 1}${item.idMon || item.idCombo || ''}`,
+
+      idMon: item.idMon ?? null,
+      idCombo: item.idCombo ?? null,
+
+      soLuong,
+
+      // QUAN TRỌNG: phải giữ lại trạng thái
+      daLen,
+      trangThaiMonAn,
+
+      giaBanTaiThoiDiem: Number(item.gia || 0),
+
+      tienGiamGiaMon: 0,
+
+      thanhTien:
+        Number(item.gia || 0) * soLuong,
+
+      orderedBy:
+        item.orderedBy || getCurrentOperatorName(),
+
+      orderedAt:
+        item.orderedAt || getLocalDateTimeNow(),
+    }
+  })
 
 const xuLyHoaDon = async (
   trangThaiHoaDon: number,
@@ -610,6 +718,7 @@ const xuLyHoaDon = async (
     await addHoaDon(payload)
   }
 }
+
 
 // HÀM XỬ LÝ KHI BẤM NÚT LƯU
 const luuHoaDonTam = async () => {
@@ -772,6 +881,7 @@ const markReservationCompleted = async () => {
   }
 }
 
+// Định nghĩa interface gọn gàng (đặt ở ngoài hoặc đầu file script)
 interface CartItem {
   idMon?: number
   idCombo?: number
@@ -781,7 +891,7 @@ interface CartItem {
   [key: string]: any
 }
 
-// ================= ACTION XÁC NHẬN GỬI BẾP =================
+// ================= ACTION XÁC NHẬN GỬI BẾP & GỌI API MAYIN =================
 const luuTam = async () => {
   if (blockShiftClosedAction()) return
 
@@ -794,6 +904,7 @@ const luuTam = async () => {
   try {
     monVuaGuiBep.value = [...currentCart]
 
+    // 1. Cập nhật món phục vụ tại bàn
     currentCart.forEach((cartItem) => {
       const trungMon = danhSachMonPhucVu.value.find(
         (p: any) =>
@@ -807,17 +918,20 @@ const luuTam = async () => {
       }
     })
 
+    // 2. Nhóm món theo Quầy (Bếp / Bar)
     const grouped = currentCart.reduce<Record<string, CartItem[]>>((acc, item) => {
       const quay = item.tenQuay || 'Quầy Bếp'
-      ;(acc[quay] ||= []).push(item)
+      ;(acc[quay] ||= []).push(item) // Cú pháp ||= ngắn gọn hơn
       return acc
     }, {})
 
     monTheoQuayMap.value = grouped
 
+    // 3. Lưu hóa đơn tạm vào DB trước
     await xuLyHoaDon(0, 0)
     await nextTick()
 
+    // 4. GỬI PHIẾU BÁO BẰNG API SONG SONG (PROMISE.ALL) 🚀
     const now = new Date()
     const thoiGianFormatted = `${now.toLocaleTimeString('vi-VN')} ${now.toLocaleDateString('vi-VN')}`
 
@@ -835,8 +949,10 @@ const luuTam = async () => {
       }),
     )
 
+    // Chờ tất cả quầy gửi request in xong cùng lúc
     await Promise.all(printRequests)
 
+    // Reset giỏ và chuyển tab
     gioHang.value = []
     tabGioHang.value = 'mon-dang-len'
   } catch (error) {
@@ -961,52 +1077,69 @@ onMounted(async () => {
         Món ăn
       </div>
       <div class="action-bottom-group">
-        <button class="btn-luu-don" @click="luuHoaDonTam">Lưu</button>
-        <button class="btn-quay-lai" @click="quayLai">Quay Lại</button>
-      </div>
+    <button class="btn-quay-lai" @click="quayLai">Quay Lại</button>
+  </div>
     </div>
 
     <!-- CỘT DANH SÁCH MÓN GIỮA -->
     <div class="danh-sach-mon">
-      <div class="title">
-        {{ danhMucDangChon === 'combo' ? 'Danh sách Combo' : 'Danh sách Món ăn' }}
+      <div class="header-danh-sach">
+    <div class="title">
+      {{ danhMucDangChon === 'combo' ? 'Danh sách Combo' : 'Danh sách Món ăn' }}
+    </div>
+    <div class="search-box">
+      <input
+        v-model="searchQuery"
+        type="text"
+        :placeholder="danhMucDangChon === 'combo' ? 'Tìm combo...' : 'Tìm món ăn...'"
+        class="search-input"
+      />
+      <button v-if="searchQuery" class="btn-clear-search" @click="searchQuery = ''">✕</button>
+    </div>
+  </div>
+
+  <div class="food-grid">
+    <template v-if="danhMucDangChon === 'combo'">
+      <div
+        v-for="combo in danhSachComboFilter"
+        :key="combo.idCombo"
+        class="food-card"
+        :class="combo.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
+        :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
+        @click="!isShiftClosedForUi && themVaoGio(combo, 'COMBO')"
+      >
+        {{ combo.tenCombo }}
       </div>
-      <div class="food-grid">
-        <template v-if="danhMucDangChon === 'combo'">
-          <div
-            v-for="combo in danhSachCombo"
-            :key="combo.idCombo"
-            class="food-card"
-            :class="combo.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
-            :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
-            @click="!isShiftClosedForUi && themVaoGio(combo, 'COMBO')"
-          >
-            {{ combo.tenCombo }}
-          </div>
-        </template>
-        <template v-else>
-          <div
-            v-for="mon in danhSachMonAn"
-            :key="mon.idMon"
-            class="food-card"
-            :class="mon.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
-            :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
-            @click="!isShiftClosedForUi && themVaoGio(mon, 'MON')"
-          >
-            {{ mon.tenMon }}
-          </div>
-        </template>
+      <div v-if="danhSachComboFilter.length === 0" class="empty-search">
+        Không tìm thấy combo nào phù hợp
       </div>
+    </template>
+    <template v-else>
+      <div
+        v-for="mon in danhSachMonAnFilter"
+        :key="mon.idMon"
+        class="food-card"
+        :class="mon.trangThaiBan === 1 ? 'con-hang' : 'het-hang'"
+        :style="isShiftClosedForUi ? { opacity: 0.55, cursor: 'not-allowed' } : null"
+        @click="!isShiftClosedForUi && themVaoGio(mon, 'MON')"
+      >
+        {{ mon.tenMon }}
+      </div>
+      <div v-if="danhSachMonAnFilter.length === 0" class="empty-search">
+        Không tìm thấy món ăn nào phù hợp
+      </div>
+    </template>
+  </div>
     </div>
 
     <!-- CỘT GIỎ HÀNG PHẢI -->
     <div class="gio-hang">
-      <div class="title">Giỏ hàng: {{ props.ban.tenBan }}</div>
+      <div class="title">Giỏ hàng bàn {{ props.ban.tenBan }} - MãHD: {{ hoaDonHienTai?.maHoaDon }}</div>
       <div v-if="props.datBan" class="reservation-status-pill">
         {{
           normalizeReservationStatus(props.datBan?.trangThai) === 'DA_XAC_NHAN'
-            ? 'Đã cọc'
-            : 'Đã nhận bàn'
+            ? ''
+            : ''
         }}
       </div>
 
@@ -1045,13 +1178,7 @@ onMounted(async () => {
           >
             <div class="qty-control">
               <button class="btn-minus" @click="giamSoLuong(item)">-</button>
-              <input
-                class="qty-input"
-                type="number"
-                min="1"
-                v-model.number="item.soLuong"
-                @change="updateQuantity(item, item.soLuong)"
-              />
+              <span class="qty-display">{{ item.soLuong }}</span>
               <button class="btn-plus" @click="tangSoLuong(item)">+</button>
             </div>
             <div class="item-info">
@@ -1060,7 +1187,6 @@ onMounted(async () => {
                 Gồm: {{ item.comboItems.join(', ') }}
               </div>
               <div class="item-bottom">
-                <div class="item-qty">x{{ item.soLuong }}</div>
                 <div class="item-price">
                   <b>{{ ((item.gia ?? 0) * item.soLuong).toLocaleString('vi-VN') }} đ</b>
                 </div>
@@ -1301,14 +1427,25 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
+/* =========================================================
+   LAYOUT CHÍNH
+   ========================================================= */
+
 .thanh-toan-container {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr) minmax(320px, 380px);
+  grid-template-columns:
+    minmax(220px, 280px)
+    minmax(360px, 1fr)
+    minmax(320px, 380px);
+
   gap: 20px;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
+
   padding: 24px;
   overflow: hidden;
+
   background: linear-gradient(180deg, #1b120a, #2c1f16);
 }
 
@@ -1316,15 +1453,21 @@ onMounted(async () => {
 .danh-sach-mon,
 .gio-hang {
   background: linear-gradient(180deg, #2d241d, #1f1914);
+
   border-radius: 24px;
   padding: 20px;
+
   border: 1px solid rgba(255, 210, 130, 0.15);
+
   box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.35),
     0 0 18px rgba(255, 182, 102, 0.06);
+
   min-height: 280px;
+
   display: flex;
   flex-direction: column;
+
   overflow: hidden;
 }
 
@@ -1333,108 +1476,354 @@ onMounted(async () => {
   min-height: 0;
 }
 
-.gio-hang {
-  min-height: 0;
-  position: relative;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 18px;
-  padding: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 30%),
-    radial-gradient(circle at bottom left, rgba(138, 43, 226, 0.16), transparent 18%),
-    linear-gradient(180deg, #20162f 0%, #120812 100%);
-  box-shadow: 0 18px 46px rgba(92, 35, 148, 0.22), inset 0 0 40px rgba(255, 255, 255, 0.05);
-  border-radius: 28px;
-  overflow: hidden;
-}
-.gio-hang::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18), transparent 10%),
-    radial-gradient(circle at 80% 10%, rgba(174, 112, 255, 0.22), transparent 8%),
-    radial-gradient(circle at 50% 80%, rgba(230, 150, 255, 0.12), transparent 12%);
-  opacity: 0.9;
-  mix-blend-mode: screen;
-}
-.action-bottom-group {
-  margin-top: auto;
+.danh-muc {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  min-height: 0;
 }
+/* =========================================================
+   GIỎ HÀNG
+   ========================================================= */
+
+.gio-hang {
+  min-height: 0;
+  height: 100%;
+
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+
+  gap: 0;
+
+  padding: 22px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(255, 255, 255, 0.14),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at bottom left,
+      rgba(138, 43, 226, 0.16),
+      transparent 18%
+    ),
+    linear-gradient(180deg, #20162f 0%, #120812 100%);
+
+  box-shadow:
+    0 18px 46px rgba(92, 35, 148, 0.22),
+    inset 0 0 40px rgba(255, 255, 255, 0.05);
+
+  border-radius: 28px;
+
+  overflow: hidden;
+}
+
+/* Hiệu ứng nền */
+.gio-hang::before {
+  content: '';
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background-image:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 255, 255, 0.18),
+      transparent 10%
+    ),
+    radial-gradient(
+      circle at 80% 10%,
+      rgba(174, 112, 255, 0.22),
+      transparent 8%
+    ),
+    radial-gradient(
+      circle at 50% 80%,
+      rgba(230, 150, 255, 0.12),
+      transparent 12%
+    );
+
+  opacity: 0.9;
+  mix-blend-mode: screen;
+
+  z-index: 0;
+}
+
+
+.gio-hang > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================================================
+   TIÊU ĐỀ GIỎ HÀNG
+   ========================================================= */
+
+.gio-hang > .title {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
+/* =========================================================
+   TAB GIỎ HÀNG
+   ========================================================= */
+
+.gio-hang-tabs {
+  display: flex;
+
+  flex-shrink: 0;
+
+  flex-wrap: nowrap;
+
+  gap: 10px;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  border-radius: 16px;
+
+  padding: 8px;
+
+  margin-bottom: 12px;
+
+  border: 1px solid rgba(179, 117, 255, 0.16);
+
+  overflow-x: auto;
+
+  scroll-behavior: smooth;
+}
+
+.gio-hang-tabs .tab-item {
+  flex: 1 1 0;
+
+  min-width: 0;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   KHUNG DANH SÁCH MÓN
+   ========================================================= */
+
+
+
+.gio-hang-tab-content {
+  flex: 1 1 auto;
+
+  min-height: 0;
+
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(179, 117, 255, 0.25);
+
+  border-radius: 14px;
+
+  background: rgba(20, 10, 30, 0.35);
+
+
+}
+
+
+.gio-hang-list {
+  flex: 1 1 auto;
+
+  min-height: 0;
+
+  width: 100%;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding: 8px 6px 10px 8px;
+
+  box-sizing: border-box;
+}
+
+/*
+ * Thanh cuộn danh sách món
+ */
+.gio-hang-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gio-hang-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gio-hang-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 216, 107, 0.3);
+
+  border-radius: 10px;
+}
+
+.gio-hang-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 216, 107, 0.5);
+}
+
+/* =========================================================
+   ACTION BOTTOM
+   ========================================================= */
+
+.action-bottom-group {
+  flex-shrink: 0;
+
+  margin-top: auto;
+
+  padding-top: 12px;
+}
+
+
+.gio-hang-footer {
+  position: static !important;
+
+  flex: 0 0 auto;
+
+  width: 100%;
+
+  z-index: 50;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  margin: 0 !important;
+
+  padding: 12px 0 0;
+
+  background: linear-gradient(
+    180deg,
+    rgba(18, 8, 18, 0.15) 0%,
+    rgba(18, 8, 18, 0.92) 25%,
+    #120812 100%
+  );
+}
+
+/* Đường kẻ đầu footer */
+.gio-hang-footer > hr {
+  width: 100%;
+
+  margin: 0 0 4px;
+
+  border: 0;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* =========================================================
+   DANH SÁCH MÓN GIỮA
+   ========================================================= */
 
 .food-grid {
   display: grid;
+
   grid-template-columns: repeat(3, minmax(0, 1fr));
+
   gap: 14px;
+
   flex: 1;
+
+  min-height: 0;
+
   overflow-y: auto;
   overflow-x: hidden;
+
   padding-right: 6px;
   padding-bottom: 15px;
+
   align-content: start;
 }
 
+.food-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.food-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.food-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 216, 107, 0.3);
+
+  border-radius: 10px;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
 @media (max-width: 1380px) {
   .thanh-toan-container {
-    grid-template-columns: minmax(220px, 1fr) minmax(320px, 1fr);
+    grid-template-columns:
+      minmax(220px, 1fr)
+      minmax(320px, 1fr);
   }
 }
 
 @media (max-width: 980px) {
   .thanh-toan-container {
     grid-template-columns: 1fr;
+
+    height: auto;
+    min-height: 100vh;
+
+    overflow-y: auto;
   }
 
   .food-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gio-hang {
+    height: 700px;
+    min-height: 700px;
   }
 }
 
 @media (max-width: 640px) {
   .thanh-toan-container {
     grid-template-columns: 1fr;
+
+    height: auto;
+    min-height: 100vh;
+
+    padding: 12px;
+
+    overflow-y: auto;
   }
 
   .food-grid {
     grid-template-columns: 1fr;
   }
 
-  .gio-hang-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 14px;
-    padding: 8px;
-    margin-bottom: 12px;
-    border: 1px solid rgba(179, 117, 255, 0.16);
+  .gio-hang {
+    height: 700px;
+    min-height: 700px;
+
+    padding: 16px;
+  }
+
+  .gio-hang > h2,
+  .gio-hang > .gio-hang-header {
     flex-shrink: 0;
   }
 
-  .gio-hang-tab-content {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
+  .gio-hang-tabs .tab-item {
+    flex: 1 1 0;
 
-  .gio-hang-list {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 4px;
-  }
+    min-width: 0;
 
-  .gio-hang-footer {
-    flex-shrink: 0;
-    margin-top: 0;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255, 216, 107, 0.15);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    white-space: nowrap;
   }
 
   .gio-hang-footer .discount-input {
@@ -1450,456 +1839,969 @@ onMounted(async () => {
   }
 }
 
-.btn-luu-don {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #2e7d32, #1b5e20);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
-}
-
-.btn-luu-don:hover {
-  background: linear-gradient(145deg, #388e3c, #2e7d32);
-  transform: translateY(-2px);
-  box-shadow: 0 0 12px rgba(46, 125, 50, 0.5);
-}
+/* =========================================================
+   NÚT QUAY LẠI
+   ========================================================= */
 
 .btn-quay-lai {
   width: 100%;
+
+  margin-top: auto;
+
+  flex-shrink: 0;
+
   padding: 14px;
+
   border: 1px solid rgba(255, 216, 107, 0.25);
+
   border-radius: 12px;
+
   background: linear-gradient(145deg, #303030, #252525);
+
   color: #ffd86b;
+
   font-size: 15px;
+
   font-weight: 600;
+
   cursor: pointer;
+
   transition: all 0.25s ease;
 }
+
 .btn-quay-lai:hover {
   background: linear-gradient(145deg, #3a3a3a, #2f2f2f);
+
   border-color: #ffd86b;
+
   transform: translateY(-2px);
+
   box-shadow: 0 0 12px rgba(255, 216, 107, 0.2);
 }
+
+/* =========================================================
+   DANH MỤC
+   ========================================================= */
+
 .menu-item {
   padding: 14px;
+
   margin-bottom: 12px;
+
   border-radius: 10px;
+
   background: #333;
+
   color: #f5f5f5;
+
   cursor: pointer;
+
   transition: 0.25s;
 }
+
 .menu-item:hover,
 .menu-item.active {
   background: #3f3f3f;
+
   color: #ffd86b;
+
   border-left: 4px solid #ffd86b;
+
   transform: translateX(4px);
 }
+
+/* =========================================================
+   FOOD CARD
+   ========================================================= */
+
 .food-card {
   height: 120px;
+
   background: linear-gradient(145deg, #363636, #292929);
+
   border-radius: 12px;
+
   color: #f5f5f5;
+
   display: flex;
+
   justify-content: center;
+
   align-items: center;
+
   text-align: center;
+
   cursor: pointer;
+
   transition: 0.3s;
+
   border: 1px solid transparent;
+
   padding: 8px;
 }
+
 .food-card.con-hang {
   background: linear-gradient(145deg, #2e7d32, #1b5e20);
+
   box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
 }
+
 .food-card.con-hang:hover {
   background: linear-gradient(145deg, #388e3c, #2e7d32);
+
   border-color: #ffd86b;
+
   color: #ffd86b;
+
   transform: translateY(-3px);
 }
+
 .food-card.het-hang {
   background: linear-gradient(145deg, #fbc02d, #f9a825);
+
   color: #333;
+
   font-weight: 600;
+
   cursor: not-allowed;
 }
+
+/* =========================================================
+   TAB
+   ========================================================= */
+
 .tab-item {
   flex: 1;
+
   text-align: center;
+
   padding: 12px 10px;
+
   font-size: 13px;
+
   font-weight: 600;
+
   color: #d8c4ff;
+
   cursor: pointer;
+
   border-radius: 14px;
+
   transition: all 0.25s ease;
 }
+
 .tab-item.active {
-  background: linear-gradient(135deg, rgba(165, 92, 255, 0.24), rgba(87, 23, 255, 0.32));
+  background:
+    linear-gradient(
+      135deg,
+      rgba(165, 92, 255, 0.24),
+      rgba(87, 23, 255, 0.32)
+    );
+
   color: #ffffff;
+
   font-weight: 700;
+
   box-shadow: 0 0 20px rgba(127, 76, 255, 0.28);
 }
+
 .tab-item:hover {
   color: #ffffff;
+
   background: rgba(255, 255, 255, 0.04);
 }
+
+/* =========================================================
+   TỔNG TIỀN
+   ========================================================= */
+
 .tong-tien {
-  background: linear-gradient(135deg, rgba(138, 92, 255, 0.16), rgba(77, 29, 156, 0.08));
+  background:
+    linear-gradient(
+      135deg,
+      rgba(138, 92, 255, 0.16),
+      rgba(77, 29, 156, 0.08)
+    );
+
   border: 1px solid rgba(171, 130, 255, 0.24);
+
   border-radius: 14px;
+
   padding: 12px;
+
   color: #e7d8ff;
+
   font-size: 14px;
+
   font-weight: 700;
+
   text-align: center;
+
   margin-bottom: 8px;
 }
+
 .main-total-center {
   background: linear-gradient(135deg, #ffd86b, #d4af37) !important;
+
   color: #111 !important;
+
   font-size: 18px !important;
+
   font-weight: 800 !important;
+
   box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25);
 }
+
+/* =========================================================
+   CART ITEM
+   ========================================================= */
+
 .cart-item {
   display: grid;
+
   grid-template-columns: 74px minmax(0, 1fr);
-  gap: 14px;
+
+  gap: 22px;
+
   padding: 20px;
-  background: linear-gradient(145deg, rgba(35, 10, 50, 0.96), rgba(15, 6, 30, 0.98));
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(35, 10, 50, 0.96),
+      rgba(15, 6, 30, 0.98)
+    );
+
   color: #f9f4ff;
+
   border-radius: 22px;
+
   margin-bottom: 16px;
+
   border-left: 4px solid rgba(190, 160, 255, 0.85);
+
   align-items: center;
+
   border: 1px solid rgba(193, 146, 255, 0.18);
+
   box-shadow: 0 14px 34px rgba(102, 16, 180, 0.22);
+
   position: relative;
+
   overflow: hidden;
 }
+
 .cart-item::before {
   content: '';
+
   position: absolute;
+
   inset: 0;
-  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(142, 96, 255, 0.08), transparent 24%);
+
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(255, 255, 255, 0.08),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at bottom left,
+      rgba(142, 96, 255, 0.08),
+      transparent 24%
+    );
+
   pointer-events: none;
 }
+
 .cart-item:hover {
   transform: translateY(-1px);
 }
+
 .cart-item .qty-control {
   grid-row: 1 / span 2;
 }
+
 .cart-item .item-info {
   display: flex;
+
   flex-direction: column;
+
   gap: 8px;
 }
+
 .cart-item .item-bottom {
   display: flex;
+
   justify-content: space-between;
-  gap: 10px;
+
+  gap: 18px;
+
   flex-wrap: wrap;
 }
+
 .pending-item {
   border-left-color: #f39c12;
-  background: linear-gradient(145deg, rgba(82, 34, 105, 0.96), rgba(37, 17, 42, 0.95));
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(82, 34, 105, 0.96),
+      rgba(37, 17, 42, 0.95)
+    );
 }
+
 .done-item {
   border-left-color: #5dcb80;
-  background: linear-gradient(145deg, rgba(25, 34, 38, 0.92), rgba(8, 15, 28, 0.96));
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(25, 34, 38, 0.92),
+      rgba(8, 15, 28, 0.96)
+    );
 }
+
+/* =========================================================
+   ITEM INFO
+   ========================================================= */
+
 .item-info {
   flex: 1;
 }
+
 .item-name {
   font-weight: 600;
+
   margin-bottom: 4px;
+
   font-size: 14px;
 }
+
 .item-bottom {
   display: flex;
+
   justify-content: space-between;
+
   align-items: flex-end;
 }
+
 .item-qty {
   font-size: 14px;
+
   font-weight: 700;
+
   color: #ffd86b;
 }
+
 .item-price {
   font-size: 13px;
+
   opacity: 0.9;
 }
+
 .mon-combo {
   font-size: 12px;
+
   color: #ffd86b;
+
   opacity: 0.8;
+
   margin-bottom: 6px;
+
   font-style: italic;
 }
+
+/* =========================================================
+   QUANTITY
+   ========================================================= */
+
 .qty-control {
   display: inline-flex;
+
   align-items: center;
+
   gap: 8px;
+
   margin-right: 12px;
 }
+
 .qty-input {
   width: 58px;
+
   min-width: 58px;
+
   padding: 4px 8px;
+
   border: 1px solid rgba(255, 216, 107, 0.35);
+
   border-radius: 8px;
+
   background: #2c2c2c;
+
   color: #ffd86b;
+
   text-align: center;
+
   font-weight: 700;
 }
+
 .qty-input:focus {
   outline: none;
+
   border-color: #ffd86b;
+
   box-shadow: 0 0 0 3px rgba(255, 216, 107, 0.15);
 }
+
 .btn-minus,
 .btn-plus {
   width: 32px;
+
   height: 32px;
+
   border: 1px solid rgba(255, 216, 107, 0.25);
+
   border-radius: 8px;
+
   background: #242424;
+
   color: #ffd86b;
+
   font-size: 16px;
+
   cursor: pointer;
 }
+
 .btn-minus:hover,
 .btn-plus:hover {
   background: #ffd86b;
+
   color: #111;
 }
+
 .btn-check-item {
   padding: 6px 12px;
+
   background: #ffd86b;
+
   border: none;
+
   color: #111;
+
   border-radius: 6px;
+
   font-size: 13px;
+
   cursor: pointer;
 }
+
+/* =========================================================
+   TAB ACTION
+   ========================================================= */
+
 .tab-action-header {
   margin-bottom: 10px;
 }
+
 .btn-xac-nhan-all {
   width: 100%;
+
   padding: 10px;
+
   background: #1b5e20;
+
   border: 1px solid #2e7d32;
+
   color: #fff;
+
   font-weight: 600;
+
   border-radius: 8px;
+
   cursor: pointer;
 }
+
 .btn-luu-phu {
   width: 100%;
+
   padding: 12px;
+
   background: #e65100;
+
   border: none;
+
   color: white;
+
   font-weight: 700;
+
   border-radius: 8px;
+
   cursor: pointer;
+
   margin-bottom: 10px;
 }
+
+/* =========================================================
+   THANH TOÁN
+   ========================================================= */
+
 .btn-thanh-toan {
   width: 100%;
+
   padding: 16px 20px;
+
   border: none;
+
   border-radius: 18px;
-  background: linear-gradient(135deg, #b448ff, #6d32ff 45%, #f69cff 90%);
+
+  background:
+    linear-gradient(
+      135deg,
+      #b448ff,
+      #6d32ff 45%,
+      #f69cff 90%
+    );
+
   color: #fff;
+
   font-size: 16px;
+
   font-weight: 800;
+
   cursor: pointer;
+
   display: flex;
+
   justify-content: space-between;
+
   align-items: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: 0 20px 40px rgba(143, 95, 255, 0.35);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+
+  box-shadow:
+    0 20px 40px rgba(143, 95, 255, 0.35);
+
   animation: pulseGlow 3.8s ease-in-out infinite;
 }
+
 .btn-thanh-toan:hover {
   transform: translateY(-3px);
-  box-shadow: 0 24px 48px rgba(168, 108, 255, 0.5);
-  background: linear-gradient(135deg, #c86eff, #7f49ff 45%, #ffb8ff 90%);
+
+  box-shadow:
+    0 24px 48px rgba(168, 108, 255, 0.5);
+
+  background:
+    linear-gradient(
+      135deg,
+      #c86eff,
+      #7f49ff 45%,
+      #ffb8ff 90%
+    );
 }
+
 .btn-thanh-toan.pay-button {
   gap: 14px;
 }
+
 .discount-input {
   width: 100%;
+
   padding: 14px 16px;
+
   border-radius: 14px;
+
   border: 1px solid rgba(142, 83, 255, 0.28);
+
   background: rgba(25, 12, 44, 0.92);
+
   color: #f4e8ff;
+
   margin-bottom: 10px;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.06);
+
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.06);
 }
+
 .discount-input option {
   background: #160b25;
+
   color: #f4e8ff;
 }
+
+/* =========================================================
+   TITLE
+   ========================================================= */
+
 .title {
   color: #f9eeff;
+
   font-size: 20px;
+
   font-weight: 900;
+
   margin-bottom: 18px;
+
   position: relative;
+
   padding-bottom: 10px;
+
   flex-shrink: 0;
-  text-shadow: 0 0 12px rgba(158, 114, 255, 0.25);
+
+  text-shadow:
+    0 0 12px rgba(158, 114, 255, 0.25);
 }
+
 .title::after {
   content: '';
+
   position: absolute;
+
   left: 0;
+
   bottom: 0;
+
   width: 60px;
+
   height: 5px;
+
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(214, 155, 255, 0.95), rgba(130, 79, 255, 0.95));
-  box-shadow: 0 0 18px rgba(214, 155, 255, 0.35);
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(214, 155, 255, 0.95),
+      rgba(130, 79, 255, 0.95)
+    );
+
+  box-shadow:
+    0 0 18px rgba(214, 155, 255, 0.35);
 }
+
+/* =========================================================
+   EMPTY CART
+   ========================================================= */
+
 .empty-cart {
   color: #d5c1ff;
+
   text-align: center;
+
   margin-top: 32px;
+
   font-style: italic;
+
   font-size: 13px;
+
   background: rgba(86, 25, 115, 0.16);
+
   border: 1px dashed rgba(213, 193, 255, 0.45);
+
   padding: 20px;
+
   border-radius: 18px;
-  box-shadow: inset 0 0 20px rgba(255, 254, 255, 0.08);
+
+  box-shadow:
+    inset 0 0 20px rgba(255, 254, 255, 0.08);
 }
-.gio-hang-list::-webkit-scrollbar,
-.food-grid::-webkit-scrollbar {
-  width: 6px;
+
+/* =========================================================
+   HEADER DANH SÁCH MÓN
+   ========================================================= */
+
+.header-danh-sach {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-bottom: 15px;
+
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+
+  padding-bottom: 8px;
+
+  flex-shrink: 0;
 }
-.gio-hang-list::-webkit-scrollbar-thumb,
-.food-grid::-webkit-scrollbar-thumb {
-  background: rgba(255, 216, 107, 0.3);
-  border-radius: 10px;
+
+.header-danh-sach .title {
+  margin-bottom: 0;
+
+  border-bottom: none;
+
+  padding-bottom: 0;
 }
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.search-box {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  width: 220px;
+}
+
+.search-input {
+  width: 100%;
+
+  padding: 8px 30px 8px 12px;
+
+  border-radius: 8px;
+
+  border: 1px solid rgba(212, 175, 55, 0.3);
+
+  background: #2a2a2a;
+
+  color: #fff;
+
+  font-size: 13px;
+
+  outline: none;
+
+  transition: all 0.25s ease;
+}
+
+.search-input:focus {
+  border-color: #ffd86b;
+
+  box-shadow:
+    0 0 8px rgba(255, 216, 107, 0.2);
+}
+
+.btn-clear-search {
+  position: absolute;
+
+  right: 8px;
+
+  background: transparent;
+
+  border: none;
+
+  color: #aaa;
+
+  cursor: pointer;
+
+  font-size: 12px;
+
+  padding: 2px;
+}
+
+.btn-clear-search:hover {
+  color: #ffd86b;
+}
+
+.empty-search {
+  grid-column: span 3;
+
+  color: #888;
+
+  text-align: center;
+
+  padding: 20px;
+
+  font-style: italic;
+
+  font-size: 14px;
+}
+
+/* =========================================================
+   PAYMENT REVIEW
+   ========================================================= */
+
 .payment-review-overlay {
   position: fixed;
+
   inset: 0;
+
   z-index: 2000;
-  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 20%), rgba(10, 10, 10, 0.82);
+
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(255, 255, 255, 0.08),
+      transparent 20%
+    ),
+    rgba(10, 10, 10, 0.82);
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   padding: 24px;
 }
+
 .payment-review-dialog {
   width: min(560px, 100%);
-  background: linear-gradient(180deg, #fff8eb, #fff1d3);
+
+  background:
+    linear-gradient(
+      180deg,
+      #fff8eb,
+      #fff1d3
+    );
+
   border-radius: 26px;
+
   border: 1px solid rgba(212, 175, 55, 0.24);
-  box-shadow: 0 26px 68px rgba(0, 0, 0, 0.22);
+
+  box-shadow:
+    0 26px 68px rgba(0, 0, 0, 0.22);
+
   padding: 24px;
+
   color: #4e3511;
 }
+
 .review-header {
   margin-bottom: 18px;
+
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(255, 234, 187, 0.97), rgba(255, 239, 213, 0.95));
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 234, 187, 0.97),
+      rgba(255, 239, 213, 0.95)
+    );
+
   border-radius: 18px;
+
   border: 1px solid rgba(255, 210, 115, 0.35);
 }
+
 .review-title {
   font-size: 22px;
+
   font-weight: 800;
+
   color: #7b4d14;
+
   margin-bottom: 8px;
 }
+
 .review-subtitle {
   font-size: 14px;
+
   line-height: 1.6;
+
   color: #735623;
 }
+
 .payment-review-list {
   display: flex;
+
   flex-direction: column;
+
   gap: 12px;
+
   margin-bottom: 20px;
 }
+
 .review-item {
   display: flex;
+
   justify-content: space-between;
+
   gap: 12px;
+
   padding: 14px 18px;
+
   border-radius: 16px;
+
   background: rgba(255, 244, 224, 0.95);
+
   border: 1px solid rgba(255, 210, 114, 0.28);
 }
+
 .review-name {
   font-weight: 700;
+
   color: #563812;
 }
+
 .review-detail {
   color: #7a5728;
+
   font-size: 13px;
+
   white-space: nowrap;
 }
+
 .review-total {
   padding: 16px;
+
   border-radius: 16px;
+
   background: #fff3d2;
+
   border: 1px solid rgba(255, 200, 88, 0.32);
+
   font-weight: 800;
+
   color: #6d4a1d;
+
   text-align: right;
 }
+
 .review-actions {
   display: flex;
+
   gap: 12px;
+
   justify-content: flex-end;
+
   flex-wrap: wrap;
 }
+
 .review-actions button {
   padding: 12px 18px;
+
   border-radius: 12px;
+
   border: none;
+
   cursor: pointer;
+
   font-weight: 700;
+
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
+
 .review-actions button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.14);
 }
+
 .btn-primary {
-  background: linear-gradient(135deg, #f6c24b, #d49b13);
+  background:
+    linear-gradient(
+      135deg,
+      #f6c24b,
+      #d49b13
+    );
+
   color: #111;
 }
+
 .btn-secondary {
   background: #fff7e7;
+
   color: #7b4f19;
+
   border: 1px solid rgba(212, 175, 55, 0.25);
 }
 </style>

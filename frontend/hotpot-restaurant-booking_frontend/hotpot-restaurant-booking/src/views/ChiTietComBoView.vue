@@ -23,6 +23,8 @@
         :total-pages="tongSoTrang"
         @change-page="chuyenTrang"
       />
+
+      <Preview :item="itemChon" />
     </div>
 
     <div class="cot-phai">
@@ -31,8 +33,6 @@
         :danh-sach="danhSach"
         @submit="luu" 
       />
-
-      <Preview :item="itemChon" />
     </div>
 
   </div>

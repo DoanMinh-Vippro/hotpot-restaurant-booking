@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, onBeforeUnmount } from 'vue'
+import { onMounted, ref } from 'vue'
 import MonApi from '@/api/MonApi'
 import type { Mon } from '@/api/MonApi'
 
@@ -18,18 +18,13 @@ const emit = defineEmits(['update:modelValue', 'selectedMon'])
 
 const danhSachMon = ref<Mon[]>([])
 const loading = ref(false)
-const gridRef = ref<HTMLElement | null>(null)
-let wheelHandler: ((e: WheelEvent) => void) | null = null
 
 const loadMon = async () => {
   loading.value = true
 
   try {
     const res = await MonApi.hienThiMon()
-
-    danhSachMon.value = (res.data || []).filter(
-      (mon: Mon) => mon.trangThai === 0
-    )
+    danhSachMon.value = (res.data || []).filter((mon: Mon) => mon.trangThai === 0)
   } catch (error) {
     console.error('Không thể tải danh sách món:', error)
   } finally {
@@ -46,7 +41,6 @@ const selectMon = (mon: Mon) => {
   }
 
   const dsMon = [...getSelectedItems()]
-
   const index = dsMon.findIndex((item) => item.idMon === mon.idMon)
 
   if (index >= 0) {
@@ -67,12 +61,10 @@ const selectMon = (mon: Mon) => {
 
 const giamSoLuong = (idMon: number) => {
   const dsMon = [...getSelectedItems()]
-
   const index = dsMon.findIndex((item) => item.idMon === idMon)
 
   if (index >= 0) {
     const current = dsMon[index]
-
     if (current) {
       if (current.soLuong > 1) {
         current.soLuong--
@@ -90,25 +82,9 @@ const xoaTatCa = () => {
   emit('update:modelValue', [])
   emit('selectedMon', [])
 }
+
 onMounted(() => {
   loadMon()
-
-  if (!gridRef.value) return
-
-  wheelHandler = (e: WheelEvent) => {
-    e.preventDefault()
-    gridRef.value!.scrollLeft += e.deltaY
-  }
-
-  gridRef.value.addEventListener('wheel', wheelHandler, {
-    passive: false,
-  })
-})
-
-onBeforeUnmount(() => {
-  if (gridRef.value && wheelHandler) {
-    gridRef.value.removeEventListener('wheel', wheelHandler)
-  }
 })
 </script>
 
@@ -116,38 +92,32 @@ onBeforeUnmount(() => {
   <div class="combo-select-box">
     <div class="combo-header">
       <span>🍲 Món đặt trước</span>
-
       <button v-if="getSelectedItems().length > 0" @click="xoaTatCa">Bỏ chọn</button>
     </div>
 
     <div v-if="loading" class="loading-text">Đang tải...</div>
 
-    <div v-else ref="gridRef" class="luoi-combo-mini">
+    <div v-else class="luoi-combo-mini">
       <div
         v-for="mon in danhSachMon"
         :key="mon.idMon"
         class="card-combo-mini"
+        :class="{ active: getSelectedItems().some((item) => item.idMon === mon.idMon) }"
         @click="selectMon(mon)"
       >
         <div class="khung-anh">
           <img v-if="mon.hinhAnh" :src="mon.hinhAnh" />
-
           <div v-else class="no-img">No Image</div>
         </div>
 
         <div class="chi-tiet">
-          <h4 class="ten">
-            {{ mon.tenMon }}
-          </h4>
-
-          <span class="gia"> {{ Number(mon.giaSauGiam).toLocaleString('vi-VN') }} đ </span>
+          <h4 class="ten" :title="mon.tenMon">{{ mon.tenMon }}</h4>
+          <span class="gia">{{ Number(mon.giaSauGiam).toLocaleString('vi-VN') }} đ</span>
 
           <div v-if="getSelectedItems().some((item) => item.idMon === mon.idMon)">
             <span>
-              SL:
-              {{ getSelectedItems().find((item) => item.idMon === mon.idMon)?.soLuong }}
+              SL: {{ getSelectedItems().find((item) => item.idMon === mon.idMon)?.soLuong }}
             </span>
-
             <button @click.stop="giamSoLuong(mon.idMon)">-</button>
           </div>
         </div>
@@ -198,41 +168,44 @@ onBeforeUnmount(() => {
   color: white;
 }
 
-/* ===== Danh sách món ===== */
+/* ================= DANH SÁCH MÓN SỔ DỌC (2-3 MÓN/HÀNG) ================= */
 
 .luoi-combo-mini {
-  display: flex;
+  display: grid;
+  /* 3 món trên 1 hàng ngang */
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  padding-bottom: 6px;
-  scroll-behavior: smooth;
+  /* Giới hạn chiều cao & Cuộn dọc */
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
-/* Scroll ngang */
+/* Responsive: 2 món trên 1 hàng với màn nhỏ */
+@media (max-width: 480px) {
+  .luoi-combo-mini {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
+/* Thanh cuộn dọc */
 .luoi-combo-mini::-webkit-scrollbar {
-  height: 6px;
+  width: 6px;
 }
 
 .luoi-combo-mini::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 20px;
+  background: #c5a059;
+  border-radius: 10px;
 }
 
 .luoi-combo-mini::-webkit-scrollbar-track {
-  background: transparent;
+  background: #111;
 }
 
 /* Card */
-
 .card-combo-mini {
-  flex: 0 0 145px;
-  flex-shrink: 0;
-  width: 145px;
-
+  width: 100%;
   background: #1a1a1a;
   border: 2px solid transparent;
   border-radius: 8px;
@@ -243,11 +216,17 @@ onBeforeUnmount(() => {
 
   cursor: pointer;
   transition: all 0.25s ease;
+  box-sizing: border-box;
 }
 
 .card-combo-mini:hover {
   border-color: #c5a059;
   transform: translateY(-2px);
+}
+
+.card-combo-mini.active {
+  border-color: #ff8c00;
+  background: #292019;
 }
 
 .khung-anh {
@@ -265,11 +244,9 @@ onBeforeUnmount(() => {
 .no-img {
   width: 100%;
   height: 100%;
-
   display: flex;
   justify-content: center;
   align-items: center;
-
   font-size: 11px;
   color: #555;
 }
@@ -286,7 +263,6 @@ onBeforeUnmount(() => {
   color: #fff;
   font-size: 12px;
   font-weight: 600;
-
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -305,17 +281,15 @@ onBeforeUnmount(() => {
 
   margin-top: 5px;
   padding-top: 5px;
-
   border-top: 1px solid #333;
 
   color: #ddd;
-  font-size: 16px;
+  font-size: 12px;
 }
 
 .chi-tiet button {
-  width: 25px;
-  height: 25px;
-
+  width: 22px;
+  height: 22px;
   border: none;
   border-radius: 50%;
 

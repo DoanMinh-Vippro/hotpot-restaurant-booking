@@ -34,6 +34,9 @@ const markTablesEmptyAfterPayment = async () => {
     paidWithBan.sort((a: any, b: any) => (b.idHoaDon || 0) - (a.idHoaDon || 0))
     const latest = paidWithBan[0]
 
+    // Kiểm tra an toàn biến latest để tránh lỗi 'undefined'
+    if (!latest) return
+
     const banId = latest.idBan
     const datBanId = latest.idDatBan
 
@@ -42,7 +45,7 @@ const markTablesEmptyAfterPayment = async () => {
         await BanApi.update(banId, {
           loaiBan: latest.loaiBan ?? null,
           tenBan: latest.tenBan ?? null,
-          idKhuVuc: latest.idKhuVuc ?? null,
+          idKhuVuc: (latest as any).idKhuVuc ?? null, // Ép kiểu 'as any' để tránh lỗi missing property
           trangThai: 'TRONG',
         })
       } catch (updateErr) {
@@ -51,43 +54,42 @@ const markTablesEmptyAfterPayment = async () => {
     }
 
     if (datBanId) {
-        try {
-          await DatBanQuanLyApi.hoanThanh(datBanId)
-        } catch (resErr) {
-          console.warn('Không thể hoàn thành đơn đặt bàn liên quan:', resErr)
-        }
-      }
-
-      // Notify opener window (if payment opened a new window) so POS can react immediately
       try {
-        if (window && (window.opener as any) && !(window.opener as any).closed) {
-          ;(window.opener as any).postMessage(
-            {
-              type: 'payment-complete',
-              idBan: banId,
-              billId: latest?.idHoaDon ?? null,
-              trangThai: 'TRONG',
-            },
-            '*',
-          )
-        }
-      } catch (postErr) {
-        console.warn('Không thể postMessage tới cửa sổ cha:', postErr)
+        await DatBanQuanLyApi.hoanThanh(datBanId)
+      } catch (resErr) {
+        console.warn('Không thể hoàn thành đơn đặt bàn liên quan:', resErr)
       }
+    }
 
-      // Redirect current tab to Ban Hàng with query so that BanHang's openPendingTarget can handle it
-      try {
-        void router.push({
-          name: 'ban-hang',
-          query: {
-            pendingTableId: String(banId || ''),
-            pendingBillId: String(latest?.idHoaDon ?? ''),
-            pendingDatBanId: String(datBanId || ''),
+    // Notify opener window (if payment opened a new window) so POS can react immediately
+    try {
+      if (window && (window.opener as any) && !(window.opener as any).closed) {
+        ;(window.opener as any).postMessage(
+          {
+            type: 'payment-complete',
+            idBan: banId,
+            billId: latest.idHoaDon ?? null,
+            trangThai: 'TRONG',
           },
-        })
-      } catch (navErr) {
-        // ignore
+          '*',
+        )
       }
+    } catch (postErr) {
+      console.warn('Không thể postMessage tới cửa sổ cha:', postErr)
+    }
+
+    // Redirect current tab to Ban Hàng with query so that BanHang's openPendingTarget can handle it
+    try {
+      void router.push({
+        name: 'ban-hang',
+        query: {
+          pendingTableId: String(banId || ''),
+          pendingBillId: String(latest.idHoaDon ?? ''),
+          pendingDatBanId: String(datBanId || ''),
+        },
+      })
+    } catch (navErr) {
+      // ignore
     }
   } catch (err) {
     console.warn('Lỗi khi kiểm tra hóa đơn sau khi thanh toán:', err)
