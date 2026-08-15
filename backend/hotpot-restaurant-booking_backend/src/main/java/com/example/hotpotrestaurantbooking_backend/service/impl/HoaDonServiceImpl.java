@@ -493,11 +493,6 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         if (hoaDon.getDatBan() != null) {
             response.setIdDatBan(hoaDon.getDatBan().getIdDatBan());
-            response.setGioVaoBan(earliestOrderTime != null ? earliestOrderTime : hoaDon.getDatBan().getThoiGianDenDuKien());
-            if (hoaDon.getThoiGianXuat() != null) {
-                response.setGioRoiBan(hoaDon.getThoiGianXuat());
-            }
-
             List<DTOBanResponse> dsBan = hoaDon.getDatBan().getChiTietDatBanBans() == null
                     ? List.of()
                     : hoaDon.getDatBan().getChiTietDatBanBans().stream()
@@ -524,10 +519,16 @@ public class HoaDonServiceImpl implements HoaDonService {
             }
         }
 
-        if (response.getGioVaoBan() == null) {
-            response.setGioVaoBan(earliestOrderTime != null ? earliestOrderTime : hoaDon.getThoiGianXuat());
+        LocalDateTime realGioVao = earliestOrderTime;
+        if (realGioVao == null && hoaDon != null && hoaDon.getThoiGianXuat() != null) {
+            realGioVao = hoaDon.getThoiGianXuat();
         }
-        if (response.getGioRoiBan() == null && hoaDon.getThoiGianXuat() != null) {
+        if (realGioVao == null) {
+            realGioVao = LocalDateTime.now();
+        }
+        response.setGioVaoBan(realGioVao);
+
+        if (hoaDon != null && hoaDon.getThoiGianXuat() != null && Objects.equals(hoaDon.getTrangThaiThanhToan(), 1)) {
             response.setGioRoiBan(hoaDon.getThoiGianXuat());
         }
 

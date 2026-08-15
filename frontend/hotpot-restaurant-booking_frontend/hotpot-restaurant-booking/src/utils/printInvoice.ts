@@ -229,6 +229,14 @@ export const printInvoiceReceipt = (invoice: HoaDon | null | undefined, items: H
             <div class="value">${escapeHtml(invoice.tenNhanVien || 'Chưa có')}</div>
           </div>
           <div class="card">
+            <span class="label">Giờ vào bàn</span>
+            <div class="value">${escapeHtml(formatDateTime((invoice as any).gioVaoBan || invoice.thoiGianXuat))}</div>
+          </div>
+          <div class="card">
+            <span class="label">Giờ ra bàn</span>
+            <div class="value">${escapeHtml(formatDateTime((invoice as any).gioRoiBan || (invoice.trangThaiThanhToan === 1 ? invoice.thoiGianXuat : null)))}</div>
+          </div>
+          <div class="card">
             <span class="label">Thanh toán</span>
             <div class="value">${escapeHtml(paymentStatusLabel(invoice.trangThaiThanhToan))}</div>
           </div>
