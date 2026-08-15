@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import type { GiamGia } from '../api/GiamGiaApi'
 
 const props = defineProps<{
@@ -27,23 +27,82 @@ const bieu_mau = reactive({
 
 const loi_val = reactive<Record<string, string>>({})
 
-const normalizeLoaiGiamValue = (value: string | null | undefined) => {
-  const normalized = `${value ?? ''}`
+const getRawLoaiGiam = (discount: any): string => {
+  if (!discount) return ''
+  return (
+    discount.loaiGiamGia ??
+    discount.loaiGiam ??
+    discount.loai_giam ??
+    discount.discountType ??
+    discount.type ??
+    ''
+  )
+}
+
+const normalizeLoaiGiamValue = (value: string | null | undefined): string => {
+  const raw = `${value ?? ''}`.trim()
+  if (!raw) return 'PHẦN TRĂM'.normalize('NFC')
+  const rawLower = raw.toLowerCase()
+  const normalized = raw
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9]/g, '')
     .toUpperCase()
 
-  if (['PHANTRAM', 'PERCENT', 'PHNTRAM', 'PHTNTRAM', 'PHTRAM'].includes(normalized)) return 'PHẦN TRĂM'
-  if (normalized.includes('PH') && normalized.includes('TRAM')) return 'PHẦN TRĂM'
-  if (['GIATRI', 'TIEN', 'TIENMAT', 'VND', 'FIXED', 'MONEY'].includes(normalized)) return 'GIÁ TRỊ'
-  if (normalized.includes('TIEN') || normalized.includes('MAT') || normalized.includes('GIATRI') || normalized.includes('VALUE')) return 'GIÁ TRỊ'
+  if (['PHANTRAM', 'PERCENT', 'PERCENTAGE', 'PHNTRAM', 'PHTNTRAM', 'PHTRAM'].includes(normalized) || raw.includes('%')) {
+    return 'PHẦN TRĂM'.normalize('NFC')
+  }
+  if (normalized.includes('PH') && normalized.includes('TRAM')) return 'PHẦN TRĂM'.normalize('NFC')
+  if (['GIATRI', 'TIEN', 'TIENMAT', 'VND', 'FIXED', 'MONEY', 'CODINH', 'CASH', 'VALUE'].includes(normalized)) {
+    return 'GIÁ TRỊ'.normalize('NFC')
+  }
+  if (
+    rawLower.includes('đ') ||
+    rawLower.includes('dong') ||
+    normalized.includes('TIEN') ||
+    normalized.includes('MAT') ||
+    normalized.includes('GIATRI') ||
+    normalized.includes('GIATR') ||
+    normalized.includes('VALUE') ||
+    normalized.includes('VND') ||
+    normalized.includes('DONG') ||
+    normalized.includes('DINH')
+  ) {
+    return 'GIÁ TRỊ'.normalize('NFC')
+  }
 
-  return 'PHẦN TRĂM'
+  return 'PHẦN TRĂM'.normalize('NFC')
 }
 
+watch(
+  () => bieu_mau.loaiGiam,
+  (newType, oldType) => {
+    if (newType !== oldType) {
+      if (normalizeLoaiGiamValue(newType) === 'GIÁ TRỊ'.normalize('NFC')) {
+        bieu_mau.giaTriGiamToiDa = ''
+      }
+      Object.keys(loi_val).forEach((key) => delete loi_val[key])
+    }
+  }
+)
+
+watch(
+  () => bieu_mau.ngayKetThuc,
+  (newDate) => {
+    if (newDate) {
+      const now = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+      const selectedDateStr = String(newDate).split('T')[0] ?? ''
+      if (selectedDateStr >= todayStr) {
+        bieu_mau.trangThai = 1
+      }
+    }
+  }
+)
+
 const nhan_gui = computed(() => (props.che_do_bieu_mau === 'create' ? 'Tạo mới' : 'Cập nhật'))
-const la_phan_tram = computed(() => normalizeLoaiGiamValue(bieu_mau.loaiGiam) === 'PHẦN TRĂM')
+const la_phan_tram = computed(() => normalizeLoaiGiamValue(bieu_mau.loaiGiam) === 'PHẦN TRĂM'.normalize('NFC'))
 const nhan_gia_tri_giam = computed(() => (la_phan_tram.value ? 'Giá trị giảm (%)' : 'Giá trị giảm (đ)'))
 const noi_dung_gia_tri_giam = computed(() => (la_phan_tram.value ? 'Khoảng từ 1% đến 100%' : 'Giá trị theo đơn vị VNĐ (đ)'))
 const placeholder_gia_tri_giam = computed(() => (la_phan_tram.value ? 'Nhập % từ 1 - 100' : 'Nhập số tiền giảm (đ)'))
@@ -130,7 +189,7 @@ const xu_ly_huy = () => {
   bieu_mau.dieuKienSuDung = ''
   bieu_mau.giaTriGiamToiDa = ''
   bieu_mau.giaTriGiam = ''
-  bieu_mau.loaiGiam = 'PHẦN TRĂM'
+  bieu_mau.loaiGiam = 'PHẦN TRĂM'.normalize('NFC')
   bieu_mau.soLuongMaGiamGia = 1
   bieu_mau.trangThai = 1
   emit('reset')
@@ -138,16 +197,45 @@ const xu_ly_huy = () => {
 
 defineExpose({
   bieu_mau,
-  chuan_bi_bieu_mau: (discount?: GiamGia) => {
+  chuan_bi_bieu_mau: (discount?: any) => {
     if (discount) {
-      bieu_mau.maGiamGia = discount.maGiamGia
-      bieu_mau.ngayKetThuc = discount.ngayKetThuc ?? ''
-      bieu_mau.dieuKienSuDung = discount.dieuKienSuDung ?? ''
-      bieu_mau.giaTriGiamToiDa = discount.giaTriGiamToiDa?.toString() ?? ''
-      bieu_mau.giaTriGiam = discount.giaTriGiam?.toString() ?? ''
-      bieu_mau.loaiGiam = normalizeLoaiGiamValue(discount.loaiGiam)
-      bieu_mau.soLuongMaGiamGia = discount.soLuongMaGiamGia ?? 1
-      bieu_mau.trangThai = discount.trangThai ?? 1
+      const rawLoai = getRawLoaiGiam(discount)
+      let loaiNormalized = normalizeLoaiGiamValue(rawLoai).normalize('NFC')
+      if (!rawLoai) {
+        const giaTriGiam = Number(discount.giaTriGiam ?? 0)
+        const giaTriGiamToiDa = Number(discount.giaTriGiamToiDa ?? 0)
+        loaiNormalized =
+          giaTriGiam > 0 && giaTriGiam <= 100 && giaTriGiamToiDa > giaTriGiam
+            ? 'PHẦN TRĂM'.normalize('NFC')
+            : 'GIÁ TRỊ'.normalize('NFC')
+      }
+      bieu_mau.loaiGiam = loaiNormalized
+      bieu_mau.maGiamGia = discount.maGiamGia ?? discount.ma ?? ''
+
+      const endDate = discount.ngayKetThuc ?? ''
+      bieu_mau.ngayKetThuc = endDate
+      bieu_mau.dieuKienSuDung = discount.dieuKienSuDung ?? discount.dieuKien ?? ''
+
+      if (loaiNormalized === 'PHẦN TRĂM'.normalize('NFC')) {
+        bieu_mau.giaTriGiam = discount.giaTriGiam?.toString() ?? ''
+        bieu_mau.giaTriGiamToiDa = discount.giaTriGiamToiDa?.toString() ?? ''
+      } else {
+        bieu_mau.giaTriGiam = discount.giaTriGiam?.toString() ?? ''
+        bieu_mau.giaTriGiamToiDa = ''
+      }
+
+      bieu_mau.soLuongMaGiamGia = discount.soLuongMaGiamGia ?? discount.soLuong ?? 1
+
+      const now = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+      const endDateStr = endDate ? String(endDate).split('T')[0] : ''
+
+      if (endDateStr && endDateStr >= todayStr) {
+        bieu_mau.trangThai = 1
+      } else {
+        bieu_mau.trangThai = discount.trangThai ?? 0
+      }
     } else {
       xu_ly_huy()
     }

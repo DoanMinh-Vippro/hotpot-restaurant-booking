@@ -87,6 +87,8 @@ public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
         if (request.getGiaBanTaiThoiDiem() != null) hdct.setGiaBanTaiThoiDien(request.getGiaBanTaiThoiDiem());
         if (request.getTienGiamGiaMon() != null) hdct.setTienGiamGiaMon(request.getTienGiamGiaMon());
         if (request.getThanhTien() != null) hdct.setThanhTien(request.getThanhTien());
+        if (request.getOrderedAt() != null) hdct.setOrderedAt(request.getOrderedAt());
+        if (request.getOrderedBy() != null) hdct.setOrderedBy(request.getOrderedBy());
 
         if (request.getIdMon() != null) {
             Mon mon = monRepository.findById(request.getIdMon())

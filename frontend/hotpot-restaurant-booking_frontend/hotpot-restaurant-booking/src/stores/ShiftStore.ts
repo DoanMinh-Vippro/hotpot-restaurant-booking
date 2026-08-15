@@ -80,6 +80,7 @@ export interface ShiftHistoryEntry extends ShiftSession {
     electronicExpense: number
     otherExpense: number
     endingCash: number
+    totalFunds: number
   }
 }
 
@@ -179,6 +180,7 @@ const buildShiftSummary = (shift: ShiftSession) => {
   const totalIncome = cashIncome + transferIncome + electronicIncome + otherIncome
   const totalExpense = cashExpense + transferExpense + electronicExpense + otherExpense
   const endingCash = (shift.openingCash || 0) + cashSales + cashIncome - cashExpense
+  const totalFunds = (shift.openingCash || 0) + revenue + totalIncome - totalExpense
 
   return {
     gross,
@@ -199,6 +201,7 @@ const buildShiftSummary = (shift: ShiftSession) => {
     electronicExpense,
     otherExpense,
     endingCash,
+    totalFunds,
   }
 }
 
@@ -282,6 +285,20 @@ export const useShiftStore = defineStore('shift', {
         .reduce((sum, item) => sum + item.amount, 0)
 
       return openingCash + cashSales + cashIncome - cashExpense
+    },
+    totalFunds: (state) => {
+      const openingCash = state.currentShift?.openingCash || 0
+      const revenue = (state.currentShift?.bills || [])
+        .filter((bill) => isValidShiftInvoice(bill) && bill.status === 'paid')
+        .reduce((sum, bill) => sum + bill.total, 0)
+      const totalIncome = (state.currentShift?.expenses || [])
+        .filter((item) => item.type === 'income')
+        .reduce((sum, item) => sum + item.amount, 0)
+      const totalExpense = (state.currentShift?.expenses || [])
+        .filter((item) => item.type === 'expense')
+        .reduce((sum, item) => sum + item.amount, 0)
+
+      return openingCash + revenue + totalIncome - totalExpense
     },
     hasUnpaidBills: (state) =>
       (state.currentShift?.bills || []).some((bill) => isValidShiftInvoice(bill) && bill.status === 'unpaid'),

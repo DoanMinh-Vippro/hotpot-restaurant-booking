@@ -2,6 +2,7 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 
 import com.example.hotpotrestaurantbooking_backend.Validation.HoaDonValidator;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOBanResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
@@ -16,8 +17,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.Normalizer;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +62,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         // Lưu hóa đơn trước, sau đó cập nhật trạng thái bàn dựa trên trạng thái hóa đơn đã lưu
         hoaDonRepository.save(hd);
+        consumeDiscountIfNeeded(null, hd);
 
         if (hd.getBan() != null) {
             applyTableStateFromInvoice(hd.getBan(), hd);
@@ -64,7 +72,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             completeDatBanAndFreeTables(hd.getDatBan());
         }
 
-        return convertToResponse(hd);
+        return convertToResponse(hd, request.getChiTiet());
     }
 
     @Override
@@ -73,6 +81,9 @@ public class HoaDonServiceImpl implements HoaDonService {
         hoaDonValidator.validateUpdate(id, request);
         HoaDon hd = hoaDonRepository.findById(id)
                 .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay hoa don voi id: " + id));
+        Integer previousPaymentStatus = hd.getTrangThaiThanhToan();
+        Integer previousInvoiceStatus = hd.getTrangThaiHoaDon();
+        Integer previousDiscountId = hd.getGiamGia() != null ? hd.getGiamGia().getIdGiamGia() : null;
         updateEntityFromRequest(hd, request);
 
         // Chỉ trả bàn khi hóa đơn đã hoàn tất hoặc đã thanh toán
@@ -85,6 +96,10 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
 
         HoaDon saved = hoaDonRepository.save(hd);
+        consumeDiscountIfNeeded(
+                new InvoiceDiscountState(previousInvoiceStatus, previousPaymentStatus, previousDiscountId),
+                saved
+        );
 
         // Sau khi lưu, đảm bảo trạng thái bàn khớp với trạng thái hóa đơn (tránh race condition)
         if (saved.getBan() != null) {
@@ -95,7 +110,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             completeDatBanAndFreeTables(saved.getDatBan());
         }
 
-        return convertToResponse(saved);
+        return convertToResponse(saved, request.getChiTiet());
     }
 
     @Override
@@ -194,6 +209,8 @@ public class HoaDonServiceImpl implements HoaDonService {
             selectedGiamGia = giamGiaRepository.findById(request.getIdGiamGia())
                     .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay ma giam gia"));
             hd.setGiamGia(selectedGiamGia);
+        } else if (request.getTienGiamGia() != null && request.getTienGiamGia().compareTo(BigDecimal.ZERO) <= 0) {
+            hd.setGiamGia(null);
         }
 
         if (request.getIdKhachHang() != null) {
@@ -202,19 +219,13 @@ public class HoaDonServiceImpl implements HoaDonService {
             hd.setKhachHang(khachHang);
         }
 
-        if (request.getTienGiamGia() == null && selectedGiamGia != null && hd.getTienTruocGiam() != null) {
-            hd.setTienGiamGia(applyGiamGiaDiscount(hd.getTienTruocGiam(), selectedGiamGia));
-        }
-
-        if (hd.getTienTruocGiam() != null && hd.getTienGiamGia() != null && request.getTongTien() == null) {
-            hd.setTongTien(hd.getTienTruocGiam().subtract(hd.getTienGiamGia()).max(BigDecimal.ZERO));
-        }
-
         if (request.getIdNhanVien() != null) {
             NhanVien nhanVien = nhanVienRepository.findById(request.getIdNhanVien())
                     .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay nhan vien"));
             hd.setNhanVien(nhanVien);
         }
+
+        syncInvoiceTotals(hd);
     }
 
     private boolean isInvoicePaid(HoaDon hoaDon) {
@@ -251,6 +262,10 @@ public class HoaDonServiceImpl implements HoaDonService {
             datBan.setTrangThai(TrangThaiDatBan.HOAN_THANH);
         }
 
+        if (datBan.getSoTienCoc() != null && datBan.getSoTienCoc().compareTo(BigDecimal.ZERO) > 0) {
+            datBan.setSoTienCoc(BigDecimal.ZERO);
+        }
+
         // Giải phóng toàn bộ bàn đã liên quan đến DatBan này
         if (datBan.getChiTietDatBanBans() != null) {
             datBan.getChiTietDatBanBans().forEach(ct -> {
@@ -274,22 +289,121 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         if ("PERCENT".equals(normalizedType)) {
             BigDecimal percent = giamGia.getGiaTriGiam() == null ? BigDecimal.ZERO : giamGia.getGiaTriGiam();
-            BigDecimal discount = tienTruocGiam.multiply(percent).divide(BigDecimal.valueOf(100));
+            BigDecimal discount = tienTruocGiam.multiply(percent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
             if (giamGia.getGiaTriGiamToiDa() != null) {
                 discount = discount.min(giamGia.getGiaTriGiamToiDa());
             }
-            return discount.max(BigDecimal.ZERO);
+            return discount.min(tienTruocGiam).max(BigDecimal.ZERO);
         }
 
         if ("FIXED".equals(normalizedType)) {
             BigDecimal fixedDiscount = giamGia.getGiaTriGiam() == null ? BigDecimal.ZERO : giamGia.getGiaTriGiam();
-            if (giamGia.getGiaTriGiamToiDa() != null) {
-                fixedDiscount = fixedDiscount.min(giamGia.getGiaTriGiamToiDa());
-            }
+            fixedDiscount = fixedDiscount.min(tienTruocGiam);
             return fixedDiscount.max(BigDecimal.ZERO);
         }
 
         return BigDecimal.ZERO;
+    }
+
+    private void syncInvoiceTotals(HoaDon hd) {
+        BigDecimal subtotal = safeMoney(hd.getTienTruocGiam());
+        BigDecimal deposit = safeMoney(hd.getTienCoc());
+        GiamGia discount = hd.getGiamGia();
+
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (discount != null) {
+            validateDiscountCanApply(discount, subtotal);
+            discountAmount = applyGiamGiaDiscount(subtotal, discount);
+        }
+
+        hd.setTienTruocGiam(subtotal);
+        hd.setTienGiamGia(discountAmount);
+        hd.setTongTien(subtotal.subtract(discountAmount).subtract(deposit).max(BigDecimal.ZERO));
+    }
+
+    private void validateDiscountCanApply(GiamGia giamGia, BigDecimal subtotal) {
+        if (giamGia == null) {
+            return;
+        }
+
+        if (giamGia.getTrangThai() == null || giamGia.getTrangThai() != 1) {
+            throw new RuntimeException("Mã giảm giá không hoạt động");
+        }
+
+        if (giamGia.getNgayKetThuc() != null && LocalDate.now().isAfter(giamGia.getNgayKetThuc())) {
+            giamGia.setTrangThai(0);
+            giamGiaRepository.save(giamGia);
+            throw new RuntimeException("Mã giảm giá đã hết hạn");
+        }
+
+        int remainingQuantity = giamGia.getSoLuongMaGiamGia() == null ? 0 : giamGia.getSoLuongMaGiamGia();
+        if (remainingQuantity <= 0) {
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
+        }
+
+        BigDecimal minimumOrderValue = parseMinimumOrderValue(giamGia.getDieuKienSuDung());
+        if (minimumOrderValue != null && subtotal.compareTo(minimumOrderValue) < 0) {
+            throw new RuntimeException("Đơn hàng chưa đủ điều kiện sử dụng mã giảm giá");
+        }
+
+        if ("UNKNOWN".equals(normalizeDiscountType(giamGia.getLoaiGiam()))) {
+            throw new RuntimeException("Loại giảm giá không hợp lệ");
+        }
+    }
+
+    private BigDecimal parseMinimumOrderValue(String condition) {
+        if (condition == null || condition.trim().isEmpty()) {
+            return null;
+        }
+
+        String normalized = condition.trim();
+        Matcher kMatcher = Pattern.compile("(\\d+(?:[\\.,]\\d+)?)\\s*k", Pattern.CASE_INSENSITIVE)
+                .matcher(normalized);
+        if (kMatcher.find()) {
+            return BigDecimal.valueOf(Double.parseDouble(kMatcher.group(1).replace(',', '.')))
+                    .multiply(BigDecimal.valueOf(1000));
+        }
+
+        String digitsOnly = normalized.replaceAll("[^0-9]", "");
+        if (digitsOnly.isBlank()) {
+            return null;
+        }
+
+        BigDecimal value = new BigDecimal(digitsOnly);
+        return value.compareTo(BigDecimal.ZERO) > 0 ? value : null;
+    }
+
+    private BigDecimal safeMoney(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value.max(BigDecimal.ZERO);
+    }
+
+    private void consumeDiscountIfNeeded(InvoiceDiscountState previousState, HoaDon currentInvoice) {
+        if (currentInvoice == null || currentInvoice.getGiamGia() == null || !isInvoicePaid(currentInvoice)) {
+            return;
+        }
+
+        boolean wasAlreadyPaidWithSameDiscount = previousState != null
+                && previousState.isPaid()
+                && Objects.equals(previousState.discountId(), currentInvoice.getGiamGia().getIdGiamGia());
+        if (wasAlreadyPaidWithSameDiscount) {
+            return;
+        }
+
+        GiamGia discount = currentInvoice.getGiamGia();
+        validateDiscountCanApply(discount, safeMoney(currentInvoice.getTienTruocGiam()));
+        int remainingQuantity = discount.getSoLuongMaGiamGia() == null ? 0 : discount.getSoLuongMaGiamGia();
+        discount.setSoLuongMaGiamGia(Math.max(remainingQuantity - 1, 0));
+        discount.setSoLuongDung((discount.getSoLuongDung() == null ? 0 : discount.getSoLuongDung()) + 1);
+        if (discount.getSoLuongMaGiamGia() == null || discount.getSoLuongMaGiamGia() <= 0) {
+            discount.setTrangThai(0);
+        }
+        giamGiaRepository.save(discount);
+    }
+
+    private record InvoiceDiscountState(Integer invoiceStatus, Integer paymentStatus, Integer discountId) {
+        private boolean isPaid() {
+            return Objects.equals(paymentStatus, 1) || Objects.equals(invoiceStatus, 1);
+        }
     }
 
     private String normalizeDiscountType(String rawType) {
@@ -302,18 +416,59 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .replaceAll("[^a-zA-Z0-9]", "")
                 .toUpperCase();
 
-        if (normalized.contains("PHANTRAM") || normalized.contains("PERCENT")) {
+        if (rawType.contains("%")
+                || normalized.contains("PHANTRAM")
+                || normalized.contains("PERCENT")
+                || (normalized.contains("PHAN") && normalized.contains("TRAM"))
+                || (normalized.contains("PH") && normalized.contains("TRAM"))) {
             return "PERCENT";
         }
 
-        if (normalized.contains("TIEN") || normalized.contains("MAT") || normalized.contains("GIATRI") || normalized.contains("VALUE")) {
+        if (normalized.contains("TIEN")
+                || normalized.contains("MAT")
+                || normalized.contains("GIATRI")
+                || normalized.contains("GIATR")
+                || normalized.contains("VALUE")
+                || normalized.contains("VND")
+                || normalized.contains("DONG")
+                || normalized.contains("FIXED")
+                || normalized.contains("CODINH")
+                || normalized.contains("CASH")
+                || normalized.contains("MONEY")) {
             return "FIXED";
         }
 
         return "UNKNOWN";
     }
 
+    private LocalDateTime inferEarliestOrderTime(HoaDon hoaDon, List<DTOHoaDonChiTietRequest> chiTietRequests) {
+        LocalDateTime fromRequest = chiTietRequests == null ? null : chiTietRequests.stream()
+                .map(DTOHoaDonChiTietRequest::getOrderedAt)
+                .filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
+
+        if (fromRequest != null) {
+            return fromRequest;
+        }
+
+        if (hoaDon == null || hoaDon.getIdHoaDon() == null) {
+            return null;
+        }
+
+        return hoaDonChiTietRepository.findByHoaDon_IdHoaDon(hoaDon.getIdHoaDon())
+                .stream()
+                .map(HoaDonChiTiet::getOrderedAt)
+                .filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
+    }
+
     private DTOHoaDonResponse convertToResponse(HoaDon hoaDon) {
+        return convertToResponse(hoaDon, null);
+    }
+
+    private DTOHoaDonResponse convertToResponse(HoaDon hoaDon, List<DTOHoaDonChiTietRequest> chiTietRequests) {
         DTOHoaDonResponse response = new DTOHoaDonResponse();
         response.setIdHoaDon(hoaDon.getIdHoaDon());
         response.setMaHoaDon(hoaDon.getMaHoaDon());
@@ -328,6 +483,8 @@ public class HoaDonServiceImpl implements HoaDonService {
         response.setTrangThaiThanhToan(hoaDon.getTrangThaiThanhToan());
         response.setPhuongThucThanhToan(hoaDon.getPhuongThucThanhToan());
 
+        LocalDateTime earliestOrderTime = inferEarliestOrderTime(hoaDon, chiTietRequests);
+
         if (hoaDon.getBan() != null) {
             response.setIdBan(hoaDon.getBan().getIdBan());
             response.setLoaiBan(hoaDon.getBan().getLoaiBan());
@@ -336,9 +493,9 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         if (hoaDon.getDatBan() != null) {
             response.setIdDatBan(hoaDon.getDatBan().getIdDatBan());
-            response.setGioVaoBan(hoaDon.getDatBan().getThoiGianDenDuKien());
-            if (hoaDon.getDatBan().getThoiGianDenDuKien() != null) {
-                response.setGioRoiBan(hoaDon.getDatBan().getThoiGianDenDuKien().plusHours(2));
+            response.setGioVaoBan(earliestOrderTime != null ? earliestOrderTime : hoaDon.getDatBan().getThoiGianDenDuKien());
+            if (hoaDon.getThoiGianXuat() != null) {
+                response.setGioRoiBan(hoaDon.getThoiGianXuat());
             }
 
             List<DTOBanResponse> dsBan = hoaDon.getDatBan().getChiTietDatBanBans() == null
@@ -368,10 +525,10 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
 
         if (response.getGioVaoBan() == null) {
-            response.setGioVaoBan(hoaDon.getThoiGianXuat());
+            response.setGioVaoBan(earliestOrderTime != null ? earliestOrderTime : hoaDon.getThoiGianXuat());
         }
-        if (response.getGioRoiBan() == null && response.getGioVaoBan() != null) {
-            response.setGioRoiBan(response.getGioVaoBan().plusHours(2));
+        if (response.getGioRoiBan() == null && hoaDon.getThoiGianXuat() != null) {
+            response.setGioRoiBan(hoaDon.getThoiGianXuat());
         }
 
         if (hoaDon.getGiamGia() != null) {
@@ -400,7 +557,10 @@ public class HoaDonServiceImpl implements HoaDonService {
                             dto.setTenCombo(ct.getCombo() != null ? ct.getCombo().getTenCombo() : null);
                             dto.setSoLuong(ct.getSoLuong());
                             dto.setGiaBanTaiThoiDiem(ct.getGiaBanTaiThoiDien());
+                            dto.setTienGiamGiaMon(ct.getTienGiamGiaMon());
                             dto.setThanhTien(ct.getThanhTien());
+                            dto.setOrderedAt(ct.getOrderedAt());
+                            dto.setOrderedBy(ct.getOrderedBy());
                             return dto;
                         })
                         .toList()

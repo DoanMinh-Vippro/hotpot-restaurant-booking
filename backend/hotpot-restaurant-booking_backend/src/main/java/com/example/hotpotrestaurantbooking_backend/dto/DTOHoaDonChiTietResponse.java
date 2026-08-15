@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -26,5 +27,7 @@ public class DTOHoaDonChiTietResponse {
     private BigDecimal giaBanTaiThoiDiem;
     private BigDecimal tienGiamGiaMon;
     private BigDecimal thanhTien;
+    private LocalDateTime orderedAt;
+    private String orderedBy;
     private List<String> comboItems;
 }

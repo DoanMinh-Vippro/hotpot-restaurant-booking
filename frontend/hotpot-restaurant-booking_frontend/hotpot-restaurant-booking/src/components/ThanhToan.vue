@@ -101,6 +101,7 @@ const giamGiaDangChon = ref<number | null>(null)
 const normalizeDiscountType = (value: any) => {
   if (value == null) return ''
 
+  const raw = String(value).trim()
   const normalized = String(value)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -109,14 +110,26 @@ const normalizeDiscountType = (value: any) => {
     .replace(/[^a-zA-Z0-9]/g, '')
     .toUpperCase()
 
-  if (normalized.includes('PERCENT') || normalized.includes('PHANTRAM')) return 'PHANTRAM'
+  if (
+    raw.includes('%') ||
+    normalized.includes('PERCENT') ||
+    normalized.includes('PHANTRAM') ||
+    (normalized.includes('PHAN') && normalized.includes('TRAM')) ||
+    (normalized.includes('PH') && normalized.includes('TRAM'))
+  )
+    return 'PHANTRAM'
   if (
     normalized.includes('TIEN') ||
     normalized.includes('MAT') ||
     normalized.includes('GIATRI') ||
+    normalized.includes('GIATR') ||
     normalized.includes('VALUE') ||
     normalized.includes('VND') ||
-    normalized.includes('FIXED')
+    normalized.includes('DONG') ||
+    normalized.includes('FIXED') ||
+    normalized.includes('CODINH') ||
+    normalized.includes('CASH') ||
+    normalized.includes('MONEY')
   )
     return 'TIEN'
   return normalized
@@ -143,12 +156,33 @@ const getDiscountRawMax = (discount: any) =>
 
 const getDiscountPayload = (discount: any) => {
   const rawDiscountType =
-    discount?.loaiGiam ?? discount?.discountType ?? discount?.discount_type ?? discount?.type ?? ''
+    discount?.loaiGiam ??
+    discount?.loaiGiamGia ??
+    discount?.loai_giam ??
+    discount?.loai_giam_gia ??
+    discount?.hinhThucGiam ??
+    discount?.hinh_thuc_giam ??
+    discount?.discountType ??
+    discount?.discount_type ??
+    discount?.type ??
+    ''
+
+  const value = Number(getDiscountRawValue(discount) ?? 0)
+  const maxDiscount = Number(getDiscountRawMax(discount) ?? 0)
+  let type = normalizeDiscountType(rawDiscountType)
+
+  if (!isPercentDiscountType(type) && !isFixedDiscountType(type)) {
+    if (value > 0 && value <= 100 && maxDiscount > value) {
+      type = 'PHANTRAM'
+    } else if (value > 0) {
+      type = 'TIEN'
+    }
+  }
 
   return {
-    type: normalizeDiscountType(rawDiscountType),
-    value: Number(getDiscountRawValue(discount) ?? 0),
-    maxDiscount: Number(getDiscountRawMax(discount) ?? 0),
+    type,
+    value,
+    maxDiscount,
   }
 }
 
@@ -159,8 +193,10 @@ const isFixedDiscountType = (type: string) =>
   type.includes('TIEN') ||
   type.includes('MAT') ||
   type.includes('GIATRI') ||
+  type.includes('GIATR') ||
   type.includes('VALUE') ||
   type.includes('VND') ||
+  type.includes('DONG') ||
   type.includes('FIXED')
 
 const getDiscountLabel = (discount: any) => {
@@ -188,6 +224,93 @@ const getDiscountDisplayText = (discount: any) => {
   }
 
   return `${code}: ${safeValue.toLocaleString('vi-VN')} đ`
+}
+
+const parseMinimumOrderValue = (discount: any): number | null => {
+  if (!discount) return null
+
+  const rawCondition =
+    discount?.dieuKienSuDung ??
+    discount?.dieuKien ??
+    discount?.minimumOrder ??
+    discount?.minOrder ??
+    discount?.condition ??
+    ''
+
+  if (rawCondition === null || rawCondition === undefined || rawCondition === '') {
+    return null
+  }
+
+  const str = String(rawCondition).trim()
+  if (!str) return null
+
+  const kMatch = str.match(/(\d+(?:[\.,]\d+)?)\s*k/i)
+  if (kMatch?.[1]) {
+    const num = parseFloat(kMatch[1].replace(',', '.'))
+    if (!isNaN(num)) return num * 1000
+  }
+
+  if (/^\d+$/.test(str)) {
+    return Number(str)
+  }
+
+  const digitsOnly = str.replace(/[^0-9]/g, '')
+  if (digitsOnly) {
+    const numeric = Number(digitsOnly)
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return numeric
+    }
+  }
+
+  return null
+}
+
+const isDiscountActiveAndValid = (g: any): boolean => {
+  if (!g) return false
+
+  const trangThaiVal = g.trangThai
+  const isHoatDong =
+    trangThaiVal === 1 ||
+    String(trangThaiVal) === '1' ||
+    String(trangThaiVal).toUpperCase() === 'HOAT_DONG'
+  if (!isHoatDong) return false
+
+  const remainingQty = Number(g.soLuongMaGiamGia ?? g.soLuong ?? 0)
+  if (remainingQty <= 0) return false
+
+  if (g.ngayKetThuc) {
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+    const endDateStr = String(g.ngayKetThuc).split('T')[0] ?? ''
+    if (endDateStr < todayStr) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const danhSachGiamGiaKhaDung = computed(() => {
+  return danhSachGiamGia.value.filter((g) => {
+    if (giamGiaDangChon.value != null && Number(g.idGiamGia) === Number(giamGiaDangChon.value)) {
+      return true
+    }
+    return isDiscountActiveAndValid(g)
+  })
+})
+
+const isDiscountEligibleForSubtotal = (discount: any, subtotal: number) => {
+  const requiredValue = parseMinimumOrderValue(discount)
+  if (requiredValue == null) return true
+  return Number(subtotal || 0) >= requiredValue
+}
+
+const getDiscountEligibilityMessage = (discount: any, subtotal: number) => {
+  const requiredValue = parseMinimumOrderValue(discount)
+  if (requiredValue == null) return ''
+
+  return `Đơn hàng chưa đạt giá trị tối thiểu ${requiredValue.toLocaleString('vi-VN')}đ để sử dụng mã ${getDiscountCode(discount)}.`
 }
 
 const phuongThucThanhToan = ref(false)
@@ -423,9 +546,14 @@ const tongTienTamTinhCotGiua = computed(() =>
 
 const selectedDiscount = computed(() => {
   if (!giamGiaDangChon.value) return null
-  return (
+
+  const selected =
     danhSachGiamGia.value.find((g) => Number(g.idGiamGia) === Number(giamGiaDangChon.value)) ?? null
-  )
+
+  if (!selected) return null
+
+  const subtotal = Number(tongTienTamTinhCotGiua.value || 0)
+  return isDiscountEligibleForSubtotal(selected, subtotal) ? selected : null
 })
 
 const discountAmount = computed(() => {
@@ -445,8 +573,8 @@ const discountAmount = computed(() => {
   }
 
   if (isFixedDiscountType(type)) {
-    const fixedDiscount = cleanValue
-    return Math.min(fixedDiscount, subtotal)
+    const fixedDiscount = Math.min(cleanValue, subtotal)
+    return fixedDiscount
   }
 
   return 0
@@ -485,6 +613,7 @@ const initializeReservationItems = (db: any) => {
 }
 
 const checkHoaDonTam = async () => {
+  await loadGiamGia()
   if (isDataLoaded.value) return
   try {
     const res = await HoaDonApi.findByBanAndStatus(props.ban.idBan, 0)
@@ -1003,11 +1132,29 @@ watch(
   () => giamGiaDangChon.value,
   (selectedId) => {
     if (selectedId == null) return
+
     if (tongTienTamTinhCotGiua.value <= 0) {
       alert('Vui lòng chọn món trước khi áp dụng mã giảm giá')
       giamGiaDangChon.value = null
+      return
+    }
+
+    const selected =
+      danhSachGiamGia.value.find((g) => Number(g.idGiamGia) === Number(selectedId)) ?? null
+
+    if (!selected) {
+      giamGiaDangChon.value = null
+      return
+    }
+
+    const subtotal = Number(tongTienTamTinhCotGiua.value || 0)
+    if (!isDiscountEligibleForSubtotal(selected, subtotal)) {
+      const message = getDiscountEligibilityMessage(selected, subtotal)
+      alert(message)
+      giamGiaDangChon.value = null
     }
   },
+  { immediate: true },
 )
 
 watch(
@@ -1015,6 +1162,17 @@ watch(
   (subtotal) => {
     if (subtotal <= 0 && giamGiaDangChon.value != null) {
       giamGiaDangChon.value = null
+      return
+    }
+
+    if (giamGiaDangChon.value != null) {
+      const selected =
+        danhSachGiamGia.value.find((g) => Number(g.idGiamGia) === Number(giamGiaDangChon.value)) ?? null
+
+      if (selected && !isDiscountEligibleForSubtotal(selected, Number(subtotal || 0))) {
+        alert(getDiscountEligibilityMessage(selected, Number(subtotal || 0)))
+        giamGiaDangChon.value = null
+      }
     }
   },
 )
@@ -1048,6 +1206,15 @@ watch(
     await syncReservationToSeated()
   },
   { immediate: true },
+)
+
+watch(
+  () => props.ban?.idBan,
+  async (newBanId) => {
+    if (newBanId) {
+      await loadGiamGia()
+    }
+  },
 )
 
 onMounted(async () => {
@@ -1298,10 +1465,23 @@ onMounted(async () => {
           Tiền cọc đã trừ: {{ depositDaCoc.toLocaleString('vi-VN') }} đ
         </div>
         <div>
-          <select class="discount-input" v-model="giamGiaDangChon">
+          <select class="discount-input" v-model="giamGiaDangChon" @focus="loadGiamGia" @click="loadGiamGia">
             <option :value="null">Chọn mã giảm giá</option>
-            <option v-for="g in danhSachGiamGia" :key="g.idGiamGia" :value="g.idGiamGia">
+            <option
+              v-for="g in danhSachGiamGiaKhaDung"
+              :key="g.idGiamGia"
+              :value="g.idGiamGia"
+              :disabled="!isDiscountEligibleForSubtotal(g, Number(tongTienTamTinhCotGiua || 0))"
+              :title="
+                isDiscountEligibleForSubtotal(g, Number(tongTienTamTinhCotGiua || 0))
+                  ? getDiscountDisplayText(g)
+                  : getDiscountEligibilityMessage(g, Number(tongTienTamTinhCotGiua || 0))
+              "
+            >
               {{ getDiscountDisplayText(g) }}
+              <template v-if="!isDiscountEligibleForSubtotal(g, Number(tongTienTamTinhCotGiua || 0))">
+                (Chưa đủ điều kiện)
+              </template>
             </option>
           </select>
         </div>
