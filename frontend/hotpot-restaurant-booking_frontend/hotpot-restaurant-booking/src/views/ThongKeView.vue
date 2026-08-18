@@ -3,7 +3,6 @@ import { onMounted, ref, computed } from 'vue'
 import ThongKeApi from '@/api/ThongKeApi'
 import { useShiftStore } from '@/stores/ShiftStore'
 import RevenueChart from './RevenueChart.vue'
-import DepositStatusChart from './DepositStatusChart.vue'
 import KhuVucChart from './KhuVucChart.vue'
 import GioCaoDiemChart from './GioCaoDiemChart.vue'
 
