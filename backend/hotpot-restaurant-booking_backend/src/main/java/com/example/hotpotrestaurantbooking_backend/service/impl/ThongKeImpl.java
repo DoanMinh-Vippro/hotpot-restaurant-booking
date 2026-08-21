@@ -3,12 +3,12 @@ package com.example.hotpotrestaurantbooking_backend.service.impl;
 import com.example.hotpotrestaurantbooking_backend.dto.*;
 import com.example.hotpotrestaurantbooking_backend.repository.ThongKeRepository;
 import com.example.hotpotrestaurantbooking_backend.service.ThongKeService;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,59 +20,82 @@ public class ThongKeImpl implements ThongKeService {
     @Autowired
     private ThongKeRepository repo;
 
-    // ===== 1. Doanh thu theo ngày =====
+    // =========================================================
+    // 1. DOANH THU THEO NGÀY
+    // =========================================================
+
     @Override
     public List<DTOThongKeDoanhThu> theoNgay(String from, String to) {
-        return repo.doanhThuTheoNgay(from, to).stream()
+        return repo.doanhThuTheoNgay(from, to)
+                .stream()
                 .map(o -> new DTOThongKeDoanhThu(
-                        o[0].toString(),
-                        o[1] != null ? Long.valueOf(o[1].toString()) : 0L,
-                        o[2] != null ? Double.valueOf(o[2].toString()) : 0.0,
-                        o[3] != null ? Double.valueOf(o[3].toString()) : 0.0,
-                        o[4] != null ? Double.valueOf(o[4].toString()) : 0.0
+                        stringValue(o, 0),
+                        longValue(o, 1),
+                        doubleValue(o, 2),
+                        doubleValue(o, 3),
+                        doubleValue(o, 4)
                 ))
                 .toList();
     }
-    // ===== 2. Doanh thu theo tháng =====
+
+    // =========================================================
+    // 2. DOANH THU THEO THÁNG
+    // =========================================================
+
     @Override
     public List<DTOThongKeDoanhThu> theoThang(String from, String to) {
-        return repo.thongKeTheoThang(from, to).stream()
+        return repo.thongKeTheoThang(from, to)
+                .stream()
                 .map(o -> new DTOThongKeDoanhThu(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? Long.valueOf(o[1].toString()) : 0L,
-                        o[2] != null ? Double.valueOf(o[2].toString()) : 0.0,
-                        o[3] != null ? Double.valueOf(o[3].toString()) : 0.0,
-                        o[4] != null ? Double.valueOf(o[4].toString()) : 0.0
+                        stringValue(o, 0),
+                        longValue(o, 1),
+                        doubleValue(o, 2),
+                        doubleValue(o, 3),
+                        doubleValue(o, 4)
                 ))
                 .toList();
     }
+
+    // =========================================================
+    // 3. DOANH THU THEO NĂM
+    // =========================================================
+
     @Override
     public List<DTOThongKeDoanhThu> theoNam(String from, String to) {
-        return repo.thongKeTheoNam(from, to).stream()
+        return repo.thongKeTheoNam(from, to)
+                .stream()
                 .map(o -> new DTOThongKeDoanhThu(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? Long.valueOf(o[1].toString()) : 0L,
-                        o[2] != null ? Double.valueOf(o[2].toString()) : 0.0,
-                        o[3] != null ? Double.valueOf(o[3].toString()) : 0.0,
-                        o[4] != null ? Double.valueOf(o[4].toString()) : 0.0
+                        stringValue(o, 0),
+                        longValue(o, 1),
+                        doubleValue(o, 2),
+                        doubleValue(o, 3),
+                        doubleValue(o, 4)
                 ))
                 .toList();
     }
 
-    // ===== 4. Top nhân viên =====
+    // =========================================================
+    // 4. TOP NHÂN VIÊN
+    // =========================================================
+
     @Override
-    public List<DTOThongKeNhanVien> topNhanVien(String from, String to) {
-        return repo.topNhanVien(from, to).stream()
+    public List<DTOThongKeNhanVien> topNhanVien(
+            String from,
+            String to
+    ) {
+        return repo.topNhanVien(from, to)
+                .stream()
                 .map(o -> new DTOThongKeNhanVien(
-                        o[0].toString(),
-                        o[1] != null
-                                ? Double.valueOf(o[1].toString())
-                                : 0.0
+                        stringValue(o, 0),
+                        doubleValue(o, 1)
                 ))
                 .toList();
     }
 
-    // ===== 5. Top món =====
+    // =========================================================
+    // 5. TOP MÓN
+    // =========================================================
+
     @Override
     public List<DTOThongKeTheoMon> topMon(
             int page,
@@ -80,205 +103,251 @@ public class ThongKeImpl implements ThongKeService {
             String from,
             String to
     ) {
+
         Pageable pageable = PageRequest.of(page, size);
 
-        return repo.topMon(from, to, pageable).stream()
+        return repo.topMon(from, to, pageable)
+                .stream()
                 .map(o -> new DTOThongKeTheoMon(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? Integer.valueOf(o[1].toString()) : 0
+                        stringValue(o, 0),
+                        intValue(o, 1)
                 ))
                 .toList();
     }
-    // ===== 6. Tiền cọc theo ngày =====
+
+    // =========================================================
+    // 6. TIỀN CỌC THEO NGÀY
+    // =========================================================
+
     @Override
     public List<DTOThongKeDoanhThu> tienCocTheoNgay(
             String from,
             String to
     ) {
-        return repo.tienCocTheoNgay(from, to).stream()
-                .map(o -> new DTOThongKeDoanhThu(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? Double.valueOf(o[1].toString()) : 0.0
-                ))
+
+        return repo.tienCocTheoNgay(from, to)
+                .stream()
+                .map(o -> {
+
+                    DTOThongKeDoanhThu dto =
+                            new DTOThongKeDoanhThu();
+
+                    dto.setThoiGian(stringValue(o, 0));
+
+                    // Nếu DTO đang dùng doanhThu để chứa tiền cọc
+                    dto.setDoanhThu(doubleValue(o, 1));
+
+                    return dto;
+                })
                 .toList();
     }
 
-    // ===== 7. Trạng thái cọc =====
+    // =========================================================
+    // 7. TRẠNG THÁI CỌC
+    // =========================================================
+
     @Override
     public List<DTOTrangThaiCoc> trangThaiCoc(
             String from,
             String to
     ) {
-        return repo.trangThaiCoc(from, to).stream()
+
+        return repo.trangThaiCoc(from, to)
+                .stream()
                 .map(o -> new DTOTrangThaiCoc(
-                        o[0] != null ? Integer.valueOf(o[0].toString()) : 0,
-                        o[1] != null ? Long.valueOf(o[1].toString()) : 0L
+                        intValue(o, 0),
+                        longValue(o, 1)
                 ))
                 .toList();
     }
+
+    // =========================================================
+    // TOP KHÁCH HÀNG THÂN THIẾT
+    // =========================================================
+
     @Override
     public List<DTOThongKeKhachHangThanThiet> topKhachHangThanThiet(
             String from,
             String to
     ) {
-        return repo.topKhachHangThanThiet(from, to).stream()
+
+        return repo.topKhachHangThanThiet(from, to)
+                .stream()
                 .map(o -> new DTOThongKeKhachHangThanThiet(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? o[1].toString() : "",
-                        o[2] != null ? Long.valueOf(o[2].toString()) : 0L,
-                        o[3] != null ? Double.valueOf(o[3].toString()) : 0.0,
-                        o[4] != null ? Double.valueOf(o[4].toString()) : 0.0,
-                        o[5] != null ? o[5].toString() : ""
+                        stringValue(o, 0),
+                        stringValue(o, 1),
+                        longValue(o, 2),
+                        doubleValue(o, 3),
+                        doubleValue(o, 4),
+                        stringValue(o, 5)
                 ))
                 .toList();
     }
-    // ===== 8. Dashboard tổng =====
+
+    // =========================================================
+    // 8. DASHBOARD
+    // =========================================================
+
     @Override
-    public DTODashboard dashboard(
-            String from,
-            String to
-    ) {
-        Object[] o = (Object[]) repo.dashboard(from, to);
+    public DTODashboard dashboard(String from, String to) {
+
+        Object result = repo.dashboard(from, to);
+
+        Object[] o;
+
+        if (result instanceof Object[]) {
+            o = (Object[]) result;
+        } else {
+            return new DTODashboard(
+                    0.0, // tongDoanhThu
+                    0.0, // doanhThuTienMat
+                    0.0, // doanhThuChuyenKhoan
+                    0L,  // tongHoaDon
+                    0L,  // tongKhachHang
+                    0L,  // soDonDaCoc
+                    0L,  // soDonChuaCoc
+                    0.0, // tienCocTienMat
+                    0.0, // tienCocChuyenKhoan
+                    0L   // soDonDaThanhToan
+            );
+        }
 
         return new DTODashboard(
-                // Tổng doanh thu
-                o[0] != null
-                        ? Double.valueOf(o[0].toString())
-                        : 0.0,
 
-                // Doanh thu tiền mặt
-                o[1] != null
-                        ? Double.valueOf(o[1].toString())
-                        : 0.0,
+                // 0 - Tổng doanh thu
+                doubleValue(o, 0),
 
-                // Doanh thu chuyển khoản
-                o[2] != null
-                        ? Double.valueOf(o[2].toString())
-                        : 0.0,
+                // 1 - Doanh thu tiền mặt
+                doubleValue(o, 1),
 
-                // Tổng hóa đơn
-                o[3] != null
-                        ? Long.valueOf(o[3].toString())
-                        : 0L,
+                // 2 - Doanh thu chuyển khoản
+                doubleValue(o, 2),
 
-                // Tổng khách hàng
-                o[4] != null
-                        ? Long.valueOf(o[4].toString())
-                        : 0L,
+                // 3 - Tổng hóa đơn
+                longValue(o, 3),
 
-                // Tổng tiền cọc
-                o[5] != null
-                        ? Double.valueOf(o[5].toString())
-                        : 0.0,
+                // 4 - Tổng khách hàng
+                longValue(o, 4),
 
-                // Số đơn đã cọc
-                parseLongSafe(o[6]),
+                // 5 - Số đơn đã cọc
+                longValue(o, 5),
 
-                // Số đơn chưa cọc
-                parseLongSafe(o[7]),
+                // 6 - Số đơn chưa cọc
+                longValue(o, 6),
 
-                // Số đơn đã thanh toán / hoàn cọc
-                parseLongSafe(o[8])
+                // 7 - Tiền cọc tiền mặt
+                doubleValue(o, 7),
+
+                // 8 - Tiền cọc chuyển khoản
+                doubleValue(o, 8),
+
+                // 9 - Số đơn đã thanh toán
+                longValue(o, 9)
         );
     }
 
     // =========================================================
-    // HELPER
+    // 9. DOANH THU THEO KHU VỰC
     // =========================================================
-    private Long parseLongSafe(Object value) {
-        if (value == null) {
-            return 0L;
-        }
 
-        try {
-            String s = value.toString();
-
-            if (s.contains(".")) {
-                return Math.round(Double.parseDouble(s));
-            }
-
-            return Long.valueOf(s);
-
-        } catch (NumberFormatException e) {
-            return 0L;
-        }
-    }
-
-    // ===== 9. Doanh thu theo khu vực =====
     @Override
     public List<DTOThongKeKhuVuc> doanhThuTheoKhuVuc(
             String from,
             String to
     ) {
-        return repo.doanhThuTheoKhuVuc(from, to).stream()
+
+        return repo.doanhThuTheoKhuVuc(from, to)
+                .stream()
                 .map(o -> new DTOThongKeKhuVuc(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? Long.valueOf(o[1].toString()) : 0L,
-                        o[2] != null ? Double.valueOf(o[2].toString()) : 0.0,
-                        o[3] != null ? Double.valueOf(o[3].toString()) : 0.0
+                        stringValue(o, 0),
+                        longValue(o, 1),
+                        doubleValue(o, 2),
+                        doubleValue(o, 3)
                 ))
                 .toList();
     }
 
-    // ===== 10. Hiệu suất bàn =====
+    // =========================================================
+    // 10. HIỆU SUẤT BÀN
+    // =========================================================
+
     @Override
     public List<DTOThongKeHieuSuatBan> hieuSuatBan(
             String from,
             String to
     ) {
-        return repo.hieuSuatBan(from, to).stream()
+
+        return repo.hieuSuatBan(from, to)
+                .stream()
                 .map(o -> new DTOThongKeHieuSuatBan(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? o[1].toString() : "",
-                        o[2] != null ? Long.valueOf(o[2].toString()) : 0L,
-                        o[3] != null ? Double.valueOf(o[3].toString()) : 0.0,
-                        o[4] != null ? Double.valueOf(o[4].toString()) : 0.0
+                        stringValue(o, 0),
+                        stringValue(o, 1),
+                        longValue(o, 2),
+                        doubleValue(o, 3),
+                        doubleValue(o, 4)
                 ))
                 .toList();
     }
-    // ===== 11. Top sản phẩm bán chạy =====
+
+    // =========================================================
+    // 11. TOP SẢN PHẨM BÁN CHẠY
+    // =========================================================
+
     @Override
     public List<DTOThongKeSanPhamBanChay> topSanPhamBanChay(
             String from,
             String to
     ) {
-        return repo.topSanPhamBanChay(from, to).stream()
+
+        return repo.topSanPhamBanChay(from, to)
+                .stream()
                 .map(o -> new DTOThongKeSanPhamBanChay(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? o[1].toString() : "",
-                        o[2] != null ? Long.valueOf(o[2].toString()) : 0L,
-                        o[3] != null ? Double.valueOf(o[3].toString()) : 0.0
+                        stringValue(o, 0),
+                        stringValue(o, 1),
+                        longValue(o, 2),
+                        doubleValue(o, 3)
                 ))
                 .toList();
     }
 
-    // ===== 12. Hiệu quả khuyến mãi =====
+    // =========================================================
+    // 12. HIỆU QUẢ KHUYẾN MÃI
+    // =========================================================
+
     @Override
     public List<DTOThongKeKhuyenMai> hieuQuaKhuyenMai(
             String from,
             String to
     ) {
-        return repo.hieuQuaKhuyenMai(from, to).stream()
+
+        return repo.hieuQuaKhuyenMai(from, to)
+                .stream()
                 .map(o -> new DTOThongKeKhuyenMai(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? o[1].toString() : "",
-                        o[2] != null ? Double.valueOf(o[2].toString()) : 0.0,
-                        o[3] != null ? Long.valueOf(o[3].toString()) : 0L,
-                        o[4] != null ? Double.valueOf(o[4].toString()) : 0.0,
-                        o[5] != null ? Double.valueOf(o[5].toString()) : 0.0
+                        stringValue(o, 0),
+                        stringValue(o, 1),
+                        doubleValue(o, 2),
+                        longValue(o, 3),
+                        doubleValue(o, 4),
+                        doubleValue(o, 5)
                 ))
                 .toList();
     }
 
-    // ===== 13. Doanh thu theo giờ =====
+    // =========================================================
+    // 13. DOANH THU THEO GIỜ
+    // =========================================================
+
     @Override
     public List<DTOThongKeDoanhThu> doanhThuTheoGio(
             String from,
             String to
     ) {
-        return repo.doanhThuTheoGio(from, to).stream()
+
+        return repo.doanhThuTheoGio(from, to)
+                .stream()
                 .map(o -> {
-                    int gio = Integer.parseInt(o[0].toString());
+
+                    int gio = intValue(o, 0);
 
                     String khungGio =
                             gio + "h - " + (gio + 1) + "h";
@@ -289,15 +358,11 @@ public class ThongKeImpl implements ThongKeService {
                     dto.setThoiGian(khungGio);
 
                     dto.setSoHoaDon(
-                            o[1] != null
-                                    ? Long.valueOf(o[1].toString())
-                                    : 0L
+                            longValue(o, 1)
                     );
 
                     dto.setDoanhThu(
-                            o[2] != null
-                                    ? Double.valueOf(o[2].toString())
-                                    : 0.0
+                            doubleValue(o, 2)
                     );
 
                     return dto;
@@ -305,69 +370,92 @@ public class ThongKeImpl implements ThongKeService {
                 .toList();
     }
 
+    // =========================================================
+    // 14. TỶ LỆ HỦY ĐẶT BÀN
+    // =========================================================
 
-
-    // ===== 15. Tỉ lệ hủy đặt bàn =====
     @Override
     public List<DTOThongKeHuyDatBan> tyLeHuyDatBan(
             String fromDate,
             String toDate
     ) {
-        return repo.tyLeHuyDatBan(fromDate, toDate).stream()
+
+        return repo.tyLeHuyDatBan(fromDate, toDate)
+                .stream()
                 .map(o -> new DTOThongKeHuyDatBan(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? Long.valueOf(o[1].toString()) : 0L,
-                        o[2] != null ? Double.valueOf(o[2].toString()) : 0.0
+                        stringValue(o, 0),
+                        longValue(o, 1),
+                        doubleValue(o, 2)
                 ))
                 .toList();
     }
 
-    // ===== 16. Doanh thu theo danh mục =====
+    // =========================================================
+    // 15. DOANH THU THEO DANH MỤC
+    // =========================================================
+
     @Override
     public List<DTOThongKeDanhMuc> doanhThuTheoDanhMuc(
             String from,
             String to
     ) {
-        return repo.doanhThuTheoDanhMuc(from, to).stream()
+
+        return repo.doanhThuTheoDanhMuc(from, to)
+                .stream()
                 .map(o -> new DTOThongKeDanhMuc(
-                        o[0] != null ? o[0].toString() : "",
-                        o[1] != null ? Long.valueOf(o[1].toString()) : 0L,
-                        o[2] != null ? Long.valueOf(o[2].toString()) : 0L,
-                        o[3] != null ? Double.valueOf(o[3].toString()) : 0.0,
-                        o[4] != null ? Double.valueOf(o[4].toString()) : 0.0
+                        stringValue(o, 0),
+                        longValue(o, 1),
+                        longValue(o, 2),
+                        doubleValue(o, 3),
+                        doubleValue(o, 4)
                 ))
                 .toList();
     }
+
+    // =========================================================
+    // EXPORT EXCEL
+    // =========================================================
+
     @Override
-    public byte[] exportExcel(String from, String to) {
+    public byte[] exportExcel(
+            String from,
+            String to
+    ) {
 
-        try (Workbook workbook = new XSSFWorkbook();
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try (
+                Workbook workbook = new XSSFWorkbook();
+                ByteArrayOutputStream outputStream =
+                        new ByteArrayOutputStream()
+        ) {
 
-            // ==========================================
-            // TẠO 1 SHEET DUY NHẤT
-            // ==========================================
-
-            Sheet sheet = workbook.createSheet("Thống kê");
+            Sheet sheet =
+                    workbook.createSheet("Thống kê");
 
             int rowIndex = 0;
 
-            // ==========================================
+            // =====================================================
             // STYLE
-            // ==========================================
+            // =====================================================
 
-            CellStyle titleStyle = workbook.createCellStyle();
-            Font titleFont = workbook.createFont();
+            CellStyle titleStyle =
+                    workbook.createCellStyle();
+
+            Font titleFont =
+                    workbook.createFont();
 
             titleFont.setBold(true);
             titleFont.setFontHeightInPoints((short) 16);
 
             titleStyle.setFont(titleFont);
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
+            CellStyle headerStyle =
+                    workbook.createCellStyle();
+
+            Font headerFont =
+                    workbook.createFont();
 
             headerFont.setBold(true);
+
             headerStyle.setFont(headerFont);
 
             headerStyle.setFillForegroundColor(
@@ -378,23 +466,28 @@ public class ThongKeImpl implements ThongKeService {
                     FillPatternType.SOLID_FOREGROUND
             );
 
-            // ==========================================
+            // =====================================================
             // TIÊU ĐỀ
-            // ==========================================
+            // =====================================================
 
-            Row titleRow = sheet.createRow(rowIndex++);
+            Row titleRow =
+                    sheet.createRow(rowIndex++);
 
-            Cell titleCell = titleRow.createCell(0);
+            Cell titleCell =
+                    titleRow.createCell(0);
 
-            titleCell.setCellValue("BÁO CÁO THỐNG KÊ");
+            titleCell.setCellValue(
+                    "BÁO CÁO THỐNG KÊ"
+            );
 
             titleCell.setCellStyle(titleStyle);
 
-            // ==========================================
-            // KHOẢNG THỜI GIAN
-            // ==========================================
+            // =====================================================
+            // THỜI GIAN
+            // =====================================================
 
-            Row dateRow = sheet.createRow(rowIndex++);
+            Row dateRow =
+                    sheet.createRow(rowIndex++);
 
             dateRow.createCell(0)
                     .setCellValue("Từ ngày");
@@ -408,25 +501,27 @@ public class ThongKeImpl implements ThongKeService {
             dateRow.createCell(3)
                     .setCellValue(to);
 
-            rowIndex++;
+            rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 1. DASHBOARD
-            // ==========================================
+            // =====================================================
 
-            Row dashboardTitle = sheet.createRow(rowIndex++);
+            rowIndex = writeTitle(
+                    sheet,
+                    rowIndex,
+                    "1. TỔNG QUAN",
+                    titleStyle
+            );
 
-            dashboardTitle.createCell(0)
-                    .setCellValue("1. TỔNG QUAN");
+            DTODashboard dashboard =
+                    dashboard(from, to);
 
-            dashboardTitle.getCell(0)
-                    .setCellStyle(titleStyle);
-
-            DTODashboard dashboard = dashboard(from, to);
-
-            Row dashboardHeader = sheet.createRow(rowIndex++);
+            Row dashboardHeader =
+                    sheet.createRow(rowIndex++);
 
             String[] dashboardColumns = {
+
                     "Tổng doanh thu",
                     "Tiền mặt",
                     "Chuyển khoản",
@@ -434,48 +529,84 @@ public class ThongKeImpl implements ThongKeService {
                     "Khách hàng",
                     "Tiền cọc",
                     "Đã cọc",
-                    "Chưa cọc"
+                    "Chưa cọc",
+                    "Đã thanh toán / hoàn cọc"
             };
 
-            for (int i = 0; i < dashboardColumns.length; i++) {
-                dashboardHeader.createCell(i)
-                        .setCellValue(dashboardColumns[i]);
+            for (int i = 0;
+                 i < dashboardColumns.length;
+                 i++) {
 
-                dashboardHeader.getCell(i)
+                dashboardHeader
+                        .createCell(i)
+                        .setCellValue(
+                                dashboardColumns[i]
+                        );
+
+                dashboardHeader
+                        .getCell(i)
                         .setCellStyle(headerStyle);
             }
 
-            Row dashboardData = sheet.createRow(rowIndex++);
+            Row dashboardData =
+                    sheet.createRow(rowIndex++);
 
             dashboardData.createCell(0)
-                    .setCellValue(dashboard.getTongDoanhThu());
+                    .setCellValue(
+                            dashboard.getTongDoanhThu()
+                    );
 
             dashboardData.createCell(1)
-                    .setCellValue(dashboard.getDoanhThuTienMat());
+                    .setCellValue(
+                            dashboard.getDoanhThuTienMat()
+                    );
 
             dashboardData.createCell(2)
-                    .setCellValue(dashboard.getDoanhThuChuyenKhoan());
+                    .setCellValue(
+                            dashboard.getDoanhThuChuyenKhoan()
+                    );
 
             dashboardData.createCell(3)
-                    .setCellValue(dashboard.getTongHoaDon());
+                    .setCellValue(
+                            dashboard.getTongHoaDon()
+                    );
 
             dashboardData.createCell(4)
-                    .setCellValue(dashboard.getTongKhachHang());
+                    .setCellValue(
+                            dashboard.getTongKhachHang()
+                    );
+
+            double tongTienCoc =
+                    (dashboard.getTienCocTienMat() != null
+                            ? dashboard.getTienCocTienMat()
+                            : 0.0)
+                            +
+                            (dashboard.getTienCocChuyenKhoan() != null
+                                    ? dashboard.getTienCocChuyenKhoan()
+                                    : 0.0);
 
             dashboardData.createCell(5)
-                    .setCellValue(dashboard.getTongTienCoc());
-
+                    .setCellValue(tongTienCoc);
             dashboardData.createCell(6)
-                    .setCellValue(dashboard.getSoDonDaCoc());
+                    .setCellValue(
+                            dashboard.getSoDonDaCoc()
+                    );
 
             dashboardData.createCell(7)
-                    .setCellValue(dashboard.getSoDonChuaCoc());
+                    .setCellValue(
+                            dashboard.getSoDonChuaCoc()
+                    );
+
+            dashboardData.createCell(8)
+                    .setCellValue(
+                            dashboard.getSoDonDaThanhToan()
+                    );
 
             rowIndex += 2;
 
-            // ==========================================
-            // 2. DOANH THU THEO NGÀY
-            // ==========================================
+            // =====================================================
+            // 2. DOANH THU NGÀY
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -493,9 +624,9 @@ public class ThongKeImpl implements ThongKeService {
 
             rowIndex += 2;
 
-            // ==========================================
-            // 3. DOANH THU THEO THÁNG
-            // ==========================================
+            // =====================================================
+            // 3. DOANH THU THÁNG
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -513,9 +644,9 @@ public class ThongKeImpl implements ThongKeService {
 
             rowIndex += 2;
 
-            // ==========================================
-            // 4. DOANH THU THEO NĂM
-            // ==========================================
+            // =====================================================
+            // 4. DOANH THU NĂM
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -533,9 +664,9 @@ public class ThongKeImpl implements ThongKeService {
 
             rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 5. TOP NHÂN VIÊN
-            // ==========================================
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -544,30 +675,43 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row nvHeader = sheet.createRow(rowIndex++);
+            Row nvHeader =
+                    sheet.createRow(rowIndex++);
 
-            nvHeader.createCell(0).setCellValue("Nhân viên");
-            nvHeader.createCell(1).setCellValue("Doanh thu");
+            nvHeader.createCell(0)
+                    .setCellValue("Nhân viên");
 
-            nvHeader.getCell(0).setCellStyle(headerStyle);
-            nvHeader.getCell(1).setCellStyle(headerStyle);
+            nvHeader.createCell(1)
+                    .setCellValue("Doanh thu");
 
-            for (DTOThongKeNhanVien nv : topNhanVien(from, to)) {
+            nvHeader.getCell(0)
+                    .setCellStyle(headerStyle);
 
-                Row row = sheet.createRow(rowIndex++);
+            nvHeader.getCell(1)
+                    .setCellStyle(headerStyle);
+
+            for (DTOThongKeNhanVien nv :
+                    topNhanVien(from, to)) {
+
+                Row row =
+                        sheet.createRow(rowIndex++);
 
                 row.createCell(0)
-                        .setCellValue(nv.getTenNhanVien());
+                        .setCellValue(
+                                nv.getTenNhanVien()
+                        );
 
                 row.createCell(1)
-                        .setCellValue(nv.getTongDoanhThu());
+                        .setCellValue(
+                                nv.getTongDoanhThu()
+                        );
             }
 
             rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 6. TOP MÓN
-            // ==========================================
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -576,31 +720,43 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row monHeader = sheet.createRow(rowIndex++);
+            Row monHeader =
+                    sheet.createRow(rowIndex++);
 
-            monHeader.createCell(0).setCellValue("Món");
-            monHeader.createCell(1).setCellValue("Số lượng bán");
+            monHeader.createCell(0)
+                    .setCellValue("Món");
 
-            monHeader.getCell(0).setCellStyle(headerStyle);
-            monHeader.getCell(1).setCellStyle(headerStyle);
+            monHeader.createCell(1)
+                    .setCellValue("Số lượng bán");
+
+            monHeader.getCell(0)
+                    .setCellStyle(headerStyle);
+
+            monHeader.getCell(1)
+                    .setCellStyle(headerStyle);
 
             for (DTOThongKeTheoMon mon :
                     topMon(0, 1000, from, to)) {
 
-                Row row = sheet.createRow(rowIndex++);
+                Row row =
+                        sheet.createRow(rowIndex++);
 
                 row.createCell(0)
-                        .setCellValue(mon.getTenMon());
+                        .setCellValue(
+                                mon.getTenMon()
+                        );
 
                 row.createCell(1)
-                        .setCellValue(mon.getSoLuongBan());
+                        .setCellValue(
+                                mon.getSoLuongBan()
+                        );
             }
 
             rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 7. TRẠNG THÁI CỌC
-            // ==========================================
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -609,7 +765,8 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row cocHeader = sheet.createRow(rowIndex++);
+            Row cocHeader =
+                    sheet.createRow(rowIndex++);
 
             cocHeader.createCell(0)
                     .setCellValue("Trạng thái");
@@ -617,29 +774,37 @@ public class ThongKeImpl implements ThongKeService {
             cocHeader.createCell(1)
                     .setCellValue("Số lượng");
 
-            cocHeader.getCell(0).setCellStyle(headerStyle);
-            cocHeader.getCell(1).setCellStyle(headerStyle);
+            cocHeader.getCell(0)
+                    .setCellStyle(headerStyle);
 
-            for (DTOTrangThaiCoc coc : trangThaiCoc(from, to)) {
+            cocHeader.getCell(1)
+                    .setCellStyle(headerStyle);
 
-                Row row = sheet.createRow(rowIndex++);
+            for (DTOTrangThaiCoc coc :
+                    trangThaiCoc(from, to)) {
 
-                String trangThai = coc.getTrangThai() == 1
-                        ? "Đã cọc"
-                        : "Chưa cọc";
+                Row row =
+                        sheet.createRow(rowIndex++);
+
+                String trangThai =
+                        coc.getTrangThai() == 1
+                                ? "Đã cọc"
+                                : "Chưa cọc";
 
                 row.createCell(0)
                         .setCellValue(trangThai);
 
                 row.createCell(1)
-                        .setCellValue(coc.getSoLuong());
+                        .setCellValue(
+                                coc.getSoLuong()
+                        );
             }
 
             rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 8. KHU VỰC
-            // ==========================================
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -648,40 +813,57 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row kvHeader = sheet.createRow(rowIndex++);
+            Row kvHeader =
+                    sheet.createRow(rowIndex++);
 
-            kvHeader.createCell(0).setCellValue("Khu vực");
-            kvHeader.createCell(1).setCellValue("Số hóa đơn");
-            kvHeader.createCell(2).setCellValue("Doanh thu");
-            kvHeader.createCell(3).setCellValue("Trung bình");
+            String[] kvColumns = {
+                    "Khu vực",
+                    "Số hóa đơn",
+                    "Doanh thu",
+                    "Trung bình"
+            };
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < kvColumns.length; i++) {
+
+                kvHeader.createCell(i)
+                        .setCellValue(kvColumns[i]);
+
                 kvHeader.getCell(i)
                         .setCellStyle(headerStyle);
             }
 
-            for (DTOThongKeKhuVuc kv : doanhThuTheoKhuVuc(from, to)) {
+            for (DTOThongKeKhuVuc kv :
+                    doanhThuTheoKhuVuc(from, to)) {
 
-                Row row = sheet.createRow(rowIndex++);
+                Row row =
+                        sheet.createRow(rowIndex++);
 
                 row.createCell(0)
-                        .setCellValue(kv.getKhuVuc());
+                        .setCellValue(
+                                kv.getKhuVuc()
+                        );
 
                 row.createCell(1)
-                        .setCellValue(kv.getSoHoaDon());
+                        .setCellValue(
+                                kv.getSoHoaDon()
+                        );
 
                 row.createCell(2)
-                        .setCellValue(kv.getDoanhThu());
+                        .setCellValue(
+                                kv.getDoanhThu()
+                        );
 
                 row.createCell(3)
-                        .setCellValue(kv.getTrungBinhHoaDon());
+                        .setCellValue(
+                                kv.getTrungBinhHoaDon()
+                        );
             }
 
             rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 9. TOP KHÁCH HÀNG
-            // ==========================================
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -690,14 +872,21 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row khHeader = sheet.createRow(rowIndex++);
+            Row khHeader =
+                    sheet.createRow(rowIndex++);
 
-            khHeader.createCell(0).setCellValue("Khách hàng");
-            khHeader.createCell(1).setCellValue("Số điện thoại");
-            khHeader.createCell(2).setCellValue("Số hóa đơn");
-            khHeader.createCell(3).setCellValue("Tổng chi tiêu");
+            String[] khColumns = {
+                    "Khách hàng",
+                    "Số điện thoại",
+                    "Số hóa đơn",
+                    "Tổng chi tiêu"
+            };
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < khColumns.length; i++) {
+
+                khHeader.createCell(i)
+                        .setCellValue(khColumns[i]);
+
                 khHeader.getCell(i)
                         .setCellStyle(headerStyle);
             }
@@ -705,26 +894,35 @@ public class ThongKeImpl implements ThongKeService {
             for (DTOThongKeKhachHangThanThiet kh :
                     topKhachHangThanThiet(from, to)) {
 
-                Row row = sheet.createRow(rowIndex++);
+                Row row =
+                        sheet.createRow(rowIndex++);
 
                 row.createCell(0)
-                        .setCellValue(kh.getTenKhachHang());
+                        .setCellValue(
+                                kh.getTenKhachHang()
+                        );
 
                 row.createCell(1)
-                        .setCellValue(kh.getSoDienThoai());
+                        .setCellValue(
+                                kh.getSoDienThoai()
+                        );
 
                 row.createCell(2)
-                        .setCellValue(kh.getSoLanDen());
+                        .setCellValue(
+                                kh.getSoLanDen()
+                        );
 
                 row.createCell(3)
-                        .setCellValue(kh.getTongChiTieu());
+                        .setCellValue(
+                                kh.getTongChiTieu()
+                        );
             }
 
             rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 10. KHUYẾN MÃI
-            // ==========================================
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -733,13 +931,20 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row kmHeader = sheet.createRow(rowIndex++);
+            Row kmHeader =
+                    sheet.createRow(rowIndex++);
 
-            kmHeader.createCell(0).setCellValue("Mã giảm giá");
-            kmHeader.createCell(1).setCellValue("Số lần sử dụng");
-            kmHeader.createCell(2).setCellValue("Tiền đã giảm");
+            String[] kmColumns = {
+                    "Mã giảm giá",
+                    "Số lần sử dụng",
+                    "Tiền đã giảm"
+            };
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < kmColumns.length; i++) {
+
+                kmHeader.createCell(i)
+                        .setCellValue(kmColumns[i]);
+
                 kmHeader.getCell(i)
                         .setCellStyle(headerStyle);
             }
@@ -747,23 +952,30 @@ public class ThongKeImpl implements ThongKeService {
             for (DTOThongKeKhuyenMai km :
                     hieuQuaKhuyenMai(from, to)) {
 
-                Row row = sheet.createRow(rowIndex++);
+                Row row =
+                        sheet.createRow(rowIndex++);
 
                 row.createCell(0)
-                        .setCellValue(km.getMaGiamGia());
+                        .setCellValue(
+                                km.getMaGiamGia()
+                        );
 
                 row.createCell(1)
-                        .setCellValue(km.getSoLanSuDung());
+                        .setCellValue(
+                                km.getSoLanSuDung()
+                        );
 
                 row.createCell(2)
-                        .setCellValue(km.getTongTienDaGiam());
+                        .setCellValue(
+                                km.getTongTienDaGiam()
+                        );
             }
 
             rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 11. DOANH THU THEO GIỜ
-            // ==========================================
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -772,13 +984,20 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row gioHeader = sheet.createRow(rowIndex++);
+            Row gioHeader =
+                    sheet.createRow(rowIndex++);
 
-            gioHeader.createCell(0).setCellValue("Khung giờ");
-            gioHeader.createCell(1).setCellValue("Số hóa đơn");
-            gioHeader.createCell(2).setCellValue("Doanh thu");
+            String[] gioColumns = {
+                    "Khung giờ",
+                    "Số hóa đơn",
+                    "Doanh thu"
+            };
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < gioColumns.length; i++) {
+
+                gioHeader.createCell(i)
+                        .setCellValue(gioColumns[i]);
+
                 gioHeader.getCell(i)
                         .setCellStyle(headerStyle);
             }
@@ -786,23 +1005,30 @@ public class ThongKeImpl implements ThongKeService {
             for (DTOThongKeDoanhThu gio :
                     doanhThuTheoGio(from, to)) {
 
-                Row row = sheet.createRow(rowIndex++);
+                Row row =
+                        sheet.createRow(rowIndex++);
 
                 row.createCell(0)
-                        .setCellValue(gio.getThoiGian());
+                        .setCellValue(
+                                gio.getThoiGian()
+                        );
 
                 row.createCell(1)
-                        .setCellValue(gio.getSoHoaDon());
+                        .setCellValue(
+                                gio.getSoHoaDon()
+                        );
 
                 row.createCell(2)
-                        .setCellValue(gio.getDoanhThu());
+                        .setCellValue(
+                                gio.getDoanhThu()
+                        );
             }
 
             rowIndex += 2;
 
-            // ==========================================
-            // 12. DOANH THU THEO DANH MỤC
-            // ==========================================
+            // =====================================================
+            // 12. DANH MỤC
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -811,14 +1037,21 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row dmHeader = sheet.createRow(rowIndex++);
+            Row dmHeader =
+                    sheet.createRow(rowIndex++);
 
-            dmHeader.createCell(0).setCellValue("Danh mục");
-            dmHeader.createCell(1).setCellValue("Số hóa đơn");
-            dmHeader.createCell(2).setCellValue("Số lượng bán");
-            dmHeader.createCell(3).setCellValue("Tổng thu");
+            String[] dmColumns = {
+                    "Danh mục",
+                    "Số hóa đơn",
+                    "Số lượng bán",
+                    "Tổng thu"
+            };
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < dmColumns.length; i++) {
+
+                dmHeader.createCell(i)
+                        .setCellValue(dmColumns[i]);
+
                 dmHeader.getCell(i)
                         .setCellStyle(headerStyle);
             }
@@ -826,26 +1059,35 @@ public class ThongKeImpl implements ThongKeService {
             for (DTOThongKeDanhMuc dm :
                     doanhThuTheoDanhMuc(from, to)) {
 
-                Row row = sheet.createRow(rowIndex++);
+                Row row =
+                        sheet.createRow(rowIndex++);
 
                 row.createCell(0)
-                        .setCellValue(dm.getDanhMuc());
+                        .setCellValue(
+                                dm.getDanhMuc()
+                        );
 
                 row.createCell(1)
-                        .setCellValue(dm.getSoHoaDon());
+                        .setCellValue(
+                                dm.getSoHoaDon()
+                        );
 
                 row.createCell(2)
-                        .setCellValue(dm.getSoLuongBan());
+                        .setCellValue(
+                                dm.getSoLuongBan()
+                        );
 
                 row.createCell(3)
-                        .setCellValue(dm.getTongThu());
+                        .setCellValue(
+                                dm.getTongThu()
+                        );
             }
 
             rowIndex += 2;
 
-            // ==========================================
+            // =====================================================
             // 13. HIỆU SUẤT BÀN
-            // ==========================================
+            // =====================================================
 
             rowIndex = writeTitle(
                     sheet,
@@ -854,14 +1096,21 @@ public class ThongKeImpl implements ThongKeService {
                     titleStyle
             );
 
-            Row banHeader = sheet.createRow(rowIndex++);
+            Row banHeader =
+                    sheet.createRow(rowIndex++);
 
-            banHeader.createCell(0).setCellValue("Bàn");
-            banHeader.createCell(1).setCellValue("Khu vực");
-            banHeader.createCell(2).setCellValue("Số lần phục vụ");
-            banHeader.createCell(3).setCellValue("Doanh thu");
+            String[] banColumns = {
+                    "Bàn",
+                    "Khu vực",
+                    "Số lần phục vụ",
+                    "Doanh thu"
+            };
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < banColumns.length; i++) {
+
+                banHeader.createCell(i)
+                        .setCellValue(banColumns[i]);
+
                 banHeader.getCell(i)
                         .setCellStyle(headerStyle);
             }
@@ -869,32 +1118,112 @@ public class ThongKeImpl implements ThongKeService {
             for (DTOThongKeHieuSuatBan ban :
                     hieuSuatBan(from, to)) {
 
+                Row row =
+                        sheet.createRow(rowIndex++);
+
+                row.createCell(0)
+                        .setCellValue(
+                                ban.getTenBan()
+                        );
+
+                row.createCell(1)
+                        .setCellValue(
+                                ban.getKhuVuc()
+                        );
+
+                row.createCell(2)
+                        .setCellValue(
+                                ban.getSoLanPhucVu()
+                        );
+
+                row.createCell(3)
+                        .setCellValue(
+                                ban.getTongDoanhThu()
+                        );
+            }
+
+            rowIndex += 2;
+
+// =====================================================
+// 14. TỶ LỆ HỦY ĐẶT BÀN
+// =====================================================
+
+            rowIndex = writeTitle(
+                    sheet,
+                    rowIndex,
+                    "14. TỶ LỆ HỦY ĐẶT BÀN",
+                    titleStyle
+            );
+
+            Row huyHeader = sheet.createRow(rowIndex++);
+
+            String[] huyColumns = {
+                    "Trạng thái",
+                    "Số lượng",
+                    "Tổng tiền cọc"
+            };
+
+            for (int i = 0; i < huyColumns.length; i++) {
+
+                huyHeader.createCell(i)
+                        .setCellValue(huyColumns[i]);
+
+                huyHeader.getCell(i)
+                        .setCellStyle(headerStyle);
+            }
+
+            for (DTOThongKeHuyDatBan huy :
+                    tyLeHuyDatBan(from, to)) {
+
                 Row row = sheet.createRow(rowIndex++);
 
                 row.createCell(0)
-                        .setCellValue(ban.getTenBan());
+                        .setCellValue(
+                                huy.getTrangThai() != null
+                                        ? huy.getTrangThai()
+                                        : ""
+                        );
 
                 row.createCell(1)
-                        .setCellValue(ban.getKhuVuc());
+                        .setCellValue(
+                                huy.getSoLuong() != null
+                                        ? huy.getSoLuong()
+                                        : 0L
+                        );
 
                 row.createCell(2)
-                        .setCellValue(ban.getSoLanPhucVu());
-
-                row.createCell(3)
-                        .setCellValue(ban.getTongDoanhThu());
+                        .setCellValue(
+                                huy.getTongTienCoc() != null
+                                        ? huy.getTongTienCoc()
+                                        : 0.0
+                        );
             }
 
-            // ==========================================
+            rowIndex += 2;
+
+            // =====================================================
             // AUTO SIZE
-            // ==========================================
+            // =====================================================
 
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < 9; i++) {
+
                 sheet.autoSizeColumn(i);
+
+                // tránh cột quá rộng
+                int width =
+                        sheet.getColumnWidth(i);
+
+                if (width > 15000) {
+                    sheet.setColumnWidth(
+                            i,
+                            15000
+                    );
+                }
             }
 
-            // ==========================================
-            // GHI FILE
-            // ==========================================
+            // =====================================================
+            // WRITE FILE
+            // =====================================================
 
             workbook.write(outputStream);
 
@@ -908,21 +1237,34 @@ public class ThongKeImpl implements ThongKeService {
             );
         }
     }
+
+    // =========================================================
+    // WRITE TITLE
+    // =========================================================
+
     private int writeTitle(
             Sheet sheet,
             int rowIndex,
             String title,
             CellStyle style
     ) {
-        Row row = sheet.createRow(rowIndex++);
 
-        Cell cell = row.createCell(0);
+        Row row =
+                sheet.createRow(rowIndex++);
+
+        Cell cell =
+                row.createCell(0);
 
         cell.setCellValue(title);
         cell.setCellStyle(style);
 
         return rowIndex;
     }
+
+    // =========================================================
+    // WRITE DOANH THU
+    // =========================================================
+
     private int writeDoanhThu(
             Sheet sheet,
             int rowIndex,
@@ -930,34 +1272,30 @@ public class ThongKeImpl implements ThongKeService {
             CellStyle headerStyle
     ) {
 
-        // Header
-        Row header = sheet.createRow(rowIndex++);
+        Row header =
+                sheet.createRow(rowIndex++);
 
-        header.createCell(0)
-                .setCellValue("Thời gian");
+        String[] columns = {
+                "Thời gian",
+                "Số hóa đơn",
+                "Tổng tiền",
+                "Giảm giá",
+                "Doanh thu"
+        };
 
-        header.createCell(1)
-                .setCellValue("Số hóa đơn");
+        for (int i = 0; i < columns.length; i++) {
 
-        header.createCell(2)
-                .setCellValue("Tổng tiền");
+            header.createCell(i)
+                    .setCellValue(columns[i]);
 
-        header.createCell(3)
-                .setCellValue("Giảm giá");
-
-        header.createCell(4)
-                .setCellValue("Doanh thu");
-
-        // Style header
-        for (int i = 0; i < 5; i++) {
             header.getCell(i)
                     .setCellStyle(headerStyle);
         }
 
-        // Data
         for (DTOThongKeDoanhThu item : data) {
 
-            Row row = sheet.createRow(rowIndex++);
+            Row row =
+                    sheet.createRow(rowIndex++);
 
             row.createCell(0)
                     .setCellValue(
@@ -996,5 +1334,98 @@ public class ThongKeImpl implements ThongKeService {
         }
 
         return rowIndex;
+    }
+
+    // =========================================================
+    // HELPER
+    // =========================================================
+
+    private String stringValue(
+            Object[] row,
+            int index
+    ) {
+
+        if (row == null ||
+                index >= row.length ||
+                row[index] == null) {
+
+            return "";
+        }
+
+        return row[index].toString();
+    }
+
+    private Long longValue(
+            Object[] row,
+            int index
+    ) {
+
+        if (row == null ||
+                index >= row.length ||
+                row[index] == null) {
+
+            return 0L;
+        }
+
+        return parseLongSafe(row[index]);
+    }
+
+    private Integer intValue(
+            Object[] row,
+            int index
+    ) {
+
+        return longValue(row, index).intValue();
+    }
+
+    private Double doubleValue(
+            Object[] row,
+            int index
+    ) {
+
+        if (row == null ||
+                index >= row.length ||
+                row[index] == null) {
+
+            return 0.0;
+        }
+
+        try {
+
+            return Double.valueOf(
+                    row[index].toString()
+            );
+
+        } catch (NumberFormatException e) {
+
+            return 0.0;
+        }
+    }
+
+    private Long parseLongSafe(
+            Object value
+    ) {
+
+        if (value == null) {
+            return 0L;
+        }
+
+        try {
+
+            String s =
+                    value.toString().trim();
+
+            if (s.isEmpty()) {
+                return 0L;
+            }
+
+            return Math.round(
+                    Double.parseDouble(s)
+            );
+
+        } catch (NumberFormatException e) {
+
+            return 0L;
+        }
     }
 }

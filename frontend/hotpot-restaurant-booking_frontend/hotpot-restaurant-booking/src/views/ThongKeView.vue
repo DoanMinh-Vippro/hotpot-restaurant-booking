@@ -3,7 +3,6 @@ import { onMounted, ref, computed } from 'vue'
 import ThongKeApi from '@/api/ThongKeApi'
 import { useShiftStore } from '@/stores/ShiftStore'
 import RevenueChart from './RevenueChart.vue'
-import DepositStatusChart from './DepositStatusChart.vue'
 import KhuVucChart from './KhuVucChart.vue'
 import GioCaoDiemChart from './GioCaoDiemChart.vue'
 
@@ -15,12 +14,12 @@ const topMon = ref<any[]>([])
 const topNhanVien = ref<any[]>([])
 const tienCoc = ref<any[]>([])
 const trangThaiCoc = ref<any[]>([])
-
+const formatNghinDong = (value: any) => {
+  return Number(value || 0).toLocaleString('vi-VN') + ' nghìn'
+}
 const ngay = ref<any[]>([])
 const thang = ref<any[]>([])
 const nam = ref<any[]>([])
-const from = ref("");
-const to = ref("");
 const khuVuc = ref<any[]>([])
 const doanhThuGio = ref<any[]>([])
 const topKhachHang = ref<any[]>([])
@@ -405,7 +404,7 @@ onMounted(() => {
           <span class="kpi-label">Doanh thu tiền mặt</span>
 
           <span class="kpi-value">
-            {{ Number(dashboard.doanhThuTienMat || 0).toLocaleString() }} đ
+            {{ formatNghinDong(dashboard.doanhThuTienMat) }}
           </span>
         </div>
       </div>
@@ -419,7 +418,7 @@ onMounted(() => {
           <span class="kpi-label">Doanh thu chuyển khoản</span>
 
           <span class="kpi-value">
-            {{ Number(dashboard.doanhThuChuyenKhoan || 0).toLocaleString() }} đ
+           {{ formatNghinDong(dashboard.doanhThuChuyenKhoan) }}
           </span>
         </div>
       </div>
@@ -453,18 +452,31 @@ onMounted(() => {
       </div>
 
 
-      <!-- TIỀN CỌC -->
-      <div class="kpi kpi-orange">
-        <div class="kpi-icon">💳</div>
+     <!-- TIỀN CỌC TIỀN MẶT -->
+<div class="kpi kpi-orange">
+  <div class="kpi-icon">💵</div>
 
-        <div class="kpi-content">
-          <span class="kpi-label">Tiền cọc</span>
+  <div class="kpi-content">
+    <span class="kpi-label">Tiền cọc tiền mặt</span>
 
-          <span class="kpi-value">
-            {{ Number(dashboard.tongTienCoc || 0).toLocaleString() }} đ
-          </span>
-        </div>
-      </div>
+    <span class="kpi-value">
+      {{ formatNghinDong(dashboard.tienCocTienMat) }}
+    </span>
+  </div>
+</div>
+
+<!-- TIỀN CỌC CHUYỂN KHOẢN -->
+<div class="kpi kpi-blue">
+  <div class="kpi-icon">🏦</div>
+
+  <div class="kpi-content">
+    <span class="kpi-label">Tiền cọc chuyển khoản</span>
+
+    <span class="kpi-value">
+     {{ formatNghinDong(dashboard.tienCocChuyenKhoan) }}
+    </span>
+  </div>
+</div>
 
 
       <!-- ĐÃ CỌC -->
@@ -502,7 +514,7 @@ onMounted(() => {
           <span class="kpi-label">Tổng quỹ hiện tại</span>
 
           <span class="kpi-value">
-            {{ Number(totalQuyHienTai || 0).toLocaleString() }} đ
+            {{ formatNghinDong(totalQuyHienTai) }}
           </span>
         </div>
       </div>
@@ -693,26 +705,6 @@ onMounted(() => {
            CỘT PHẢI
       ========================== -->
       <div class="col-right">
-
-
-        <!-- TRẠNG THÁI CỌC -->
-        <div class="card">
-
-          <div class="card-header">
-            <h3>📌 Trạng thái cọc</h3>
-          </div>
-
-          <div class="card-body">
-
-            <DepositStatusChart
-              :data="trangThaiCoc"
-            />
-
-          </div>
-
-        </div>
-
-
         <!-- TOP MÓN -->
         <div class="card">
 
