@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 export interface PendingOrderItem {
+  idHoaDonChiTiet?: number | null
   idMon?: number | null
   idCombo?: number | null
 
@@ -27,6 +28,8 @@ export interface PendingOrderItem {
 export const useOrderStore = defineStore('order-store', {
   state: () => ({
     orders: {} as Record<number, PendingOrderItem[]>,
+    invoices: {} as Record<number, Record<number, PendingOrderItem[]>>,
+    activeInvoiceIds: {} as Record<number, number | null>,
   }),
 
   getters: {
@@ -66,6 +69,20 @@ export const useOrderStore = defineStore('order-store', {
 
     updateItems(idBan: number, items: PendingOrderItem[]) {
       this.orders[idBan] = structuredClone(items)
+    },
+
+    setInvoiceOrders(idBan: number, invoiceOrders: Record<number, PendingOrderItem[]>, activeInvoiceId?: number | null) {
+      this.invoices[idBan] = structuredClone(invoiceOrders)
+      if (activeInvoiceId !== undefined) this.activeInvoiceIds[idBan] = activeInvoiceId
+    },
+
+    setActiveInvoice(idBan: number, idHoaDon: number | null) {
+      this.activeInvoiceIds[idBan] = idHoaDon
+    },
+
+    clearInvoiceOrders(idBan: number) {
+      delete this.invoices[idBan]
+      delete this.activeInvoiceIds[idBan]
     },
   },
 })

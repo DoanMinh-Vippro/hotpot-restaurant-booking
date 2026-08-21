@@ -4,7 +4,7 @@ const props = defineProps<{
   isProcessing?: boolean
 }>()
 
-const emit = defineEmits(['close', 'chonTienMat', 'chonChuyenKhoan'])
+const emit = defineEmits(['close', 'chonTienMat', 'chonChuyenKhoan', 'chonKetHop'])
 
 const chonTienMat = () => {
   emit('chonTienMat')
@@ -12,6 +12,10 @@ const chonTienMat = () => {
 
 const chonChuyenKhoan = () => {
   emit('chonChuyenKhoan')
+}
+
+const chonKetHop = () => {
+  emit('chonKetHop')
 }
 
 const dongPopup = () => {
@@ -30,6 +34,8 @@ const dongPopup = () => {
         <button class="btn-transfer" :disabled="props.isProcessing" @click="chonChuyenKhoan">Chuyển khoản</button>
 
         <button class="btn-cash" :disabled="props.isProcessing" @click="chonTienMat">Tiền mặt</button>
+
+        <button class="btn-mixed" :disabled="props.isProcessing" @click="chonKetHop">Kết hợp</button>
 
         <button class="btn-close" :disabled="props.isProcessing" @click="dongPopup">Đóng</button>
       </div>
@@ -137,6 +143,17 @@ h3 {
   background: #4a4a4a;
 
   transform: translateY(-2px);
+}
+
+.btn-mixed {
+  background: linear-gradient(135deg, #7c4dff, #5d4de6);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.btn-mixed:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(124, 77, 255, 0.35);
 }
 
 .btn-close {

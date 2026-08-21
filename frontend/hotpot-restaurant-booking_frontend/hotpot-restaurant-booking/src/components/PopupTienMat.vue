@@ -12,27 +12,28 @@ const tienThua = computed(() => {
   return Math.max(0, tienNhan.value - props.tongTien)
 })
 
-const denominations = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]
-
-const suggestedPayments = computed(() => {
-  const total = Number(props.tongTien || 0)
-  const set = new Set<number>()
-  for (const d of denominations) {
-    const val = Math.ceil(total / d) * d
-    if (val > 0) set.add(val)
-  }
-  const arr = Array.from(set).sort((a, b) => a - b)
-  return arr.slice(0, 1)
-})
-
 const setSuggested = (value: number) => {
   tienNhan.value = value
 }
 
+// Hàm làm tròn lên theo bội số m
 const roundUp = (total: number, m: number) => Math.ceil(total / m) * m
 
-const roundChuc = computed(() => roundUp(Number(props.tongTien || 0), 10000))
-const roundTram = computed(() => roundUp(Number(props.tongTien || 0), 100000))
+// Tự động lọc trùng: Nếu tròn chục và tròn trăm ra cùng 1 số (vd: 299k -> 300k) thì chỉ trả về 1 phần tử
+const suggestedList = computed(() => {
+  const total = Number(props.tongTien || 0)
+  if (total <= 0) return []
+
+  const chuc = roundUp(total, 10000)
+  const tram = roundUp(total, 100000)
+
+  const list = [chuc]
+  if (tram !== chuc) {
+    list.push(tram)
+  }
+
+  return list
+})
 
 const emit = defineEmits(['close', 'xacNhan'])
 
@@ -69,18 +70,10 @@ const xacNhan = () => {
           <div class="suggestions">
             <label>Gợi ý:</label>
             <div class="round-buttons">
-              <button class="round-btn" @click="setSuggested(roundChuc)">
-                {{ roundChuc.toLocaleString('vi-VN') }} đ (Tròn chục)
-              </button>
-              <button class="round-btn" @click="setSuggested(roundTram)">
-                {{ roundTram.toLocaleString('vi-VN') }} đ (Tròn trăm)
-              </button>
-            </div>
-            <div class="suggestion-list">
               <button
-                v-for="val in suggestedPayments"
+                v-for="val in suggestedList"
                 :key="val"
-                class="suggestion-btn"
+                class="round-btn"
                 @click="setSuggested(val)"
               >
                 {{ val.toLocaleString('vi-VN') }} đ
@@ -105,7 +98,10 @@ const xacNhan = () => {
       <div class="btn">
         <button class="btn-cancel" :disabled="props.isProcessing" @click="huy">Hủy</button>
 
-        <button class="btn-confirm" :disabled="props.isProcessing" @click="xacNhan">{{ props.isProcessing ? 'Đang xử lý...' : 'Thanh toán' }}</button>      </div>
+        <button class="btn-confirm" :disabled="props.isProcessing" @click="xacNhan">
+          {{ props.isProcessing ? 'Đang xử lý...' : 'Thanh toán' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>

@@ -1,34 +1,64 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import HoaDonApi from '@/api/HoaDonApi' // Nhúng đúng file API của bạn
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import HoaDonApi from '@/api/HoaDonApi'
 
-const props = defineProps<{
-  show: boolean
-  idHoaDon: number
-  maHoaDon: string
-  tongTien: number
-  tenBan: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    show: boolean
+    idHoaDon?: number
+    maHoaDon?: string
+    tongTien?: number
+    tenBan?: string
+    amount?: number
+    bankId?: string
+    accountNo?: string
+    accountName?: string
+    description?: string
+  }>(),
+  {
+    tongTien: 0,
+    amount: 0,
+    bankId: 'MSB',
+    accountNo: '80000739235',
+    accountName: 'HOTPOT RESTAURANT',
+    description: '',
+    maHoaDon: '',
+    tenBan: 'N/A',
+    idHoaDon: 0,
+  },
+)
 
 const emit = defineEmits(['close', 'payment-success'])
 
-// Cấu hình tài khoản ngân hàng nhận tiền của Nhà hàng (Khớp với cấu hình Backend)
 const BANK_INFO = {
-  ACCOUNT_NO: '80000739235',
-  BANK_NAME: 'MSB'
+  ACCOUNT_NO: props.accountNo || '80000739235',
+  BANK_NAME: props.bankId || 'MSB',
+  ACCOUNT_NAME: props.accountName || 'HOTPOT RESTAURANT',
 }
 
-const sepayQrUrl = ref('')
+const qrAmount = computed(() => Number(props.amount || props.tongTien || 0))
+const qrDescription = computed(() => props.description || props.maHoaDon || 'THANH_TOAN')
+const sepayQrUrl = computed(() => {
+  const amount = Number(qrAmount.value || 0)
+  const bankId = (BANK_INFO.BANK_NAME || 'MSB').toUpperCase()
+  const accountNo = BANK_INFO.ACCOUNT_NO
+  const accountName = encodeURIComponent(BANK_INFO.ACCOUNT_NAME)
+  const addInfo = encodeURIComponent(qrDescription.value)
+
+  return `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${amount}&addInfo=${addInfo}&accountName=${accountName}`
+})
+
+const finishPayment = () => {
+  if (pollingTimer) clearInterval(pollingTimer)
+  emit('payment-success')
+}
+
 let pollingTimer: any = null
 
 onMounted(() => {
-  // Tạo link mã QR động chuẩn VietQR thông qua API của SePay
-  // Tự động gán: Số tiền cần thanh toán & Nội dung chuyển khoản là mã hóa đơn động của bàn
-  // sepayQrUrl.value = `https://qr.sepay.vn/img?acc=${BANK_INFO.ACCOUNT_NO}&bank=${BANK_INFO.BANK_NAME}&amount=${props.tongTien}&des=${props.maHoaDon}`
-  sepayQrUrl.value = `https://qr.sepay.vn/img?acc=${BANK_INFO.ACCOUNT_NO}&bank=${BANK_INFO.BANK_NAME}&amount=2000&des=${props.maHoaDon}`
-  
-  // Kích hoạt cơ chế kiểm tra ngầm trạng thái hóa đơn định kỳ mỗi 3 giây
-  startPollingStatus()
+  if (props.idHoaDon && props.idHoaDon > 0) {
+    startPollingStatus()
+  }
 })
 
 const startPollingStatus = () => {
@@ -36,18 +66,15 @@ const startPollingStatus = () => {
 
   pollingTimer = setInterval(async () => {
     try {
-      // Tận dụng hàm getById có sẵn trong file HoaDonApi.ts của bạn để check trạng thái thay đổi
-      const res = await HoaDonApi.getById(props.idHoaDon)
-      
-      // Khi Webhook của Backend đã nhận được tiền và update trangThaiThanhToan lên 1 (Thành công)
+      const res = await HoaDonApi.getById(props.idHoaDon as number)
       if (res.data && res.data.trangThaiThanhToan === 1) {
         clearInterval(pollingTimer)
-        emit('payment-success') // Phát tín hiệu hoàn tất ra màn hình lớn để tự động chốt đơn
+        emit('payment-success')
       }
     } catch (error) {
       console.error('Lỗi check số dư hóa đơn tự động:', error)
     }
-  }, 3000) // 3 giây kiểm tra 1 lần
+  }, 3000)
 }
 
 const stopAndClose = () => {
@@ -63,32 +90,39 @@ onBeforeUnmount(() => {
 <template>
   <div v-if="show" class="popup-overlay">
     <div class="container-sepay">
-      <h3 class="title">Chuyển Khoản Qua QR Code</h3>
+      <h3 class="title">Mã QR VietQR</h3>
       <div class="ban-badge">BÀN: {{ props.tenBan }}</div>
 
       <div class="qr-body">
-        <!-- Ảnh QR động hiển thị sắc nét -->
-        <img :src="sepayQrUrl" alt="Mã QR SePay Thanh Toán" class="qr-image" />
+        <img :src="sepayQrUrl" alt="Mã QR VietQR" class="qr-image" />
 
         <div class="thong-tin-ck">
           <div class="row">
-            <label>Số tiền cần quét</label>
-            <div class="money">{{ props.tongTien.toLocaleString('vi-VN') }} đ</div>
+            <label>Ngân hàng</label>
+            <div class="value-text">{{ BANK_INFO.BANK_NAME }}</div>
           </div>
           <div class="row">
-            <label>Nội dung bắt buộc</label>
-            <div class="code-box">{{ props.maHoaDon }}</div>
+            <label>STK</label>
+            <div class="value-text">{{ BANK_INFO.ACCOUNT_NO }}</div>
           </div>
-        </div>
-
-        <div class="status-waiting">
-          <div class="loading-spin"></div>
-          <span>Hệ thống đang chờ ngân hàng xác nhận tiền tự động...</span>
+          <div class="row">
+            <label>Tên tài khoản</label>
+            <div class="value-text">{{ BANK_INFO.ACCOUNT_NAME }}</div>
+          </div>
+          <div class="row">
+            <label>Số tiền</label>
+            <div class="money">{{ qrAmount.toLocaleString('vi-VN') }} đ</div>
+          </div>
+          <div class="row">
+            <label>Nội dung CK</label>
+            <div class="code-box">{{ qrDescription }}</div>
+          </div>
         </div>
       </div>
 
-      <div class="btn">
-        <button class="btn-cancel" @click="stopAndClose">Hủy Chuyển Khoản / Quay Lại</button>
+      <div class="btn-row">
+        <button class="btn-secondary" @click="stopAndClose">Quay lại</button>
+        <button class="btn-primary" @click="finishPayment">Hoàn tất thanh toán</button>
       </div>
     </div>
   </div>
@@ -209,25 +243,43 @@ onBeforeUnmount(() => {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.btn {
+.btn-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
 }
 
-.btn-cancel {
-  width: 100%;
+.btn-primary,
+.btn-secondary {
+  flex: 1;
   padding: 14px;
   border: none;
   border-radius: 12px;
   font-size: 15px;
   font-weight: bold;
   cursor: pointer;
-  background: #3a3a3a;
-  color: white;
   transition: all 0.25s ease;
 }
 
-.btn-cancel:hover {
-  background: #bd3a3a;
+.btn-primary {
+  background: linear-gradient(135deg, #ffd86b, #d4af37);
+  color: #111;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(255, 216, 107, 0.28);
+}
+
+.btn-secondary {
+  background: #3a3a3a;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4a4a4a;
   transform: translateY(-2px);
 }
 </style>

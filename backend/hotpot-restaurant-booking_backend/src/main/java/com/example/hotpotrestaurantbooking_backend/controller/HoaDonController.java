@@ -3,6 +3,7 @@ package com.example.hotpotrestaurantbooking_backend.controller;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonResponse;
 import com.example.hotpotrestaurantbooking_backend.dto.DTOHoaDonChiTietResponse;
+import com.example.hotpotrestaurantbooking_backend.dto.DTOSplitHoaDonRequest;
 import com.example.hotpotrestaurantbooking_backend.repository.HoaDonRepository;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonService;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonChiTietService;
@@ -53,6 +54,13 @@ public class HoaDonController {
     @PutMapping("{id}")
     public ResponseEntity<DTOHoaDonResponse> update(@PathVariable Integer id, @Valid @RequestBody DTOHoaDonRequest request) {
         return ResponseEntity.status(HttpStatus.OK).body(hoaDonService.update(id, request));
+    }
+
+    @PostMapping("{id}/split")
+    public ResponseEntity<DTOHoaDonResponse> split(
+            @PathVariable Integer id,
+            @RequestBody DTOSplitHoaDonRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(hoaDonService.split(id, request));
     }
 
     @DeleteMapping("{id}")

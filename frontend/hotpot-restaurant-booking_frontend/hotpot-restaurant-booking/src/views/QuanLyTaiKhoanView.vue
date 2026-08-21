@@ -533,6 +533,7 @@ const paymentMethodLabel = (method: number | null | undefined) => {
   if (method === 1) return 'Tiền mặt'
   if (method === 2) return 'Chuyển khoản'
   if (method === 3) return 'Thẻ'
+  if (method === 4) return 'Kết hợp'
   return 'Chưa có'
 }
 const invoiceItemName = (item: HoaDonChiTiet) => {

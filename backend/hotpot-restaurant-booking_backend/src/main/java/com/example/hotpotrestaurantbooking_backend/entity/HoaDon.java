@@ -22,7 +22,7 @@ public class HoaDon {
     @Column(name = "id_hoa_don")
     private Integer idHoaDon;
 
-    @Column(name = "ma_hoa_don")
+    @Column(name = "ma_hoa_don", length = 50)
     private String maHoaDon;
 
     @Column(name = "ma_giao_dich")
@@ -54,6 +54,12 @@ public class HoaDon {
 
     @Column(name = "phuong_thuc_thanh_toan")
     private Integer phuongThucThanhToan;
+
+    @Column(name = "so_tien_chuyen_khoan")
+    private BigDecimal soTienChuyenKhoan;
+
+    @Column(name = "so_tien_tien_mat")
+    private BigDecimal soTienTienMat;
 
     @ManyToOne
     @JoinColumn(name = "id_ban")

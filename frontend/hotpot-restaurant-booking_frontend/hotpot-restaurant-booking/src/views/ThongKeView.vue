@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import ThongKeApi from '@/api/ThongKeApi'
+import { useShiftStore } from '@/stores/ShiftStore'
 import RevenueChart from './RevenueChart.vue'
 import DepositStatusChart from './DepositStatusChart.vue'
 import KhuVucChart from './KhuVucChart.vue'
 import GioCaoDiemChart from './GioCaoDiemChart.vue'
+
+const shiftStore = useShiftStore()
 
 const dashboard = ref<any>({})
 
@@ -312,6 +315,15 @@ const exportExcel = async () => {
 // CHART DATA
 // =========================
 
+const totalQuyHienTai = computed(() => {
+  const openingCash = Number(shiftStore.currentShift?.openingCash || 0)
+  const revenue = Number(shiftStore.invoiceRevenue || 0)
+  const income = Number(shiftStore.cashIncome + shiftStore.transferIncome + shiftStore.electronicIncome + shiftStore.otherIncome)
+  const expense = Number(shiftStore.cashExpense + shiftStore.transferExpense + shiftStore.electronicExpense + shiftStore.otherExpense)
+
+  return openingCash + revenue + income - expense
+})
+
 const chartData = computed(() => {
 
   let data: any[] = []
@@ -478,6 +490,19 @@ onMounted(() => {
 
           <span class="kpi-value">
             {{ dashboard.soDonChuaCoc || 0 }}
+          </span>
+        </div>
+      </div>
+
+      <!-- TỔNG QUỸ HIỆN TẠI -->
+      <div class="kpi kpi-green">
+        <div class="kpi-icon">💰</div>
+
+        <div class="kpi-content">
+          <span class="kpi-label">Tổng quỹ hiện tại</span>
+
+          <span class="kpi-value">
+            {{ Number(totalQuyHienTai || 0).toLocaleString() }} đ
           </span>
         </div>
       </div>
@@ -975,7 +1000,7 @@ onMounted(() => {
 /* ========== KPI GRID ========== */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
 }

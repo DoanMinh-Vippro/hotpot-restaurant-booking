@@ -139,6 +139,8 @@ const updateSearch = (e: Event) => {
             v-for="discount in danh_sach_giam_gia"
             :key="discount.idGiamGia"
             :class="{ active: discount.idGiamGia === selectedId }"
+            @click="handleSelect(discount)"
+            style="cursor: pointer"
           >
             <td>{{ discount.maGiamGia }}</td>
             <td>{{ formatLoaiGiam(discount.loaiGiam) }}</td>

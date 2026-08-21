@@ -65,7 +65,10 @@ const incomeTransactions = computed(() => (shiftSession.value?.expenses || []).f
 const expenseTransactions = computed(() => (shiftSession.value?.expenses || []).filter((item) => item.type === 'expense'))
 const cashInShift = computed(() => cashSales.value + cashIncome.value - cashExpense.value)
 const transferInShift = computed(() => transferSales.value + transferIncome.value - transferExpense.value)
-const totalShiftFunds = computed(() => endingCash.value + transferInShift.value)
+const totalShiftFunds = computed(() => {
+  const openingCash = Number(shiftSession.value?.openingCash || 0)
+  return openingCash + netRevenue.value + totalIncome.value - totalExpense.value
+})
 const totalIncome = computed(() => cashIncome.value + transferIncome.value + electronicIncome.value + otherIncome.value)
 const totalExpense = computed(() => cashExpense.value + transferExpense.value + electronicExpense.value + otherExpense.value)
 const visibleShiftBills = computed(() => (shiftSession.value?.bills || []).filter(isValidShiftInvoice))
@@ -465,7 +468,13 @@ const startEditTransaction = (item: { id: number; type: 'income' | 'expense'; am
   editingTransactionId.value = item.id
   transactionForm.value = {
     type: item.type,
-    paymentMethod: item.type === 'expense' ? 'cash' : item.paymentMethod === 'transfer' ? 'transfer' : 'cash',
+    paymentMethod: item.type === 'expense'
+      ? ['cash', 'transfer'].includes(item.paymentMethod)
+        ? item.paymentMethod
+        : 'cash'
+      : ['cash', 'transfer', 'electronic', 'other'].includes(item.paymentMethod)
+        ? item.paymentMethod
+        : 'cash',
     amount: String(item.amount),
     reason: item.reason,
   }
@@ -478,13 +487,20 @@ const cancelEditTransaction = () => {
 const saveTransaction = () => {
   const amount = Number(transactionForm.value.amount)
   const paymentMethod: ShiftPaymentMethod = transactionForm.value.type === 'expense'
-    ? 'cash'
-    : transactionForm.value.paymentMethod === 'transfer'
-      ? 'transfer'
+    ? ['cash', 'transfer'].includes(transactionForm.value.paymentMethod)
+      ? transactionForm.value.paymentMethod
+      : 'cash'
+    : ['cash', 'transfer', 'electronic', 'other'].includes(transactionForm.value.paymentMethod)
+      ? transactionForm.value.paymentMethod
       : 'cash'
 
   if (!transactionForm.value.reason.trim() || !transactionForm.value.amount || Number.isNaN(amount) || amount <= 0) {
     alert('Vui lòng nhập số tiền và lý do hợp lệ.')
+    return
+  }
+
+  if (transactionForm.value.type === 'expense' && amount > Number(shiftStore.invoiceRevenue || 0)) {
+    alert('Số tiền chi không được vượt quá tổng doanh thu hiện tại!')
     return
   }
 
@@ -627,8 +643,10 @@ watch(
   () => transactionForm.value.type,
   (type) => {
     if (type === 'expense') {
-      transactionForm.value.paymentMethod = 'cash'
-    } else if (!['cash', 'transfer'].includes(transactionForm.value.paymentMethod)) {
+      if (!['cash', 'transfer'].includes(transactionForm.value.paymentMethod)) {
+        transactionForm.value.paymentMethod = 'cash'
+      }
+    } else if (!['cash', 'transfer', 'electronic', 'other'].includes(transactionForm.value.paymentMethod)) {
       transactionForm.value.paymentMethod = 'cash'
     }
   },
@@ -766,9 +784,11 @@ onMounted(() => {
                 <option value="income">Thu</option>
                 <option value="expense">Chi</option>
               </select>
-              <select v-model="transactionForm.paymentMethod" :disabled="transactionForm.type === 'expense'">
+              <select v-model="transactionForm.paymentMethod">
                 <option value="cash">Tiền mặt</option>
-                <option v-if="transactionForm.type === 'income'" value="transfer">Chuyển khoản</option>
+                <option value="transfer">Tài khoản / Chuyển khoản</option>
+                <option v-if="transactionForm.type === 'income'" value="electronic">Thanh toán điện tử</option>
+                <option v-if="transactionForm.type === 'income'" value="other">Khác</option>
               </select>
               <input v-model="transactionForm.amount" type="number" min="0" placeholder="Nhập số tiền" />
               <input v-model="transactionForm.reason" type="text" placeholder="Nhập lý do" />
@@ -796,7 +816,7 @@ onMounted(() => {
                     <span :class="['status-badge', item.type]">{{ item.type === 'income' ? 'Thu' : 'Chi' }}</span>
                   </td>
                   <td>{{ moneyFormatter.format(item.amount) }}</td>
-                  <td>{{ item.reason }} <span class="payment-method-tag">{{ item.paymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt' }}</span></td>
+                  <td>{{ item.reason }} <span class="payment-method-tag">{{ item.paymentMethod === 'cash' ? 'Tiền mặt' : item.paymentMethod === 'transfer' ? 'Tài khoản / Chuyển khoản' : item.paymentMethod === 'electronic' ? 'Thanh toán điện tử' : 'Khác' }}</span></td>
                   <td>{{ item.createdAt }}</td>
                   <td>
                     <div class="transaction-actions">

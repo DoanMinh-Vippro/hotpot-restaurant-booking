@@ -134,7 +134,7 @@ const itemName = (item: HoaDonChiTiet) => item.tenMon ?? item.tenCombo ?? 'Món 
         </div>
         <div>
           <span>Giờ rời bàn</span>
-          <strong>{{ formatDateTime(selectedHoaDon.gioRoiBan) }}</strong>
+          <strong>{{ formatDateTime(selectedHoaDon.gioRoiBan || (selectedHoaDon.trangThaiThanhToan === 1 ? selectedHoaDon.thoiGianXuat : null)) }}</strong>
         </div>
         <div>
           <span>Nhân viên</span>
