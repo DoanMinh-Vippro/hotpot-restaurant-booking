@@ -9,6 +9,7 @@ import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFo
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -25,10 +26,18 @@ import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+
+//mail
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.internet.MimeMessage;
+
 
 @RequiredArgsConstructor
 @Service
@@ -44,6 +53,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private final TaiKhoanRepository taiKhoanRepository;
     private final MonRepository monRepository;
     private final ChiTietDatBanMonRepository chiTietDatBanMonRepository;
+    private final JavaMailSender mailSender; // Tiêm Bean gửi Mail
 
     private static final long THOI_GIAN_GIU_BAN = 3;
 
@@ -337,6 +347,12 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                         capNhatTrangThaiBan(ct.getBan().getIdBan());
                     }
                 }
+                // GỬI MAIL THÔNG BÁO HỦY ĐƠN QUÁ HẠN
+                guiEmailThongBaoDatBan(
+                        db,
+                        "HUY_DON",
+                        "Đơn đặt bàn bị tự động hủy do đã quá 15 phút so với thời gian dự kiến mà chưa được xác nhận/nhận bàn."
+                );
             }
         }
 
@@ -744,6 +760,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 }
             }
         }
+        // GỬI MAIL THÔNG BÁO HỦY BÀN CHO KHÁCH HÀNG
+        guiEmailThongBaoDatBan(datBan, "HUY_DON", "Đơn hàng đã bị hủy bởi nhân viên quản lý nhà hàng.");
     }
 
     @Override
@@ -844,7 +862,130 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             }
         }
 
+        // --- GỬI MAIL THÔNG BÁO CHO KHÁCH HÀNG ---
+        guiEmailThongBaoDatBan(datBan, "XAC_NHAN", null);
+
         return mapToResponse(datBan);
+    }
+
+    // Hàm phụ trách tạo template HTML và thực thi gửi email
+    @Async
+    public void guiEmailThongBaoDatBan(DatBan datBan, String loaiHanhDong, String lyDoHuy) {
+        try {
+            KhachHang khachHang = datBan.getKhachHang();
+            if (khachHang == null || khachHang.getEmail() == null || khachHang.getEmail().isBlank()) {
+                System.out.println("Bỏ qua gửi email: Không tìm thấy Email khách hàng.");
+                return;
+            }
+
+            String emailKhach = khachHang.getEmail();
+            String tenKhach = khachHang.getTenKhachHang();
+            String thoiGian = datBan.getThoiGianDenDuKien() != null
+                    ? datBan.getThoiGianDenDuKien().format(DateTimeFormatter.ofPattern("HH:mm - dd/MM/yyyy"))
+                    : "Đang cập nhật";
+
+            // Gom thông tin bàn + khu vực
+            List<String> thongTinBanList = new ArrayList<>();
+            if (datBan.getChiTietDatBanBans() != null && !datBan.getChiTietDatBanBans().isEmpty()) {
+                for (ChiTietDatBanBan ct : datBan.getChiTietDatBanBans()) {
+                    if (ct.getBan() != null) {
+                        Ban ban = ct.getBan();
+                        String tenBan = ban.getTenBan();
+                        String tenKhuVuc = (ban.getKhuVuc() != null && ban.getKhuVuc().getTenKhuVuc() != null)
+                                ? ban.getKhuVuc().getTenKhuVuc()
+                                : "Sảnh chính";
+                        thongTinBanList.add(tenBan + " (" + tenKhuVuc + ")");
+                    }
+                }
+            }
+
+            String chuoiBanVakhuVuc = thongTinBanList.isEmpty()
+                    ? "Đã sắp xếp tại nhà hàng"
+                    : String.join(", ", thongTinBanList);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(emailKhach);
+
+            String subject = "";
+            String titleHtml = "";
+            String subTitleHtml = "";
+            String mainColor = "#c5a059";
+            String detailBoxBg = "#f9f9f9";
+
+            switch (loaiHanhDong) {
+                case "XAC_NHAN":
+                    subject = "HOTPOT RESTAURANT - Xác Nhận Đặt Bàn Thành Công!";
+                    titleHtml = "<h3 style='color: #2e7d32; text-align: center;'>Bàn của bạn đã được xác nhận!</h3>";
+                    subTitleHtml = "<p>Nhà hàng đã tiếp nhận và xác nhận đơn đặt bàn của bạn thành công. Dưới đây là thông tin chi tiết:</p>";
+                    break;
+
+                case "DOI_GIO":
+                    subject = "HOTPOT RESTAURANT - Cập Nhật Thời Gian Đặt Bàn";
+                    titleHtml = "<h3 style='color: #0288d1; text-align: center;'>Thời gian đặt bàn đã được cập nhật!</h3>";
+                    subTitleHtml = "<p>Nhà hàng đã cập nhật <b>thời gian đến dự kiến mới</b> cho đơn đặt bàn của bạn:</p>";
+                    mainColor = "#0288d1";
+                    detailBoxBg = "#f0f8ff";
+                    break;
+
+                case "DOI_BAN":
+                    subject = "HOTPOT RESTAURANT - Cập Nhật Vị Trí Bàn Mới";
+                    titleHtml = "<h3 style='color: #ed6c02; text-align: center;'>Vị trí bàn đặt đã được thay đổi!</h3>";
+                    subTitleHtml = "<p>Nhà hàng đã thay đổi <b>vị trí bàn / khu vực mới</b> cho đơn đặt bàn của bạn:</p>";
+                    mainColor = "#ed6c02";
+                    detailBoxBg = "#fff8f0";
+                    break;
+
+                case "HUY_DON":
+                    subject = "HOTPOT RESTAURANT - Thông Báo Hủy Đặt Bàn";
+                    titleHtml = "<h3 style='color: #d32f2f; text-align: center;'>Thông Báo Hủy Đơn Đặt Bàn</h3>";
+                    subTitleHtml = "<p>Rất tiếc, nhà hàng xin thông báo đơn đặt bàn của bạn đã bị <b>HỦY</b>.</p>";
+                    mainColor = "#d32f2f";
+                    detailBoxBg = "#fff5f5";
+                    break;
+
+                default:
+                    return;
+            }
+
+            helper.setSubject(subject);
+
+            StringBuilder html = new StringBuilder();
+            html.append("<div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid ").append(mainColor).append("; border-radius: 8px; max-width: 600px; margin: 0 auto;'>")
+                    .append("<h2 style='color: #c5a059; text-align: center;'>HOTPOT RESTAURANT</h2>")
+                    .append(titleHtml)
+                    .append("<p>Xin chào <b>").append(tenKhach).append("</b>,</p>")
+                    .append(subTitleHtml)
+                    .append("<ul style='background: ").append(detailBoxBg).append("; padding: 15px 30px; border-radius: 5px; list-style-type: square; line-height: 1.8;'>")
+                    .append("  <li><b>Mã đơn đặt bàn:</b> #").append(datBan.getIdDatBan()).append("</li>")
+                    .append("  <li><b>Thời gian đến dự kiến:</b> <span style='font-weight: bold;'>").append(thoiGian).append("</span></li>")
+                    .append("  <li><b>Số lượng khách:</b> ").append(datBan.getSoNguoi()).append(" người</li>");
+
+            if ("HUY_DON".equals(loaiHanhDong)) {
+                String lyDoText = (lyDoHuy != null && !lyDoHuy.isBlank()) ? lyDoHuy : "Do hết bàn hoặc nhà hàng có sự cố đột xuất.";
+                html.append("  <li><b>Lý do hủy:</b> <span style='color: #d32f2f; font-weight: bold;'>").append(lyDoText).append("</span></li>");
+            } else {
+                html.append("  <li><b>Vị trí bàn & Khu vực:</b> <span style='color: #d32f2f; font-weight: bold;'>").append(chuoiBanVakhuVuc).append("</span></li>");
+            }
+
+            html.append("</ul>");
+
+            if ("HUY_DON".equals(loaiHanhDong)) {
+                html.append("<p>Chúng tôi thành thật xin lỗi vì sự bất tiện này. Rất mong quý khách thông cảm và hân hạnh được phục vụ vào lần sau.</p>");
+            } else {
+                html.append("<p>Vui lòng đến đúng giờ để nhà hàng phục vụ chu đáo nhất. Mọi thắc mắc xin liên hệ hotline của nhà hàng.</p>");
+            }
+
+            html.append("<br><p>Trân trọng,<br><b>Đội ngũ Hotpot Restaurant</b></p></div>");
+
+            helper.setText(html.toString(), true);
+            mailSender.send(message);
+
+            System.out.println("Đã gửi email [" + loaiHanhDong + "] tới: " + emailKhach);
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi email thông báo: " + e.getMessage());
+        }
     }
 
     @Override
@@ -894,6 +1035,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             capNhatTrangThaiBan(ct.getBan().getIdBan());
         }
 
+        // --- GỬI MAIL THÔNG BÁO CHO KHÁCH HÀNG ---
+        guiEmailThongBaoDatBan(datBan, "DOI_GIO", null);
         return mapToResponse(datBan);
     }
 
@@ -967,6 +1110,8 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             capNhatTrangThaiBan(idBan);
         }
 
+        // --- GỬI MAIL THÔNG BÁO CHO KHÁCH HÀNG ---
+        guiEmailThongBaoDatBan(datBan, "DOI_BAN", null);
         return mapToResponse(datBan);
     }
     //===========================================================================

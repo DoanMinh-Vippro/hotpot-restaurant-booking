@@ -2,6 +2,7 @@
 defineProps<{
   show: boolean
   message?: string
+  email?: string
 }>()
 
 const emit = defineEmits(['close'])
@@ -19,6 +20,17 @@ const emit = defineEmits(['close'])
             message || 'Nhà hàng đã ghi nhận đơn đặt bàn của bạn. Vui lòng chờ nhà hàng xác nhận.'
           }}
         </p>
+
+        <!-- Khối lưu ý kiểm tra email/spam -->
+        <div class="email-note">
+          <div class="note-title">
+            <span>📧</span> Thông báo qua Email
+          </div>
+          <p class="note-content">
+            Thông tin đơn hàng sẽ được gửi tới <strong v-if="email">{{ email }}</strong><span v-else>email của bạn</span>. 
+            Vui lòng kiểm tra hộp thư (bao gồm cả mục <strong>Spam / Thư rác</strong>) để cập nhật trạng thái mới nhất!
+          </p>
+        </div>
 
         <button @click="emit('close')">Xác nhận</button>
       </div>
@@ -38,23 +50,23 @@ const emit = defineEmits(['close'])
 }
 
 .dialog {
-  width: 380px;
+  width: 400px;
   background: white;
   border-radius: 20px;
-  padding: 35px;
+  padding: 30px;
   text-align: center;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
   animation: scale 0.25s ease;
 }
 
 .icon {
-  width: 70px;
-  height: 70px;
+  width: 65px;
+  height: 65px;
   margin: auto;
   border-radius: 50%;
   background: #22c55e;
   color: white;
-  font-size: 45px;
+  font-size: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,14 +74,46 @@ const emit = defineEmits(['close'])
 }
 
 h2 {
-  margin-top: 20px;
-  font-size: 24px;
+  margin-top: 15px;
+  font-size: 22px;
   color: #16a34a;
 }
 
 p {
-  color: #666;
-  margin: 15px 0 25px;
+  color: #555;
+  margin: 12px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+/* Style cho khối lưu ý Email */
+.email-note {
+  margin: 20px 0;
+  padding: 12px 14px;
+  background: #f0fdf4;
+  border: 1px dashed #86efac;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.note-title {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #15803d;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.note-content {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.45;
+}
+
+.note-content strong {
+  color: #166534;
 }
 
 button {
@@ -80,6 +124,7 @@ button {
   background: #16a34a;
   color: white;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
 }
@@ -100,7 +145,7 @@ button:hover {
 
 @keyframes scale {
   from {
-    transform: scale(0.8);
+    transform: scale(0.85);
   }
 
   to {

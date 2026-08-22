@@ -24,6 +24,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.internet.MimeMessage;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -33,6 +37,8 @@ public class AuthServiceImpl implements AuthService {
     private final ModelMapper mapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder; // Tiêm JwtEncoder vào
+    private final JavaMailSender mailSender; // Injection mail sender
+
 
     @Override
     public DTOTaiKhoanResponse register(DTOTaiKhoanRequest request) {
