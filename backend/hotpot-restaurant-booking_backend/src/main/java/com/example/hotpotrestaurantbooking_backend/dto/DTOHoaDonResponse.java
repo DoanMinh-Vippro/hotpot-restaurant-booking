@@ -41,5 +41,7 @@ public class DTOHoaDonResponse {
     private String tenNhanVien;
     private Integer trangThaiThanhToan;
     private Integer phuongThucThanhToan;
+    private BigDecimal soTienChuyenKhoan;
+    private BigDecimal soTienTienMat;
     private List<DTOHoaDonChiTietResponse> chiTiet;// dun phục vụ cho thanh toán
 }

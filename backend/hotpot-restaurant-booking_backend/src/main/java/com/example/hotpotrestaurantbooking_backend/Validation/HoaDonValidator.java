@@ -31,6 +31,9 @@ public class HoaDonValidator {
     private void validateCommon(DTOHoaDonRequest request) {
         String maHoaDon = request.getMaHoaDon();
         if (maHoaDon != null) {
+            if (maHoaDon.length() > 50) {
+                throw new IllegalArgumentException("Mã hóa đơn không được vượt quá 50 ký tự");
+            }
             if (ValidateUtil.hasLeadingOrTrailingSpace(maHoaDon)) {
                 throw new RuntimeException("Mã hóa đơn không được chứa khoảng trắng ở đầu hoặc cuối");
             }

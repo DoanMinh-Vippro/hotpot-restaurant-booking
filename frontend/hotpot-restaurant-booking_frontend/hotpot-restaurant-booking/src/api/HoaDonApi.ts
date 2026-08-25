@@ -27,6 +27,8 @@ export interface HoaDon {
   tenNhanVien: string | null
   trangThaiThanhToan: number | null
   phuongThucThanhToan: number | null
+  soTienChuyenKhoan?: number | string | null
+  soTienTienMat?: number | string | null
   shiftId?: string | null
 
   chiTiet?: HoaDonChiTiet[] | null
@@ -118,6 +120,10 @@ class HoaDonApi {
    */
   findByBanAndStatus(idBan: number, trangThaiHoaDon: number) {
     return ApiClient.get<HoaDon>(`/api/hoa-don/ban/${idBan}/trang-thai/${trangThaiHoaDon}`)
+  }
+
+  split(idHoaDon: number, items: Array<{ idHoaDonChiTiet: number; soLuong: number }>) {
+    return ApiClient.post<HoaDon>(`/api/hoa-don/${idHoaDon}/split`, { items })
   }
 }
 

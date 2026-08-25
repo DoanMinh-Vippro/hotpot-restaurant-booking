@@ -164,16 +164,7 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
 
     // ========================
     // 8. TRẠNG THÁI CỌC
-    // ========================
     @Query(value = """
-        SELECT
-            trang_thai_coc,
-            COUNT(*)
-        FROM DatBan
-        GROUP BY trang_thai_coc
-        ORDER BY trang_thai_coc
-    """, nativeQuery = true)
-    List<Object[]> trangThaiCoc();@Query(value = """
     SELECT
         db.trang_thai_coc,
         COUNT(*)
@@ -187,14 +178,14 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
                     @Param("fromDate") String fromDate,
                     @Param("toDate") String toDate
             );
-
-    // ========================
-    // 9. DASHBOARD TỔNG QUAN (GIỮ LẠI METHOD CŨ)
-    // ========================
+// 9. DASHBOARD TỔNG QUAN
+// ========================
     @Query(value = """
     SELECT
+        -- 0. Tổng doanh thu
         ISNULL(SUM(hd.tong_tien), 0),
 
+        -- 1. Doanh thu tiền mặt
         ISNULL(SUM(
             CASE
                 WHEN hd.phuong_thuc_thanh_toan = 0
@@ -203,6 +194,7 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
             END
         ), 0),
 
+        -- 2. Doanh thu chuyển khoản
         ISNULL(SUM(
             CASE
                 WHEN hd.phuong_thuc_thanh_toan = 1
@@ -211,31 +203,58 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
             END
         ), 0),
 
+        -- 3. Tổng hóa đơn
         COUNT(hd.id_hoa_don),
 
-        (SELECT COUNT(*) FROM KhachHang),
+        -- 4. Tổng khách hàng
+        (
+            SELECT COUNT(*)
+            FROM KhachHang
+        ),
 
-        (SELECT ISNULL(SUM(db.so_tien_coc), 0)
-         FROM DatBan db
-         WHERE db.trang_thai_coc = 1
-           AND db.thoi_gian_den_du_kien >= :fromDate
-           AND db.thoi_gian_den_du_kien < :toDate),
+        -- 5. Tiền cọc tiền mặt
+        (
+            SELECT ISNULL(SUM(db.so_tien_coc), 0)
+            FROM DatBan db
+            WHERE db.trang_thai_coc = 1
+              AND db.phuong_thuc_thanh_toan = 0
+              AND db.thoi_gian_den_du_kien >= :fromDate
+              AND db.thoi_gian_den_du_kien < :toDate
+        ),
 
-        (SELECT COUNT(*)
-         FROM DatBan db
-         WHERE db.trang_thai_coc = 1
-           AND db.thoi_gian_den_du_kien >= :fromDate
-           AND db.thoi_gian_den_du_kien < :toDate),
+        -- 6. Tiền cọc chuyển khoản
+        (
+            SELECT ISNULL(SUM(db.so_tien_coc), 0)
+            FROM DatBan db
+            WHERE db.trang_thai_coc = 1
+              AND db.phuong_thuc_thanh_toan = 1
+              AND db.thoi_gian_den_du_kien >= :fromDate
+              AND db.thoi_gian_den_du_kien < :toDate
+        ),
 
-        (SELECT COUNT(*)
-         FROM DatBan db
-         WHERE db.trang_thai_coc = 0
-           AND db.thoi_gian_den_du_kien >= :fromDate
-           AND db.thoi_gian_den_du_kien < :toDate),
+        -- 7. Số đơn đã cọc
+        (
+            SELECT COUNT(*)
+            FROM DatBan db
+            WHERE db.trang_thai_coc = 1
+              AND db.thoi_gian_den_du_kien >= :fromDate
+              AND db.thoi_gian_den_du_kien < :toDate
+        ),
 
+        -- 8. Số đơn chưa cọc
+        (
+            SELECT COUNT(*)
+            FROM DatBan db
+            WHERE db.trang_thai_coc = 0
+              AND db.thoi_gian_den_du_kien >= :fromDate
+              AND db.thoi_gian_den_du_kien < :toDate
+        ),
+
+        -- 9. Số hóa đơn đã thanh toán
         COUNT(hd.id_hoa_don)
 
     FROM HoaDon hd
+
     WHERE hd.trang_thai_thanh_toan = 1
       AND hd.thoi_gian_xuat >= :fromDate
       AND hd.thoi_gian_xuat < :toDate
@@ -341,20 +360,47 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
     );
 
     // ========================
-    // 13. DOANH THU THEO GIỜ
-    // ========================
+// 13. DOANH THU THEO GIỜ
+// ========================
     @Query(value = """
-    SELECT 
-        DATEPART(HOUR, hd.thoi_gian_xuat),
-        COUNT(DISTINCT hd.id_hoa_don),
-        ISNULL(SUM(hd.tong_tien), 0),
-        ISNULL(AVG(hd.tong_tien), 0)
-    FROM HoaDon hd
-    WHERE hd.trang_thai_thanh_toan = 1
-      AND hd.thoi_gian_xuat >= :fromDate
-      AND hd.thoi_gian_xuat < :toDate
-    GROUP BY DATEPART(HOUR, hd.thoi_gian_xuat)
-    ORDER BY DATEPART(HOUR, hd.thoi_gian_xuat)
+    SELECT  
+        h.gio,
+        COUNT(DISTINCT hd.id_hoa_don) AS soHoaDon,
+        ISNULL(SUM(hd.tong_tien), 0) AS doanhThu,
+        ISNULL(AVG(hd.tong_tien), 0) AS trungBinh
+    FROM (
+        SELECT 0 AS gio
+        UNION ALL SELECT 1
+        UNION ALL SELECT 2
+        UNION ALL SELECT 3
+        UNION ALL SELECT 4
+        UNION ALL SELECT 5
+        UNION ALL SELECT 6
+        UNION ALL SELECT 7
+        UNION ALL SELECT 8
+        UNION ALL SELECT 9
+        UNION ALL SELECT 10
+        UNION ALL SELECT 11
+        UNION ALL SELECT 12
+        UNION ALL SELECT 13
+        UNION ALL SELECT 14
+        UNION ALL SELECT 15
+        UNION ALL SELECT 16
+        UNION ALL SELECT 17
+        UNION ALL SELECT 18
+        UNION ALL SELECT 19
+        UNION ALL SELECT 20
+        UNION ALL SELECT 21
+        UNION ALL SELECT 22
+        UNION ALL SELECT 23
+    ) h
+    LEFT JOIN HoaDon hd
+        ON DATEPART(HOUR, hd.thoi_gian_xuat) = h.gio
+        AND hd.trang_thai_thanh_toan = 1
+        AND hd.thoi_gian_xuat >= :fromDate
+        AND hd.thoi_gian_xuat < :toDate
+    GROUP BY h.gio
+    ORDER BY h.gio
 """, nativeQuery = true)
     List<Object[]> doanhThuTheoGio(
             @Param("fromDate") String fromDate,
@@ -380,7 +426,10 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
         GROUP BY db.trang_thai
         ORDER BY soLuong DESC
     """, nativeQuery = true)
-    List<Object[]> tyLeHuyDatBan(String fromDate, String toDate);
+    List<Object[]> tyLeHuyDatBan(
+            @Param("fromDate") String fromDate,
+            @Param("toDate") String toDate
+    );
 
     // ========================
     // 16. DOANH THU THEO DANH MỤC

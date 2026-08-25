@@ -12,6 +12,29 @@ const tienThua = computed(() => {
   return Math.max(0, tienNhan.value - props.tongTien)
 })
 
+const setSuggested = (value: number) => {
+  tienNhan.value = value
+}
+
+// Hàm làm tròn lên theo bội số m
+const roundUp = (total: number, m: number) => Math.ceil(total / m) * m
+
+// Tự động lọc trùng: Nếu tròn chục và tròn trăm ra cùng 1 số (vd: 299k -> 300k) thì chỉ trả về 1 phần tử
+const suggestedList = computed(() => {
+  const total = Number(props.tongTien || 0)
+  if (total <= 0) return []
+
+  const chuc = roundUp(total, 10000)
+  const tram = roundUp(total, 100000)
+
+  const list = [chuc]
+  if (tram !== chuc) {
+    list.push(tram)
+  }
+
+  return list
+})
+
 const emit = defineEmits(['close', 'xacNhan'])
 
 const huy = () => {
@@ -44,6 +67,19 @@ const xacNhan = () => {
             placeholder="Nhập số tiền..."
             :disabled="props.isProcessing"
           />
+          <div class="suggestions">
+            <label>Gợi ý:</label>
+            <div class="round-buttons">
+              <button
+                v-for="val in suggestedList"
+                :key="val"
+                class="round-btn"
+                @click="setSuggested(val)"
+              >
+                {{ val.toLocaleString('vi-VN') }} đ
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="row">
@@ -62,7 +98,10 @@ const xacNhan = () => {
       <div class="btn">
         <button class="btn-cancel" :disabled="props.isProcessing" @click="huy">Hủy</button>
 
-        <button class="btn-confirm" :disabled="props.isProcessing" @click="xacNhan">{{ props.isProcessing ? 'Đang xử lý...' : 'Thanh toán' }}</button>      </div>
+        <button class="btn-confirm" :disabled="props.isProcessing" @click="xacNhan">
+          {{ props.isProcessing ? 'Đang xử lý...' : 'Thanh toán' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -176,6 +215,52 @@ const xacNhan = () => {
   font-weight: 700;
 
   color: #ffd86b;
+}
+
+.suggestions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.suggestion-list {
+  display: flex;
+  gap: 8px;
+}
+
+.suggestion-btn {
+  background: rgba(255, 216, 107, 0.12);
+  color: #ffd86b;
+  border: 1px solid rgba(255, 216, 107, 0.2);
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.suggestion-btn:hover {
+  transform: translateY(-2px);
+}
+
+.round-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.round-btn {
+  background: rgba(255, 216, 107, 0.16);
+  color: #ffd86b;
+  border: 1px solid rgba(255, 216, 107, 0.2);
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.round-btn:hover {
+  transform: translateY(-2px);
 }
 
 .btn {

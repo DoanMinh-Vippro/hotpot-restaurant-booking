@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @Service
 public class GiamGiaImpl implements GiamGiaService {
@@ -99,7 +100,13 @@ public class GiamGiaImpl implements GiamGiaService {
         existing.setGiaTriGiam(request.getGiaTriGiam());
         existing.setLoaiGiam(request.getLoaiGiam().trim());
         existing.setSoLuongMaGiamGia(request.getSoLuongMaGiamGia());
-        existing.setTrangThai(request.getTrangThai());
+
+        boolean isNotExpired = request.getNgayKetThuc() != null && !request.getNgayKetThuc().isBefore(LocalDate.now());
+        if (isNotExpired) {
+            existing.setTrangThai(request.getTrangThai() != null ? request.getTrangThai() : 1);
+        } else {
+            existing.setTrangThai(0);
+        }
 
         if (request.getSoLuongDung() != null) {
             existing.setSoLuongDung(request.getSoLuongDung());
@@ -136,6 +143,14 @@ public class GiamGiaImpl implements GiamGiaService {
         List<GiamGia> entities = page.getContent();
         autoDisableExpiredDiscounts(entities);
         return entities.stream().map(this::toDto).toList();
+    }
+
+    @Scheduled(fixedDelay = 60000)
+    public void autoUpdateExpiredDiscountsTask() {
+        List<GiamGia> activeDiscounts = repo.findAll().stream()
+                .filter(g -> g != null && g.getTrangThai() != null && g.getTrangThai() == 1)
+                .toList();
+        autoDisableExpiredDiscounts(activeDiscounts);
     }
 
     private void autoDisableExpiredDiscounts(List<GiamGia> entities) {

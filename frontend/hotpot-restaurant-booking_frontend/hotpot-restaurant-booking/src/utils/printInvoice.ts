@@ -42,6 +42,7 @@ const paymentMethodLabel = (method: number | null | undefined) => {
   if (method === 1) return 'Tiền mặt'
   if (method === 2) return 'Chuyển khoản'
   if (method === 3) return 'Thẻ'
+  if (method === 4) return 'Kết hợp'
   return 'Chưa có'
 }
 
@@ -227,6 +228,14 @@ export const printInvoiceReceipt = (invoice: HoaDon | null | undefined, items: H
           <div class="card">
             <span class="label">Nhân viên</span>
             <div class="value">${escapeHtml(invoice.tenNhanVien || 'Chưa có')}</div>
+          </div>
+          <div class="card">
+            <span class="label">Giờ vào bàn</span>
+            <div class="value">${escapeHtml(formatDateTime((invoice as any).gioVaoBan || invoice.thoiGianXuat))}</div>
+          </div>
+          <div class="card">
+            <span class="label">Giờ ra bàn</span>
+            <div class="value">${escapeHtml(formatDateTime((invoice as any).gioRoiBan || (invoice.trangThaiThanhToan === 1 ? invoice.thoiGianXuat : null)))}</div>
           </div>
           <div class="card">
             <span class="label">Thanh toán</span>
