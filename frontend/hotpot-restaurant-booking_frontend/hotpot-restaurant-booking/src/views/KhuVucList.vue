@@ -109,7 +109,7 @@ const handleSave = async () => {
 
 const handleEdit = (item: any) => {
   isEditing.value = true
-  currentId.value = item.id
+  currentId.value = item.idKhuVuc
   formKhuVuc.value = {
     maKhuVuc: item.maKhuVuc || '',
     tenKhuVuc: item.tenKhuVuc || '',
@@ -227,8 +227,8 @@ const resetFilter = () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in danhSachKhuVuc" :key="item.id">
-              <td style="text-align: center; color: #888">{{ item.id }}</td>
+            <tr v-for="item in danhSachKhuVuc" :key="item.idKhuVuc">
+              <td style="text-align: center; color: #888">{{ item.idKhuVuc }}</td>
               <td class="highlight-text">{{ item.maKhuVuc }}</td>
               <td class="highlight-text">{{ item.tenKhuVuc }}</td>
               <td>{{ item.moTa || '---' }}</td>
@@ -236,7 +236,7 @@ const resetFilter = () => {
                 <button
                   class="btn-status"
                   :class="item.trangThai === 1 || item.trangThai === true ? 'active' : 'locked'"
-                  @click="handleDoiTrangThai(item.id)"
+                  @click="handleDoiTrangThai(item.idKhuVuc)"
                 >
                   {{
                     item.trangThai === 1 || item.trangThai === true ? '● Hoạt động' : '○ Đang khóa'
@@ -246,7 +246,7 @@ const resetFilter = () => {
               <td style="text-align: center">
                 <button class="btn-action view" @click="handleViewDetail(item)">Xem</button>
                 <button class="btn-action edit" @click="handleEdit(item)">Sửa</button>
-                <button class="btn-action delete" @click="handleXoa(item.id)">Xóa</button>
+                <button class="btn-action delete" @click="handleXoa(item.idKhuVuc)">Xóa</button>
               </td>
             </tr>
           </tbody>
@@ -266,7 +266,7 @@ const resetFilter = () => {
             <tbody>
               <tr>
                 <td class="lbl">Mã Hệ Thống (ID):</td>
-                <td class="val">#{{ selectedKhuVuc.id }}</td>
+                <td class="val">#{{ selectedKhuVuc.idKhuVuc }}</td>
               </tr>
               <tr>
                 <td class="lbl">Mã khu vực:</td>
