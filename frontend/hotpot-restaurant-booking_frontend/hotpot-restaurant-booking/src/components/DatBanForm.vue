@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import DatBanApi from '@/api/DatBanApi'
 import { ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import ComBoInDatBan from './ComBoInDatBan.vue'
 import MonInDatBan from './MonInDatBan.vue'
 import { paymentApi } from '@/api/PaymentApi.ts'
@@ -19,6 +20,7 @@ const showConfirmBan = ref(false) // xác nhận của check bàn
 const dsBanDeXuat = ref<any[]>([])
 const checkBanResult = ref<any>(null)
 const authStore = useAuthStore() // lấy tên khách bỏ form
+const router = useRouter()
 const errors = ref({
   sdtKhachHang: '',
   soNguoi: '',
@@ -26,6 +28,7 @@ const errors = ref({
 })
 const isResetting = ref(false)
 const datBanThanhCong = ref(false)
+const createdBookingId = ref<number | null>(null)
 
 //validate
 const validatePhone = () => {
@@ -352,6 +355,7 @@ const createBooking = async () => {
               resetForm()
               emit('refresh')
 
+              createdBookingId.value = (paymentRes.data as any)?.idDatBan ?? formData.value.idDatBan
               datBanThanhCong.value = true
             }
           } catch (e) {
@@ -378,13 +382,14 @@ const createBooking = async () => {
     else {
       formData.value.soTienCoc = 0
 
-      await DatBanApi.add({
+      const response = await DatBanApi.add({
         ...formData.value,
         thoiGianDenDuKien: formData.value.thoiGianDenDuKien
           ? String(formData.value.thoiGianDenDuKien).replace(' ', 'T') + ':00'
           : null,
       })
 
+      createdBookingId.value = response.data?.idDatBan ?? response.data?.id ?? null
       resetForm()
       emit('refresh')
 
@@ -455,6 +460,17 @@ const closePaymentDialog = () => {
     clearInterval(paymentTimer)
     paymentTimer = null
   }
+}
+
+const viewBookingHistory = () => {
+  datBanThanhCong.value = false
+  void router.push({
+    name: 'customer-profile',
+    query: {
+      tab: 'bookings',
+      ...(createdBookingId.value ? { bookingId: String(createdBookingId.value) } : {}),
+    },
+  })
 }
 </script>
 
@@ -609,7 +625,11 @@ const closePaymentDialog = () => {
     @cancel="cancelBan"
   />
 
-  <PopupDatBanThanhCong :show="datBanThanhCong" @close="datBanThanhCong = false" />
+  <PopupDatBanThanhCong
+    :show="datBanThanhCong"
+    @close="datBanThanhCong = false"
+    @view-history="viewBookingHistory"
+  />
 </template>
 
 <style scoped>

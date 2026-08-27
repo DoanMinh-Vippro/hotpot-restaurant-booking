@@ -16,7 +16,6 @@ const showOpenModal = ref(false)
 const showCloseModal = ref(false)
 const showPrintPreviewModal = ref(false)
 const isSubmittingCloseShift = ref(false)
-const closeMode = ref<'normal' | 'handover'>('handover')
 const handoverNote = ref('')
 const pendingTables = ref<ShiftHandoverTable[]>([])
 const closeShiftError = ref<string | null>(null)
@@ -545,12 +544,11 @@ const removeTransaction = (id: number) => {
 const startCloseShift = async () => {
   closeShiftError.value = null
   const pending = await resolvePendingTables()
-  closeMode.value = pending.length > 0 ? 'handover' : 'normal'
   handoverNote.value = pending.length > 0 ? `Bàn giao ca cho ca sau: ${pending.length} bàn/đơn còn treo.` : ''
   showCloseModal.value = true
 
   if (pending.length > 0) {
-    closeShiftError.value = `Vẫn còn ${pending.length} bàn/đơn đang hoạt động hoặc chưa thanh toán. Vui lòng chọn phương án phù hợp.`
+    closeShiftError.value = `Vẫn còn ${pending.length} bàn/đơn đang hoạt động hoặc chưa thanh toán. Các hóa đơn này sẽ được bàn giao tự động sang ca sau.`
   }
 }
 
@@ -580,23 +578,14 @@ const confirmCloseShift = async (keepLoggedIn: boolean) => {
 
   try {
     const pending = await resolvePendingTables()
-    const mode = closeMode.value
-
-    if (mode === 'normal' && pending.length > 0) {
-      closeShiftError.value = `Không thể đóng ca ở chế độ thanh toán dứt điểm khi còn ${pending.length} bàn/đơn đang hoạt động hoặc chưa thanh toán. Vui lòng bấm 'Đi tới Bán hàng' để xử lý.`
-      return
+    const mode = 'handover' as const
+    const handoverContext: ShiftHandoverContext = {
+      sourceShiftId: shiftSession.value?.shiftId || 'SHIFT-UNKNOWN',
+      handoverAt: new Date().toISOString(),
+      pendingTables: pending,
+      totalPending: pending.reduce((sum, item) => sum + item.total, 0),
+      note: handoverNote.value.trim() || undefined,
     }
-
-    const handoverContext: ShiftHandoverContext | null =
-      mode === 'handover'
-        ? {
-            sourceShiftId: shiftSession.value?.shiftId || 'SHIFT-UNKNOWN',
-            handoverAt: new Date().toISOString(),
-            pendingTables: pending,
-            totalPending: pending.reduce((sum, item) => sum + item.total, 0),
-            note: handoverNote.value.trim() || undefined,
-          }
-        : null
 
     shiftStore.closeShift({
       mode,
@@ -1265,21 +1254,7 @@ onMounted(() => {
         </div>
 
         <div class="handover-options">
-          <p class="handover-hint">Chọn một trong hai cách đóng ca:</p>
-          <div class="mode-choice-row">
-            <label class="mode-option">
-              <input v-model="closeMode" type="radio" value="normal" />
-              <span>Thanh toán dứt điểm trước</span>
-            </label>
-            <label class="mode-option">
-              <input v-model="closeMode" type="radio" value="handover" />
-              <span>Bàn giao sang ca sau</span>
-            </label>
-          </div>
-          <div v-if="closeMode === 'normal' && pendingTables.length > 0" class="handover-alert">
-            Hãy chuyển sang màn hình Bán hàng để thanh toán nốt các bàn treo trước khi đóng ca.
-          </div>
-          <textarea v-if="pendingTables.length > 0 && closeMode === 'handover'" v-model="handoverNote" rows="3" placeholder="Ghi chú bàn giao ca tiếp theo..."></textarea>
+          <textarea v-if="pendingTables.length > 0" v-model="handoverNote" rows="3" placeholder="Ghi chú bàn giao ca tiếp theo..."></textarea>
         </div>
 
         <div v-if="pendingTables.length > 0" class="pending-table-list">
@@ -1305,41 +1280,20 @@ onMounted(() => {
         <button class="btn-report-preview compact" type="button" @click="openPrintPreview">In báo cáo</button>
 
         <div class="modal-actions split">
-          <template v-if="closeMode === 'normal'">
-            <button
-              v-if="pendingTables.length > 0"
-              class="btn-primary"
-              :disabled="isSubmittingCloseShift"
-              @click="goToSalesScreen()"
-            >
-              Đi tới Bán hàng
-            </button>
-            <button
-              v-else
-              class="btn-primary"
-              :disabled="isSubmittingCloseShift"
-              @click="confirmCloseShift(true)"
-            >
-              {{ isSubmittingCloseShift ? 'Đang xử lý...' : 'Đóng ca (thanh toán xong)' }}
-            </button>
-          </template>
-
-          <template v-else-if="closeMode === 'handover'">
-            <button
-              class="btn-primary"
-              :disabled="isSubmittingCloseShift"
-              @click="confirmCloseShift(true)"
-            >
-              {{ isSubmittingCloseShift ? 'Đang xử lý...' : 'Đóng ca bàn giao' }}
-            </button>
-            <button
-              class="btn-danger"
-              :disabled="isSubmittingCloseShift"
-              @click="confirmCloseShift(false)"
-            >
-              {{ isSubmittingCloseShift ? 'Đang xử lý...' : 'Đóng ca và đăng xuất' }}
-            </button>
-          </template>
+          <button
+            class="btn-primary"
+            :disabled="isSubmittingCloseShift"
+            @click="confirmCloseShift(true)"
+          >
+            {{ isSubmittingCloseShift ? 'Đang xử lý...' : 'Đóng ca bàn giao' }}
+          </button>
+          <button
+            class="btn-danger"
+            :disabled="isSubmittingCloseShift"
+            @click="confirmCloseShift(false)"
+          >
+            {{ isSubmittingCloseShift ? 'Đang xử lý...' : 'Đóng ca và đăng xuất' }}
+          </button>
         </div>
       </div>
     </div>

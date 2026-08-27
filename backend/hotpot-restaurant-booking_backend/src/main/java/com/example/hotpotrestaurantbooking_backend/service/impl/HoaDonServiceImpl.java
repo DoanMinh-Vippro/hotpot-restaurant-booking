@@ -489,12 +489,14 @@ public class HoaDonServiceImpl implements HoaDonService {
             return;
         }
 
-        GiamGia discount = currentInvoice.getGiamGia();
+        Integer discountId = currentInvoice.getGiamGia().getIdGiamGia();
+        GiamGia discount = giamGiaRepository.findById(discountId)
+            .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay ma giam gia"));
         validateDiscountCanApply(discount, safeMoney(currentInvoice.getTienTruocGiam()));
         int remainingQuantity = discount.getSoLuongMaGiamGia() == null ? 0 : discount.getSoLuongMaGiamGia();
         discount.setSoLuongMaGiamGia(Math.max(remainingQuantity - 1, 0));
         discount.setSoLuongDung((discount.getSoLuongDung() == null ? 0 : discount.getSoLuongDung()) + 1);
-        if (discount.getSoLuongMaGiamGia() == null || discount.getSoLuongMaGiamGia() <= 0) {
+        if (discount.getSoLuongMaGiamGia() <= 0) {
             discount.setTrangThai(0);
         }
         giamGiaRepository.save(discount);

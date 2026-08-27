@@ -7,6 +7,7 @@ import com.example.hotpotrestaurantbooking_backend.entity.ChiTietDatBanBan;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
 import com.example.hotpotrestaurantbooking_backend.entity.HoaDon;
 import com.example.hotpotrestaurantbooking_backend.entity.KhachHang;
+import com.example.hotpotrestaurantbooking_backend.entity.GiamGia;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
@@ -126,6 +127,34 @@ class HoaDonServiceImplTest {
         hoaDonService.add(request);
 
         assertEquals(TrangThaiBan.TRONG, ban.getTrangThai());
+    }
+
+    @Test
+    void addShouldConsumeVoucherAndDisableItWhenLastQuantityIsUsed() {
+        DTOHoaDonRequest request = new DTOHoaDonRequest();
+        request.setIdGiamGia(9);
+        request.setTienTruocGiam(BigDecimal.valueOf(100000));
+        request.setTrangThaiHoaDon(1);
+        request.setTrangThaiThanhToan(1);
+
+        GiamGia voucher = new GiamGia();
+        voucher.setIdGiamGia(9);
+        voucher.setSoLuongMaGiamGia(1);
+        voucher.setSoLuongDung(0);
+        voucher.setTrangThai(1);
+        voucher.setLoaiGiam("FIXED");
+        voucher.setGiaTriGiam(BigDecimal.valueOf(10000));
+
+        when(giamGiaRepository.findById(9)).thenReturn(Optional.of(voucher));
+        when(hoaDonChiTietRepository.findByHoaDon_IdHoaDon(any())).thenReturn(Collections.emptyList());
+        when(hoaDonRepository.save(any(HoaDon.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        hoaDonService.add(request);
+
+        assertEquals(0, voucher.getSoLuongMaGiamGia());
+        assertEquals(1, voucher.getSoLuongDung());
+        assertEquals(0, voucher.getTrangThai());
+        verify(giamGiaRepository).save(voucher);
     }
 
     @Test
