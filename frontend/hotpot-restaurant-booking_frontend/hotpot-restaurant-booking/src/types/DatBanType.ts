@@ -9,14 +9,11 @@ export interface DTOBanResponse {
 
 export interface DTOCheckBanResponse {
   trangThai: string
-
   message: string
-
   canGhep: boolean
-
   tongSucChua: number
-
   dsBan: DTOBanResponse[]
+  dsBanTrong: DTOBanResponse[]
 }
 export interface DTOTinhTrangBanResponse {
   soBanConLai: number

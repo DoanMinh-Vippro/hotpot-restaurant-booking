@@ -186,7 +186,7 @@ const canSelectBan = (ban: any) => {
     return false
   }
 
-  return banToiUu.value.includes(ban.idBan)
+  return true
 }
 
 const toggleBan = (ban: any) => {
@@ -484,27 +484,6 @@ watch(
                   {{ errors.tenKhachHang }}
                 </small>
               </div>
-
-              <!-- <div class="field">
-                <label>Số điện thoại</label>
-
-                <input v-model="form.sdtKhachHang" placeholder="Nhập số điện thoại" />
-                <small v-if="errors.sdtKhachHang" class="error-text">
-                  {{ errors.sdtKhachHang }}
-                </small>
-                <div v-if="showDanhSachKhach" class="search-result">
-                  <div
-                    v-for="kh in dsKhachHang"
-                    :key="kh.idKhachHang"
-                    class="customer-item"
-                    @click="chonKhachHang(kh)"
-                  >
-                    <strong>{{ kh.tenKhachHang }}</strong>
-
-                    <span>{{ kh.soDienThoai }}</span>
-                  </div>
-                </div>
-              </div> -->
             </div>
           </div>
 
@@ -556,10 +535,12 @@ watch(
                 class="table-card"
                 :class="{
                   active: isSelectedBan(ban.idBan),
+                  priority: banToiUu.includes(ban.idBan),
                   disabled: !canSelectBan(ban),
                 }"
                 @click="toggleBan(ban)"
               >
+                <div v-if="banToiUu.includes(ban.idBan)" class="priority-badge">⭐ Ưu tiên</div>
                 <div class="table-name">
                   {{ ban.tenBan }}
                 </div>
@@ -684,7 +665,6 @@ watch(
 </template>
 
 <style scoped>
-
 /* ================= OVERLAY ================= */
 
 .dialog-overlay {
@@ -982,7 +962,11 @@ watch(
   gap: 12px;
 }
 
+/* ================= TABLE CARD ================= */
+
 .table-card {
+  position: relative;
+
   border: 1px solid #eadbc4;
 
   border-radius: 12px;
@@ -993,26 +977,72 @@ watch(
 
   cursor: pointer;
 
-  transition: 0.2s;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .table-card:hover {
   transform: translateY(-2px);
 
   border-color: #b9975b;
+
+  box-shadow: 0 5px 14px rgba(185, 151, 91, 0.12);
 }
+
+/* ================= BÀN ĐƯỢC CHỌN ================= */
 
 .table-card.active {
-  border: 2px solid #b9975b;
+  border: 2px solid #c28d2c;
 
-  background: #fff3d8;
+  background: #fff8ea;
+
+  box-shadow: 0 5px 15px rgba(194, 141, 44, 0.16);
 }
+
+.table-card.active:hover {
+  border-color: #a27f45;
+}
+
+/* ================= BÀN ƯU TIÊN ================= */
+
+.table-card.priority {
+  border: 2px solid #c28d2c;
+
+  background: #fff8ea;
+
+  box-shadow: 0 4px 14px rgba(194, 141, 44, 0.14);
+}
+
+.table-card.priority:hover {
+  border-color: #a27f45;
+
+  box-shadow: 0 6px 18px rgba(194, 141, 44, 0.2);
+}
+
+/* ================= BÀN VỪA ƯU TIÊN VỪA ĐƯỢC CHỌN ================= */
+
+.table-card.priority.active {
+  border: 2px solid #8f651c;
+
+  background: #ffefc7;
+
+  box-shadow: 0 6px 18px rgba(143, 101, 28, 0.2);
+}
+
+/* ================= TÊN BÀN ================= */
 
 .table-name {
   font-weight: 700;
 
   color: #4a3824;
+
+  font-size: 14px;
 }
+
+/* ================= THÔNG TIN BÀN ================= */
 
 .table-info {
   display: flex;
@@ -1022,6 +1052,8 @@ watch(
   margin-top: 8px;
 
   font-size: 13px;
+
+  color: #6d5739;
 }
 
 .table-area {
@@ -1032,16 +1064,42 @@ watch(
   font-size: 12px;
 }
 
-.table-card.disabled {
-  opacity: 0.35;
-  pointer-events: none;
-  filter: grayscale(100%);
-  cursor: not-allowed;
+/* ================= BADGE ƯU TIÊN ================= */
+
+.priority-badge {
+  display: inline-flex;
+
+  align-items: center;
+
+  margin-bottom: 8px;
+
+  padding: 3px 8px;
+
+  border-radius: 20px;
+
+  background: #f1dfb5;
+
+  color: #8f651c;
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  line-height: 1.2;
 }
 
-.table-card.active {
-  border: 2px solid #c28d2c;
-  background: #fff8ea;
+/* ================= BÀN KHÔNG THỂ CHỌN ================= */
+
+.table-card.disabled {
+  opacity: 0.35;
+
+  pointer-events: none;
+
+  filter: grayscale(100%);
+
+  cursor: not-allowed;
+
+  box-shadow: none;
 }
 
 /* ================= EMPTY ================= */

@@ -2,10 +2,10 @@ package com.example.hotpotrestaurantbooking_backend.service;
 
 import com.example.hotpotrestaurantbooking_backend.dto.*;
 import com.example.hotpotrestaurantbooking_backend.entity.DatBan;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
 public interface DatBanService {
     List<DTODatBanResponse> getAll();
     DTODatBanResponse findById(Integer id);
@@ -16,4 +16,5 @@ public interface DatBanService {
     DatBan createBookingAfterPayment(Integer idKhachHang, DTODatBanRequest datBan);
     DTOCheckBanResponse checkBan(DTOCheckBanRequest request);
     DTOTinhTrangBanResponse tinhTrangBan(LocalDateTime thoiGianDenDuKien);
+    List<DTOBanResponse> getDanhSachBanCoTheChon(LocalDateTime thoiGianDenDuKien);
 }

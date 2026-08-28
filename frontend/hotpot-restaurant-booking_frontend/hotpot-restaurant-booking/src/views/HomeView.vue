@@ -22,7 +22,7 @@ import ChatWidget from '../components/ChatWidget.vue'
     <ChatWidget />
 
     <footer class="simple-copyright">
-      <p>© 2026 CÁI BANG RESTO</p>
+      <p>© 2026 CB RESTO</p>
     </footer>
   </div>
 </template>

@@ -14,7 +14,7 @@
             <span class="gold-italic">Đồng Quê</span>
           </h2>
           <p class="description">
-            Tại Cái Bang Resto, mỗi món ăn là một tác phẩm nghệ thuật. Chúng tôi gìn giữ những giá
+            Tại Lẩu Ếch CB Resto, mỗi món ăn là một tác phẩm nghệ thuật. Chúng tôi gìn giữ những giá
             trị truyền thống và kết hợp tinh hoa đương đại để mang lại trải nghiệm độc bản cho thực
             khách.
           </p>
@@ -42,9 +42,9 @@
             <span class="gold-italic">Tinh Tuyển</span>
           </h2>
           <p class="description">
-            Chúng tôi tin rằng món ăn ngon bắt nguồn từ nguyên liệu sạch. Cái Bang Resto tự hào hợp
-            tác với các trang trại địa phương để mang đến những nông sản tươi ngon nhất trong ngày,
-            bảo tồn trọn vẹn hương vị tự nhiên của đất trời.
+            Chúng tôi tin rằng món ăn ngon bắt nguồn từ nguyên liệu sạch. Lẩu Ếch CB Resto tự hào
+            hợp tác với các trang trại địa phương để mang đến những nông sản tươi ngon nhất trong
+            ngày, bảo tồn trọn vẹn hương vị tự nhiên của đất trời.
           </p>
         </div>
       </div>

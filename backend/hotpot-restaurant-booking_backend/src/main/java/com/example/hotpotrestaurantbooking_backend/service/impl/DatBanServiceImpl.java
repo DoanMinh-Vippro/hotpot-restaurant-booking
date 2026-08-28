@@ -172,6 +172,36 @@ public class DatBanServiceImpl implements DatBanService {
         return ketQua;
     }
 
+    private List<Ban> timDanhSachBanKhachCoTheChon(LocalDateTime thoiGianDenDuKien) {
+        List<Ban> dsBan = banRepository.findAll();
+
+        List<DatBan> dsDatBan = datBanRepository.findByTrangThaiIn(List.of(TrangThaiDatBan.CHO_XAC_NHAN, TrangThaiDatBan.DA_XAC_NHAN));
+
+        List<Ban> ketQua = new ArrayList<>();
+
+        for (Ban ban : dsBan) {
+            if (ban.getLoaiBan() == null) {
+                continue;
+            }
+
+            if (ban.getTrangThai() == TrangThaiBan.BAO_TRI) {
+                continue;
+            }
+
+            if (banBiTrungLich(ban, thoiGianDenDuKien, dsDatBan)) {
+                continue;
+            }
+
+            ketQua.add(ban);
+        }
+
+        ketQua.sort(Comparator.comparing((Ban b) -> b.getKhuVuc() != null ? b.getKhuVuc().getIdKhuVuc() : Integer.MAX_VALUE)
+                        .thenComparingInt(b -> b.getLoaiBan().getSucChua())
+                        .thenComparing(Ban::getTenBan, Comparator.nullsLast(String::compareTo))
+        );
+
+        return ketQua;
+    }
 
     private boolean banBiTrungLich(Ban ban, LocalDateTime thoiGianDenDuKien, List<DatBan> dsDatBan) {
         LocalDateTime ketThucMoi = thoiGianDenDuKien.plusHours(2);
@@ -566,13 +596,48 @@ public class DatBanServiceImpl implements DatBanService {
 
         DTOCheckBanResponse response = new DTOCheckBanResponse();
 
+        /*
+         * ============================================================
+         * 1. LẤY TOÀN BỘ BÀN ĐANG TRỐNG
+         *
+         * Danh sách này dùng cho khách tự chọn bàn.
+         * Không lọc theo số người ở đây.
+         *
+         * Ví dụ:
+         * Khách đặt 2 người
+         * B1 = 2 chỗ
+         * B2 = 4 chỗ
+         * B3 = 6 chỗ
+         *
+         * => dsBanTrong = B1, B2, B3
+         *
+         * Sau đó FE tự đánh dấu bàn không đủ sức chứa.
+         * ============================================================
+         */
 
-        // 1. Ưu tiên tìm 1 bàn đủ sức chứa
-        List<Ban> dsBanDon = timBanPhuHop(
-                request.getThoiGianDenDuKien(),
-                request.getSoNguoi()
-        );
+        List<Ban> dsBanTrong =
+                timDanhSachBanKhachCoTheChon(
+                        request.getThoiGianDenDuKien()
+                );
 
+        /*
+         * ============================================================
+         * 2. TÌM BÀN ĐƠN PHÙ HỢP NHẤT
+         *
+         * Đây là bàn hệ thống đề xuất.
+         * Ví dụ khách 2 người:
+         * B1 = 2 chỗ
+         * B2 = 4 chỗ
+         *
+         * => dsBanDeXuat = B1
+         * ============================================================
+         */
+
+        List<Ban> dsBanDon =
+                timBanPhuHop(
+                        request.getThoiGianDenDuKien(),
+                        request.getSoNguoi()
+                );
 
         if (!dsBanDon.isEmpty()) {
 
@@ -592,20 +657,34 @@ public class DatBanServiceImpl implements DatBanService {
                             .sum()
             );
 
+            /*
+             * Bàn hệ thống đề xuất
+             */
             response.setDsBan(
                     convertBanResponse(dsBanDon)
+            );
+
+            /*
+             * TOÀN BỘ BÀN khách có thể xem/chọn
+             */
+            response.setDsBanTrong(
+                    convertBanResponse(dsBanTrong)
             );
 
             return response;
         }
 
+        /*
+         * ============================================================
+         * 3. KHÔNG CÓ BÀN ĐƠN -> THỬ GHÉP BÀN
+         * ============================================================
+         */
 
-        // 2. Không có bàn đơn -> thử ghép bàn
-        List<Ban> dsBanGhep = timToHopBan(
-                request.getThoiGianDenDuKien(),
-                request.getSoNguoi()
-        );
-
+        List<Ban> dsBanGhep =
+                timToHopBan(
+                        request.getThoiGianDenDuKien(),
+                        request.getSoNguoi()
+                );
 
         if (!dsBanGhep.isEmpty()) {
 
@@ -625,15 +704,29 @@ public class DatBanServiceImpl implements DatBanService {
                             .sum()
             );
 
+            /*
+             * Tổ hợp bàn hệ thống đề xuất
+             */
             response.setDsBan(
                     convertBanResponse(dsBanGhep)
+            );
+
+            /*
+             * TOÀN BỘ BÀN TRỐNG cho khách tự chọn
+             */
+            response.setDsBanTrong(
+                    convertBanResponse(dsBanTrong)
             );
 
             return response;
         }
 
+        /*
+         * ============================================================
+         * 4. KHÔNG CÓ BÀN PHÙ HỢP
+         * ============================================================
+         */
 
-        // 3. Không đủ sức chứa hoặc không còn bàn
         response.setTrangThai(
                 TrangThaiCheckBan.KHONG_CO_BAN.name()
         );
@@ -644,10 +737,27 @@ public class DatBanServiceImpl implements DatBanService {
 
         response.setCanGhep(false);
 
-        response.setTongSucChua(0);
+        response.setTongSucChua(
+                dsBanTrong.stream()
+                        .mapToInt(b -> b.getLoaiBan().getSucChua())
+                        .sum()
+        );
 
+        /*
+         * Không có bàn đơn/tổ hợp phù hợp.
+         */
         response.setDsBan(List.of());
 
+        /*
+         * Vẫn trả toàn bộ bàn đang trống.
+         *
+         * Trường hợp này rất hữu ích để FE biết:
+         * "Nhà hàng vẫn còn bàn nhưng không có bàn/tổ hợp
+         * nào đáp ứng đủ số người."
+         */
+        response.setDsBanTrong(
+                convertBanResponse(dsBanTrong)
+        );
 
         return response;
     }
@@ -711,6 +821,13 @@ public class DatBanServiceImpl implements DatBanService {
         response.setTongSucChua(tongSucChua);
 
         return response;
+    }
+
+    @Override
+    public List<DTOBanResponse> getDanhSachBanCoTheChon(LocalDateTime thoiGianDenDuKien) {
+        validateThoiGianHoatDong(thoiGianDenDuKien);
+        List<Ban> dsBan = timDanhSachBanKhachCoTheChon(thoiGianDenDuKien);
+        return convertBanResponse(dsBan);
     }
 
 

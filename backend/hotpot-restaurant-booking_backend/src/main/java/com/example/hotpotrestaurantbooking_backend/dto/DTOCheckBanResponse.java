@@ -15,5 +15,9 @@ public class DTOCheckBanResponse {
 
     private Integer tongSucChua;
 
+    // Bàn do hệ thống đề xuất
     private List<DTOBanResponse> dsBan;
+
+    // Các bàn khách có thể tự lựa chọn
+    private List<DTOBanResponse> dsBanTrong;
 }
