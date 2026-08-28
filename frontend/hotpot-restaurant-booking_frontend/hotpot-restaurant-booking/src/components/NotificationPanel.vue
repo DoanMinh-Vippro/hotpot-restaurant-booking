@@ -9,6 +9,7 @@ const notifications = ref<any[]>([])
 
 const matchesTarget = (notification: any) => {
   if (authStore.isAdmin) return true
+  if (notification?.targetStaff) return false
 
   const currentId = authStore.customerInfo?.khachHangId
   const currentPhone = authStore.customerInfo?.soDienThoai
@@ -44,13 +45,30 @@ onUnmounted(() => {
 
 const markRead = (notification: any) => {
   if (!notification) return
-  notification.read = true
-  localStorage.setItem('notifications', JSON.stringify(notifications.value))
+  try {
+    const stored = JSON.parse(localStorage.getItem('notifications') || '[]') || []
+    const updated = stored.map((item: any) => item.eventKey === notification.eventKey
+      ? { ...item, read: true }
+      : item)
+    localStorage.setItem('notifications', JSON.stringify(updated))
+    load()
+  } catch {
+    notification.read = true
+  }
 }
 
 const markAllRead = () => {
-  notifications.value = notifications.value.map((n: any) => ({ ...n, read: true }))
-  localStorage.setItem('notifications', JSON.stringify(notifications.value))
+  try {
+    const stored = JSON.parse(localStorage.getItem('notifications') || '[]') || []
+    const visibleKeys = new Set(notifications.value.map((item: any) => item.eventKey))
+    const updated = stored.map((item: any) => visibleKeys.has(item.eventKey)
+      ? { ...item, read: true }
+      : item)
+    localStorage.setItem('notifications', JSON.stringify(updated))
+    load()
+  } catch {
+    notifications.value = notifications.value.map((n: any) => ({ ...n, read: true }))
+  }
 }
 
 const visibleNotifications = computed(() => notifications.value)

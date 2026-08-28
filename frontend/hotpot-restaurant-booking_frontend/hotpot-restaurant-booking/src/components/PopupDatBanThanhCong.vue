@@ -5,7 +5,7 @@ defineProps<{
   email?: string
 }>()
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'view-history'])
 </script>
 
 <template>
@@ -32,7 +32,10 @@ const emit = defineEmits(['close'])
           </p>
         </div>
 
-        <button @click="emit('close')">Xác nhận</button>
+        <div class="actions">
+          <button class="secondary-button" @click="emit('close')">Đóng</button>
+          <button @click="emit('view-history')">Xem lịch sử đặt bàn</button>
+        </div>
       </div>
     </div>
   </Transition>
@@ -117,7 +120,7 @@ p {
 }
 
 button {
-  width: 100%;
+  flex: 1;
   padding: 12px;
   border: none;
   border-radius: 12px;
@@ -127,6 +130,21 @@ button {
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.secondary-button {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.secondary-button:hover {
+  background: #d1d5db;
 }
 
 button:hover {

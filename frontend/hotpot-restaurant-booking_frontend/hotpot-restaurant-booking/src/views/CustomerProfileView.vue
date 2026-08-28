@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { getAllKhachHang, updateKhachHang } from '@/api/khachhang'
 import HoaDonApi from '@/api/HoaDonApi'
@@ -10,6 +10,7 @@ import type { HoaDon, HoaDonChiTiet } from '@/api/HoaDonApi'
 import { printInvoiceReceipt } from '@/utils/printInvoice'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const router = useRouter()
 
 // Dữ liệu khách hàng
@@ -23,6 +24,7 @@ const activeProfileTab = ref<'info' | 'invoices' | 'bookings'>('info')
 
 const customerBookings = ref<any[]>([])
 const bookingLoading = ref(false)
+const selectedBookingId = computed(() => String(route.query.bookingId || ''))
 
 // Dữ liệu từ form
 const formData = ref({
@@ -268,6 +270,9 @@ onMounted(() => {
   if (!authStore.isAuthenticated || !authStore.customerInfo.khachHangId) {
     router.push('/auth')
     return
+  }
+  if (route.query.tab === 'bookings') {
+    activeProfileTab.value = 'bookings'
   }
   loadData()
 })
@@ -745,7 +750,11 @@ const exportInvoicePdf = (invoice: HoaDon) => {
           </div>
 
           <div v-else class="bookings-container">
-            <div v-for="(b, idx) in customerBookings" :key="b.idDatBan" class="booking-card">
+            <div
+              v-for="(b, idx) in customerBookings"
+              :key="b.idDatBan"
+              :class="['booking-card', { 'booking-card-highlighted': String(b.idDatBan) === selectedBookingId }]"
+            >
               <div class="booking-card-header">
                 <div>
                   <strong class="booking-code">Đơn #{{ b.idDatBan }} (Lần {{ Number(idx) + 1 }})</strong>
@@ -1102,6 +1111,12 @@ const exportInvoicePdf = (invoice: HoaDon) => {
   border: 1px solid rgba(197, 160, 89, 0.15);
   border-radius: 8px;
   padding: 16px;
+}
+
+.booking-card-highlighted {
+  background: rgba(197, 160, 89, 0.14);
+  border-color: #c5a059;
+  box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.16);
 }
 
 .booking-card-header {
