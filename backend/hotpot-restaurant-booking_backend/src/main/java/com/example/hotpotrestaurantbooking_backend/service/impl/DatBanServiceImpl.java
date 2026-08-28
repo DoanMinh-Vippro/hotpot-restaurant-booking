@@ -6,6 +6,7 @@ import com.example.hotpotrestaurantbooking_backend.enums.*;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanService;
+import com.example.hotpotrestaurantbooking_backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.dao.DataAccessException;
@@ -35,6 +36,7 @@ public class DatBanServiceImpl implements DatBanService {
     private final ChiTietDatBanMonRepository chiTietDatBanMonRepository;
     private final KhachHangRepository khachHangRepository;
     private final BanRepository banRepository;
+    private final NotificationService notificationService;
     private int tongSucChuaTotNhat;
     private static final String COMBO_NULL_MSG = "Đơn đặt bàn này không chọn combo đặt trước";
 
@@ -337,6 +339,12 @@ public class DatBanServiceImpl implements DatBanService {
         validateThoiGianHoatDong(datBan.getThoiGianDenDuKien());
         validateDsBan(datBan.getDsBan(), datBan.getThoiGianDenDuKien());
         datBanRepository.save(d);
+        notificationService.notifyCustomer(
+            khachHang.getIdKhachHang(),
+            "booking-created-" + d.getIdDatBan(),
+            "Đặt bàn thành công",
+            "Bạn đã đặt bàn thành công, vui lòng đợi nhân viên xác nhận."
+        );
         if(datBan.getDsBan() != null && !datBan.getDsBan().isEmpty()) {
             for (Integer idBan : datBan.getDsBan()) {
                 Ban ban = banRepository.findById(idBan)
@@ -510,6 +518,12 @@ public class DatBanServiceImpl implements DatBanService {
         validateDsBan(datBan.getDsBan(), datBan.getThoiGianDenDuKien());
         // Lưu đơn đặt bàn trước để có id_dat_ban
         datBanRepository.save(d);
+        notificationService.notifyCustomer(
+            khachHang.getIdKhachHang(),
+            "booking-created-" + d.getIdDatBan(),
+            "Đặt bàn thành công",
+            "Bạn đã đặt bàn thành công, vui lòng đợi nhân viên xác nhận."
+        );
         if (datBan.getDsBan() != null && !datBan.getDsBan().isEmpty()) {
             for (Integer idBan : datBan.getDsBan()) {
                 Ban ban = banRepository.findById(idBan)

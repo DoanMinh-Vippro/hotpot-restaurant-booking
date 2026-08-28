@@ -8,6 +8,7 @@ import { paymentApi } from '@/api/PaymentApi.ts'
 import PaymentDialog from './PaymentDialog.vue'
 import ConfirmBanDialog from './ConfirmBanDialog.vue'
 import PopupDatBanThanhCong from './PopupDatBanThanhCong.vue'
+import { addNotificationOnce } from '@/utils/notifications'
 import { useAuthStore } from '@/stores/AuthStore'
 import VueFlatPickr from 'vue-flatpickr-component'
 import 'flatpickr/dist/flatpickr.css'
@@ -356,6 +357,13 @@ const createBooking = async () => {
               emit('refresh')
 
               createdBookingId.value = (paymentRes.data as any)?.idDatBan ?? formData.value.idDatBan
+              addNotificationOnce({
+                key: `booking-created-${createdBookingId.value}`,
+                title: 'Đặt bàn thành công',
+                message: 'Bạn đã đặt bàn thành công, vui lòng đợi nhân viên xác nhận.',
+                targetKhachHangId: authStore.customerInfo?.khachHangId,
+                targetKhachHangPhone: authStore.customerInfo?.soDienThoai,
+              })
               datBanThanhCong.value = true
             }
           } catch (e) {
@@ -390,6 +398,13 @@ const createBooking = async () => {
       })
 
       createdBookingId.value = response.data?.idDatBan ?? response.data?.id ?? null
+      addNotificationOnce({
+        key: `booking-created-${createdBookingId.value}`,
+        title: 'Đặt bàn thành công',
+        message: 'Bạn đã đặt bàn thành công, vui lòng đợi nhân viên xác nhận.',
+        targetKhachHangId: authStore.customerInfo?.khachHangId,
+        targetKhachHangPhone: authStore.customerInfo?.soDienThoai,
+      })
       resetForm()
       emit('refresh')
 

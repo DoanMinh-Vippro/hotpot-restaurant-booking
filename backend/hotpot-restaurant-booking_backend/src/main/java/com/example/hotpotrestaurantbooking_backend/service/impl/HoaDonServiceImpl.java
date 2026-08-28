@@ -13,6 +13,7 @@ import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBan;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.HoaDonService;
+import com.example.hotpotrestaurantbooking_backend.service.NotificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final NhanVienRepository nhanVienRepository;
     private final HoaDonValidator hoaDonValidator;
     private final HoaDonChiTietRepository hoaDonChiTietRepository;
+    private final NotificationService notificationService;
 
     @Override
     public List<DTOHoaDonResponse> getAll() {
@@ -66,6 +68,12 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         // Lưu hóa đơn trước, sau đó cập nhật trạng thái bàn dựa trên trạng thái hóa đơn đã lưu
         hoaDonRepository.save(hd);
+        notificationService.notifyStaff(
+            "invoice-created-" + hd.getIdHoaDon(),
+            "Hóa đơn mới",
+            "Đã tạo hóa đơn mới " + hd.getMaHoaDon() + " cho khách hàng.",
+            nhanVienRepository.findAll()
+        );
         consumeDiscountIfNeeded(null, hd);
 
         if (hd.getBan() != null) {

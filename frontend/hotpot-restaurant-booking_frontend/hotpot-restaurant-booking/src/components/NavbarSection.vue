@@ -5,7 +5,8 @@ import { useAuthStore } from '@/stores/AuthStore'
 import DatBanView from '@/views/DatBanView.vue'
 import UserProfileDropdown from '@/components/UserProfileDropdown.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
-import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import NotificationApi from '@/api/NotificationApi'
+import { addNotificationOnce } from '@/utils/notifications'
 const router = useRouter()
 const authStore = useAuthStore()
 const isScrolled = ref(false)
@@ -24,9 +25,11 @@ onMounted(() => {
   loadUnreadCount()
   // update unread count when notifications change in other tabs
   window.addEventListener('storage', loadUnreadCount)
+  window.addEventListener('notification-created', loadUnreadCount)
 })
 onUnmounted(() => {
   window.removeEventListener('storage', loadUnreadCount)
+  window.removeEventListener('notification-created', loadUnreadCount)
 })
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 const goToAuth = () => {
@@ -52,6 +55,7 @@ const toggleNotif = () => {
 
 const matchesTarget = (notification: any) => {
   if (authStore.isAdmin) return true
+  if (notification?.targetStaff) return false
 
   const currentId = authStore.customerInfo?.khachHangId
   const currentPhone = authStore.customerInfo?.soDienThoai
@@ -74,57 +78,30 @@ const loadUnreadCount = () => {
   }
 }
 
-const pushNotification = (payload: any) => {
+let bookingCheckerInterval: number | null = null
+const checkNotifications = async () => {
+  if (!authStore.isAuthenticated) return
+
   try {
-    const arr = JSON.parse(localStorage.getItem('notifications') || '[]') || []
-    arr.unshift({ ...payload, time: new Date().toISOString(), read: false })
-    localStorage.setItem('notifications', JSON.stringify(arr))
-    loadUnreadCount()
-  } catch (e) {
-    console.warn('Không thể lưu thông báo:', e)
+    const response = await NotificationApi.getAll()
+    const notifications = Array.isArray(response.data) ? response.data : []
+    for (const notification of notifications) {
+      addNotificationOnce({
+        key: `backend-${notification.id}`,
+        title: notification.title,
+        message: notification.message,
+        targetKhachHangId: notification.targetKhachHangId,
+        targetStaff: notification.targetStaff,
+      })
+    }
+  } catch (error) {
+    console.warn('Lỗi kiểm tra thông báo:', error)
   }
 }
 
-let bookingCheckerInterval: number | null = null
 onMounted(() => {
-  // periodic check for upcoming bookings for the logged-in customer
-  bookingCheckerInterval = window.setInterval(async () => {
-    try {
-      if (!authStore.isAuthenticated) return
-      const custId = authStore.customerInfo?.khachHangId
-      const custPhone = authStore.customerInfo?.soDienThoai
-      if (!custId && !custPhone) return
-      const res = await DatBanQuanLyApi.getAll()
-      const all = Array.isArray(res?.data) ? res.data : []
-      const now = Date.now()
-      for (const b of all) {
-        const targetMatch = (custId && Number(b.idKhachHang) === Number(custId)) || (custPhone && String(b.sdtKhachHang) === String(custPhone))
-        if (!targetMatch) continue
-        const t = b.thoiGianDenDuKien ? new Date(b.thoiGianDenDuKien).getTime() : (b.ngayDat ? new Date(b.ngayDat).getTime() : null)
-        if (!t) continue
-        const diff = t - now
-        const notifiedKey = `notified_booking_${b.idDatBan}`
-        const notified = localStorage.getItem(notifiedKey)
-        // 15 minutes before
-        if (diff <= 15 * 60 * 1000 && diff > 0 && !notified) {
-          pushNotification({ title: 'Sắp đến giờ đặt bàn', message: `Đơn #${b.idDatBan} sẽ bắt đầu sau ~${Math.round(diff / 60000)} phút.`, targetKhachHangId: b.idKhachHang })
-          localStorage.setItem(notifiedKey, JSON.stringify({ pre15: true }))
-        }
-        // at time
-        if (diff <= 0 && diff > -5 * 60 * 1000 && !notified) {
-          pushNotification({ title: 'Đến giờ', message: `Đơn #${b.idDatBan} đã đến giờ. Vui lòng đến cửa hàng.`, targetKhachHangId: b.idKhachHang })
-          localStorage.setItem(notifiedKey, JSON.stringify({ atTime: true }))
-        }
-        // 15 minutes late
-        if (diff < -15 * 60 * 1000 && !notified) {
-          pushNotification({ title: 'Khách chậm giờ', message: `Đơn #${b.idDatBan} đã chậm hơn 15 phút. Nếu 1 giờ nữa không có mặt, đơn có thể bị hủy.`, targetKhachHangId: b.idKhachHang })
-          localStorage.setItem(notifiedKey, JSON.stringify({ late15: true }))
-        }
-      }
-    } catch (e) {
-      console.warn('Lỗi kiểm tra đặt bàn:', e)
-    }
-  }, 60 * 1000)
+  checkNotifications()
+  bookingCheckerInterval = window.setInterval(checkNotifications, 60 * 1000)
 })
 onUnmounted(() => {
   if (bookingCheckerInterval) window.clearInterval(bookingCheckerInterval)
