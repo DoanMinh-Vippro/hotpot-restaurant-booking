@@ -30,32 +30,33 @@ public class OrderServiceImpl implements OrderSevice {
     private final MonRepository monRepository;
     private final ComboRepository comboRepository;
     private final HoaDonChiTietRepository hoaDonChiTietRepository;
+
     @Override
     public List<DTOKhuVucOrderResponse> getDanhSachBanOrder() {
 
-        List<Ban> dsBan = banRepository.findByTrangThaiInOrderByKhuVuc_IdKhuVucAscTenBanAsc(
-                        List.of(TrangThaiBan.DA_DAT, TrangThaiBan.DANG_SU_DUNG));
+        // Load toàn bộ bàn, không phụ thuộc trạng thái bàn
+        List<Ban> dsBan = banRepository.findAll();
 
-        Map<Integer, List<Ban>> group = dsBan.stream()
+        Map<Integer, List<Ban>> group = dsBan
+                .stream()
                 .collect(Collectors.groupingBy(b -> b.getKhuVuc().getIdKhuVuc()));
 
         List<DTOKhuVucOrderResponse> result = new ArrayList<>();
 
         for (List<Ban> bans : group.values()) {
             Ban first = bans.get(0);
+
             DTOKhuVucOrderResponse khuVuc = new DTOKhuVucOrderResponse();
             khuVuc.setIdKhuVuc(first.getKhuVuc().getIdKhuVuc());
             khuVuc.setTenKhuVuc(first.getKhuVuc().getTenKhuVuc());
-            khuVuc.setDsBan(
-                    bans.stream()
+
+            khuVuc.setDsBan(bans.stream()
                             .map(ban -> {
                                 DTOBanResponse dto = mapper.map(ban, DTOBanResponse.class);
                                 dto.setSucChua(ban.getLoaiBan().getSucChua());
                                 return dto;
-                            })
-                            .toList()
+                            }).toList()
             );
-
             result.add(khuVuc);
         }
 
@@ -65,8 +66,9 @@ public class OrderServiceImpl implements OrderSevice {
     @Override
     public DTOOrderHoaDonResponse chonBan(Integer idBan) {
         HoaDon hoaDon = hoaDonRepository
-                .findByBan_IdBanAndTrangThaiHoaDon(idBan, 0)
+                .findFirstByBan_IdBanAndTrangThaiHoaDonAndTrangThaiThanhToan(idBan, 0, 0)
                 .orElseThrow(() -> new RuntimeException("Bàn này chưa có hóa đơn đang hoạt động."));
+
         return mapper.map(hoaDon, DTOOrderHoaDonResponse.class);
     }
 
@@ -114,6 +116,8 @@ public class OrderServiceImpl implements OrderSevice {
 
         } else {
             HoaDonChiTiet newCt = new HoaDonChiTiet();
+            newCt.setMaHoaDonChiTiet(taoMaHoaDonChiTiet());
+
             newCt.setHoaDon(hoaDon);
             newCt.setMon(mon);
             newCt.setSoLuong(request.getSoLuong());
@@ -151,6 +155,8 @@ public class OrderServiceImpl implements OrderSevice {
             hoaDonChiTietRepository.save(ct);
         } else {
             HoaDonChiTiet newCt = new HoaDonChiTiet();
+            newCt.setMaHoaDonChiTiet(taoMaHoaDonChiTiet());
+
             newCt.setHoaDon(hoaDon);
             newCt.setCombo(combo);
             newCt.setSoLuong(request.getSoLuong());
@@ -199,5 +205,15 @@ public class OrderServiceImpl implements OrderSevice {
         BigDecimal giamGia = hoaDon.getTienGiamGia() == null ? BigDecimal.ZERO : hoaDon.getTienGiamGia();
         hoaDon.setTongTien(tong.subtract(giamGia));
         hoaDonRepository.save(hoaDon);
+    }
+
+    private String taoMaHoaDonChiTiet() {
+        Integer maxId = hoaDonChiTietRepository.findAll()
+                .stream()
+                .map(HoaDonChiTiet::getIdHoaDonChiTiet)
+                .max(Integer::compareTo)
+                .orElse(0);
+
+        return "HDCT" + (maxId + 1);
     }
 }

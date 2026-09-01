@@ -86,6 +86,7 @@ onMounted(() => {
               :class="{
                 green: ban.trangThai === 'DANG_SU_DUNG',
                 orange: ban.trangThai === 'DA_DAT',
+                gray: ban.trangThai === 'TRONG',
               }"
             ></span>
           </div>
@@ -240,6 +241,10 @@ onMounted(() => {
 
 .orange {
   background: #ff9500;
+}
+
+.gray {
+  background: #9e9e9e;
 }
 
 .ban-card.active .dot {
