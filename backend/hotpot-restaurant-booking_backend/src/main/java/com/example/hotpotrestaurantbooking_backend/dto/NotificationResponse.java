@@ -14,5 +14,6 @@ public class NotificationResponse {
     private LocalDateTime createdAt;
     private boolean read;
     private Integer targetKhachHangId;
+    private String targetPhone;
     private boolean targetStaff;
 }

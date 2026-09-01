@@ -6,29 +6,34 @@ import DatBanView from '@/views/DatBanView.vue'
 import UserProfileDropdown from '@/components/UserProfileDropdown.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import NotificationApi from '@/api/NotificationApi'
 const router = useRouter()
 const authStore = useAuthStore()
 const isScrolled = ref(false)
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50
 }
+let refreshNotificationTimer: number | null = null
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
 
-  // Đảm bảo trạng thái auth được khôi phục khi F5
   const token = localStorage.getItem('token')
   if (token && !authStore.isAuthenticated) {
     authStore.decodeToken(token)
   }
-  // Load unread count from storage at startup
-  loadUnreadCount()
-  // update unread count when notifications change in other tabs
+  void loadUnreadCount()
   window.addEventListener('storage', loadUnreadCount)
+  refreshNotificationTimer = window.setInterval(() => {
+    void loadUnreadCount()
+  }, 30000)
 })
 onUnmounted(() => {
   window.removeEventListener('storage', loadUnreadCount)
+  window.removeEventListener('scroll', handleScroll)
+  if (refreshNotificationTimer) {
+    window.clearInterval(refreshNotificationTimer)
+  }
 })
-onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 const goToAuth = () => {
   router.push('/auth')
 }
@@ -46,8 +51,11 @@ const showDatBanModal = ref(false)
 const showNotifPanel = ref(false)
 const unreadCount = ref(0)
 
-const toggleNotif = () => {
+const toggleNotif = async () => {
   showNotifPanel.value = !showNotifPanel.value
+  if (showNotifPanel.value) {
+    await loadUnreadCount()
+  }
 }
 
 const matchesTarget = (notification: any) => {
@@ -56,21 +64,25 @@ const matchesTarget = (notification: any) => {
   const currentId = authStore.customerInfo?.khachHangId
   const currentPhone = authStore.customerInfo?.soDienThoai
   const targetId = notification?.targetKhachHangId
-  const targetPhone = notification?.targetKhachHangPhone || notification?.targetPhone
+  const targetPhone = notification?.targetPhone || notification?.targetKhachHangPhone || notification?.targetPhone
 
   if (!currentId && !currentPhone) return true
   if (targetId != null && currentId != null && Number(targetId) === Number(currentId)) return true
-  if (targetPhone && currentPhone && String(targetPhone) === String(currentPhone)) return true
+  if (targetPhone && currentPhone && String(targetPhone).trim() === String(currentPhone).trim()) return true
   if (targetId == null && targetPhone == null) return true
   return false
 }
 
-const loadUnreadCount = () => {
+const loadUnreadCount = async () => {
+  if (!authStore.isAuthenticated) {
+    unreadCount.value = 0
+    return
+  }
+
   try {
-    const arr = JSON.parse(localStorage.getItem('notifications') || '[]')
-    unreadCount.value = Array.isArray(arr)
-      ? arr.filter((n: any) => !n.read && matchesTarget(n)).length
-      : 0
+    const res = await NotificationApi.getAll()
+    const arr = Array.isArray(res?.data) ? res.data : []
+    unreadCount.value = arr.filter((n: any) => !n.read && matchesTarget(n)).length
   } catch (e) {
     unreadCount.value = 0
   }
@@ -81,7 +93,7 @@ const pushNotification = (payload: any) => {
     const arr = JSON.parse(localStorage.getItem('notifications') || '[]') || []
     arr.unshift({ ...payload, time: new Date().toISOString(), read: false })
     localStorage.setItem('notifications', JSON.stringify(arr))
-    loadUnreadCount()
+    void loadUnreadCount()
   } catch (e) {
     console.warn('Không thể lưu thông báo:', e)
   }

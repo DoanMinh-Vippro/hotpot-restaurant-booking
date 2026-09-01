@@ -7,12 +7,13 @@ export interface BackendNotification {
   createdAt: string
   read: boolean
   targetKhachHangId?: number | null
+  targetPhone?: string | null
   targetStaff?: boolean
 }
 
 const NotificationApi = {
   getAll() {
-    return ApiClient.get<BackendNotification[]>('/api/thong-bao')
+    return ApiClient.get<BackendNotification[]>('/api/notifications')
   },
 }
 

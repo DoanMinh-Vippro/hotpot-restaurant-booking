@@ -371,6 +371,7 @@ public class DatBanServiceImpl implements DatBanService {
         datBanRepository.save(d);
         notificationService.notifyCustomer(
             khachHang.getIdKhachHang(),
+            khachHang.getSoDienThoai(),
             "booking-created-" + d.getIdDatBan(),
             "Đặt bàn thành công",
             "Bạn đã đặt bàn thành công, vui lòng đợi nhân viên xác nhận."
@@ -550,6 +551,7 @@ public class DatBanServiceImpl implements DatBanService {
         datBanRepository.save(d);
         notificationService.notifyCustomer(
             khachHang.getIdKhachHang(),
+            khachHang.getSoDienThoai(),
             "booking-created-" + d.getIdDatBan(),
             "Đặt bàn thành công",
             "Bạn đã đặt bàn thành công, vui lòng đợi nhân viên xác nhận."

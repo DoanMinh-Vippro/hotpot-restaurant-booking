@@ -43,6 +43,7 @@ const menuItems = [
   { label: 'Thống kê', routeName: 'thong-ke', permission: 'statistics', icon: '📈' },
   { label: 'Khu vực', routeName: 'khu-vuc', permission: 'area', icon: '📍' },
   { label: 'Tiền cọc', routeName: 'coc', permission: 'deposit', icon: '💳' },
+  { label: 'Order', routeName: 'order', permission: 'order', icon: '📦' },
 ]
 
 const totalUnreadMessages = computed(() => {

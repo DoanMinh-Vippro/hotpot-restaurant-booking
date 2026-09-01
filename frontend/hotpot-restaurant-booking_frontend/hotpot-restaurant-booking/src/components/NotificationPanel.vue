@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import NotificationApi from '@/api/NotificationApi'
 import { useAuthStore } from '@/stores/AuthStore'
 
 const emit = defineEmits(['close'])
 const authStore = useAuthStore()
 
 const notifications = ref<any[]>([])
+let refreshTimer: number | null = null
 
 const matchesTarget = (notification: any) => {
   if (authStore.isAdmin) return true
@@ -14,61 +16,55 @@ const matchesTarget = (notification: any) => {
   const currentId = authStore.customerInfo?.khachHangId
   const currentPhone = authStore.customerInfo?.soDienThoai
   const targetId = notification?.targetKhachHangId
-  const targetPhone = notification?.targetKhachHangPhone || notification?.targetPhone
+  const targetPhone = notification?.targetPhone || notification?.targetKhachHangPhone || notification?.targetPhone
 
   if (!currentId && !currentPhone) return true
   if (targetId != null && currentId != null && Number(targetId) === Number(currentId)) return true
-  if (targetPhone && currentPhone && String(targetPhone) === String(currentPhone)) return true
+  if (targetPhone && currentPhone && String(targetPhone).trim() === String(currentPhone).trim()) return true
   if (targetId == null && targetPhone == null) return true
   return false
 }
 
-const load = () => {
+const load = async () => {
+  if (!authStore.isAuthenticated) {
+    notifications.value = []
+    return
+  }
+
   try {
-    const stored = JSON.parse(localStorage.getItem('notifications') || '[]') || []
-    notifications.value = Array.isArray(stored) ? stored.filter(matchesTarget) : []
-  } catch (e) {
+    const response = await NotificationApi.getAll()
+    const items = Array.isArray(response?.data) ? response.data : []
+    notifications.value = items.filter(matchesTarget).map((item: any) => ({
+      ...item,
+      time: item.createdAt || item.time,
+      read: Boolean(item.read),
+      eventKey: item.id,
+    }))
+  } catch (error) {
     notifications.value = []
   }
 }
 
-onMounted(load)
 onMounted(() => {
-  load()
-  // update when other tabs change notifications
-  window.addEventListener('storage', load)
+  void load()
+  refreshTimer = window.setInterval(() => {
+    void load()
+  }, 30000)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('storage', load)
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer)
+  }
 })
 
 const markRead = (notification: any) => {
   if (!notification) return
-  try {
-    const stored = JSON.parse(localStorage.getItem('notifications') || '[]') || []
-    const updated = stored.map((item: any) => item.eventKey === notification.eventKey
-      ? { ...item, read: true }
-      : item)
-    localStorage.setItem('notifications', JSON.stringify(updated))
-    load()
-  } catch {
-    notification.read = true
-  }
+  notification.read = true
 }
 
 const markAllRead = () => {
-  try {
-    const stored = JSON.parse(localStorage.getItem('notifications') || '[]') || []
-    const visibleKeys = new Set(notifications.value.map((item: any) => item.eventKey))
-    const updated = stored.map((item: any) => visibleKeys.has(item.eventKey)
-      ? { ...item, read: true }
-      : item)
-    localStorage.setItem('notifications', JSON.stringify(updated))
-    load()
-  } catch {
-    notifications.value = notifications.value.map((n: any) => ({ ...n, read: true }))
-  }
+  notifications.value = notifications.value.map((n: any) => ({ ...n, read: true }))
 }
 
 const visibleNotifications = computed(() => notifications.value)

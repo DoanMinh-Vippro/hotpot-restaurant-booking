@@ -8,12 +8,14 @@ import PaymentDialog from './PaymentDialog.vue'
 import ConfirmBanDialog from './ConfirmBanDialog.vue'
 import PopupDatBanThanhCong from './PopupDatBanThanhCong.vue'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useRouter } from 'vue-router'
 import VueFlatPickr from 'vue-flatpickr-component'
 import 'flatpickr/dist/flatpickr.css'
 import { Vietnamese } from 'flatpickr/dist/l10n/vn.js'
 
 type PaymentMethod = 'CHUYEN_KHOAN' | 'VNPAY' | 'CHUA_THANH_TOAN'
 
+const router = useRouter()
 const showPayment = ref(false)
 const showConfirmBan = ref(false) // xác nhận của check bàn
 const dsBanDeXuat = ref<any[]>([]) // bàn hệ thống ưu tiên
@@ -504,6 +506,11 @@ const closePaymentDialog = () => {
     paymentTimer = null
   }
 }
+
+const handleViewHistory = () => {
+  datBanThanhCong.value = false
+  router.push('/customer-profile?tab=bookings')
+}
 </script>
 
 <template>
@@ -662,7 +669,7 @@ const closePaymentDialog = () => {
     @cancel="cancelBan"
   />
 
-  <PopupDatBanThanhCong :show="datBanThanhCong" @close="datBanThanhCong = false" />
+  <PopupDatBanThanhCong :show="datBanThanhCong" @close="datBanThanhCong = false" @view-history="handleViewHistory" />
 </template>
 
 <style scoped>

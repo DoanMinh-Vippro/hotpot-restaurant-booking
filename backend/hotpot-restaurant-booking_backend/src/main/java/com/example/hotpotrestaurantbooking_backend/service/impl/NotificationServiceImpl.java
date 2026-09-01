@@ -19,15 +19,25 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public synchronized void notifyCustomer(Integer customerId, String eventKey, String title, String message) {
-        if (customerId == null || !eventKeys.add("customer:" + customerId + ":" + eventKey)) {
+        notifyCustomer(customerId, null, eventKey, title, message);
+    }
+
+    @Override
+    public synchronized void notifyCustomer(Integer customerId, String phone, String eventKey, String title, String message) {
+        if (customerId == null && (phone == null || phone.isBlank())) {
+            return;
+        }
+        String dedupeKey = "customer:" + (customerId != null ? customerId : phone) + ":" + eventKey;
+        if (!eventKeys.add(dedupeKey)) {
             return;
         }
         notifications.add(new StoredNotification(
-                "customer:" + customerId + ":" + eventKey,
+                dedupeKey,
                 title,
                 message,
                 LocalDateTime.now(),
                 customerId,
+                normalizePhone(phone),
                 null
         ));
     }
@@ -44,15 +54,31 @@ public class NotificationServiceImpl implements NotificationService {
             Integer accountId = employee.getTaiKhoan().getIdTaiKhoan();
             String key = "staff:" + accountId + ":" + eventKey;
             if (eventKeys.add(key)) {
-                notifications.add(new StoredNotification(key, title, message, LocalDateTime.now(), null, accountId));
+                notifications.add(new StoredNotification(key, title, message, LocalDateTime.now(), null, null, accountId));
             }
         }
     }
 
     @Override
     public synchronized List<NotificationResponse> getForCustomer(Integer customerId) {
+        return getForCustomer(customerId, null);
+    }
+
+    @Override
+    public synchronized List<NotificationResponse> getForCustomer(Integer customerId, String phone) {
+        String normalizedPhone = normalizePhone(phone);
         return notifications.stream()
-                .filter(item -> customerId != null && customerId.equals(item.customerId()))
+                .filter(item -> {
+                    boolean matchesCustomer = customerId != null && customerId.equals(item.customerId());
+                    boolean matchesPhone = normalizedPhone != null && normalizedPhone.equals(normalizePhone(item.targetPhone()));
+                    if (customerId != null && normalizedPhone != null) {
+                        return matchesCustomer && matchesPhone;
+                    }
+                    if (customerId != null) {
+                        return matchesCustomer;
+                    }
+                    return matchesPhone;
+                })
                 .sorted(Comparator.comparing(StoredNotification::createdAt).reversed())
                 .map(this::toResponse)
                 .toList();
@@ -69,9 +95,23 @@ public class NotificationServiceImpl implements NotificationService {
 
     private NotificationResponse toResponse(StoredNotification item) {
         return new NotificationResponse(
-                item.id(), item.title(), item.message(), item.createdAt(), false,
-                item.customerId(), item.accountId() != null
+                item.id(),
+                item.title(),
+                item.message(),
+                item.createdAt(),
+                false,
+                item.customerId(),
+                item.targetPhone(),
+                item.accountId() != null
         );
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) {
+            return null;
+        }
+        String normalized = phone.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 
     private record StoredNotification(
@@ -80,6 +120,7 @@ public class NotificationServiceImpl implements NotificationService {
             String message,
             LocalDateTime createdAt,
             Integer customerId,
+            String targetPhone,
             Integer accountId
     ) {
     }

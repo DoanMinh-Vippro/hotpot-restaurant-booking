@@ -870,6 +870,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         guiEmailThongBaoDatBan(datBan, "XAC_NHAN", null);
         notificationService.notifyCustomer(
             datBan.getKhachHang() == null ? null : datBan.getKhachHang().getIdKhachHang(),
+            datBan.getKhachHang() == null ? null : datBan.getKhachHang().getSoDienThoai(),
             "booking-confirmed-" + datBan.getIdDatBan(),
             "Xác nhận đặt bàn thành công",
             "Đơn đặt bàn của bạn đã được xác nhận."
@@ -1173,6 +1174,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
             );
                 notificationService.notifyCustomer(
                     overdueReservation.getKhachHang() == null ? null : overdueReservation.getKhachHang().getIdKhachHang(),
+                    overdueReservation.getKhachHang() == null ? null : overdueReservation.getKhachHang().getSoDienThoai(),
                     "booking-auto-cancelled-" + overdueReservation.getIdDatBan(),
                     "Đặt bàn đã bị hủy",
                     "Đơn đặt bàn của bạn đã bị hủy tự động do quá giờ quy định (15 phút)."
@@ -1191,6 +1193,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 guiEmailThongBaoDatBan(reservation, "NHAC_15", null);
                 notificationService.notifyCustomer(
                         reservation.getKhachHang() == null ? null : reservation.getKhachHang().getIdKhachHang(),
+                        reservation.getKhachHang() == null ? null : reservation.getKhachHang().getSoDienThoai(),
                         "booking-reminder-15-" + reservation.getIdDatBan(),
                         "Nhắc lịch đặt bàn",
                         "Bạn có lịch đặt bàn vào lúc " + reservation.getThoiGianDenDuKien().format(DateTimeFormatter.ofPattern("HH:mm - dd/MM/yyyy")) + " sắp tới. Vui lòng đến đúng giờ nhé!"
@@ -1201,6 +1204,7 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                 guiEmailThongBaoDatBan(reservation, "DEN_GIO", null);
                 notificationService.notifyCustomer(
                         reservation.getKhachHang() == null ? null : reservation.getKhachHang().getIdKhachHang(),
+                        reservation.getKhachHang() == null ? null : reservation.getKhachHang().getSoDienThoai(),
                         "booking-arrival-" + reservation.getIdDatBan(),
                         "Đã đến giờ đặt bàn",
                         "Đã đến giờ đặt bàn của bạn! Kính mời quý khách vào nhà hàng để nhân viên sắp xếp chỗ ngồi."

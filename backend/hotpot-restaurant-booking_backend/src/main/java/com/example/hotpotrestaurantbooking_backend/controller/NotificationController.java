@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/thong-bao")
+@RequestMapping({"/api/thong-bao", "/api/notifications"})
 public class NotificationController {
     private final NotificationService notificationService;
     private final KhachHangRepository khachHangRepository;
@@ -32,7 +32,9 @@ public class NotificationController {
         Integer accountId = ((Number) jwt.getClaim("idTaiKhoan")).intValue();
         KhachHang customer = khachHangRepository.findByTaiKhoan_IdTaiKhoan(accountId).orElse(null);
         if (customer != null) {
-            return ResponseEntity.ok(notificationService.getForCustomer(customer.getIdKhachHang()));
+            return ResponseEntity.ok(
+                    notificationService.getForCustomer(customer.getIdKhachHang(), customer.getSoDienThoai())
+            );
         }
         return ResponseEntity.ok(notificationService.getForStaff(accountId));
     }
