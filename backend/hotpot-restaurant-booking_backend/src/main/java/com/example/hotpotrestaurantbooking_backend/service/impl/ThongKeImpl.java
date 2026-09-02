@@ -230,18 +230,18 @@ public class ThongKeImpl implements ThongKeService {
                 longValue(o, 4),
 
                 // 5 - Số đơn đã cọc
-                longValue(o, 5),
+                longValue(o, 7),
 
                 // 6 - Số đơn chưa cọc
-                longValue(o, 6),
+                longValue(o, 8),
 
                 // 7 - Tiền cọc tiền mặt
-                doubleValue(o, 7),
+                doubleValue(o, 5),
 
                 // 8 - Tiền cọc chuyển khoản
-                doubleValue(o, 8),
+                doubleValue(o, 6),
 
-                // 9 - Số đơn đã thanh toán
+                // 9 - Số hóa đơn đã thanh toán
                 longValue(o, 9)
         );
     }
