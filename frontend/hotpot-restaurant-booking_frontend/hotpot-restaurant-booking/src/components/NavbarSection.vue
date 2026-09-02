@@ -6,29 +6,34 @@ import DatBanView from '@/views/DatBanView.vue'
 import UserProfileDropdown from '@/components/UserProfileDropdown.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
 import DatBanQuanLyApi from '@/api/DatBanQuanLy'
+import NotificationApi from '@/api/NotificationApi'
 const router = useRouter()
 const authStore = useAuthStore()
 const isScrolled = ref(false)
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50
 }
+let refreshNotificationTimer: number | null = null
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
 
-  // Đảm bảo trạng thái auth được khôi phục khi F5
   const token = localStorage.getItem('token')
   if (token && !authStore.isAuthenticated) {
     authStore.decodeToken(token)
   }
-  // Load unread count from storage at startup
-  loadUnreadCount()
-  // update unread count when notifications change in other tabs
+  void loadUnreadCount()
   window.addEventListener('storage', loadUnreadCount)
+  refreshNotificationTimer = window.setInterval(() => {
+    void loadUnreadCount()
+  }, 30000)
 })
 onUnmounted(() => {
   window.removeEventListener('storage', loadUnreadCount)
+  window.removeEventListener('scroll', handleScroll)
+  if (refreshNotificationTimer) {
+    window.clearInterval(refreshNotificationTimer)
+  }
 })
-onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 const goToAuth = () => {
   router.push('/auth')
 }
@@ -46,8 +51,11 @@ const showDatBanModal = ref(false)
 const showNotifPanel = ref(false)
 const unreadCount = ref(0)
 
-const toggleNotif = () => {
+const toggleNotif = async () => {
   showNotifPanel.value = !showNotifPanel.value
+  if (showNotifPanel.value) {
+    await loadUnreadCount()
+  }
 }
 
 const matchesTarget = (notification: any) => {
@@ -56,19 +64,25 @@ const matchesTarget = (notification: any) => {
   const currentId = authStore.customerInfo?.khachHangId
   const currentPhone = authStore.customerInfo?.soDienThoai
   const targetId = notification?.targetKhachHangId
-  const targetPhone = notification?.targetKhachHangPhone || notification?.targetPhone
+  const targetPhone = notification?.targetPhone || notification?.targetKhachHangPhone || notification?.targetPhone
 
   if (!currentId && !currentPhone) return true
   if (targetId != null && currentId != null && Number(targetId) === Number(currentId)) return true
-  if (targetPhone && currentPhone && String(targetPhone) === String(currentPhone)) return true
+  if (targetPhone && currentPhone && String(targetPhone).trim() === String(currentPhone).trim()) return true
   if (targetId == null && targetPhone == null) return true
   return false
 }
 
-const loadUnreadCount = () => {
+const loadUnreadCount = async () => {
+  if (!authStore.isAuthenticated) {
+    unreadCount.value = 0
+    return
+  }
+
   try {
-    const arr = JSON.parse(localStorage.getItem('notifications') || '[]')
-    unreadCount.value = Array.isArray(arr) ? arr.filter((n: any) => !n.read && matchesTarget(n)).length : 0
+    const res = await NotificationApi.getAll()
+    const arr = Array.isArray(res?.data) ? res.data : []
+    unreadCount.value = arr.filter((n: any) => !n.read && matchesTarget(n)).length
   } catch (e) {
     unreadCount.value = 0
   }
@@ -79,7 +93,7 @@ const pushNotification = (payload: any) => {
     const arr = JSON.parse(localStorage.getItem('notifications') || '[]') || []
     arr.unshift({ ...payload, time: new Date().toISOString(), read: false })
     localStorage.setItem('notifications', JSON.stringify(arr))
-    loadUnreadCount()
+    void loadUnreadCount()
   } catch (e) {
     console.warn('Không thể lưu thông báo:', e)
   }
@@ -98,26 +112,44 @@ onMounted(() => {
       const all = Array.isArray(res?.data) ? res.data : []
       const now = Date.now()
       for (const b of all) {
-        const targetMatch = (custId && Number(b.idKhachHang) === Number(custId)) || (custPhone && String(b.sdtKhachHang) === String(custPhone))
+        const targetMatch =
+          (custId && Number(b.idKhachHang) === Number(custId)) ||
+          (custPhone && String(b.sdtKhachHang) === String(custPhone))
         if (!targetMatch) continue
-        const t = b.thoiGianDenDuKien ? new Date(b.thoiGianDenDuKien).getTime() : (b.ngayDat ? new Date(b.ngayDat).getTime() : null)
+        const t = b.thoiGianDenDuKien
+          ? new Date(b.thoiGianDenDuKien).getTime()
+          : b.ngayDat
+            ? new Date(b.ngayDat).getTime()
+            : null
         if (!t) continue
         const diff = t - now
         const notifiedKey = `notified_booking_${b.idDatBan}`
         const notified = localStorage.getItem(notifiedKey)
         // 15 minutes before
         if (diff <= 15 * 60 * 1000 && diff > 0 && !notified) {
-          pushNotification({ title: 'Sắp đến giờ đặt bàn', message: `Đơn #${b.idDatBan} sẽ bắt đầu sau ~${Math.round(diff / 60000)} phút.`, targetKhachHangId: b.idKhachHang })
+          pushNotification({
+            title: 'Sắp đến giờ đặt bàn',
+            message: `Đơn #${b.idDatBan} sẽ bắt đầu sau ~${Math.round(diff / 60000)} phút.`,
+            targetKhachHangId: b.idKhachHang,
+          })
           localStorage.setItem(notifiedKey, JSON.stringify({ pre15: true }))
         }
         // at time
         if (diff <= 0 && diff > -5 * 60 * 1000 && !notified) {
-          pushNotification({ title: 'Đến giờ', message: `Đơn #${b.idDatBan} đã đến giờ. Vui lòng đến cửa hàng.`, targetKhachHangId: b.idKhachHang })
+          pushNotification({
+            title: 'Đến giờ',
+            message: `Đơn #${b.idDatBan} đã đến giờ. Vui lòng đến cửa hàng.`,
+            targetKhachHangId: b.idKhachHang,
+          })
           localStorage.setItem(notifiedKey, JSON.stringify({ atTime: true }))
         }
         // 15 minutes late
         if (diff < -15 * 60 * 1000 && !notified) {
-          pushNotification({ title: 'Khách chậm giờ', message: `Đơn #${b.idDatBan} đã chậm hơn 15 phút. Nếu 1 giờ nữa không có mặt, đơn có thể bị hủy.`, targetKhachHangId: b.idKhachHang })
+          pushNotification({
+            title: 'Khách chậm giờ',
+            message: `Đơn #${b.idDatBan} đã chậm hơn 15 phút. Nếu 1 giờ nữa không có mặt, đơn có thể bị hủy.`,
+            targetKhachHangId: b.idKhachHang,
+          })
           localStorage.setItem(notifiedKey, JSON.stringify({ late15: true }))
         }
       }
@@ -142,7 +174,7 @@ const openDatBan = () => {
   <nav :class="['navbar', { 'navbar-scrolled': isScrolled, 'navbar-admin': authStore.isAdmin }]">
     <div class="nav-container">
       <div class="logo" @click="goHome" style="cursor: pointer">
-        CÁI BANG <span class="gold">RESTO</span>
+        CB <span class="gold">RESTO</span>
       </div>
       <div class="nav-right">
         <ul class="nav-links">
@@ -160,7 +192,9 @@ const openDatBan = () => {
           <!-- Admin menu (visible only to admin/staff) - keep admin-specific pages only -->
           <template v-else>
             <li>
-            <button class="nav-link-button" @click="router.push('/thucDon')">QUẢN LÝ THỰC ĐƠN</button>
+              <button class="nav-link-button" @click="router.push('/thucDon')">
+                QUẢN LÝ THỰC ĐƠN
+              </button>
             </li>
             <li>
               <button class="nav-link-button" @click="router.push('/hoa-don')">HÓA ĐƠN</button>
@@ -216,16 +250,33 @@ const openDatBan = () => {
             ĐĂNG KÝ
           </button>
           <UserProfileDropdown v-else />
-          <div v-if="authStore.isAuthenticated" class="notif-bell" @click="toggleNotif" title="Thông báo">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-bell">
-              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18.6 14.6V11a6 6 0 1 0-12 0v3c0 .538-.214 1.055-.595 1.445L4 17h5"></path>
+          <div
+            v-if="authStore.isAuthenticated"
+            class="notif-bell"
+            @click="toggleNotif"
+            title="Thông báo"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="icon-bell"
+            >
+              <path
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18.6 14.6V11a6 6 0 1 0-12 0v3c0 .538-.214 1.055-.595 1.445L4 17h5"
+              ></path>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
-            <span v-if="unreadCount>0" class="notif-count">{{ unreadCount }}</span>
+            <span v-if="unreadCount > 0" class="notif-count">{{ unreadCount }}</span>
           </div>
           <button class="btn-reservation" @click="openDatBan">ĐẶT BÀN NGAY</button>
           <div v-if="showNotifPanel" class="notif-panel-wrapper">
-            <NotificationPanel @close="showNotifPanel=false" />
+            <NotificationPanel @close="showNotifPanel = false" />
           </div>
           <div v-if="showDatBanModal" class="modal-overlay">
             <div class="modal-content">
@@ -384,10 +435,28 @@ const openDatBan = () => {
   border-color: #c5a059;
   background: rgba(197, 160, 89, 0.1);
 }
-.notif-bell { position: relative; cursor: pointer; color: #fff }
-.notif-bell .icon-bell { opacity: 0.9 }
-.notif-count { position: absolute; top: -6px; right: -6px; background:#c5a059; color:#000; padding:2px 6px; border-radius:12px; font-size:11px; font-weight:700 }
-.notif-panel-wrapper { position: relative }
+.notif-bell {
+  position: relative;
+  cursor: pointer;
+  color: #fff;
+}
+.notif-bell .icon-bell {
+  opacity: 0.9;
+}
+.notif-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #c5a059;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.notif-panel-wrapper {
+  position: relative;
+}
 @media (max-width: 1024px) {
   .nav-links {
     display: none;

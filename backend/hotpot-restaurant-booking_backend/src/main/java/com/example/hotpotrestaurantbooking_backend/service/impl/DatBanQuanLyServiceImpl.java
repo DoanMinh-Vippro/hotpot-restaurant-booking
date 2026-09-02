@@ -8,6 +8,7 @@ import com.example.hotpotrestaurantbooking_backend.enums.TrangThaiDatBanCoc;
 import com.example.hotpotrestaurantbooking_backend.exception.CustomResourceNotFoundException;
 import com.example.hotpotrestaurantbooking_backend.repository.*;
 import com.example.hotpotrestaurantbooking_backend.service.DatBanQuanLyService;
+import com.example.hotpotrestaurantbooking_backend.service.NotificationService;
 import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
@@ -54,8 +55,11 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
     private final MonRepository monRepository;
     private final ChiTietDatBanMonRepository chiTietDatBanMonRepository;
     private final JavaMailSender mailSender; // Tiêm Bean gửi Mail
+    private final NotificationService notificationService;
 
     private static final long THOI_GIAN_GIU_BAN = 3;
+    private final Set<Integer> reminderNotificationsSent = new HashSet<>();
+    private final Set<Integer> arrivalNotificationsSent = new HashSet<>();
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -864,6 +868,13 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
         // --- GỬI MAIL THÔNG BÁO CHO KHÁCH HÀNG ---
         guiEmailThongBaoDatBan(datBan, "XAC_NHAN", null);
+        notificationService.notifyCustomer(
+            datBan.getKhachHang() == null ? null : datBan.getKhachHang().getIdKhachHang(),
+            datBan.getKhachHang() == null ? null : datBan.getKhachHang().getSoDienThoai(),
+            "booking-confirmed-" + datBan.getIdDatBan(),
+            "Xác nhận đặt bàn thành công",
+            "Đơn đặt bàn của bạn đã được xác nhận."
+        );
 
         return mapToResponse(datBan);
     }
@@ -919,6 +930,20 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                     subject = "HOTPOT RESTAURANT - Xác Nhận Đặt Bàn Thành Công!";
                     titleHtml = "<h3 style='color: #2e7d32; text-align: center;'>Bàn của bạn đã được xác nhận!</h3>";
                     subTitleHtml = "<p>Nhà hàng đã tiếp nhận và xác nhận đơn đặt bàn của bạn thành công. Dưới đây là thông tin chi tiết:</p>";
+                    break;
+
+                case "NHAC_15":
+                    subject = "HOTPOT RESTAURANT - Nhắc Lịch Đặt Bàn";
+                    titleHtml = "<h3 style='color: #0288d1; text-align: center;'>Sắp đến giờ đặt bàn</h3>";
+                    subTitleHtml = "<p>Bạn có lịch đặt bàn vào lúc <b>" + thoiGian + "</b> sắp tới. Vui lòng đến đúng giờ nhé!</p>";
+                    mainColor = "#0288d1";
+                    detailBoxBg = "#f0f8ff";
+                    break;
+
+                case "DEN_GIO":
+                    subject = "HOTPOT RESTAURANT - Đã Đến Giờ Đặt Bàn";
+                    titleHtml = "<h3 style='color: #2e7d32; text-align: center;'>Đã đến giờ đặt bàn</h3>";
+                    subTitleHtml = "<p>Đã đến giờ đặt bàn của bạn! Kính mời quý khách vào nhà hàng để nhân viên sắp xếp chỗ ngồi.</p>";
                     break;
 
                 case "DOI_GIO":
@@ -1115,14 +1140,13 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
         return mapToResponse(datBan);
     }
     //===========================================================================
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedRate = 60000)
     public void autoCancelOverdueReservations() {
 
         LocalDateTime now = LocalDateTime.now();
 
         List<DatBan> pendingReservations = datBanRepository.findByTrangThaiIn(
                 List.of(
-                        TrangThaiDatBan.CHO_XAC_NHAN,
                         TrangThaiDatBan.DA_XAC_NHAN
                 )
         );
@@ -1133,7 +1157,6 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
 
         for (DatBan overdueReservation : overdueReservations) {
             overdueReservation.setTrangThai(TrangThaiDatBan.DA_HUY);
-            datBanRepository.save(overdueReservation);
 
             if (overdueReservation.getChiTietDatBanBans() != null) {
                 for (ChiTietDatBanBan ct : overdueReservation.getChiTietDatBanBans()) {
@@ -1141,6 +1164,51 @@ public class DatBanQuanLyServiceImpl implements DatBanQuanLyService {
                         capNhatTrangThaiBan(ct.getBan().getIdBan());
                     }
                 }
+            }
+
+            datBanRepository.save(overdueReservation);
+            guiEmailThongBaoDatBan(
+                    overdueReservation,
+                    "HUY_DON",
+                    "Đơn đặt bàn của bạn đã bị hủy tự động do quá giờ quy định (15 phút)."
+            );
+                notificationService.notifyCustomer(
+                    overdueReservation.getKhachHang() == null ? null : overdueReservation.getKhachHang().getIdKhachHang(),
+                    overdueReservation.getKhachHang() == null ? null : overdueReservation.getKhachHang().getSoDienThoai(),
+                    "booking-auto-cancelled-" + overdueReservation.getIdDatBan(),
+                    "Đặt bàn đã bị hủy",
+                    "Đơn đặt bàn của bạn đã bị hủy tự động do quá giờ quy định (15 phút)."
+                );
+        }
+
+        for (DatBan reservation : pendingReservations) {
+            LocalDateTime arrivalTime = reservation.getThoiGianDenDuKien();
+            if (arrivalTime == null) {
+                continue;
+            }
+
+            long secondsUntilArrival = java.time.Duration.between(now, arrivalTime).getSeconds();
+            if (secondsUntilArrival <= 16 * 60 && secondsUntilArrival >= 14 * 60
+                    && reminderNotificationsSent.add(reservation.getIdDatBan())) {
+                guiEmailThongBaoDatBan(reservation, "NHAC_15", null);
+                notificationService.notifyCustomer(
+                        reservation.getKhachHang() == null ? null : reservation.getKhachHang().getIdKhachHang(),
+                        reservation.getKhachHang() == null ? null : reservation.getKhachHang().getSoDienThoai(),
+                        "booking-reminder-15-" + reservation.getIdDatBan(),
+                        "Nhắc lịch đặt bàn",
+                        "Bạn có lịch đặt bàn vào lúc " + reservation.getThoiGianDenDuKien().format(DateTimeFormatter.ofPattern("HH:mm - dd/MM/yyyy")) + " sắp tới. Vui lòng đến đúng giờ nhé!"
+                );
+            }
+            if (secondsUntilArrival <= 0 && secondsUntilArrival > -60
+                    && arrivalNotificationsSent.add(reservation.getIdDatBan())) {
+                guiEmailThongBaoDatBan(reservation, "DEN_GIO", null);
+                notificationService.notifyCustomer(
+                        reservation.getKhachHang() == null ? null : reservation.getKhachHang().getIdKhachHang(),
+                        reservation.getKhachHang() == null ? null : reservation.getKhachHang().getSoDienThoai(),
+                        "booking-arrival-" + reservation.getIdDatBan(),
+                        "Đã đến giờ đặt bàn",
+                        "Đã đến giờ đặt bàn của bạn! Kính mời quý khách vào nhà hàng để nhân viên sắp xếp chỗ ngồi."
+                );
             }
         }
     }

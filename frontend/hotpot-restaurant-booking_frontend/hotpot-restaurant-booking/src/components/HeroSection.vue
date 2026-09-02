@@ -6,7 +6,7 @@
       <p class="est">ESTABLISHED 2026</p>
       <h1 class="title">
         LẨU ẾCH <br />
-        <span class="gold-italic">Cái Bang</span>
+        <span class="gold-italic">CB</span>
       </h1>
       <div class="line"></div>
       <p class="slogan">Hương vị đồng quê trong không gian đương đại</p>

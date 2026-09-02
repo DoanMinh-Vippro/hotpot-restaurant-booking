@@ -102,7 +102,12 @@ const formatTrangThaiBan = (trangThai: string) => {
               {{ formatLoaiBan(ban.loaiBan) }}
             </span>
 
-            <div class="ban-status">
+            <div
+              class="ban-status"
+              :class="{
+                maintenance: ban.trangThai === 'BAO_TRI',
+              }"
+            >
               {{ formatTrangThaiBan(ban.trangThai) }}
             </div>
           </div>
@@ -192,6 +197,14 @@ const formatTrangThaiBan = (trangThai: string) => {
   font-weight: 700;
 
   color: #725b3c;
+}
+
+.ban-status.maintenance {
+  background: #fde8e5;
+
+  color: #c0392b;
+
+  border: 1px solid #f3c1b9;
 }
 
 .ban-meta {

@@ -144,10 +144,38 @@ async function loadHoaDon() {
 
     return
   }
-  const res = await Order.chonBan(selectedBan.value.idBan)
-  hoaDon.value = res.data
-  const ct = await Order.getChiTietHoaDon(hoaDon.value.idHoaDon)
-  chiTiet.value = ct.data
+
+  try {
+    const res = await Order.chonBan(selectedBan.value.idBan)
+
+    // Bàn chưa có hóa đơn đang hoạt động
+    if (!res.data) {
+      hoaDon.value = null
+
+      chiTiet.value = {
+        dsMon: [],
+        dsCombo: [],
+      }
+
+      return
+    }
+
+    // Có hóa đơn
+    hoaDon.value = res.data
+
+    const ct = await Order.getChiTietHoaDon(hoaDon.value.idHoaDon)
+
+    chiTiet.value = ct.data
+  } catch (error) {
+    console.error('Lỗi tải hóa đơn:', error)
+
+    hoaDon.value = null
+
+    chiTiet.value = {
+      dsMon: [],
+      dsCombo: [],
+    }
+  }
 }
 
 function convertChiTietToStore() {
@@ -199,7 +227,10 @@ onMounted(() => {
 
             <div class="table-info">
               <template v-if="selectedBan">
-                <span class="status">🟢 Đang phục vụ</span>
+                <span class="status" :class="{ waiting: !hoaDon }">
+                  {{ hoaDon ? '🟢 Đang phục vụ' : '⚪ Bàn chưa có khách' }}
+                </span>
+
                 <strong>{{ selectedBan.tenBan }}</strong>
               </template>
 
@@ -260,7 +291,11 @@ onMounted(() => {
       <!-- ================= FOOTER ================= -->
 
       <footer class="order-footer">
-        <button class="order-btn" :disabled="!selectedBan" @click="showConfirmOrder = true">
+        <button
+          class="order-btn"
+          :disabled="!selectedBan || !hoaDon || pendingItems.length === 0"
+          @click="showConfirmOrder = true"
+        >
           XÁC NHẬN ORDER
         </button>
       </footer>

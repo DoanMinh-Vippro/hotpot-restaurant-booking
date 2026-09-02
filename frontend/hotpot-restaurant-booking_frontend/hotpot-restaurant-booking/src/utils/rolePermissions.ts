@@ -31,16 +31,6 @@ export const PERMISSION_MODULES: PermissionModule[] = [
     ],
   },
   {
-    key: 'pos',
-    label: 'Bán hàng',
-    actions: [
-      { key: 'pos.view', label: 'Xem' },
-      { key: 'pos.create', label: 'Thêm' },
-      { key: 'pos.update', label: 'Sửa' },
-      { key: 'pos.delete', label: 'Xóa' },
-    ],
-  },
-  {
     key: 'discount',
     label: 'Quản lý giảm giá',
     actions: [
@@ -48,26 +38,6 @@ export const PERMISSION_MODULES: PermissionModule[] = [
       { key: 'discount.create', label: 'Thêm' },
       { key: 'discount.update', label: 'Sửa' },
       { key: 'discount.delete', label: 'Xóa' },
-    ],
-  },
-  {
-    key: 'table',
-    label: 'Quản lý bàn',
-    actions: [
-      { key: 'table.view', label: 'Xem' },
-      { key: 'table.create', label: 'Thêm' },
-      { key: 'table.update', label: 'Sửa' },
-      { key: 'table.delete', label: 'Xóa' },
-    ],
-  },
-  {
-    key: 'reservation',
-    label: 'Quản lý đặt bàn',
-    actions: [
-      { key: 'reservation.view', label: 'Xem' },
-      { key: 'reservation.create', label: 'Thêm' },
-      { key: 'reservation.update', label: 'Sửa' },
-      { key: 'reservation.delete', label: 'Xóa' },
     ],
   },
   {
@@ -128,6 +98,16 @@ export const PERMISSION_MODULES: PermissionModule[] = [
       { key: 'deposit.create', label: 'Thêm' },
       { key: 'deposit.update', label: 'Sửa' },
       { key: 'deposit.delete', label: 'Xóa' },
+    ],
+  },
+  {
+    key: 'order',
+    label: 'Order',
+    actions: [
+      { key: 'order.view', label: 'Xem' },
+      { key: 'order.create', label: 'Thêm' },
+      { key: 'order.update', label: 'Sửa' },
+      { key: 'order.delete', label: 'Xóa' },
     ],
   },
 ]

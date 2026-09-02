@@ -8,17 +8,22 @@ import PaymentDialog from './PaymentDialog.vue'
 import ConfirmBanDialog from './ConfirmBanDialog.vue'
 import PopupDatBanThanhCong from './PopupDatBanThanhCong.vue'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useRouter } from 'vue-router'
 import VueFlatPickr from 'vue-flatpickr-component'
 import 'flatpickr/dist/flatpickr.css'
 import { Vietnamese } from 'flatpickr/dist/l10n/vn.js'
 
 type PaymentMethod = 'CHUYEN_KHOAN' | 'VNPAY' | 'CHUA_THANH_TOAN'
 
+const router = useRouter()
 const showPayment = ref(false)
 const showConfirmBan = ref(false) // xác nhận của check bàn
-const dsBanDeXuat = ref<any[]>([])
+const dsBanDeXuat = ref<any[]>([]) // bàn hệ thống ưu tiên
+const dsBanTrong = ref<any[]>([]) // toàn bộ bàn trống
+const banDangChon = ref<number[]>([])
 const checkBanResult = ref<any>(null)
 const authStore = useAuthStore() // lấy tên khách bỏ form
+
 const errors = ref({
   sdtKhachHang: '',
   soNguoi: '',
@@ -275,6 +280,7 @@ const chonMon = (dsMon: any[]) => {
 //==========================================
 const checkBan = async () => {
   if (!validateForm()) return
+
   try {
     const res = await DatBanApi.checkBan({
       soNguoi: formData.value.soNguoi,
@@ -284,32 +290,97 @@ const checkBan = async () => {
     })
 
     checkBanResult.value = res.data
+
+    // Bàn hệ thống đề xuất
     dsBanDeXuat.value = res.data.dsBan || []
 
+    // Toàn bộ bàn đang trống cho khách tự chọn
+    dsBanTrong.value = res.data.dsBanTrong || []
+
+    banDangChon.value = []
+
     showConfirmBan.value = true
-  } catch (error) {
+  } catch (error: any) {
     console.error('Lỗi kiểm tra bàn:', error)
+
+    checkBanResult.value = {
+      trangThai: 'KHONG_CO_BAN',
+      message: error?.response?.data?.message || 'Không thể kiểm tra bàn. Vui lòng thử lại.',
+      canGhep: false,
+      tongSucChua: 0,
+      dsBan: [],
+      dsBanTrong: [],
+    }
+
+    dsBanDeXuat.value = []
+    dsBanTrong.value = []
+    banDangChon.value = []
+
+    showConfirmBan.value = true
   }
 }
 
+const chonBan = (ban: any) => {
+  const index = banDangChon.value.indexOf(ban.idBan)
+
+  if (index !== -1) {
+    banDangChon.value.splice(index, 1)
+  } else {
+    banDangChon.value.push(ban.idBan)
+  }
+}
+
+const validateBan = () => {
+  if (banDangChon.value.length === 0) {
+    return false
+  }
+
+  const dsBan = dsBanTrong.value.filter((item: any) => banDangChon.value.includes(item.idBan))
+
+  if (dsBan.length !== banDangChon.value.length) {
+    banDangChon.value = banDangChon.value.filter((id) =>
+      dsBanTrong.value.some((item: any) => item.idBan === id),
+    )
+    return false
+  }
+
+  const tongSucChua = dsBan.reduce((tong: number, ban: any) => tong + (ban.sucChua || 0), 0)
+
+  if (tongSucChua < formData.value.soNguoi) {
+    return false
+  }
+
+  return true
+}
+
 const confirmBan = () => {
-  if (!checkBanResult.value) return
-  formData.value.dsBan = checkBanResult.value.dsBan.map((b: any) => b.idBan)
+  if (!validateBan()) {
+    return
+  }
+
+  // banDangChon đã là number[]
+  formData.value.dsBan = [...banDangChon.value]
+
   showConfirmBan.value = false
+  checkBanResult.value = null
+
   createBooking()
 }
+
 const cancelBan = () => {
   showConfirmBan.value = false
   checkBanResult.value = null
   dsBanDeXuat.value = []
+  dsBanTrong.value = []
+  banDangChon.value = []
   formData.value.dsBan = []
 }
 
 const createBooking = async () => {
-  isAdding.value = true // dùng để báo chặn watch không đè dữ liệu khi lỡ ở cha có emit watch sẽ đẩy data cũ làm hỏng luồng
+  isAdding.value = true
 
   try {
-    // Có combo => phải thanh toán tiền cọc
+    // Có combo hoặc món => phải thanh toán tiền cọc
     if (formData.value.dsCombo.length > 0 || formData.value.dsMon.length > 0) {
       if (formData.value.phuongThucThanhToan === 'CHUYEN_KHOAN') {
         const paymentRes = await paymentApi.createPayment({
@@ -351,7 +422,6 @@ const createBooking = async () => {
 
               resetForm()
               emit('refresh')
-
               datBanThanhCong.value = true
             }
           } catch (e) {
@@ -373,9 +443,8 @@ const createBooking = async () => {
 
         window.location.href = res.data.paymentUrl
       }
-    }
-    // Không có combo => không cần cọc
-    else {
+    } else {
+      // Không có combo/món => không cần cọc
       formData.value.soTienCoc = 0
 
       await DatBanApi.add({
@@ -387,7 +456,6 @@ const createBooking = async () => {
 
       resetForm()
       emit('refresh')
-
       datBanThanhCong.value = true
     }
   } catch (error) {
@@ -396,24 +464,6 @@ const createBooking = async () => {
     isAdding.value = false
   }
 }
-
-// const update = async () => {
-//   console.log('FORM DATA:', formData.value)
-
-//   if (formData.value.idDatBan == null) {
-//     console.error('Không có idDatBan để update')
-//     return
-//   }
-
-//   try {
-//     await DatBanApi.update(formData.value.idDatBan, formData.value)
-//     alert('sửa thành công')
-//     emit('refresh')
-//     resetForm()
-//   } catch (error) {
-//     console.error('sửa thất bại', error)
-//   }
-// }
 
 const resetForm = () => {
   isResetting.value = true
@@ -455,6 +505,11 @@ const closePaymentDialog = () => {
     clearInterval(paymentTimer)
     paymentTimer = null
   }
+}
+
+const handleViewHistory = () => {
+  datBanThanhCong.value = false
+  router.push('/customer-profile?tab=bookings')
 }
 </script>
 
@@ -605,11 +660,16 @@ const closePaymentDialog = () => {
   <ConfirmBanDialog
     :show="showConfirmBan"
     :result="checkBanResult"
+    :so-nguoi="formData.soNguoi"
+    :ds-ban-trong="dsBanTrong"
+    :ds-ban-de-xuat="dsBanDeXuat"
+    :ban-dang-chon="banDangChon"
+    @chon-ban="chonBan"
     @confirm="confirmBan"
     @cancel="cancelBan"
   />
 
-  <PopupDatBanThanhCong :show="datBanThanhCong" @close="datBanThanhCong = false" />
+  <PopupDatBanThanhCong :show="datBanThanhCong" @close="datBanThanhCong = false" @view-history="handleViewHistory" />
 </template>
 
 <style scoped>

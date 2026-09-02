@@ -24,6 +24,13 @@ const DatBanApi = {
   checkBan(data: any) {
     return ApiClient.post<DTOCheckBanResponse>('/api/dat-bans/check-ban', data)
   },
+  getDanhSachBanCoTheChon(thoiGianDenDuKien: string) {
+    return ApiClient.get('/api/dat-bans/danh-sach-ban-co-the-chon', {
+      params: {
+        thoiGianDenDuKien,
+      },
+    })
+  },
   tinhTrangBan(thoiGianDenDuKien: string) {
     return ApiClient.get('/api/dat-bans/tinh-trang-ban', {
       params: {

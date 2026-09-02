@@ -31,6 +31,11 @@ public class DatBanController {
         return ResponseEntity.ok(datBanService.checkBan(request));
     }
 
+    @GetMapping("/danh-sach-ban-co-the-chon")
+    public ResponseEntity<List<DTOBanResponse>> getDanhSachBanCoTheChon(@RequestParam LocalDateTime thoiGianDenDuKien) {
+        return ResponseEntity.ok(datBanService.getDanhSachBanCoTheChon(thoiGianDenDuKien));
+    }
+
     @GetMapping("{id}")
     public ResponseEntity<DTODatBanResponse> findById(@PathVariable Integer id){
         return ResponseEntity.status(HttpStatus.OK).body(datBanService.findById(id));
