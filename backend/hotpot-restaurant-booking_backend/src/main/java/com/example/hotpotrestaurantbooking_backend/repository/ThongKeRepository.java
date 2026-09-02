@@ -180,7 +180,7 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
             );
 // 9. DASHBOARD TỔNG QUAN
 // ========================
-    @Query(value = """
+@Query(value = """
     SELECT
         -- 0. Tổng doanh thu
         ISNULL(SUM(hd.tong_tien), 0),
@@ -188,7 +188,7 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
         -- 1. Doanh thu tiền mặt
         ISNULL(SUM(
             CASE
-                WHEN hd.phuong_thuc_thanh_toan = 0
+                WHEN hd.phuong_thuc_thanh_toan = 1
                 THEN hd.tong_tien
                 ELSE 0
             END
@@ -197,7 +197,7 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
         -- 2. Doanh thu chuyển khoản
         ISNULL(SUM(
             CASE
-                WHEN hd.phuong_thuc_thanh_toan = 1
+                WHEN hd.phuong_thuc_thanh_toan = 2
                 THEN hd.tong_tien
                 ELSE 0
             END
@@ -212,43 +212,47 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
             FROM KhachHang
         ),
 
-        -- 5. Tiền cọc tiền mặt
-        (
-            SELECT ISNULL(SUM(db.so_tien_coc), 0)
-            FROM DatBan db
-            WHERE db.trang_thai_coc = 1
-              AND db.phuong_thuc_thanh_toan = 0
-              AND db.thoi_gian_den_du_kien >= :fromDate
-              AND db.thoi_gian_den_du_kien < :toDate
-        ),
-
-        -- 6. Tiền cọc chuyển khoản
-        (
-            SELECT ISNULL(SUM(db.so_tien_coc), 0)
-            FROM DatBan db
-            WHERE db.trang_thai_coc = 1
-              AND db.phuong_thuc_thanh_toan = 1
-              AND db.thoi_gian_den_du_kien >= :fromDate
-              AND db.thoi_gian_den_du_kien < :toDate
-        ),
-
-        -- 7. Số đơn đã cọc
-        (
-            SELECT COUNT(*)
-            FROM DatBan db
-            WHERE db.trang_thai_coc = 1
-              AND db.thoi_gian_den_du_kien >= :fromDate
-              AND db.thoi_gian_den_du_kien < :toDate
-        ),
-
-        -- 8. Số đơn chưa cọc
-        (
-            SELECT COUNT(*)
-            FROM DatBan db
-            WHERE db.trang_thai_coc = 0
-              AND db.thoi_gian_den_du_kien >= :fromDate
-              AND db.thoi_gian_den_du_kien < :toDate
-        ),
+       -- 5. Tiền cọc tiền mặt
+          (
+              SELECT ISNULL(SUM(hd2.tien_coc), 0)
+              FROM HoaDon hd2
+              WHERE hd2.tien_coc > 0
+                AND hd2.phuong_thuc_thanh_toan = 1
+                AND hd2.trang_thai_thanh_toan = 1
+                AND hd2.thoi_gian_xuat >= :fromDate
+                AND hd2.thoi_gian_xuat < DATEADD(DAY, 1, CAST(:toDate AS DATE))
+          ),
+          
+          -- 6. Tiền cọc chuyển khoản
+          (
+              SELECT ISNULL(SUM(hd2.tien_coc), 0)
+              FROM HoaDon hd2
+              WHERE hd2.tien_coc > 0
+                AND hd2.phuong_thuc_thanh_toan = 2
+                AND hd2.trang_thai_thanh_toan = 1
+                AND hd2.thoi_gian_xuat >= :fromDate
+                AND hd2.thoi_gian_xuat < DATEADD(DAY, 1, CAST(:toDate AS DATE))
+          ),
+          
+          -- 7. Số hóa đơn đã cọc
+          (
+              SELECT COUNT(*)
+              FROM HoaDon hd2
+              WHERE hd2.tien_coc > 0
+                AND hd2.trang_thai_thanh_toan = 1
+                AND hd2.thoi_gian_xuat >= :fromDate
+                AND hd2.thoi_gian_xuat < DATEADD(DAY, 1, CAST(:toDate AS DATE))
+          ),
+          
+          -- 8. Số hóa đơn chưa cọc
+          (
+              SELECT COUNT(*)
+              FROM HoaDon hd2
+              WHERE (hd2.tien_coc IS NULL OR hd2.tien_coc = 0)
+                AND hd2.trang_thai_thanh_toan = 1
+                AND hd2.thoi_gian_xuat >= :fromDate
+                AND hd2.thoi_gian_xuat < DATEADD(DAY, 1, CAST(:toDate AS DATE))
+          ),
 
         -- 9. Số hóa đơn đã thanh toán
         COUNT(hd.id_hoa_don)
@@ -257,12 +261,12 @@ SELECT m.ten_mon, SUM(hdct.so_luong) FROM HoaDonChiTiet hdct JOIN Mon m ON hdct.
 
     WHERE hd.trang_thai_thanh_toan = 1
       AND hd.thoi_gian_xuat >= :fromDate
-      AND hd.thoi_gian_xuat < :toDate
+      AND hd.thoi_gian_xuat < DATEADD(DAY, 1, CAST(:toDate AS DATE))
 """, nativeQuery = true)
-    Object dashboard(
-            @Param("fromDate") String fromDate,
-            @Param("toDate") String toDate
-    );
+Object dashboard(
+        @Param("fromDate") String fromDate,
+        @Param("toDate") String toDate
+);
     // ========================
     // 10. DOANH THU THEO KHU VỰC
     // ========================
