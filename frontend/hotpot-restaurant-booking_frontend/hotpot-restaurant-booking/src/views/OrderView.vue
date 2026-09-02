@@ -53,7 +53,7 @@ async function inPhieuOrder(items: any[]) {
   const thoiGianFormatted = `${now.toLocaleTimeString('vi-VN')} ${now.toLocaleDateString('vi-VN')}`
 
   await MayInApi.sendTicket({
-    tenQuay: 'Quầy Bếp',
+    tenQuay: 'Quầy Bar',
     maHoaDon: hoaDon.value.maHoaDon,
     tenBan: selectedBan.value.tenBan,
     tenNhanVien: 'Nhân viên',

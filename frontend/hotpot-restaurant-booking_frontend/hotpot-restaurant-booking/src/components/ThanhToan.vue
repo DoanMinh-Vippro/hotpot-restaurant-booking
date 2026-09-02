@@ -519,7 +519,7 @@ const chonHoaDon = (invoice: any) => {
   danhSachMonPhucVu.value = mapInvoiceItems(invoice)
   gioHang.value = []
   giamGiaDangChon.value = invoice.idGiamGia ?? null
-  tabGioHang.value = 'mon-da-goi'
+  tabGioHang.value = 'goi-mon'
   orderStore.setActiveInvoice(props.ban.idBan, invoice.idHoaDon)
 }
 
@@ -795,32 +795,6 @@ const checkHoaDonTam = async () => {
   }
 }
 
-// const saveChiTietHoaDon = async (idHoaDon: number) => {
-//   for (const item of danhSachMonPhucVu.value) {
-//     const gia = item.gia ?? 0
-//     let trangThaiMonAn = 'DANG_LEN'
-//     if (item.daLen >= item.soLuong) {
-//       trangThaiMonAn = 'DA_LEN'
-//     }
-
-//     await HoaDonChiTietApi.add({
-//       maHoaDonChiTiet: `HDCT${Date.now()}${item.idMon || item.idCombo}`,
-//       idHoaDon,
-//       idMon: item.idMon,
-//       idCombo: item.idCombo,
-//       soLuong: item.soLuong,
-//       giaBanTaiThoiDiem: gia,
-//       tienGiamGiaMon: 0,
-//       thanhTien: gia * item.soLuong,
-//       trangThaiMonAn,
-//       daLen: item.daLen || 0,
-//       orderedBy: item.orderedBy || getCurrentOperatorName(),
-//       orderedAt: item.orderedAt || getLocalDateTimeNow(),
-//     } as any)
-//   }
-// }
-
-
 const saveChiTietHoaDon = async (idHoaDon: number) => {
   for (const [index, item] of danhSachMonPhucVu.value.entries()) {
     const gia = Number(item.gia ?? 0)
@@ -856,12 +830,6 @@ const saveChiTietHoaDon = async (idHoaDon: number) => {
   }
 }
 
-// const capNhatDatabaseNoRebuild = async () => {
-//   if (!hoaDonHienTai.value?.idHoaDon) return
-//   await HoaDonChiTietApi.deleteByHoaDon(hoaDonHienTai.value.idHoaDon)
-//   await saveChiTietHoaDon(hoaDonHienTai.value.idHoaDon)
-// }
-
 const capNhatDatabaseNoRebuild = async () => {
   if (!hoaDonHienTai.value?.idHoaDon) return
 
@@ -888,21 +856,38 @@ const updateHoaDon = async (idHoaDon: number, payload: any) => {
   await saveChiTietHoaDon(idHoaDon)
 }
 
-// const buildChiTietPayload = () =>
-//   danhSachMonPhucVu.value.map((item: any, index: number) => ({
-//     maHoaDonChiTiet: `HDCT${Date.now()}${index + 1}${item.idMon || item.idCombo || ''}`,
-//     idMon: item.idMon ?? null,
-//     idCombo: item.idCombo ?? null,
-//     soLuong: Number(item.soLuong || 0),
-//     giaBanTaiThoiDiem: Number(item.gia || 0),
-//     tienGiamGiaMon: 0,
-//     thanhTien: Number((item.gia || 0) * (item.soLuong || 0)),
-//     orderedBy: item.orderedBy || getCurrentOperatorName(),
-//     orderedAt: item.orderedAt || getLocalDateTimeNow(),
-//   }))
+const buildChiTietPayload = () => {
+  const itemMap = new Map<string, any>()
 
-const buildChiTietPayload = () =>
-  danhSachMonPhucVu.value.map((item: any, index: number) => {
+  // 1. Lấy tất cả món đã gửi bếp / đã lên bàn
+  danhSachMonPhucVu.value.forEach((item: any) => {
+    const key = item.idMon ? `MON_${item.idMon}` : `COMBO_${item.idCombo}`
+    itemMap.set(key, {
+      ...item,
+      soLuong: Number(item.soLuong || 0),
+      daLen: Number(item.daLen || 0),
+    })
+  })
+
+  // 2. Gom thêm các món mới đang nằm trong Giỏ hàng (chưa gửi bếp)
+  gioHang.value.forEach((item: any) => {
+    const key = item.idMon ? `MON_${item.idMon}` : `COMBO_${item.idCombo}`
+    const qty = Number(item.soLuong || 0)
+
+    if (itemMap.has(key)) {
+      const existing = itemMap.get(key)
+      existing.soLuong += qty
+    } else {
+      itemMap.set(key, {
+        ...item,
+        soLuong: qty,
+        daLen: 0,
+      })
+    }
+  })
+
+  // 3. Tạo payload gửi xuống API
+  return Array.from(itemMap.values()).map((item: any, index: number) => {
     const soLuong = Number(item.soLuong || 0)
     const daLen = Number(item.daLen || 0)
 
@@ -912,32 +897,20 @@ const buildChiTietPayload = () =>
         : 'DANG_LEN'
 
     return {
-      maHoaDonChiTiet:
-        `HDCT${Date.now()}${index + 1}${item.idMon || item.idCombo || ''}`,
-
+      maHoaDonChiTiet: `HDCT${Date.now()}${index + 1}${item.idMon || item.idCombo || ''}`,
       idMon: item.idMon ?? null,
       idCombo: item.idCombo ?? null,
-
       soLuong,
-
-      // QUAN TRỌNG: phải giữ lại trạng thái
       daLen,
       trangThaiMonAn,
-
       giaBanTaiThoiDiem: Number(item.gia || 0),
-
       tienGiamGiaMon: 0,
-
-      thanhTien:
-        Number(item.gia || 0) * soLuong,
-
-      orderedBy:
-        item.orderedBy || getCurrentOperatorName(),
-
-      orderedAt:
-        item.orderedAt || getLocalDateTimeNow(),
+      thanhTien: Number(item.gia || 0) * soLuong,
+      orderedBy: item.orderedBy || getCurrentOperatorName(),
+      orderedAt: item.orderedAt || getLocalDateTimeNow(),
     }
   })
+}
 
 const xuLyHoaDon = async (
   trangThaiHoaDon: number,
@@ -989,7 +962,9 @@ const luuHoaDonTam = async () => {
 
   try {
     const isFirstTime = !hoaDonHienTai.value
+    // Gọi API lưu/cập nhật hóa đơn với số tiền thanh toán = 0, tiền khách đưa = 0
     await xuLyHoaDon(0, 0)
+    
     if (isFirstTime) {
       alert('Tạo hóa đơn tạm thành công!')
     } else {
@@ -1321,7 +1296,7 @@ watch(
     if (reservationItems.length > 0) {
       gioHang.value = []
       danhSachMonPhucVu.value = reservationItems
-      tabGioHang.value = 'mon-da-goi'
+      tabGioHang.value = 'goi-mon'
     } else if (db.idCombo) {
       gioHang.value = [
         {
@@ -1377,9 +1352,17 @@ onMounted(async () => {
       >
         Món ăn
       </div>
-      <div class="action-bottom-group">
-    <button class="btn-quay-lai" @click="quayLai">Quay Lại</button>
-  </div>
+     <div class="action-bottom-group">
+  <button 
+    class="btn-luu-tam" 
+    :disabled="isShiftClosedForUi" 
+    @click="luuHoaDonTam"
+  >
+    💾 Lưu
+  </button>
+  
+  <button class="btn-quay-lai" @click="quayLai">Quay Lại</button>
+</div>
     </div>
 
     <!-- CỘT DANH SÁCH MÓN GIỮA -->
@@ -2255,6 +2238,57 @@ onMounted(async () => {
   box-shadow: 0 0 12px rgba(255, 216, 107, 0.2);
 }
 
+/* =========================================================
+   NÚT LƯU
+   ========================================================= */
+/* Style cho nút Lưu đồng bộ kích thước và giao diện với nút Quay Lại */
+.btn-luu-tam {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  
+  /* Màu nền tone xanh lá đậm hợp tông với các nút hệ thống */
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+  color: #ffffff;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-luu-tam:hover {
+  background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+  border-color: #81c784;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.35);
+}
+
+.btn-luu-tam:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-luu-tam:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Giúp 2 nút xếp chồng cách nhau đẹp mắt */
+.action-bottom-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+}
 /* =========================================================
    DANH MỤC
    ========================================================= */
