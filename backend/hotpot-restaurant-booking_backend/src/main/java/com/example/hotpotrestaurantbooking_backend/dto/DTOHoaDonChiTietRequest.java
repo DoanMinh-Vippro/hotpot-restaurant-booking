@@ -18,6 +18,8 @@ public class DTOHoaDonChiTietRequest {
     private Integer idCombo;
     private Integer idHoaDon;
     private Integer soLuong;
+    private Integer daLen;
+    private String trangThaiMonAn;
     private BigDecimal giaBanTaiThoiDiem;
     private BigDecimal tienGiamGiaMon;
     private BigDecimal thanhTien;

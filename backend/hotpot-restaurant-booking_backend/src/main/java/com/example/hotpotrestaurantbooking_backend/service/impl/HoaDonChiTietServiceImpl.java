@@ -24,6 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
+
     private final HoaDonChiTietRepository hoaDonChiTietRepository;
     private final HoaDonRepository hoaDonRepository;
     private final MonRepository monRepository;
@@ -43,7 +44,11 @@ public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
     public DTOHoaDonChiTietResponse findById(Integer id) {
         return hoaDonChiTietRepository.findById(id)
                 .map(this::convertToResponse)
-                .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay hoa don chi tiet voi id: " + id));
+                .orElseThrow(() ->
+                        new CustomResourceNotFoundException(
+                                "Khong tim thay hoa don chi tiet voi id: " + id
+                        )
+                );
     }
 
     @Override
@@ -61,18 +66,33 @@ public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
 
     @Override
     public DTOHoaDonChiTietResponse add(DTOHoaDonChiTietRequest request) {
+
         HoaDonChiTiet hdct = new HoaDonChiTiet();
+
         updateEntityFromRequest(hdct, request);
+
         hoaDonChiTietRepository.save(hdct);
+
         return convertToResponse(hdct);
     }
 
     @Override
-    public DTOHoaDonChiTietResponse update(Integer id, DTOHoaDonChiTietRequest request) {
+    public DTOHoaDonChiTietResponse update(
+            Integer id,
+            DTOHoaDonChiTietRequest request
+    ) {
+
         HoaDonChiTiet hdct = hoaDonChiTietRepository.findById(id)
-                .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay hoa don chi tiet voi id: " + id));
+                .orElseThrow(() ->
+                        new CustomResourceNotFoundException(
+                                "Khong tim thay hoa don chi tiet voi id: " + id
+                        )
+                );
+
         updateEntityFromRequest(hdct, request);
+
         hoaDonChiTietRepository.save(hdct);
+
         return convertToResponse(hdct);
     }
 
@@ -81,51 +101,162 @@ public class HoaDonChiTietServiceImpl implements HoaDonChiTietService {
         hoaDonChiTietRepository.deleteById(id);
     }
 
-    private void updateEntityFromRequest(HoaDonChiTiet hdct, DTOHoaDonChiTietRequest request) {
-        if (request.getMaHoaDonChiTiet() != null) hdct.setMaHoaDonChiTiet(request.getMaHoaDonChiTiet());
-        if (request.getSoLuong() != null) hdct.setSoLuong(request.getSoLuong());
-        if (request.getGiaBanTaiThoiDiem() != null) hdct.setGiaBanTaiThoiDien(request.getGiaBanTaiThoiDiem());
-        if (request.getTienGiamGiaMon() != null) hdct.setTienGiamGiaMon(request.getTienGiamGiaMon());
-        if (request.getThanhTien() != null) hdct.setThanhTien(request.getThanhTien());
-        if (request.getOrderedAt() != null) hdct.setOrderedAt(request.getOrderedAt());
-        if (request.getOrderedBy() != null) hdct.setOrderedBy(request.getOrderedBy());
+    private void updateEntityFromRequest(
+            HoaDonChiTiet hdct,
+            DTOHoaDonChiTietRequest request
+    ) {
 
+        if (request.getMaHoaDonChiTiet() != null) {
+            hdct.setMaHoaDonChiTiet(request.getMaHoaDonChiTiet());
+        }
+
+        if (request.getSoLuong() != null) {
+            hdct.setSoLuong(request.getSoLuong());
+        }
+
+        // =========================
+        // THÊM: SỐ LƯỢNG ĐÃ LÊN
+        // =========================
+        if (request.getDaLen() != null) {
+            hdct.setDaLen(request.getDaLen());
+        }
+
+        // =========================
+        // THÊM: TRẠNG THÁI MÓN ĂN
+        // =========================
+        if (request.getTrangThaiMonAn() != null) {
+            hdct.setTrangThaiMonAn(request.getTrangThaiMonAn());
+        }
+
+        if (request.getGiaBanTaiThoiDiem() != null) {
+            hdct.setGiaBanTaiThoiDien(request.getGiaBanTaiThoiDiem());
+        }
+
+        if (request.getTienGiamGiaMon() != null) {
+            hdct.setTienGiamGiaMon(request.getTienGiamGiaMon());
+        }
+
+        if (request.getThanhTien() != null) {
+            hdct.setThanhTien(request.getThanhTien());
+        }
+
+        if (request.getOrderedAt() != null) {
+            hdct.setOrderedAt(request.getOrderedAt());
+        }
+
+        if (request.getOrderedBy() != null) {
+            hdct.setOrderedBy(request.getOrderedBy());
+        }
+
+        // =========================
+        // MÓN
+        // =========================
         if (request.getIdMon() != null) {
+
             Mon mon = monRepository.findById(request.getIdMon())
-                    .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay mon"));
+                    .orElseThrow(() ->
+                            new CustomResourceNotFoundException("Khong tim thay mon")
+                    );
+
             hdct.setMon(mon);
         }
 
+        // =========================
+        // COMBO
+        // =========================
         if (request.getIdCombo() != null) {
+
             Combo combo = comboRepository.findById(request.getIdCombo())
-                    .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay combo"));
+                    .orElseThrow(() ->
+                            new CustomResourceNotFoundException("Khong tim thay combo")
+                    );
+
             hdct.setCombo(combo);
         }
 
+        // =========================
+        // HÓA ĐƠN
+        // =========================
         if (request.getIdHoaDon() != null) {
+
             HoaDon hoaDon = hoaDonRepository.findById(request.getIdHoaDon())
-                    .orElseThrow(() -> new CustomResourceNotFoundException("Khong tim thay hoa don"));
+                    .orElseThrow(() ->
+                            new CustomResourceNotFoundException("Khong tim thay hoa don")
+                    );
+
             hdct.setHoaDon(hoaDon);
         }
     }
 
-    private DTOHoaDonChiTietResponse convertToResponse(HoaDonChiTiet chiTiet) {
-        DTOHoaDonChiTietResponse dto = mapper.map(chiTiet, DTOHoaDonChiTietResponse.class);
+    private DTOHoaDonChiTietResponse convertToResponse(
+            HoaDonChiTiet chiTiet
+    ) {
+
+        DTOHoaDonChiTietResponse dto =
+                mapper.map(chiTiet, DTOHoaDonChiTietResponse.class);
+
+        // =========================
+        // MÓN
+        // =========================
         if (chiTiet.getMon() != null) {
+
             dto.setIdMon(chiTiet.getMon().getIdMon());
+
             dto.setTenMon(chiTiet.getMon().getTenMon());
-            dto.setDonGiaHienTai(chiTiet.getMon() != null ? chiTiet.getMon().getDonGiaHienTai() : null);
+
+            dto.setDonGiaHienTai(
+                    chiTiet.getMon().getDonGiaHienTai()
+            );
         }
+
+        // =========================
+        // COMBO
+        // =========================
         if (chiTiet.getCombo() != null) {
+
             dto.setIdCombo(chiTiet.getCombo().getIdCombo());
+
             dto.setTenCombo(chiTiet.getCombo().getTenCombo());
-            dto.setGiaCombo(chiTiet.getCombo() != null ? chiTiet.getCombo().getGiaCombo() : null);
-            dto.setComboItems(chiTietComboRepository.findMonNamesByComboId(chiTiet.getCombo().getIdCombo()));
+
+            dto.setGiaCombo(
+                    chiTiet.getCombo().getGiaCombo()
+            );
+
+            dto.setComboItems(
+                    chiTietComboRepository.findMonNamesByComboId(
+                            chiTiet.getCombo().getIdCombo()
+                    )
+            );
         }
+
+        // =========================
+        // HÓA ĐƠN
+        // =========================
         if (chiTiet.getHoaDon() != null) {
-            dto.setIdHoaDon(chiTiet.getHoaDon().getIdHoaDon());
+
+            dto.setIdHoaDon(
+                    chiTiet.getHoaDon().getIdHoaDon()
+            );
         }
-        dto.setGiaBanTaiThoiDiem(chiTiet.getGiaBanTaiThoiDien());
+
+        // =========================
+        // GIÁ BÁN
+        // =========================
+        dto.setGiaBanTaiThoiDiem(
+                chiTiet.getGiaBanTaiThoiDien()
+        );
+
+        // =========================
+        // THÊM: TRẠNG THÁI MÓN
+        // =========================
+        dto.setDaLen(
+                chiTiet.getDaLen()
+        );
+
+        dto.setTrangThaiMonAn(
+                chiTiet.getTrangThaiMonAn()
+        );
+
         return dto;
     }
 }

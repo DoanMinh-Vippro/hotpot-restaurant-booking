@@ -8,6 +8,7 @@ import OrderMenu from '@/components/Order/OrderMenu.vue'
 import OrderDetail from '@/components/Order/OrderDetail.vue'
 import { useOrderStore } from '@/stores/OrderStore'
 import MayInApi from '@/api/MayInApi'
+import DanhMucApi from '@/api/DanhMucApi.ts'
 
 const orderStore = useOrderStore()
 const currentTab = ref<'MON' | 'COMBO' | 'DO_UONG'>('MON')
@@ -16,6 +17,7 @@ const hoaDon = ref<any>(null)
 const showConfirmOrder = ref(false)
 const showSuccessPopup = ref(false)
 const pendingItems = ref<any[]>([])
+const danhSachDanhMuc = ref<any[]>([])
 
 async function confirmOrder() {
   const itemsCanPrint = [...pendingItems.value]
@@ -46,25 +48,38 @@ async function confirmOrder() {
 }
 
 async function inPhieuOrder(items: any[]) {
-  if (!hoaDon.value || !selectedBan.value) return
+  if (!hoaDon.value || !selectedBan.value || items.length === 0) return
 
   const now = new Date()
-
   const thoiGianFormatted = `${now.toLocaleTimeString('vi-VN')} ${now.toLocaleDateString('vi-VN')}`
 
-  await MayInApi.sendTicket({
-    tenQuay: 'Quầy Bar',
-    maHoaDon: hoaDon.value.maHoaDon,
-    tenBan: selectedBan.value.tenBan,
-    tenNhanVien: 'Nhân viên',
-    thoiGian: thoiGianFormatted,
+  // Nhóm món theo quầy giống màn ThanhToan.vue
+  const grouped = items.reduce<Record<string, any[]>>((acc, item) => {
+    const quay = item.tenQuay || 'Quầy Bếp'
+    ;(acc[quay] ||= []).push(item)
+    return acc
+  }, {})
 
-    danhSachMon: items.map((item) => ({
-      tenMon: item.tenMon ?? item.tenCombo,
-      soLuong: item.soLuong,
-    })),
-  })
+  console.log('Danh sách món theo quầy:', grouped)
+
+  // Gửi phiếu riêng xuống từng quầy
+  const printRequests = Object.entries(grouped).map(([quay, danhSachMon]) =>
+    MayInApi.sendTicket({
+      tenQuay: quay,
+      maHoaDon: hoaDon.value.maHoaDon,
+      tenBan: selectedBan.value!.tenBan,
+      tenNhanVien: 'Nhân viên',
+      thoiGian: thoiGianFormatted,
+      danhSachMon: danhSachMon.map((item: any) => ({
+        tenMon: item.tenMon ?? item.tenCombo ?? 'Món chưa đặt tên',
+        soLuong: item.soLuong,
+      })),
+    }),
+  )
+
+  await Promise.all(printRequests)
 }
+
 
 const chiTiet = ref<any>({
   dsMon: [],
@@ -84,12 +99,48 @@ async function handleSelectBan(ban: OrderBan) {
 
 async function loadMenu() {
   try {
-    const res = await Order.getMenu()
-    menu.value = res.data
+    // Đồng bộ đúng logic với ThanhToan.vue:
+    // lấy Menu + DanhMuc, sau đó xác định quầy theo idDanhMuc
+    const [menuRes, danhMucRes] = await Promise.all([
+      Order.getMenu(),
+      DanhMucApi.getDanhSach(),
+    ])
+
+    const dsDanhMuc = danhMucRes.data || []
+    const menuData = menuRes.data || {}
+
+    danhSachDanhMuc.value = dsDanhMuc
+
+    menu.value = {
+      ...menuData,
+      dsMon: (menuData.dsMon || []).map((m: any) => {
+        const dm = dsDanhMuc.find(
+          (d: any) => Number(d.idDanhMuc) === Number(m.idDanhMuc),
+        )
+
+        return {
+          ...m,
+          quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP',
+        }
+      }),
+      dsCombo: menuData.dsCombo || [],
+    }
   } catch (e) {
-    console.error(e)
+    console.error('Lỗi tải menu:', e)
   }
 }
+
+// Xác định quầy chế biến từ cột quay của DanhMuc
+function layTenQuay(item: any): string {
+  const quay = item.quay || item.danhMuc?.quay || ''
+
+  if (String(quay).toUpperCase() === 'BAR') {
+    return 'Quầy Bar'
+  }
+
+  return 'Quầy Bếp'
+}
+
 
 function handleSelectItem(item: any) {
   if (currentTab.value === 'MON') {
@@ -100,7 +151,9 @@ function handleSelectItem(item: any) {
 }
 
 function themMon(item: any) {
-  const exist = pendingItems.value.find((i) => i.loai === 'MON' && i.idMon === item.idMon)
+  const exist = pendingItems.value.find(
+    (i) => i.loai === 'MON' && i.idMon === item.idMon,
+  )
 
   if (exist) {
     exist.soLuong++
@@ -111,14 +164,18 @@ function themMon(item: any) {
       tenMon: item.tenMon,
       gia: item.donGiaHienTai,
       soLuong: 1,
+
+      // Lấy quầy từ DanhMuc giống ThanhToan.vue
+      tenQuay: layTenQuay(item),
     })
   }
-
-  // chỉ update UI
 }
 
+
 function themCombo(item: any) {
-  const exist = pendingItems.value.find((i) => i.loai === 'COMBO' && i.idCombo === item.idCombo)
+  const exist = pendingItems.value.find(
+    (i) => i.loai === 'COMBO' && i.idCombo === item.idCombo,
+  )
 
   if (exist) {
     exist.soLuong++
@@ -129,9 +186,13 @@ function themCombo(item: any) {
       tenCombo: item.tenCombo,
       gia: item.giaCombo,
       soLuong: 1,
+
+      // Đồng bộ với ThanhToan.vue: Combo hiện tại mặc định xuống Bếp
+      tenQuay: 'Quầy Bếp',
     })
   }
 }
+
 
 async function loadHoaDon() {
   if (!selectedBan.value) {
@@ -182,13 +243,23 @@ function convertChiTietToStore() {
   const result: any[] = []
 
   chiTiet.value.dsMon.forEach((m: any) => {
+    // Khi load lại chi tiết hóa đơn, tiếp tục xác định đúng quầy theo DanhMuc
+    const dm = danhSachDanhMuc.value.find(
+      (d: any) => Number(d.idDanhMuc) === Number(m.idDanhMuc),
+    )
+
+    const monDaGanQuay = {
+      ...m,
+      quay: m.quay || m.danhMuc?.quay || dm?.quay || 'BEP',
+    }
+
     result.push({
       idMon: m.idMon,
       tenMon: m.tenMon,
       gia: Number(m.donGia),
       soLuong: m.soLuong,
       loai: 'MON',
-      tenQuay: 'Quầy Bếp',
+      tenQuay: layTenQuay(monDaGanQuay),
       daLen: 0,
     })
   })
@@ -207,6 +278,7 @@ function convertChiTietToStore() {
 
   return result
 }
+
 
 onMounted(() => {
   loadMenu()
@@ -323,7 +395,7 @@ onMounted(() => {
 
         <h3>Order thành công</h3>
 
-        <p>Đơn gọi món đã được gửi xuống bếp.</p>
+        <p>Đơn gọi món đã được gửi xuống các quầy tương ứng.</p>
 
         <button class="confirm-btn" @click="showSuccessPopup = false">OK</button>
       </div>

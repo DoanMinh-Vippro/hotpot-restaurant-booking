@@ -24,6 +24,8 @@ public class DTOHoaDonChiTietResponse {
     private BigDecimal giaCombo;
     private Integer idHoaDon;
     private Integer soLuong;
+    private Integer daLen;
+    private String trangThaiMonAn;
     private BigDecimal giaBanTaiThoiDiem;
     private BigDecimal tienGiamGiaMon;
     private BigDecimal thanhTien;

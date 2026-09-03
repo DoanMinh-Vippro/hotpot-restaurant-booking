@@ -669,6 +669,8 @@ public class HoaDonServiceImpl implements HoaDonService {
                             dto.setTenMon(ct.getMon() != null ? ct.getMon().getTenMon() : null);
                             dto.setTenCombo(ct.getCombo() != null ? ct.getCombo().getTenCombo() : null);
                             dto.setSoLuong(ct.getSoLuong());
+                            dto.setDaLen(ct.getDaLen());
+                            dto.setTrangThaiMonAn(ct.getTrangThaiMonAn());
                             dto.setGiaBanTaiThoiDiem(ct.getGiaBanTaiThoiDien());
                             dto.setTienGiamGiaMon(ct.getTienGiamGiaMon());
                             dto.setThanhTien(ct.getThanhTien());

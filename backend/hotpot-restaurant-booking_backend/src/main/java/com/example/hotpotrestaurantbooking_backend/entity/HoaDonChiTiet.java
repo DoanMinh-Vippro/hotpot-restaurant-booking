@@ -20,6 +20,11 @@ public class HoaDonChiTiet {
     private Integer idHoaDonChiTiet;
     private String maHoaDonChiTiet;
     private Integer soLuong;
+    @Column(name = "da_len")
+    private Integer daLen = 0;
+
+    @Column(name = "trang_thai_mon_an")
+    private String trangThaiMonAn;
     private BigDecimal giaBanTaiThoiDien;
     private BigDecimal tienGiamGiaMon;
     private BigDecimal thanhTien;
